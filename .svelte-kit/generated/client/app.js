@@ -42,7 +42,7 @@ export const dictionary = {
 		"/teams": [17],
 		"/testimonials": [18],
 		"/values": [19],
-		"/[[preview=preview]]": [~2],
+		"/[[preview=preview]]": [2],
 		"/[[preview=preview]]/[uid]": [~3]
 	};
 

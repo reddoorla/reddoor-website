@@ -54,7 +54,6 @@
 		"src/routes/+layout.server.js"
 	],
 	"/[[preview=preview]]": [
-		"src/routes/[[preview=preview]]/+page.server.js",
 		"src/routes/+layout.server.js"
 	],
 	"/[[preview=preview]]/[uid]": [

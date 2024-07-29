@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body{
-    font-family: "Helvetica Neue LT Std", "helvetica", sans-serif;
+    font-family: "pragmatica", "helvetica", sans-serif;
     transition-property: all;
     transition-timing-function: cubic-bezier(.5,0,0,1);
     transition-duration: 500ms;
@@ -11,6 +11,8 @@ body{
     overflow-x: clip;
     scrollbar-width: none !important;
     overflow-y: auto;
+    color: #6D6E71;
+    background-color: #fff;
 }
 
 body::-webkit-scrollbar { 
@@ -43,122 +45,111 @@ button{
 }
 
 h1{
-    font-size: 66px;
+    font-size: 120px;
     font-style: normal;
     font-weight: 700;
-    line-height: 80px; /* 121.212% */
+    line-height: 130px; 
 }
 
 h2{
-    font-size: 50px;
+    font-size: 90px;
     font-weight: 700;
-    line-height: 64px; /* 128% */
+    line-height: 100px; 
 }
 
 h3{
-    font-size: 38px;
+    font-size: 80px;
     font-style: normal;
-    font-weight: 700;
-    line-height: 48px; 
+    font-weight: 200;
+    line-height: 90px; 
 }
 
 h4{
-    font-size: 28px;
+    font-size: 50px;
     font-style: normal;
-    font-weight: 700;
-    line-height: 38px; /* 135.714% */
+    font-weight: 200;
+    line-height: 70px; 
 }
 
 h5{
-   font-size: 1.5rem; 
-   line-height: 1.5em;
+   font-size: 36px;
+   font-style: normal;
+   font-weight: 200; 
+   line-height: 50px;
 }
 
 h6{
-    font-size: 14px;
+    font-size: 18px;
     font-style: normal;
     font-weight: 700;
-    line-height: 24px; /* 171.429% */
-    letter-spacing: 1px;
-    text-transform: uppercase;
+    line-height: 30px; 
 }
 
 p{
-    font-size: 16px;
+    font-size: 18px;
     font-style: normal;
-    font-weight: 400;
-    line-height: 24px; /* 150% */
+    font-weight: 300;
+    line-height: 30px;
 }
 
-.label{
-    font-family: "helvetica";
-    font-size: 12px;
+.large-body{
+    font-size: 22px;
     font-style: normal;
-    font-weight: 400;
-    line-height: 18px; /* 150% */
+    font-weight: 300;
+    line-height: 35px; 
 }
 
 button{
     cursor: pointer;
 }
 
-a{
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 400;
-    line-height:1em;
-    color:#424B5A;
-}
 
-@media only screen and (max-width:786px) {
+@media only screen and (max-width:1024px) {
     h1{
-        font-size: 36px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: 44px; /* 121.212% */
+        font-size: 80px;
+        line-height: 90px; 
     }
     
     h2{
-        font-size: 32px;
-        font-style: normal;
-        font-weight: 700;
-        line-height: 42px;
+        font-size: 35px;
+        line-height: 45px;
     }
     
     h3{
-        font-size: 28px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: 40px;
+        font-size: 60px;
+        line-height: 70px;
     }
     
     h4{
-        font-size: 2rem;
-        line-height: 1.4em;
+        font-size: 45px;
+        line-height: 60px;
     }
     
-    h5{
-       font-size: 1.5rem; 
-       line-height: 1.5em;
-    }
-    
-    
-    p{
-        font-size: 16px;
-        font-style: normal;
-        font-weight: 400;
-        line-height: 24px; /* 150% */
-    }
     
 
-    
-    a{
-        font-size: 14px;
-        font-style: normal;
-        font-weight: 400;
-        line-height: normal;
-        margin: 0px 0px 8.5px 0px;
+
 }
+
+@media only screen and (max-width:768px) {
+    h1{
+        font-size: 70px;
+        line-height: 80px; /* 121.212% */
+    }
+    
+    h2{
+        font-size: 25px;
+        line-height: 35px;
+    }
+    
+    
+    h4{
+        font-size: 40px;
+        line-height: 50px;
+    }
+
+    
+    
+
 }
 
 /* svelte-select stylings*/
@@ -221,6 +212,3 @@ input[type='textarea']::placeholder{
     /* 142.857% */
 }
 
-.filter-to-dark{
-    filter: invert(25%) sepia(15%) saturate(703%) hue-rotate(178deg) brightness(99%) contrast(85%);
-}

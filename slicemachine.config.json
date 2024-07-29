@@ -1,6 +1,6 @@
 {
-	"repositoryName": "reddoor-wireframer",
-	"adapter": "@slicemachine/adapter-sveltekit",
-	"libraries": ["./src/lib/slices"],
-	"localSliceSimulatorURL": "http://localhost:5173/slice-simulator"
+  "repositoryName": "reddoor-la",
+  "adapter": "@slicemachine/adapter-sveltekit",
+  "libraries": ["./src/lib/slices"],
+  "localSliceSimulatorURL": "http://localhost:5173/slice-simulator"
 }

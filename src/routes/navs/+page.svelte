@@ -7,7 +7,7 @@
     import logoIcon from "$lib/assets/icons/logos/logo.svg"
     import logoFull from "$lib/assets/icons/logos/logoFull.svg"
 
-    import { fly, crossfade, fade } from "svelte/transition"
+    import { fly, fade } from "svelte/transition"
 
     const NAV_LINKS=[
         {
@@ -33,9 +33,7 @@
 
     ];
 
-    const [send, receive] = crossfade({
-    duration: 200
-  });
+
 
     let isOverlayVisible = false;
 

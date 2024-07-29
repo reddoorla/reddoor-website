@@ -1,9 +1,13 @@
 <script>
-	import { SliceZone } from '@prismicio/svelte';
+  import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
 
-	import { components } from '$lib/slices';
 
-	export let data;
 </script>
 
-<SliceZone slices={data.page.data.slices} {components} />
+<svelte:head>
+	<title>Reddoor Creative | Home</title>
+</svelte:head>
+
+<ContentWidth>
+	
+</ContentWidth>
