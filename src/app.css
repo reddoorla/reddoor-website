@@ -24,13 +24,13 @@ body::-webkit-scrollbar {
 
 .bg-paper{
     background-image: url('/waterColorBg.jpg');
-    background-size: 100vw;
+    background-size: 300px;
     background-position: center;
 }
 
 .bg-paper-red{
     background-image: url('/waterColorBgRed.jpg');
-    background-size: 100vw;
+    background-size: 300px;
     background-position: center;
 
 }
@@ -121,7 +121,7 @@ button{
     cursor: pointer;
 }
 
-.footer-text{
+.label{
 font-size: 14px;
 color: #6c6d70;
 line-height: 25px;

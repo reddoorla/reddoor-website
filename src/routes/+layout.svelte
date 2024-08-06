@@ -69,7 +69,7 @@
 <main>
 	<!-- nav #2 -->
 {#if showNav}
-<div class="h-16 w-screen top-0 fixed bg-white bg-opacity-80" transition:fly={{y:-64, delay:500}}>
+<div class="h-16 w-screen top-0 fixed z-20 bg-white bg-opacity-80" transition:fly={{y:-64, delay:500}}>
     <ContentWidth class="flex flex-row justify-between items-center h-full">
         <a href="/" class="hover:opacity-80 transition-all duration-500 bump nav-link">
             Reddoor Creative
@@ -101,10 +101,10 @@
 	<slot />
 
 <footer>
-    <div class="w-screen py-12 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
+    <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
         <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-            <h3 class="text-white w-4/5">Isn't it time to arm your brand with a clear story and compelling design?</h3>
-            <DefaultButton class="mt-6" text="MEET WITH US" filled={false} click={()=>window.location.href="/contact"}/>
+            <h3 class="text-white md:w-3/5">Isn't it time to arm your brand with a clear story and compelling design?</h3>
+            <DefaultButton class="mt-6 text-white border-white border-1" text="MEET WITH US" filled={false} click={()=>window.location.href="/contact"}/>
         </ContentWidth>
     </div>
     <ContentWidth class="py-10 flex flex-row justify-between">
@@ -117,7 +117,7 @@
                     <i class="fa-brands fa-instagram d"/>
                 </a>
             </div>
-            <div class="flex md:hidden flex-col tracking-wide footer-text gap-8">
+            <div class="flex md:hidden flex-col tracking-wide label gap-8">
                 <div class="flex flex-col">
                     <div>CONTACT</div>
                     <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
@@ -142,7 +142,7 @@
                 {"© Reddoor Creative 2006-"+ new Date().getFullYear() + ", All Rights Reserved"}
             </div>
         </div>
-        <div class="hidden md:flex flex-col tracking-wide footer-text gap-16">
+        <div class="hidden md:flex flex-col tracking-wide label gap-16">
             <div class="flex flex-col">
                 <div>CONTACT</div>
                 <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>

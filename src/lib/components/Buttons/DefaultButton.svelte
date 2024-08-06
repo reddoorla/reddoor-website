@@ -2,15 +2,13 @@
     export let text = "BUTTON";
     export let click = ()=>{};
     export let filled = true;
+    export let bold = false;
 </script>
 
 <style>
     button{
         padding: 4px 24px;
         font-size: 15px;
-        border: 1px solid #fff;
-        font-weight: 300;
-        color: #fff;
         line-height: 35px;
     }
 
@@ -22,9 +20,14 @@
 
 <button on:click={click} 
         class="{filled ?
-         "bg-primary bg-opacity-80 hover:bg-opacity-100 active:bg-black  text-white" 
+         "bg-primary border-1 border-primary hover:bg-primary-dark active:bg-black text-white" 
          : 
-         "hover:bg-white text-white hover:text-dark " 
-         } border-2 tracking-wider w-auto text-center mb-5 sm:mb-0 uppercase cursor-pointer text-nowrap transition-all duration-300 active:-translate-y-2 {$$props.class || ''}">
+         " " 
+         }
+         {bold ?
+         "font-semibold":
+         "font-light"
+         } 
+         tracking-wider w-auto text-center mb-5 sm:mb-0 uppercase cursor-pointer text-nowrap transition-all duration-300 active:-translate-y-2 {$$props.class || ''}">
         {text}
 </button>

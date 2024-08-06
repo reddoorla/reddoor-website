@@ -36,6 +36,8 @@ export default {
       mid:'#6c6d70',
       dark: '#424B5A',
       primary: '#D71920',
+      "primary-dark":"#aa1419",
+
     },
     extend: {
       transitionTimingFunction: {
@@ -82,6 +84,9 @@ export default {
         'max': 'max-content',
         'fit': 'fit-content',
         'proportion': 'proportion'
+      },
+      borderWidth: {
+        1:'1px'
       }
     },
   },
