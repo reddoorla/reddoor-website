@@ -14,7 +14,7 @@
     const NAV_LINKS=[
         {
             label:"Portfolio",
-            href:"/portfolio"
+            href:"/"
         },
         {
             label:"About",
