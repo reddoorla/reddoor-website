@@ -22,7 +22,8 @@ export const nodes = [
 	() => import('./nodes/18'),
 	() => import('./nodes/19'),
 	() => import('./nodes/20'),
-	() => import('./nodes/21')
+	() => import('./nodes/21'),
+	() => import('./nodes/22')
 ];
 
 export const server_loads = [0];
@@ -40,12 +41,13 @@ export const dictionary = {
 		"/mastheads": [13],
 		"/navs": [14],
 		"/plans": [15],
-		"/portfolios": [16],
-		"/slice-simulator": [17],
-		"/sliders": [18],
-		"/teams": [19],
-		"/testimonials": [20],
-		"/values": [21],
+		"/portfolios": [17],
+		"/portfolio": [16],
+		"/slice-simulator": [18],
+		"/sliders": [19],
+		"/teams": [20],
+		"/testimonials": [21],
+		"/values": [22],
 		"/[[preview=preview]]": [2],
 		"/[[preview=preview]]/[uid]": [~3]
 	};

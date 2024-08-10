@@ -148,9 +148,9 @@
                     <div>/</div>
                     <a href="/" class="text-primary underline">Portfolio</a>
                     <div>/</div>
-                    <a href="/" class="text-primary underline">About</a>
+                    <a href="/about" class="text-primary underline">About</a>
                     <div>/</div>
-                    <a href="/" class="text-primary underline">Meet with Us</a>
+                    <a href="/contact" class="text-primary underline">Meet with Us</a>
                 </div>
             </div>
             <div class="label">

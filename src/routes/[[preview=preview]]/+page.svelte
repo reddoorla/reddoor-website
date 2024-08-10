@@ -238,7 +238,7 @@
             
                 <div  out:fade={{duration:300}} in:fade={{delay:300, duration:400}} class="flex flex-row gap-3 md:ml-[20%] lg:ml-[40%] mt-24">
                   <DefaultButton class="text-primary border-primary border-1" filled={false}  text="OPEN" click={()=>window.location.href=projectArray[sliderIndex].projectLink}/>
-                    <DefaultButton class="text-mid border-mid border-1" filled={false} text="VIEW ALL" click={()=>"/portfolio"}/>
+                    <DefaultButton class="text-mid border-mid border-1" filled={false} text="VIEW ALL" click={()=>window.location.href="/"}/>
                 </div>
               </div>
               {/key}

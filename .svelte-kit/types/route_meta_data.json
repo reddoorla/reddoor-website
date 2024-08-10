@@ -44,6 +44,9 @@
 	"/portfolios": [
 		"src/routes/+layout.server.js"
 	],
+	"/portfolio": [
+		"src/routes/+layout.server.js"
+	],
 	"/slice-simulator": [
 		"src/routes/+layout.server.js"
 	],
