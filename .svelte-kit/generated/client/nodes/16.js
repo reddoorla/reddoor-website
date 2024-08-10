@@ -1,1 +1,1 @@
-export { default as component } from "../../../../src/routes/slice-simulator/+page.svelte";
+export { default as component } from "../../../../src/routes/portfolios/+page.svelte";

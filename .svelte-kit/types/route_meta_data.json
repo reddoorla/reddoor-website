@@ -14,6 +14,9 @@
 	"/contacts": [
 		"src/routes/+layout.server.js"
 	],
+	"/contact": [
+		"src/routes/+layout.server.js"
+	],
 	"/content": [
 		"src/routes/+layout.server.js"
 	],

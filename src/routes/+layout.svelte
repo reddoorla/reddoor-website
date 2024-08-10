@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { PrismicPreview } from '@prismicio/svelte/kit';
 	import { page } from '$app/stores';
 	import { repositoryName } from '$lib/prismicio';
@@ -28,15 +28,29 @@
     ];
 
     let showNav = false;
-    let isNavTransparent = true;
+    let isNavTransparent = false;
 
     let isOverlayVisible = false;
 
     const toggleOverlayOn = () => isOverlayVisible = true;
     const toggleOverlayOff = () => isOverlayVisible = false;
 
-    onMount(()=>showNav=true);
+    let scrollY:number;
+
+    const handleScroll = () =>{
+        if(scrollY>600){
+            showNav=true;
+        }else{
+            showNav=false;
+        }
+    }
+
+    onMount(()=>{
+ 
+        window.addEventListener('scroll', handleScroll);
+    });
 </script>
+<svelte:window bind:scrollY={scrollY} />
 
 <svelte:head>
 	<title>{$page.data.title}</title>
@@ -59,7 +73,7 @@
         <a href={item.href} class="text-white text-2xl">{item.label}</a>
     {/each}
 
-    <button class="absolute top-5 right-5 opacity-60 hover:opacity-100 transition-all z-40" on:click={toggleOverlayOff}>
+    <button class="absolute top-5 right-5 opacity-60 hover:opacity-100 transition z-40" on:click={toggleOverlayOff}>
         <div in:fade={{delay: 600}} out:fade class="text-white">
         <i class="fa-sharp fa-thin fa-xmark fa-2xl"  />
         </div>
@@ -70,7 +84,7 @@
 <main>
 	<!-- nav #2 -->
 {#if showNav}
-<div class="h-12 w-screen top-0 fixed z-20 bg-white bg-opacity-80" transition:fly={{y:-64, delay:500}}>
+<div class="h-12 w-screen top-0 fixed z-20 {isNavTransparent ? "bg-transparent text-white" : "bg-white"} bg-opacity-80" transition:fly={{y:-64, delay:500}}>
     <ContentWidth class="flex flex-row justify-between items-center h-full">
         <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
             Reddoor Creative
