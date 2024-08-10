@@ -25,7 +25,7 @@ if(float==="right")
 
 </script>
 
-<div class="{$$props.class || ''} w-full flex flex-col  p-2 sm:p-8 justify-{justify} text-{float}"
+<div class="{$$props.class || ''} w-full flex flex-col justify-{justify} text-{float}"
      style="background-color: {backgroundColor}"
 >
     {#if icon}
@@ -33,11 +33,11 @@ if(float==="right")
     {/if}
   
     {#if testimonialText}
-        <p class="mb-7 max-w-full">{testimonialText}</p>
+        <p class="mb-7 max-w-full whitespace-pre-wrap">{testimonialText}</p>
     {/if}   
 
     {#if attribution}
-        <p class="mb-3 max-w-full">{attribution}</p>
+        <p class="mb-3 max-w-full label text-primary">{attribution}</p>
     {/if}  
 
     {#if attributionLabel}

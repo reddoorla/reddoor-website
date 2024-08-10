@@ -28,6 +28,7 @@
     ];
 
     let showNav = false;
+    let isNavTransparent = true;
 
     let isOverlayVisible = false;
 
@@ -69,9 +70,9 @@
 <main>
 	<!-- nav #2 -->
 {#if showNav}
-<div class="h-16 w-screen top-0 fixed z-20 bg-white bg-opacity-80" transition:fly={{y:-64, delay:500}}>
+<div class="h-12 w-screen top-0 fixed z-20 bg-white bg-opacity-80" transition:fly={{y:-64, delay:500}}>
     <ContentWidth class="flex flex-row justify-between items-center h-full">
-        <a href="/" class="hover:opacity-80 transition-all duration-500 bump nav-link">
+        <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
             Reddoor Creative
         </a>
         
@@ -80,9 +81,9 @@
             <div class="hidden lg:flex flex-row justify-between items-center gap-10">
                 {#each NAV_LINKS as item, i}
                     {#if i<NAV_LINKS.length-1}
-                    <a class="nav-link" href={item.href}>{item.label}</a>
+                    <a class="label" href={item.href}>{item.label}</a>
                     {:else}
-                    <a class="text-primary nav-link" href={item.href}>{item.label}</a>
+                    <a class="text-primary label" href={item.href}>{item.label}</a>
                     {/if}
                 {/each}
             </div>
@@ -104,7 +105,7 @@
     <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
         <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
             <h3 class="text-white md:w-3/5">Isn't it time to arm your brand with a clear story and compelling design?</h3>
-            <DefaultButton class="mt-6 text-white border-white border-1" text="MEET WITH US" filled={false} click={()=>window.location.href="/contact"}/>
+            <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} click={()=>window.location.href="/contact"}/>
         </ContentWidth>
     </div>
     <ContentWidth class="py-10 flex flex-row justify-between">
@@ -138,7 +139,7 @@
                     <a href="/" class="text-primary underline">Meet with Us</a>
                 </div>
             </div>
-            <div class="footer-text">
+            <div class="label">
                 {"© Reddoor Creative 2006-"+ new Date().getFullYear() + ", All Rights Reserved"}
             </div>
         </div>

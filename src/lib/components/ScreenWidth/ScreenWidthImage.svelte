@@ -15,24 +15,25 @@
 	<svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
 	
 	<section>
-		<div class="right-0 left-0 overflow-hidden max-h-screen aspect-video relative {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'}">
+		<div class="right-0 left-0 max-h-screen aspect-video relative {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'}">
 			{#if vimeoId}
 				
 					<iframe 
 					title="background video" 
 					src={`https://player.vimeo.com/video/${vimeoId}?background=1`}
-					class="aspect-video {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'} contrast-[1.15] -z-10 {$$props.class || ''}"
+					class="aspect-video {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'} contrast-[1.15] {$$props.class || ''}"
 					frameborder="0"
 					allowfullscreen
 					
 				  ></iframe>
 			
 			{:else}
-				<img src={image} alt={altText} class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover {image===placeholder ? "lg:w-[45%] md:h-auto" : ""} -z-10 {$$props.class || ''}"/>
+				<img src={image} alt={altText} class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover {image===placeholder ? "lg:w-[45%] md:h-auto" : ""} {$$props.class || ''}"/>
 			{/if}
-			
-			<ContentWidth class='{$$props.class || ''} h-full'>
+			<div class="w-full max-w-[100vw] h-full max-h-screen relative">
+			<ContentWidth class='{$$props.class || ''} h-full z-10 relative'>
 				<slot />
 			</ContentWidth>
+			</div>
 		</div>
 	</section>

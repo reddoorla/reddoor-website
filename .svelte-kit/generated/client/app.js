@@ -20,28 +20,30 @@ export const nodes = [
 	() => import('./nodes/16'),
 	() => import('./nodes/17'),
 	() => import('./nodes/18'),
-	() => import('./nodes/19')
+	() => import('./nodes/19'),
+	() => import('./nodes/20')
 ];
 
 export const server_loads = [0];
 
 export const dictionary = {
-		"/blogs": [4],
-		"/contacts": [5],
-		"/content": [6],
-		"/ctas": [7],
-		"/faqs": [8],
-		"/footers": [9],
-		"/lists": [10],
-		"/mastheads": [11],
-		"/navs": [12],
-		"/plans": [13],
-		"/portfolios": [14],
-		"/slice-simulator": [15],
-		"/sliders": [16],
-		"/teams": [17],
-		"/testimonials": [18],
-		"/values": [19],
+		"/about": [4],
+		"/blogs": [5],
+		"/contacts": [6],
+		"/content": [7],
+		"/ctas": [8],
+		"/faqs": [9],
+		"/footers": [10],
+		"/lists": [11],
+		"/mastheads": [12],
+		"/navs": [13],
+		"/plans": [14],
+		"/portfolios": [15],
+		"/slice-simulator": [16],
+		"/sliders": [17],
+		"/teams": [18],
+		"/testimonials": [19],
+		"/values": [20],
 		"/[[preview=preview]]": [2],
 		"/[[preview=preview]]/[uid]": [~3]
 	};

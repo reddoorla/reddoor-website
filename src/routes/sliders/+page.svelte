@@ -122,6 +122,7 @@
 />
 
 <Spacer color="#424B5A" />
+
 <div class="w-full relative">
     
 <ContentWidth class="flex flex-col lg:flex-row relative">
