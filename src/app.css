@@ -40,7 +40,7 @@ body::-webkit-scrollbar {
 }
 
 .bump:active{
-    transform: translateY(-8px);
+    transform: translateY(-5px);
 }
 
 a{
