@@ -66,7 +66,7 @@
 </svelte:head>
 
 {#if isOverlayVisible}
-<div class="w-screen h-screen fixed bg-primary flex flex-col items-center justify-center gap-12 z-30" transition:fly={{y:"-100%"}}>
+<div class="w-screen h-lvh fixed bg-primary flex flex-col items-center justify-center gap-12 z-30" transition:fly={{y:"-100%"}}>
     <a href="/" class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>Home</a>
     {#each NAV_LINKS as item}
         <a href={item.href} class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>{item.label}</a>
