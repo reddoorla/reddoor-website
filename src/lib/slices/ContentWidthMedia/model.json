@@ -79,10 +79,10 @@
                   "thumbnails": []
                 }
               },
-              "vimeoembed": {
-                "type": "Embed",
+              "vimeoid": {
+                "type": "Text",
                 "config": {
-                  "label": "vimeoEmbed",
+                  "label": "vimeoId",
                   "placeholder": ""
                 }
               }

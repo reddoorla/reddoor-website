@@ -268,14 +268,14 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
   image: prismic.ImageField<never>;
 
   /**
-   * vimeoEmbed field in *ContentWidthMedia → Default → Primary → images*
+   * vimeoId field in *ContentWidthMedia → Default → Primary → images*
    *
-   * - **Field Type**: Embed
+   * - **Field Type**: Text
    * - **Placeholder**: *None*
-   * - **API ID Path**: content_width_image.default.primary.images[].vimeoembed
-   * - **Documentation**: https://prismic.io/docs/field#embed
+   * - **API ID Path**: content_width_image.default.primary.images[].vimeoid
+   * - **Documentation**: https://prismic.io/docs/field#key-text
    */
-  vimeoembed: prismic.EmbedField;
+  vimeoid: prismic.KeyTextField;
 }
 
 /**

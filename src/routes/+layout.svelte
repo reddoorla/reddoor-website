@@ -38,10 +38,7 @@
     let scrollY:number;
 
     const handleScroll = () =>{
-        if(scrollY>300){
-            showNav=true;
-        }
-        
+            showNav=scrollY>300;
     }
 
     onMount(()=>{
@@ -82,6 +79,37 @@
 </div>
 {/if}
 <main>
+    {#if !showNav}
+
+    <div class="h-12 w-screen top-0 absolute z-20 bg-transparent mix-blend-difference" transition:fly={{y:-64, delay:500}}>
+        <ContentWidth class="flex flex-row justify-between items-center h-full">
+            <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
+                Reddoor Creative
+            </a>
+            
+            
+            <div class="flex flex-row">
+                <div class="hidden lg:flex flex-row justify-between items-center gap-10">
+                    {#each NAV_LINKS as item, i}
+                        {#if i<NAV_LINKS.length-1}
+                        <a class="label" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
+                        {:else}
+                        <a class="label" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
+                        {/if}
+                    {/each}
+                </div>
+           
+            <button class="lg:hidden ml-6 opacity-60 hover:opacity-100 transition-all" on:click={toggleOverlayOn}>
+               {#if !isOverlayVisible}
+                <i class="fa-sharp fa-thi fa-bars fa-2xl"/>
+                {/if}
+            
+            </button>
+            </div>
+    
+        </ContentWidth>
+    </div>
+    {/if}
 	<!-- nav #2 -->
 {#if showNav}
 <div class="h-12 w-screen top-0 fixed z-20 {isNavTransparent ? "bg-transparent text-white" : "bg-white"} bg-opacity-80" transition:fly={{y:-64, delay:500}}>
