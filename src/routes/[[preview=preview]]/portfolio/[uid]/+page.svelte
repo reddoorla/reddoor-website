@@ -57,7 +57,14 @@ console.log(services);
         <div class="md:w-3/5 text-white z-10 mb-12">
             <div class="w-full border-b-1 border-b-white flex justify-between pb-4">
                 <div>{services}</div>
-                <div>arrows placeholder</div>
+                <div class="h-6 w-20 flex flex-row justify-between text-white">
+                    {#if data.prevProject}
+                        <a href={"/portfolio/"+data.prevProject}> <i class="fa-solid fa-sharp fa-chevron-left"/></a>
+                    {/if}
+                    {#if data.nextProject}
+                        <a href={"/portfolio/"+data.nextProject}> <i class="fa-solid fa-sharp fa-chevron-right"/></a>
+                    {/if}
+                </div>
             </div>
             <h1 class="mt-4">{data.title}</h1>
         </div>

@@ -92,9 +92,9 @@
                 <div class="hidden lg:flex flex-row justify-between items-center gap-10">
                     {#each NAV_LINKS as item, i}
                         {#if i<NAV_LINKS.length-1}
-                        <a class="label" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
+                        <a class="label hover:opacity-80 transition-opacity" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
                         {:else}
-                        <a class="label" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
+                        <a class="label hover:opacity-80 transition-opacity" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
                         {/if}
                     {/each}
                 </div>
