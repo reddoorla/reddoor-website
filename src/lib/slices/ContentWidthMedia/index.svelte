@@ -28,7 +28,7 @@
       
         {#each slice.primary.images as item}
         
-        <div class="pr-12 pb-12 relative w-full flex flex-col items-center justify-between {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
+        <div class="pr-12 pb-12 relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
           {#if item.label}
             <div class="w-full border-b-1 border-dark label mb-8">{item.label}</div>
           {/if}
@@ -36,13 +36,13 @@
        
             <iframe 
 	  					title="background video" 
-	 					src={`https://player.vimeo.com/video/${item.vimeoid}?title=0`}
+	 					src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo? "&background=1&loop=1&autoplay=1&muted=1":""}`}
 	  					class="object-cover aspect-video w-full mx-auto z-10"
 	  					frameborder="0"
-						
+              allow="autoplay"
 					></iframe>
           {:else}
-          <PrismicImage class="w-full" field={item.image} />
+          <PrismicImage class="w-full object-cover" field={item.image} />
   
           {/if}
           </div>

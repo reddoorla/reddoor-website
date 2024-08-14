@@ -38,7 +38,7 @@ export default {
       white: '#fff',
       light:'#C2D1D9',
       mid:'#6c6d70',
-      gray:'#6c6d70',
+      gray:'#C2D1D9',
       dark: '#424B5A',
       primary: '#D71920',
       red: '#D71920',

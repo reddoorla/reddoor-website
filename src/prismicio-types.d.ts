@@ -298,6 +298,17 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
    * - **Documentation**: https://prismic.io/docs/field#key-text
    */
   vimeoid: prismic.KeyTextField;
+
+  /**
+   * loopVideo field in *ContentWidthMedia → Default → Primary → images*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: content_width_image.default.primary.images[].loopvideo
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  loopvideo: prismic.BooleanField;
 }
 
 /**
@@ -529,6 +540,27 @@ export interface ScreenWidthImageSliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/field#image
    */
   image: prismic.ImageField<never>;
+
+  /**
+   * vimeoId field in *ScreenWidthMedia → Default → Primary*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: screen_width_image.default.primary.vimeoid
+   * - **Documentation**: https://prismic.io/docs/field#key-text
+   */
+  vimeoid: prismic.KeyTextField;
+
+  /**
+   * loopVideo field in *ScreenWidthMedia → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: screen_width_image.default.primary.loopvideo
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  loopvideo: prismic.BooleanField;
 }
 
 /**

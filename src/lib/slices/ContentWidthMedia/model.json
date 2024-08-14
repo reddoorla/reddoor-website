@@ -101,6 +101,15 @@
                   "label": "vimeoId",
                   "placeholder": ""
                 }
+              },
+              "loopvideo": {
+                "type": "Boolean",
+                "config": {
+                  "label": "loopVideo",
+                  "default_value": false,
+                  "placeholder_true": "true",
+                  "placeholder_false": "false"
+                }
               }
             }
           }

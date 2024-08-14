@@ -14,7 +14,7 @@
     const NAV_LINKS=[
         {
             label:"Portfolio",
-            href:"/"
+            href:"/portfolio"
         },
         {
             label:"About",
@@ -36,6 +36,8 @@
     const toggleOverlayOff = () => isOverlayVisible = false;
 
     let scrollY:number;
+    export let data;
+
 
     const handleScroll = () =>{
             showNav=scrollY>300;
@@ -46,7 +48,7 @@
         window.addEventListener('scroll', handleScroll);
     });
 </script>
-<svelte:window bind:scrollY={scrollY} />
+<svelte:window bind:scrollY={scrollY}/>
 
 <svelte:head>
 	<title>{$page.data.title}</title>
@@ -78,7 +80,8 @@
     </button>
 </div>
 {/if}
-<main>
+{#key data.pathname}
+<main out:fade={{duration:700}} in:fade={{delay:700, duration:700}}>
     {#if !showNav}
 
     <div class="h-12 w-screen top-0 absolute z-20 bg-transparent mix-blend-difference" transition:fly={{y:-64, delay:500}}>
@@ -141,6 +144,7 @@
     </ContentWidth>
 </div>
 {/if}
+
 	<slot />
 
 <footer>
@@ -210,4 +214,6 @@
 
 </footer>
 </main>
+{/key}
+
 <PrismicPreview {repositoryName} />

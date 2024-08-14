@@ -50,6 +50,13 @@
 									"value": "area",
 									"type": "Text"
 								}
+							],
+							[
+								"loopvideo",
+								{
+									"__TYPE__": "BooleanContent",
+									"value": false
+								}
 							]
 						]
 					}
