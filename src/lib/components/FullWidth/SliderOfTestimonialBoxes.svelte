@@ -1,5 +1,6 @@
 <script lang='ts'>
     import { onMount } from "svelte";
+    import { fade } from "svelte/transition";
     import { swipe } from "svelte-gestures";
     import TestimonialBox from "./TestimonialBox.svelte";
     import type { ComponentProps } from "svelte";
@@ -30,68 +31,47 @@
     const SLIDER_INTERVAL_IN_MS = 15000;
     let sliderIndex = 0;
     let sliderInterval: NodeJS.Timeout;
-    let sliderWidth = 100 / testimonialBoxPropsArray.length / 5;
-    let isSlideAnimated = true;
 
   
-    const resetSlider = () => {
-      setTimeout(() => isSlideAnimated = false, 500);
-      setTimeout(() => sliderIndex = testimonialBoxPropsArray.length, 520);
-      setTimeout(() => isSlideAnimated = true, 540);
-    }
-  
+
     const slideLeft = () => {
+      if(sliderIndex===testimonialBoxPropsArray.length-1)
+        sliderIndex=-1;
+
         sliderIndex++;
-        clearInterval(sliderInterval);
-	    sliderInterval = setInterval(()=>slideLeft(), SLIDER_INTERVAL_IN_MS);
-        if(sliderIndex%testimonialBoxPropsArray.length==0&&sliderIndex!==0) 
-            resetSlider();
+
+      
     }
   
     const slideRight = () => {
+      if(sliderIndex==0)
+        sliderIndex=testimonialBoxPropsArray.length
       sliderIndex--;
-      clearInterval(sliderInterval);
       
-	sliderInterval = setInterval(()=>slideRight(), SLIDER_INTERVAL_IN_MS);
-    if(sliderIndex%testimonialBoxPropsArray.length==0&&sliderIndex!==0 && sliderIndex<0)
-        resetSlider();
-
-        console.log(sliderIndex);
     }
+      
 
-    const handleSwipe = (e:CustomEvent<{ direction: "left" | "top" | "right" | "bottom"; target: EventTarget; }>) => {
-      if(e.detail.direction==="left") 
-        slideLeft();
 
-        if(e.detail.direction==="right") 
-        slideRight();
-    }
+
   
-    onMount(() => {
-      sliderInterval = setInterval(() => slideLeft(), SLIDER_INTERVAL_IN_MS);
-    });
-  
-    const quintupledPropsArray = [...testimonialBoxPropsArray, ...testimonialBoxPropsArray, ...testimonialBoxPropsArray, ...testimonialBoxPropsArray, ...testimonialBoxPropsArray];
   </script>
-  
-  <div use:swipe on:swipe={handleSwipe} class="w-full h-full relative overflow-hidden">
-    <div class="flex flex-row flex-nowrap  {isSlideAnimated ? 'transition-transform duration-500 ease-in-out' : ''}" style="width: {quintupledPropsArray.length * 100}%; transform: translateX(-{(sliderIndex+testimonialBoxPropsArray.length) * sliderWidth}%);">
-      {#each quintupledPropsArray as testimonialBoxProps}
-        <div class="h-full md:py-12 z-0" style="width: {sliderWidth}%;">
-          
-          <TestimonialBox {...testimonialBoxProps} />
-          <div class="h-6 w-full flex justify-between z-10 mb-12">
-            <button on:click={slideRight} class="h-6 w-6 rounded-full p-1 flex align-middle justify-center cursor-pointer transition-all duration-300 active:-translate-y-2  hover:bg-primary ">
-              <img alt='chevron-left' src={arrow} class='-translate-x-[1px] rotate-180 opacity-40 hover:opacity-100' />
-            </button>
-            <button on:click={slideLeft} class="h-6 w-6 rounded-full p-1 flex align-middle cursor-pointer transition-all duration-300 active:-translate-y-2 justify-center hover:bg-primary ">
-              <img alt='chevron-right' src={arrow} class='opacity-40 hover:opacity-100 translate-x-[1px]' />
-            </button>
-          </div>
-          <img class="w-full aspect-4/3" src={testimonialBoxProps.image} alt="testimonial"/>
-        </div>
-      {/each}
-    </div>
-  </div>
 
-  
+
+  <div class="h-6 w-full flex justify-between z-10 mt-12 mb-6">
+    <button on:click={slideRight} class="h-6 w-6 rounded-full p-1 flex align-middle justify-center cursor-pointer transition-all duration-300 active:-translate-y-2  hover:bg-primary ">
+      <img alt='chevron-left' src={arrow} class='-translate-x-[1px] rotate-180 opacity-40 hover:opacity-100' />
+    </button>
+    <button on:click={slideLeft} class="h-6 w-6 rounded-full p-1 flex align-middle cursor-pointer transition-all duration-300 active:-translate-y-2 justify-center hover:bg-primary ">
+      <img alt='chevron-right' src={arrow} class='opacity-40 hover:opacity-100 translate-x-[1px]' />
+    </button>
+  </div>
+  {#key sliderIndex}
+  <div in:fade={{delay:400}} out:fade class="h-full md:py-12 z-0 w-full">
+          
+    <TestimonialBox {...testimonialBoxPropsArray[sliderIndex]} />
+    
+    <img class="w-full aspect-4/3" src={testimonialBoxPropsArray[sliderIndex].image} alt="testimonial"/>
+  </div>
+  {/key}
+ 
+
