@@ -159,7 +159,7 @@
 	<title>Reddoor Creative | Home</title>
 </svelte:head>
 <svelte:window bind:innerWidth />
-<div class="md:h-screen w-screen bg-paper">
+<div class="w-screen bg-paper">
   <ContentWidth class="flex flex-col md:flex-row md:py-40 justify-between">
     <img src={printedReddoorLogo} alt="reddoor logo" class="w-full h-fit md:w-1/5  max-w-24 my-20"/>
     <div class="w-full md:w-4/5 flex flex-col md:p-16 items-start">
@@ -183,9 +183,9 @@
   <div class="h-1/2 bg-white">
     <ContentWidth class="flex flex-col md:flex-row relative h-full items-start py-8">
       <div class="w-1/5" />
-      <p class="w-4/5 md:w-2/5 pr-12">When you have a brand that is clear and compelling, you can't help but be confident in any sales situation. Your clients sense this and are attracted to your offering.</p>
+      <p class="w-4/5 md:w-2/5 md:pr-20">When you have a brand that is clear and compelling, you can't help but be confident in any sales situation. Your clients sense this and are attracted to your offering.</p>
     </ContentWidth>
-    <img src={applause} alt="applause" class="aspect-[4/3] md:absolute top-1/2 right-0 md:-translate-y-1/2 md:w-2/5 object-cover"/>
+    <img src={applause} alt="applause" class="aspect-[4/3] md:absolute top-0 right-0 md:w-2/5 object-cover"/>
   </div>
 </div>
 <div class="relative w-screen md:h-[40vw] bg-white">
@@ -200,7 +200,7 @@
   <div class="h-1/2">
     <ContentWidth class="flex flex-col md:flex-row relative h-full items-start py-8">
       <div class="w-1/5" />
-      <p class="w-4/5 md:w-2/5 pr-12">When you have a brand that is clear and compelling, you can't help but be confident in any sales situation. Your clients sense this and are attracted to your offering.</p>
+      <p class="w-4/5 md:w-2/5 md:pr-20">When you have a brand that is clear and compelling, you can't help but be confident in any sales situation. Your clients sense this and are attracted to your offering.</p>
     </ContentWidth>
     <img src={graph} alt="applause" class=" md:absolute top-1/2 right-0 md:-translate-y-1/2 md:w-2/5"/>
   </div>
@@ -216,7 +216,7 @@
   </div>
 </div>
 
-<div class="w-full relative bg-paper h-[120vh] sm:h-[175vh] lg:h-screen">
+<div class="w-full relative bg-paper h-[120vh] sm:h-[175vh] lg:h-screen xl:h-[80vh]">
   <div class="w-full h-full absolute">
       
     <ContentWidth class="flex flex-col lg:flex-row relative">
