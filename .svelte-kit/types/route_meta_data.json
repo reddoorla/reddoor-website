@@ -45,6 +45,7 @@
 		"src/routes/+layout.server.js"
 	],
 	"/[[preview=preview]]/portfolio": [
+		"src/routes/[[preview=preview]]/portfolio/+page.server.js",
 		"src/routes/+layout.server.js"
 	],
 	"/[[preview=preview]]/portfolio/[uid]": [

@@ -43,7 +43,7 @@ export const dictionary = {
 		"/navs": [16],
 		"/plans": [17],
 		"/portfolios": [18],
-		"/[[preview=preview]]/portfolio": [4],
+		"/[[preview=preview]]/portfolio": [~4],
 		"/[[preview=preview]]/portfolio/[uid]": [~5],
 		"/slice-simulator": [19],
 		"/sliders": [20],
