@@ -295,7 +295,7 @@
 
   <div class="w-screen bg-paper py-64">
     <ContentWidth class="flex flex-row relative  pb-12 md:pb-36">
-      <h3 class="text-primary w-4/5 md:ml-[20%]">Let's Begin</h3>
+      <h3 class="text-primary w-4/5 md:ml-[20%]">Let’s Begin</h3>
     </ContentWidth>
     <ContentWidth class="flex flex-col md:flex-row justify-between relative">
       <div class="w-3/5 lg:w-1/5 pr-8 mb-8">
@@ -304,20 +304,20 @@
       <div class="lg:w-4/5 flex flex-row flex-wrap justify-around items-center">
         <div class="h-[320px] w-[320px] flex flex-col pr-6">
           <div class="label"><span class="text-primary">01 </span>/ 03</div>
-          <h5 class="text-primary mt-8">Call us, <br /> let's talk</h5>
+          <h5 class="text-primary mt-8">Call us, <br /> let’s talk</h5>
           <p class="mt-4">Everything we do starts and ends with you. Your problems, your goals, your story. We begin with a conversation to see how we can help you succeed.</p>
 
         </div>
         <div class="h-[320px] w-[320px] flex flex-col pr-6">
           <div class="label"><span class="text-primary">02 </span>/ 03</div>
           <h5 class="text-primary mt-8">We help solve <br /> your problem</h5>
-          <p class="mt-4">After establishing clear goals that solve your brand's problem we get to work on establishing a clear story and developing a compelling design.</p>
+          <p class="mt-4">After establishing clear goals that solve your brand’s problem we get to work on establishing a clear story and developing a compelling design.</p>
 
         </div>
         <div class="h-[320px] w-[320px] flex flex-col pr-6">
           <div class="label"><span class="text-primary">03 </span>/ 03</div>
           <h5 class="text-primary mt-8">Stand out <br /> from the noise.</h5>
-          <p class="mt-4">You envisioned success and now you finally have confidence in your brand. We've equipped you to increase sales the way you've always hoped.</p>
+          <p class="mt-4">You envisioned success and now you finally have confidence in your brand. We’ve equipped you to increase sales the way you’ve always hoped.</p>
 
         </div>
       </div>
@@ -346,8 +346,8 @@ Working with Reddoor Creative will finally give you confidence in your brand and
     </ContentWidth>
   </div>
   
-  <div class="w-screen bg-white pb-16">
-    <ContentWidth class="flex flex-col relative  pb-36">
+  <div class="w-screen bg-white pb-8">
+    <ContentWidth class="flex flex-col relative">
       <h3 class="text-primary md:w-4/5 md:ml-[20%]">Still not on board?</h3>
       <h5 class="md:w-3/5 md:mx-[20%] mt-8">You've made is this far. Here's what will probably happen if you continue with “business as usual:”</h5>
     </ContentWidth>
@@ -372,7 +372,7 @@ Working with Reddoor Creative will finally give you confidence in your brand and
     </div>
     <div class="w-full flex flex-col md:flex-row py-16">
       <div class="label md:w-1/5 mt-1"><span class="text-primary">03 </span>/ 03</div>
-      <h6 class="text-primary text-left md:w-1/5 mt-4 md:mt-0 ">"Shhhhh."</h6>
+      <h6 class="text-primary text-left md:w-1/5 mt-4 md:mt-0 ">"Shhhh."</h6>
       <div class="md:w-2/5 flex flex-col mt-4 md:mt-0 ">
         <p>
           Your product or service remains your industry's "best kept secret" (not in a good way). You're left with confusing messaging and marketing.</p>
