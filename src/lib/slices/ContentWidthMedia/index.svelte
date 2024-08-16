@@ -28,7 +28,7 @@
       
         {#each slice.primary.images as item}
         
-        <div class="pr-12 pb-12 relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
+        <div class="pr-6 pb-6 relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
           {#if item.label}
             <div class="w-full border-b-1 border-dark label mb-8">{item.label}</div>
           {/if}
