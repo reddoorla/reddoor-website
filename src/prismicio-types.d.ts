@@ -169,6 +169,18 @@ interface ProjectDocumentData {
   environmental: prismic.BooleanField;
 
   /**
+   * packaging field in *project*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: project.packaging
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  packaging: prismic.BooleanField;
+
+  /**
    * digital field in *project*
    *
    * - **Field Type**: Boolean

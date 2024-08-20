@@ -70,6 +70,15 @@
           "placeholder_false": "false"
         }
       },
+      "packaging": {
+        "type": "Boolean",
+        "config": {
+          "label": "packaging",
+          "default_value": false,
+          "placeholder_true": "true",
+          "placeholder_false": "false"
+        }
+      },
       "digital": {
         "type": "Boolean",
         "config": {

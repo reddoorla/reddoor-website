@@ -18,6 +18,7 @@ body{
 body::-webkit-scrollbar { 
     display: none !important;  /* Safari and Chrome */
 }
+
 body::-webkit-scrollbar {
     width: 0 !important;  /* Remove scrollbar space */  /* Optional: just make scrollbar invisible */
 }
@@ -78,7 +79,7 @@ h3{
 h4{
     font-size: 50px;
     font-style: normal;
-    font-weight: 100;
+    font-weight: 200;
     line-height: 66px; 
 }
 
