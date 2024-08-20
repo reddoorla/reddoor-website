@@ -6,6 +6,7 @@
 	import "../app.css";
 
 	import { fly, fade } from "svelte/transition"
+    import { afterNavigate, disableScrollHandling } from '$app/navigation';
 
 	import ContentWidth from '$lib/components/ContentWidth/ContentWidth.svelte';
   import { onMount } from 'svelte';
@@ -47,6 +48,15 @@
  
         window.addEventListener('scroll', handleScroll);
     });
+
+
+afterNavigate(() => {
+    disableScrollHandling();
+    setTimeout(() => {
+        scrollTo({ top: 0, behavior: 'instant' });
+    }, 600);
+});
+
 </script>
 <svelte:window bind:scrollY={scrollY}/>
 
@@ -81,7 +91,7 @@
 </div>
 {/if}
 {#key data.pathname}
-<main out:fade={{duration:700}} in:fade={{delay:700, duration:700}}>
+<main out:fade={{duration:500}} in:fade={{delay:700, duration:700}}>
     {#if !showNav}
 
     <div class="h-12 w-screen top-0 absolute z-20 bg-transparent mix-blend-difference" transition:fly={{y:-64, delay:500}}>
