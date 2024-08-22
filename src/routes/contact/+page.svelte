@@ -1,5 +1,6 @@
 <script lang="ts">
     import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
+    import { Turnstile } from 'svelte-turnstile';
 
 
 </script>
@@ -43,6 +44,7 @@
         <div class="w-full md:w-4/5 flex flex-col gap-8">
             <h5>Complete this form and we'll get back to you.</h5>
             <form class="w-full h-full flex flex-col md:flex-row px-8"  name="contact" method="post" data-netlify="true"  data-netlify-honeypot="bot-field">
+                <Turnstile siteKey="0x4AAAAAAAh2fGW6xIcdsqNr" />
                 <input type="hidden" name="form-name" value="contact" />
                     <div class="h-full w-full mt-8 md:mt-0 md:w-2/3 flex flex-col gap-4 items-start">
                         <p>name</p>
