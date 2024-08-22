@@ -37,7 +37,7 @@ body::-webkit-scrollbar {
 }
 
 .bump{
-    transition: transform 150ms ease-out, color 300ms ease-out, background-color 300ms ease-out;
+    transition: transform 150ms ease-out, color 300ms ease-out, background-color 300ms ease-out, filter 300ms ease-out;
 }
 
 .bump:active{
