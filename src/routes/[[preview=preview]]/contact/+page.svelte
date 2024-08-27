@@ -18,6 +18,8 @@
   })
     
     .catch((error) => alert(error));
+
+    myForm.reset();
 };
 
 
