@@ -12,7 +12,7 @@
     <title>Contact | Reddoor Creative</title>
 </svelte:head>
 
-{#if $page.url.searchParams.get("submitted")||false}
+{#if false}
 <a class="h-screen w-screen fixed bg-black bg-opacity-20 z-50 flex justify-center items-center" href="/contact" transition:fade>
     
 
