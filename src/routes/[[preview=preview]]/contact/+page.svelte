@@ -86,28 +86,28 @@
         <h6 class="md:w-1/5 text-primary my-4">Via Email</h6>
         <div class="w-full md:w-4/5 flex flex-col gap-8">
             <h5>Complete this form and we'll get back to you.</h5>
-            <form class="w-full h-full flex flex-col md:flex-row px-8"  name="contact" method="POST" on:submit={handleSubmit} data-netlify="true" data-netlify-honeypot="bot-field" on:submit={()=>submitted=true}>
+            <form class="h-full w-full mt-8 md:mt-0 md:w-2/3 flex flex-col gap-2 items-start px-8"  name="contact" method="POST" on:submit={handleSubmit} data-netlify="true" data-netlify-honeypot="bot-field" on:submit={()=>submitted=true}>
                 <Turnstile siteKey="0x4AAAAAAAh2fGW6xIcdsqNr" />
                 
                 <input type="hidden" name="form-name" value="contact" />
-                    <div class="h-full w-full mt-8 md:mt-0 md:w-2/3 flex flex-col gap-4 items-start">
+                    
                         <p>Name</p>
-                        <input type="text" name="name" required placeholder="first and last name" class="w-full border-1 border-mid p-2" />
+                        <input type="text" name="name" required placeholder="first and last name" class="w-full border-1 border-mid p-2 mb-4" />
                         <p>Company Name</p>
-                        <input type="text" name="company" placeholder="company name" class="w-full border-1 border-mid p-2" />
+                        <input type="text" name="company" placeholder="company name" class="w-full border-1 border-mid p-2 mb-4" />
                         <p>Phone</p>
-                        <input type="phone" name="phone" required placeholder="000-000-0000" class="w-full border-1 border-mid p-2" />
+                        <input type="phone" name="phone" required placeholder="000-000-0000" class="w-full border-1 border-mid p-2 mb-4" />
                         <p>Email</p>
-                        <input type="email" name="email" required placeholder="you@domain.com" class="w-full border-1 border-mid p-2" />
+                        <input type="email" name="email" required placeholder="you@domain.com" class="w-full border-1 border-mid p-2 mb-4" />
                         <p class="hidden">
                             <label>
                               Don’t fill this out if you’re human: <input name="bot-field" />
                             </label>
                           </p>
                         <p>Message</p>
-                        <textarea name="message" required placeholder="how can we help?" class="min-h-24 w-full border-1 border-mid p-1"/>
+                        <textarea name="message" required placeholder="how can we help?" class="min-h-24 w-full border-1 border-mid p-1 mb-4"/>
                         <input type="submit" value="LET'S CONNECT" class="text-primary border-b-2 hover:bg-primary hover:text-white p-3 font-bold border-primary bump cursor-pointer"/>
-                    </div>
+                    
             
                </form>
            
