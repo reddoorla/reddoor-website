@@ -11,7 +11,7 @@
   const myForm = event.target;
   const formData = new FormData(myForm);
 
-    // Convert FormData to a plain object
+
     const formDataObject: Record<string, string> = {};
   formData.forEach((value, key) => {
     formDataObject[key] = value.toString();
