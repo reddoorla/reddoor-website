@@ -17,7 +17,7 @@
   import ContentWidthImage from "$lib/components/ContentWidth/ContentWidthImage.svelte";
   import type { ProjectDocument } from "../../../prismicio-types.js";
   import { flip } from "svelte/animate";
-  import { scale } from "svelte/transition";
+  import { scale, slide } from "svelte/transition";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   
 
@@ -73,6 +73,10 @@ function mediumString (project:ProjectDocument<string>) {
   return acc;
 }, "");
   }
+
+let orderString = "A-Z"
+let isOrderSelectOpen = false;
+
 
 export let data;
 
@@ -286,15 +290,33 @@ line-height: 140%; /* 84px */
 
 <div class="py-24 bg-paper">
     <ContentWidth>
-        <div class="archive-title text-primary w-full text-left mb-12">But wait there’s more!</div>
-        <div class="w-full flex flex-row gap-4 mb-24">
-            <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showBrand ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showBrand=!showBrand}>BRAND</button>
-            <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showPrint ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showPrint=!showPrint}>PRINT</button>
-            <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showEnvironmental ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showEnvironmental=!showEnvironmental}>ENVIRONMENTAL</button>
-            <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showProduct ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showProduct=!showProduct}>PRODUCT</button>
-            <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showPackaging ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showPackaging=!showPackaging}>PACKAGING</button>
-            <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showDigital ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showDigital=!showDigital}>DIGITAL</button>
-            <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showWeb ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showWeb=!showWeb}>WEB</button>
+        <div class="archive-title text-primary w-full text-left mb-12">But wait, there’s more!</div>
+        <div class="flex flex-row justify-between w-full">
+            <div class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
+                <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showBrand ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showBrand=!showBrand}>BRAND</button>
+                <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showPrint ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showPrint=!showPrint}>PRINT</button>
+                <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showEnvironmental ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showEnvironmental=!showEnvironmental}>ENVIRONMENTAL</button>
+                <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showProduct ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showProduct=!showProduct}>PRODUCT</button>
+                <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showPackaging ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showPackaging=!showPackaging}>PACKAGING</button>
+                <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showDigital ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showDigital=!showDigital}>DIGITAL</button>
+                <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showWeb ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showWeb=!showWeb}>WEB</button>
+            </div>
+            <div class="relative">
+                <button class="z-20 pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 mb-24 flex flex-row items-center justify-between {isOrderSelectOpen ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>isOrderSelectOpen=!isOrderSelectOpen}>
+                    <div>{orderString}</div>
+                    <div class="h-12 w-12 relative">
+                    {#if !isOrderSelectOpen}
+                        <i class="fa-solid fa-sharp fa-chevron-down absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" transition:scale={{duration:300}}/>
+                    {/if}
+                    {#if isOrderSelectOpen}
+                        <i class="fa-solid fa-sharp fa-dash absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" transition:scale={{duration:300}} />
+                    {/if}
+                    </div>
+                </button>
+                {#if isOrderSelectOpen}
+                <button class="z-0 pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 mb-24 bg-paper flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[100%]" transition:slide>A-Z</button>
+                {/if}
+            </div>
         </div>
         <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
         {#each data.allProjects as project (project.uid)}
