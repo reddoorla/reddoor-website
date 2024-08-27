@@ -11,10 +11,17 @@
   const myForm = event.target;
   const formData = new FormData(myForm);
 
+    // Convert FormData to a plain object
+    const formDataObject: Record<string, string> = {};
+  formData.forEach((value, key) => {
+    formDataObject[key] = value.toString();
+  });
+
+
   fetch("/contact", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(formData).toString(),
+    body: new URLSearchParams(formDataObject).toString(),
   })
     
     .catch((error) => alert(error));
