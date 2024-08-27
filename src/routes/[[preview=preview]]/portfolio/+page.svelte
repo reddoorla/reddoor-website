@@ -17,8 +17,10 @@
   import ContentWidthImage from "$lib/components/ContentWidth/ContentWidthImage.svelte";
   import type { ProjectDocument } from "../../../prismicio-types.js";
   import { flip } from "svelte/animate";
-  import { scale, slide } from "svelte/transition";
+  import { fade, scale, slide } from "svelte/transition";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
+  import { expoOut } from "svelte/easing";
+
   
 
   let ceoHero = ceoHeroDesktop;
@@ -50,6 +52,8 @@
         showAll=true;
     }
   }
+
+  
 
 function mediumString (project:ProjectDocument<string>) {
     let acc = "";
@@ -373,8 +377,8 @@ line-height: 140%; /* 84px */
             </div>
         </div>
         <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
-        {#each sortedProjects as project (project.uid)}
-        <div animate:flip={{delay:200, duration:2000}} transition:scale={{duration:200}} class="pr-6 pb-6 w-full lg:w-1/2 relative aspect-[4/3] {showAll||(project.data.branding&&showBrand)||(project.data.digital&&showDigital)||(project.data.environmental&&showEnvironmental)||(project.data.print&&showPrint)||(project.data.product&&showProduct)||(project.data.web&&showWeb)||(project.data.packaging&&showPackaging)? "": "hidden"}">
+        {#each sortedProjects as project, i (project.uid)}
+        <div animate:flip={{delay:300, duration:3000, easing: expoOut}} class="pr-6 pb-6 w-full lg:w-1/2 relative aspect-[4/3] {showAll||(project.data.branding&&showBrand)||(project.data.digital&&showDigital)||(project.data.environmental&&showEnvironmental)||(project.data.print&&showPrint)||(project.data.product&&showProduct)||(project.data.web&&showWeb)||(project.data.packaging&&showPackaging)? "": "hidden"}">
             {#if showAll||(project.data.branding&&showBrand)||(project.data.digital&&showDigital)||(project.data.environmental&&showEnvironmental)||(project.data.print&&showPrint)||(project.data.product&&showProduct)||(project.data.web&&showWeb)||(project.data.packaging&&showPackaging)}
                 <a href={"/portfolio/"+project.uid} class="h-full w-full flex flex-col justify-end relative">
                     <img src={project.data.hero.url||''} alt={project.data.title  + " Hero Image"} class="absolute w-full h-full object-cover"/>
@@ -384,7 +388,7 @@ line-height: 140%; /* 84px */
                             <p class="text-white uppercase">{project.data.title}</p>
                             <p class="text-light">{mediumString(project)||''}</p>
                         </div>
-                        <a href={"/portfolio/"+project.uid} class="brightness-200 hover:brightness-50 transition bump">
+                        <a href={"/portfolio/"+project.uid} class="brightness-200 hover:brightness-50 transition">
                             <img src={arrowButton} alt="go to page" class="h-full"/>
                         </a>
                     </div>
