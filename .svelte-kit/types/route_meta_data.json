@@ -2,7 +2,8 @@
 	"/": [
 		"src/routes/+layout.server.js"
 	],
-	"/about": [
+	"/[[preview=preview]]/about": [
+		"src/routes/[[preview=preview]]/about/+page.server.js",
 		"src/routes/+layout.server.js"
 	],
 	"/api/preview": [
@@ -14,7 +15,8 @@
 	"/contacts": [
 		"src/routes/+layout.server.js"
 	],
-	"/contact": [
+	"/[[preview=preview]]/contact": [
+		"src/routes/[[preview=preview]]/contact/+page.server.js",
 		"src/routes/+layout.server.js"
 	],
 	"/content": [

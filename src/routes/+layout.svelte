@@ -76,7 +76,7 @@ afterNavigate(() => {
 </svelte:head>
 
 {#if isOverlayVisible}
-<div class="w-screen h-lvh fixed bg-primary flex flex-col items-center justify-center gap-12 z-30" transition:fly={{y:"-100%"}}>
+<div class="w-screen h-lvh fixed bg-paper-red flex flex-col items-center justify-center gap-12 z-30" transition:fly={{y:"-100%"}}>
     <a href="/" class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>Home</a>
     {#each NAV_LINKS as item}
         <a href={item.href} class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>{item.label}</a>
@@ -104,11 +104,9 @@ afterNavigate(() => {
             <div class="flex flex-row">
                 <div class="hidden lg:flex flex-row justify-between items-center gap-10">
                     {#each NAV_LINKS as item, i}
-                        {#if i<NAV_LINKS.length-1}
+          
                         <a class="label hover:opacity-80 transition-opacity text-white" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
-                        {:else}
-                        <a class="label hover:opacity-80 transition-opacity text-white" href={item.href} on:click={()=>isOverlayVisible=false}>{item.label}</a>
-                        {/if}
+                      
                     {/each}
                 </div>
            
@@ -145,7 +143,7 @@ afterNavigate(() => {
        
         <button class="lg:hidden ml-6 opacity-60 hover:opacity-100 transition-all" on:click={toggleOverlayOn}>
            {#if !isOverlayVisible}
-            <i class="fa-sharp fa-thi fa-bars fa-2xl"/>
+            <i class="fa-sharp fa-bars fa-2xl"/>
             {/if}
         
         </button>
