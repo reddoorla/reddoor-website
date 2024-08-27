@@ -9,8 +9,10 @@
 </svelte:head>
 
 <div class="w-screen h-[50vh] max-h-96 relative bg-paper">
-    <ContentWidth class="h-full flex justify-start items-center">
-        <h4 class="text-primary z-10 ml-[20%]">We're excited to hear from you.</h4>
+    <ContentWidth class="h-full flex flex-col justify-evenly items-start">
+
+         <div class="h-32"/>
+        <h4 class="text-primary z-10 md:ml-[20%]">We're excited to hear from you.</h4>
     </ContentWidth>
 </div>
 <div class="w-screen bg-white py-12">

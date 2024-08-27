@@ -57,21 +57,23 @@
   </script>
 
 
-  <div class="h-6 w-full flex justify-between z-10 mt-12 mb-6">
-    <button on:click={slideRight} class="h-6 w-6 rounded-full p-1 flex align-middle justify-center cursor-pointer transition-all duration-300 active:-translate-y-2  hover:bg-primary ">
-      <img alt='chevron-left' src={arrow} class='-translate-x-[1px] rotate-180 opacity-40 hover:opacity-100 ' />
-    </button>
-    <button on:click={slideLeft} class="h-6 w-6 rounded-full p-1 flex align-middle cursor-pointer transition-all duration-300 active:-translate-y-2 justify-center hover:bg-primary ">
-      <img alt='chevron-right' src={arrow} class='opacity-40 hover:opacity-100 translate-x-[1px]' />
-    </button>
-  </div>
+
   {#key sliderIndex}
   <div in:fade={{delay:400}} out:fade class="h-full md:py-12 z-0 w-full">
           
     <TestimonialBox {...testimonialBoxPropsArray[sliderIndex]} />
+    <div class="h-6 w-full flex justify-between z-10 mt-12 mb-6">
+      <button on:click={slideRight} class="h-6 w-6 rounded-full p-1 flex align-middle justify-center cursor-pointer transition-all duration-300 active:-translate-y-2  hover:bg-primary ">
+        <img alt='chevron-left' src={arrow} class='-translate-x-[1px] rotate-180 opacity-40 hover:opacity-100 ' />
+      </button>
+      <button on:click={slideLeft} class="h-6 w-6 rounded-full p-1 flex align-middle cursor-pointer transition-all duration-300 active:-translate-y-2 justify-center hover:bg-primary ">
+        <img alt='chevron-right' src={arrow} class='opacity-40 hover:opacity-100 translate-x-[1px]' />
+      </button>
+    </div>
     
     <img class="w-full aspect-4/3" src={testimonialBoxPropsArray[sliderIndex].image} alt="testimonial"/>
   </div>
+
   {/key}
  
 
