@@ -3,7 +3,9 @@
     import { Turnstile } from 'svelte-turnstile';
   import { fade } from "svelte/transition";
 
-    export let data
+  import { page } from '$app/stores';
+
+$: searchParams = $page.url.searchParams;
 
 
     </script>
@@ -11,7 +13,7 @@
     <title>Contact | Reddoor Creative</title>
 </svelte:head>
 
-{#if data.submitted}
+{#if searchParams.get("submitted")}
 <a class="h-screen w-screen fixed bg-black bg-opacity-20 z-50 flex justify-center items-center" href="/contact" transition:fade>
     
 
