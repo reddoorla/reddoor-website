@@ -5,6 +5,22 @@
 
  let submitted=false;
 
+ const handleSubmit = (event:any) => {
+  event.preventDefault();
+
+  const myForm = event.target;
+  const formData = new FormData(myForm);
+
+  fetch("/", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(formData.toString()).toString(),
+  })
+    
+    .catch((error) => alert(error));
+};
+
+
 
 
     </script>
@@ -61,8 +77,9 @@
         <h6 class="md:w-1/5 text-primary my-4">Via Email</h6>
         <div class="w-full md:w-4/5 flex flex-col gap-8">
             <h5>Complete this form and we'll get back to you.</h5>
-            <form class="w-full h-full flex flex-col md:flex-row px-8"  name="contact" method="POST" data-netlify="true" action="/contact" data-netlify-honeypot="bot-field" on:submit={()=>submitted=true}>
+            <form class="w-full h-full flex flex-col md:flex-row px-8"  name="contact" method="POST" on:submit={handleSubmit} data-netlify="true" data-netlify-honeypot="bot-field" on:submit={()=>submitted=true}>
                 <Turnstile siteKey="0x4AAAAAAAh2fGW6xIcdsqNr" />
+                
                 <input type="hidden" name="form-name" value="contact" />
                     <div class="h-full w-full mt-8 md:mt-0 md:w-2/3 flex flex-col gap-4 items-start">
                         <p>Name</p>
