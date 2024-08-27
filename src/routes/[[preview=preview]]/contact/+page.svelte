@@ -29,7 +29,7 @@
 </svelte:head>
 
 {#if submitted}
-<button class="h-screen w-screen fixed bg-black bg-opacity-20 z-50 flex justify-center items-center" on:click={()=>submitted=false} transition:fade>
+<button class="h-screen w-screen fixed bg-black bg-opacity-20 z-50 flex justify-center items-center cursor-pointer" on:click={()=>submitted=false} transition:fade>
     
 
 
