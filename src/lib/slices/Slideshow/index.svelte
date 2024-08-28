@@ -4,8 +4,6 @@
   import { onMount } from "svelte";
   import { swipe } from "svelte-gestures";
   import type { SlideshowSlice } from "../../../prismicio-types";
-  import chevronLeft from "../../assets/icons/chevron-left.svg";
-  import chevronRight from "../../assets/icons/chevron-right.svg";
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
 
@@ -110,9 +108,9 @@ sliderInterval = setInterval(()=>slideRight(), SLIDER_INTERVAL_IN_MS);
       </div>
       <button on:click={playOrPause} class="absolute bottom-2 lg:bottom-6 right-2 lg:right-6 h-6 w-6 rounded-full border-mid border-2 p-1 flex align-middle justify-center cursor-pointer transition-all duration-300 active:-translate-y-1  hover:bg-primary hover:border-primary hover:text-white">
         {#if isSliding}
-        <i class="-translate-y-[1.5px] fa-solid fa-pause"/>
+        <i class="-translate-y-[1.5px] fa-solid fa-sharp fa-pause"/>
           {:else}
-        <i class="-translate-y-[1.5px] translate-x-[1px] fa-solid fa-play"/>
+        <i class="-translate-y-[1.5px] translate-x-[1px] fa-solid fa-sharp fa-play"/>
         {/if}</button>
     </div>
   </ContentWidth>
