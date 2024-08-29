@@ -161,7 +161,7 @@
 <svelte:window bind:innerWidth />
 <div class="w-screen bg-paper">
   <ContentWidth class="flex flex-col md:flex-row md:py-40 justify-between">
-    <img src={printedReddoorLogo} alt="reddoor logo" class="w-full h-fit md:w-1/5  max-w-24 my-20"/>
+    <img src={printedReddoorLogo} alt="reddoor logo" class="w-full h-fit md:w-1/5  max-w-24 max-h-[67.67px] my-20"/>
     <div class="w-full md:w-4/5 flex flex-col md:py-16 items-start">
       <h3 class="text-primary w-full ">Arm your brand with a clear story and compelling design.</h3>
       <div class="flex flex-row gap-6 mt-12">
