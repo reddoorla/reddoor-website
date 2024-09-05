@@ -175,8 +175,8 @@
     </div>
   </ContentWidth>
 </div>
-<div class="relative w-screen md:h-[40vw]">
-  <div class='w-screen bg-paper pt-32 md:pt-8 md:h-1/2 pb-8'>
+<div class="relative w-screen">
+  <div class='w-screen bg-paper pt-32 md:pt-0 pb-8 md:h-2/5'>
     <ContentWidth class="flex flex-row items-end">
       <div class="flex flex-col md:flex-row w-full">
         <div class="label w-1/5 pt-2"><span class="text-primary">01 </span>/ 03</div>
@@ -184,7 +184,7 @@
       </div>
     </ContentWidth>
   </div>
-  <div class="h-1/2 bg-white">
+  <div class="bg-white xl:pb-32">
     <ContentWidth class="flex flex-col md:flex-row relative h-full items-start py-8">
       <div class="w-1/5" />
       <p class="w-4/5 md:w-2/5 md:pr-20">When you have a brand that is clear and compelling, you can't help but be confident in any sales situation. Your clients sense this and are attracted to your offering.</p>
@@ -192,7 +192,7 @@
     <img src={applause} alt="applause" class="aspect-[4/3] md:absolute top-0 right-0 md:w-2/5 object-cover"/>
   </div>
 </div>
-<div class="relative w-screen md:h-[40vw] bg-white">
+<div class="relative w-screen bg-white pb-16">
   <div class='w-screen pt-32 md:pt-8 md:h-1/2 pb-8'>
     <ContentWidth class="flex flex-row items-end">
       <div class="flex flex-col md:flex-row w-full">
@@ -210,7 +210,7 @@
   </div>
 </div>
 <div class="relative w-screen bg-white">
-  <div class='w-screen bg-white md:h-[20vw] py-8'>
+  <div class='w-screen bg-white pb-16'>
     <ContentWidth class="flex flex-row items-end">
       <div class="flex flex-col md:flex-row w-full">
         <div class="label w-1/5 pt-2">03 / 03</div>
@@ -288,7 +288,7 @@
   </div>
   <ScreenWidthImage image={compositionTestimonial}>
 
-      <h4 class="text-white absolute md:w-4/5 bottom-36 md:ml-[20%]">“I’ve depended on Reddoor Creative for the last four companies I’ve led. <br /> <br />Is there a better testimonial than that?”</h4>
+      <h4 class="text-white absolute md:w-3/5 bottom-36 md:ml-[20%]">“I’ve depended on Reddoor Creative for the last four companies I’ve led. Is there a better testimonial than that?”</h4>
       <div class="absolute h-40 md:left-[20%] -bottom-24 flex flex-row justify-start items-end gap-8">
         <img src={jeff} alt="Jeff Luchonok" class="h-40 w-40 rounded-full">
 
@@ -301,7 +301,7 @@
 
   </ScreenWidthImage>
 
-  <div class="w-screen bg-paper py-64">
+  <div class="w-screen bg-paper pt-64 pb-16">
     <ContentWidth class="flex flex-row relative  pb-12 md:pb-36">
       <h3 class="text-primary w-4/5 md:ml-[20%]">Let’s Begin</h3>
     </ContentWidth>
