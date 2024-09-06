@@ -213,11 +213,11 @@ afterNavigate(() => {
             <div class="flex flex-row gap-1">
                 <a href="/" class="text-primary underline">Home</a>
                 <div>/</div>
-                <a href="/" class="text-primary underline">Portfolio</a>
+                <a href="/portfolio" class="text-primary underline">Portfolio</a>
                 <div>/</div>
-                <a href="/" class="text-primary underline">About</a>
+                <a href="/about" class="text-primary underline">About</a>
                 <div>/</div>
-                <a href="/" class="text-primary underline">Meet with Us</a>
+                <a href="/contact" class="text-primary underline">Meet with Us</a>
             </div>
         </div>
     </ContentWidth>
