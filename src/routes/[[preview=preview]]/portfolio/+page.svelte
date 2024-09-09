@@ -130,7 +130,6 @@ export let data;
 
 let sortedProjects = data.allProjects;
 
-//TODO: order archive: A-Z Z-A newest oldest
 </script>
 
 <svelte:window bind:innerWidth={viewportWidth} />
@@ -395,5 +394,16 @@ line-height: 140%; /* 84px */
         </div>
         {/each}
     </div>
+    </ContentWidth>
+</div>
+
+
+<!-- footer -->
+<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
+    <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
+        <h3 class="text-white md:w-3/5">It's time to arm your brand with a clear story and compelling design</h3>
+        <a href="/contact">
+        <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />
+        </a>
     </ContentWidth>
 </div>

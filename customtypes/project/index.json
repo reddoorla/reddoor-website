@@ -88,6 +88,22 @@
           "placeholder_false": "false"
         }
       },
+      "relatedprojectoverride1": {
+        "type": "Link",
+        "config": {
+          "label": "manually set related project one",
+          "select": "document",
+          "customtypes": ["project"]
+        }
+      },
+      "relatedprojectoverride2": {
+        "type": "Link",
+        "config": {
+          "label": "manually set related project two",
+          "select": "document",
+          "customtypes": ["project"]
+        }
+      },
       "slices": {
         "type": "Slices",
         "fieldset": "Slice Zone",

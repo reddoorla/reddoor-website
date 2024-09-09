@@ -194,6 +194,28 @@ interface ProjectDocumentData {
   digital: prismic.BooleanField;
 
   /**
+   * manually set related project one field in *project*
+   *
+   * - **Field Type**: Content Relationship
+   * - **Placeholder**: *None*
+   * - **API ID Path**: project.relatedprojectoverride1
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/field#link-content-relationship
+   */
+  relatedprojectoverride1: prismic.ContentRelationshipField<"project">;
+
+  /**
+   * manually set related project two field in *project*
+   *
+   * - **Field Type**: Content Relationship
+   * - **Placeholder**: *None*
+   * - **API ID Path**: project.relatedprojectoverride2
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/field#link-content-relationship
+   */
+  relatedprojectoverride2: prismic.ContentRelationshipField<"project">;
+
+  /**
    * Slice Zone field in *project*
    *
    * - **Field Type**: Slice Zone

@@ -156,14 +156,7 @@ afterNavigate(() => {
 	<slot />
 
 <footer>
-    <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
-        <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-            <h3 class="text-white md:w-3/5">Isn’t it time to arm your brand with a clear story and compelling design?</h3>
-            <a href="/contact">
-            <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />
-            </a>
-        </ContentWidth>
-    </div>
+
     <ContentWidth class="py-10 flex flex-row justify-between">
         <div class="flex flex-col gap-8 justify-between items-start">
             <div class="flex flex-row gap-3">
