@@ -14,14 +14,14 @@
 	
 	<svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
 	
-	<section>
-		<div class="right-0 left-0 max-h-screen aspect-video relative w-screen">
+	<section class="max-w-screen overflow-hidden">
+		<div class="max-h-screen aspect-video relative {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'}">
 			{#if vimeoId}
 				
 					<iframe 
 					title="background video" 
 					src={`https://player.vimeo.com/video/${vimeoId}?background=1`}
-					class="aspect-video w-screen contrast-[1.15] {$$props.class || ''}"
+					class="aspect-video {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'} contrast-[1.15] {$$props.class || ''}"
 					frameborder="0"
 					allowfullscreen
 					
