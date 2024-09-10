@@ -99,7 +99,7 @@ function mediumString (project:ProjectDocument<string>) {
 <div class="bg-paper w-screen py-24">
   <ContentWidth>
     <h4 class="text-primary text-left w-full">Related Projects</h4>
-    <div class="w-full mt-12 flex flex-col md:flex-row">
+    <div class="w-full mt-12 flex flex-col md:flex-row gap-12 md:gap-0">
       <div class="w-1/5" />
       <div class="w-full md:w-2/5 md:pr-2 aspect-[4/3] relative">
         <a href={"/portfolio/"+(data.relatedProjectOne.uid||'')} class="h-full w-full flex flex-col justify-end relative">
