@@ -21,6 +21,6 @@
               allow="autoplay; fullscreen;"
 					></iframe>
           {:else}
-          <PrismicImage class="w-full " field={slice.primary.image} />
+          <PrismicImage class="w-screen" field={slice.primary.image} />
   {/if}
 </div>
