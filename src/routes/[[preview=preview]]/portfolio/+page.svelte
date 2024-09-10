@@ -374,7 +374,7 @@ line-height: 140%; /* 84px */
         </div>
         <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
         {#each sortedProjects as project, i (project.uid)}
-        <div animate:flip={{ duration:4500, easing: expoOut}}  class="pr-6 pb-6 w-full lg:w-1/2 aspect-[4/3] transition-opacity duration-700 {showAll||(project.data.branding&&showBrand)||(project.data.digital&&showDigital)||(project.data.environmental&&showEnvironmental)||(project.data.print&&showPrint)||(project.data.product&&showProduct)||(project.data.packaging&&showPackaging)? "relative": "absolute top-1/2 left-1/2 opacity-0 pointer-events-none"}">
+        <div animate:flip={{ duration:4500, easing: expoOut}}  class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-[4/3] transition-opacity duration-700 {showAll||(project.data.branding&&showBrand)||(project.data.digital&&showDigital)||(project.data.environmental&&showEnvironmental)||(project.data.print&&showPrint)||(project.data.product&&showProduct)||(project.data.packaging&&showPackaging)? "relative": "absolute top-1/2 left-1/2 opacity-0 pointer-events-none"}">
           
                 <a href={"/portfolio/"+project.uid} class="h-full w-full flex flex-col justify-end relative">
                     <img src={project.data.hero.url||''} alt={project.data.title  + " Hero Image"} class="absolute w-full h-full object-cover"/>
