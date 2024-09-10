@@ -205,7 +205,7 @@ line-height: 140%; /* 84px */
     </div>
 </ScreenWidthImage>
 <section class="my-24">
-    <ContentWidth>
+    <ContentWidth animateIn>
         <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col">
             <img class="w-full aspect-[4/3]" src={bed} alt="a beautiful bed"/>
             <div class="w-full flex flex-col-reverse lg:flex-row">
@@ -235,7 +235,7 @@ line-height: 140%; /* 84px */
 
 <ScreenWidthImage image={longHollow} />
 <section class="bg-paper pt-16 pb-60 -mb-56">
-<ContentWidth>
+<ContentWidth animateIn>
     <div class="w-full md:w-4/5 md:ml-[20%]">
         <h4 class=" mb-20">An Authentic Texas Ranch <br /> Offering Resort-Quality Retreats.</h4>
         <div class="w-full md:w-1/2 flex flex-row justify-between">
@@ -250,12 +250,12 @@ line-height: 140%; /* 84px */
     </div>
 </ContentWidth>
 </section>
-<ContentWidth>
+<ContentWidth animateIn>
     <div class="w-full md:w-4/5 md:ml-[20%]">
         <FourByThreeImage src={hq} />
     </div>
 </ContentWidth>
-<ContentWidth>
+<ContentWidth animateIn>
     <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse md:flex-row">
         <div class="flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square relative" style="background-image: url({screamer}); background-size: 180%; background-position:35% 0">
             <div class="w-full h-full absolute top-0 left-0" style="background: linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.25) 100%)" />
@@ -278,7 +278,7 @@ line-height: 140%; /* 84px */
 </ContentWidth>
 <section class="mt-16">
 <ScreenWidthImage image={stJames}/>
-<ContentWidth>
+<ContentWidth animateIn>
     <div class="w-full mt-12 md:w-4/5 md:ml-[20%] flex flex-col">
         <div class="w-full flex flex-col-reverse lg:flex-row">
             <div class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square">
@@ -305,13 +305,13 @@ line-height: 140%; /* 84px */
 </section>
 
 
-    <ContentWidth>
+    <ContentWidth animateIn>
         <div class="mt-24 w-full md:w-4/5 md:ml-[20%]">
             <FourByThreeImage src={dentist} />
         </div>
     </ContentWidth>
     <section class="bg-paper pb-16 pt-60 -mt-56">
-        <ContentWidth>
+        <ContentWidth animateIn>
             <div class="w-full md:w-4/5 md:ml-[20%]">
                 <h4 class=" mb-20">A dental referral service bridging the gap between patients and providers.</h4>
                 <div class="w-full md:w-1/2 flex flex-row justify-between">
@@ -328,7 +328,7 @@ line-height: 140%; /* 84px */
         </section>
         <section>
             <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
-                <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
+                <ContentWidth class="flex flex-col md:flex-row items-start justify-between" animateIn>
                     <h3 class="text-white md:w-3/5">Isn’t it time to arm your brand with a clear story and compelling design?</h3>
                     <a href="/contact">
                         <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />

@@ -58,7 +58,7 @@
     </ContentWidth>
 </div>
 <div class="w-screen bg-white py-12">
-    <ContentWidth class="flex flex-col md:flex-row mb-48">
+    <ContentWidth class="flex flex-col md:flex-row mb-48" animateIn>
         <h6 class="md:w-1/5 text-primary my-4">Via Phone</h6>
         <div class="w-full md:w-4/5 flex flex-col">
             <h5>Give us a ring to set something up:</h5>
@@ -83,7 +83,7 @@
             </div>
         </div>
     </ContentWidth>
-    <ContentWidth class="flex flex-col md:flex-row mb-48">
+    <ContentWidth class="flex flex-col md:flex-row mb-48" animateIn>
         <h6 class="md:w-1/5 text-primary my-4">Via Email</h6>
         <div class="w-full md:w-4/5 flex flex-col gap-8">
             <h5>Complete this form and we'll get back to you.</h5>
@@ -120,7 +120,7 @@
 
 <!-- footer -->
 <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
-    <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
+    <ContentWidth class="flex flex-col md:flex-row items-start justify-between" animateIn>
         <h3 class="text-white md:w-3/5">Isn’t it time to arm your brand with a clear story and compelling design?</h3>
         <a href="/contact">
         <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />

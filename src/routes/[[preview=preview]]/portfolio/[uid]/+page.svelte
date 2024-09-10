@@ -55,7 +55,6 @@ function mediumString (project:ProjectDocument<string>) {
 }, "");
   }
 
-       //TODO: related projects 
 </script>
 
 
@@ -88,7 +87,7 @@ function mediumString (project:ProjectDocument<string>) {
 
 <!-- footer -->
 <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
-  <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
+  <ContentWidth class="flex flex-col md:flex-row items-start justify-between" animateIn>
       <h3 class="text-white md:w-3/5">Isn’t it time to arm your brand with a clear story and compelling design?</h3>
       <a href="/contact">
       <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />
@@ -97,7 +96,7 @@ function mediumString (project:ProjectDocument<string>) {
 </div>
 
 <div class="bg-paper w-screen py-24">
-  <ContentWidth>
+  <ContentWidth >
     <h4 class="text-primary text-left w-full">Related Projects</h4>
     <div class="w-full mt-12 flex flex-col md:flex-row gap-12 md:gap-0">
       <div class="w-1/5" />
