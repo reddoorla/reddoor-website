@@ -64,6 +64,13 @@
             "label": "media",
             "repeat": true,
             "fields": {
+              "label": {
+                "type": "Text",
+                "config": {
+                  "label": "label",
+                  "placeholder": ""
+                }
+              },
               "image": {
                 "type": "Image",
                 "config": {
@@ -86,6 +93,14 @@
                   "default_value": false,
                   "placeholder_true": "true",
                   "placeholder_false": "false"
+                }
+              },
+              "link": {
+                "type": "Link",
+                "config": {
+                  "label": "link",
+                  "placeholder": "",
+                  "select": null
                 }
               }
             }

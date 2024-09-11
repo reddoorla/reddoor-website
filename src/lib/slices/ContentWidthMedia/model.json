@@ -119,6 +119,14 @@
                   "placeholder_true": "true",
                   "placeholder_false": "false"
                 }
+              },
+              "link": {
+                "type": "Link",
+                "config": {
+                  "label": "link",
+                  "placeholder": "",
+                  "select": null
+                }
               }
             }
           }

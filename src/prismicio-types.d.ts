@@ -298,6 +298,28 @@ interface ShowcaseDocumentData {
   title: prismic.KeyTextField;
 
   /**
+   * tagline field in *showcase*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: showcase.tagline
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/field#key-text
+   */
+  tagline: prismic.KeyTextField;
+
+  /**
+   * hero field in *showcase*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: *None*
+   * - **API ID Path**: showcase.hero
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/field#image
+   */
+  hero: prismic.ImageField<never>;
+
+  /**
    * Slice Zone field in *showcase*
    *
    * - **Field Type**: Slice Zone
@@ -405,6 +427,16 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
   loopvideo: prismic.BooleanField;
+
+  /**
+   * link field in *ContentWidthMedia → Default → Primary → images*
+   *
+   * - **Field Type**: Link
+   * - **Placeholder**: *None*
+   * - **API ID Path**: content_width_image.default.primary.images[].link
+   * - **Documentation**: https://prismic.io/docs/field#link-content-relationship
+   */
+  link: prismic.LinkField;
 }
 
 /**
@@ -639,6 +671,16 @@ export type RichTextSlice = prismic.SharedSlice<
  */
 export interface ScreenWidthColumnsSliceDefaultPrimaryMediaItem {
   /**
+   * label field in *ScreenWidthColumns → Default → Primary → media*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: screen_width_columns.default.primary.media[].label
+   * - **Documentation**: https://prismic.io/docs/field#key-text
+   */
+  label: prismic.KeyTextField;
+
+  /**
    * image field in *ScreenWidthColumns → Default → Primary → media*
    *
    * - **Field Type**: Image
@@ -668,6 +710,16 @@ export interface ScreenWidthColumnsSliceDefaultPrimaryMediaItem {
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
   loopvideo: prismic.BooleanField;
+
+  /**
+   * link field in *ScreenWidthColumns → Default → Primary → media*
+   *
+   * - **Field Type**: Link
+   * - **Placeholder**: *None*
+   * - **API ID Path**: screen_width_columns.default.primary.media[].link
+   * - **Documentation**: https://prismic.io/docs/field#link-content-relationship
+   */
+  link: prismic.LinkField;
 }
 
 /**

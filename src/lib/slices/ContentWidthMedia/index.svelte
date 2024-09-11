@@ -1,10 +1,11 @@
-<script>
+<script lang='ts'>
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import { PrismicEmbed, PrismicImage, PrismicRichText } from "@prismicio/svelte";
-  import Label from "../RichText/Label.svelte";
+  import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
 
-  /** @type {import("@prismicio/client").Content.ContentWidthImageSlice} */
-  export let slice;
+
+ import type { ContentWidthImageSlice } from "../../../prismicio-types";
+  import { isFilled } from "@prismicio/client";
+  export let slice:ContentWidthImageSlice;
   let backgroundColorString = 'bg-'+slice.primary.background;
 
   let videoId="";
@@ -27,6 +28,26 @@
         
       
         {#each slice.primary.images as item}
+        {#if isFilled.link(item.link)}
+        <a href={item.link.url} class="{slice.primary.hasGap ? "pr-6 pb-6" : ""} relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
+          {#if item.label}
+            <div class="w-full border-b-1 border-dark label mb-8">{item.label}</div>
+          {/if}
+          {#if item.vimeoid}
+       
+            <iframe 
+	  					title="background video" 
+	 					src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo? "&background=1&loop=1&autoplay=1&muted=1":""}`}
+	  					class="object-cover aspect-video w-full mx-auto z-10"
+	  					frameborder="0"
+              allow="autoplay"
+					></iframe>
+          {:else}
+          <PrismicImage class="w-full object-cover" field={item.image} />
+  
+          {/if}
+          </a>
+        {:else}
         
         <div class="{slice.primary.hasGap ? "pr-6 pb-6" : ""} relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
           {#if item.label}
@@ -46,6 +67,7 @@
   
           {/if}
           </div>
+          {/if}
         {/each}
       
     </div>

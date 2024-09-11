@@ -19,6 +19,21 @@
           "placeholder": ""
         }
       },
+      "tagline": {
+        "type": "Text",
+        "config": {
+          "label": "tagline",
+          "placeholder": ""
+        }
+      },
+      "hero": {
+        "type": "Image",
+        "config": {
+          "label": "hero",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
       "slices": {
         "type": "Slices",
         "fieldset": "Slice Zone",
