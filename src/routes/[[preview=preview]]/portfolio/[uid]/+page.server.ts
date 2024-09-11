@@ -139,7 +139,7 @@ export async function load({ params, fetch, cookies }) {
 				relatedProjectTwo = mostRelatedProject;
 			}
 
-			console.log(relatedProjectOne, mostRelatedProjectScore)
+			//console.log(relatedProjectOne, mostRelatedProjectScore)
 		}
 
 
