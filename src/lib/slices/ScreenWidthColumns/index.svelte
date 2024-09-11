@@ -2,6 +2,7 @@
   import type { ScreenWidthColumnsSlice } from "../../../prismicio-types";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
+  import AnimateIn from "$lib/components/AnimateIn.svelte";
   export let slice:ScreenWidthColumnsSlice;
   let backgroundColorString = 'bg-'+slice.primary.background;
 </script>
@@ -17,7 +18,8 @@
       
         {#each slice.primary.media as item}
         {#if isFilled.link(item.link)}
-        <a href={item.link.url} class="{slice.primary.hasGap ? "pr-6 pb-6" : ""} relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
+        <AnimateIn class="{slice.primary.hasGap ? "pr-6 pb-6" : ""} relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
+        <a href={item.link.url} class="relative w-full flex flex-col items-center justify-start">
           {#if item.label}
             <div class="w-full border-b-1 border-dark label mb-8">{item.label}</div>
           {/if}
@@ -35,9 +37,10 @@
   
           {/if}
         </a>
+        </AnimateIn>
         {:else}
         
-        <div class="{slice.primary.hasGap ? "pr-6 pb-6" : ""} relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
+        <AnimateIn class="{slice.primary.hasGap ? "pr-6 pb-6" : ""} relative w-full flex flex-col items-center justify-start {slice.primary.desktopcolumns==="2" ? "md:w-1/2":""} {slice.primary.desktopcolumns==="3" ? "md:w-1/3":""}">
           {#if item.label}
             <div class="w-full border-b-1 border-dark label mb-8">{item.label}</div>
           {/if}
@@ -54,7 +57,7 @@
           <PrismicImage class="w-full object-cover" field={item.image} />
   
           {/if}
-          </div>
+        </AnimateIn>
           {/if}
         {/each}
       

@@ -19,7 +19,9 @@
 		{float==="right"?"items-end":""}
 		{float==="center"?"items-center":""}
 		{float==="left"?"items-start":""}
-	">
+	"
+	animateIn
+	>
 	<div class="
 		{width==="4/5"? "w-full md:w-4/5":""}
 		{width==="3/5"? "w-full md:w-3/5":""}

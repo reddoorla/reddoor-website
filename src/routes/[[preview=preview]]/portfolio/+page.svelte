@@ -106,6 +106,7 @@ $: {
             break;
         }
     }
+
 }
 let isOrderSelectOpen = false;
 
@@ -126,6 +127,7 @@ $: {
   });
 
   isOrderSelectOpen=false;
+
 }
 
 
@@ -284,10 +286,10 @@ line-height: 140%; /* 84px */
 </ContentWidth>
 <section class="mt-16">
 <ScreenWidthImage image={stJames}/>
-<ContentWidth animateIn>
+<ContentWidth>
     <div class="w-full mt-12 md:w-4/5 md:ml-[20%] flex flex-col">
         <div class="w-full flex flex-col-reverse lg:flex-row">
-            <div class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square">
+            <AnimateIn class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square">
                 <h5 class="font-sm text-primary" >A diverse, joyful, and inclusive community of young learners.</h5>
                 <div class="w-full flex flex-row justify-between">
                     <div>
@@ -298,11 +300,11 @@ line-height: 140%; /* 84px */
                         <img src={arrowButton} alt="go to page" class="h-full"/>
                     </a>
                 </div>
-            </div>
-            <div class="w-full lg:w-1/2  aspect-square overflow-hidden">
+            </AnimateIn>
+            <AnimateIn class="w-full lg:w-1/2  aspect-square overflow-hidden">
                 <img class="h-full object-cover" src={report} alt="annual reports">
 
-            </div>
+            </AnimateIn>
             
 
         </div>
@@ -317,10 +319,12 @@ line-height: 140%; /* 84px */
         </div>
     </ContentWidth>
     <section class="bg-paper pb-16 pt-60 -mt-56">
-        <ContentWidth animateIn>
+        <ContentWidth>
             <div class="w-full md:w-4/5 md:ml-[20%]">
+                <AnimateIn>
                 <h4 class=" mb-20">A dental referral service bridging the gap between patients and providers.</h4>
-                <div class="w-full md:w-1/2 flex flex-row justify-between">
+                </AnimateIn>
+                <AnimateIn class="w-full md:w-1/2 flex flex-row justify-between">
                     <div>
                         <p class="text-primary">1-800-DENTIST</p>
                         <p class="text-light">digital</p>
@@ -328,7 +332,7 @@ line-height: 140%; /* 84px */
                     <a href="/portfolio/1-800-dentist" class="hover:brightness-50 transition bump">
                         <img src={arrowButton} alt="go to page" class="h-full"/>
                     </a>
-                </div>
+                </AnimateIn>
             </div>
         </ContentWidth>
         </section>
@@ -338,7 +342,7 @@ line-height: 140%; /* 84px */
                     <AnimateIn>
                     <h3 class="text-white md:w-3/5">Isn’t it time to arm your brand with a clear story and compelling design?</h3>
                     </AnimateIn>
-                    <AnimateIn>
+                    <AnimateIn transitionDelayMax={1200}>
                     <a href="/contact">
                         <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />
                     </a>
@@ -351,17 +355,19 @@ line-height: 140%; /* 84px */
 
 <div class="py-24 bg-paper">
     <ContentWidth>
-        <div class="archive-title text-primary w-full text-left mb-12">But wait, there’s more!</div>
+        <AnimateIn class="w-full">
+            <div class="archive-title text-primary w-full text-left mb-12">But wait, there’s more!</div>
+        </AnimateIn>
         <div class="flex flex-row justify-between w-full">
-            <div class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
+            <AnimateIn class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
                 <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showBrand ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showBrand=!showBrand}>BRAND</button>
                 <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showPrint ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showPrint=!showPrint}>PRINT</button>
                 <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showEnvironmental ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showEnvironmental=!showEnvironmental}>ENVIRONMENTAL</button>
                 <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showProduct ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showProduct=!showProduct}>PRODUCT</button>
                 <!-- <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showPackaging ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showPackaging=!showPackaging}>PACKAGING</button> -->
                 <button class="px-5 py-[10px] transition-colors duration-500 border-1  {showDigital ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light hover:border-primary hover:text-primary"}" on:click={()=>showDigital=!showDigital}>DIGITAL</button>
-              </div>
-            <div class="relative z-10">
+            </AnimateIn>
+            <AnimateIn class="relative z-10">
                 <div class="w-48 h-12 bg-paper absolute z-20"></div>
                 {#if isOrderSelectOpen}
                     <button class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1  border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[100%] {isAlphabeticalDescending ? "border-primary bg-primary  hover:text-light text-white":"border-light text-light  bg-white hover:text-primary"}" transition:slide on:click={()=>orderString="A-Z"}>A-Z</button>
@@ -382,7 +388,7 @@ line-height: 140%; /* 84px */
                 </button>
                 
                
-            </div>
+            </AnimateIn>
         </div>
         <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
         {#each sortedProjects as project, i (project.uid)}
@@ -391,7 +397,7 @@ line-height: 140%; /* 84px */
                 <a href={"/portfolio/"+project.uid} class="h-full w-full flex flex-col justify-end relative">
                     <img src={project.data.hero.url||''} alt={project.data.title  + " Hero Image"} class="absolute w-full h-full object-cover"/>
                     <div class="w-full h-full absolute top-0 left-0 hover:opacity-0 transition duration-700" style="background: linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.25) 100%)" />
-                    <div class="w-full flex flex-row justify-between p-6 z-10" >
+                    <AnimateIn class="w-full flex flex-row justify-between p-6 z-10" transitionDelayMax={800}>
                         <div>
                             <p class="text-white uppercase">{project.data.title}</p>
                             <p class="text-light">{mediumString(project)||''}</p>
@@ -399,7 +405,7 @@ line-height: 140%; /* 84px */
                         <a href={"/portfolio/"+project.uid} class="brightness-200 hover:brightness-50 transition bump">
                             <img src={arrowButton} alt="go to page" class="h-full"/>
                         </a>
-                    </div>
+                    </AnimateIn>
                     
                 </a>
            

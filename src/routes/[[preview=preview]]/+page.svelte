@@ -274,7 +274,7 @@
   </div>
   <div class="w-screen bg-paper">
    
-    <ContentWidth class="my-0" animated>
+    <ContentWidth class="my-0" animateIn>
       <h3 class="text-primary md:ml-[20%] w-fit py-32">Join these brands in <br /> fighting mediocrity.</h3>
     </ContentWidth>
   

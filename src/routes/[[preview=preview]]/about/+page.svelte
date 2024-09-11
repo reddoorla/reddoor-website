@@ -75,12 +75,19 @@
       </AnimateIn>
     </div>
   <div class="w-screen text-center py-20 bg-white">
-    <ContentWidth animateIn>
+    <ContentWidth>
+        <AnimateIn>
         <h4 class="text-primary">Serving our clients, near and far.</h4>
-        <p class="mt-8 max-w-screen-md">We work with clients across the US and occasionally around the globe. We have designers sprinkled across California, Texas and Idaho, conveniently located near the Los Angeles, San Antonio, and Boise metro areas. Regardless of your location, partnering with Reddoor Creative will give you the confidence in your brand that you've been needing. </p>
-        <a class="mt-6" href="/contact">
+        </AnimateIn>
+        <AnimateIn class="mt-8 max-w-screen-md">
+            
+        <p >We work with clients across the US and occasionally around the globe. We have designers sprinkled across California, Texas and Idaho, conveniently located near the Los Angeles, San Antonio, and Boise metro areas. Regardless of your location, partnering with Reddoor Creative will give you the confidence in your brand that you've been needing. </p>
+        </AnimateIn>
+        <AnimateIn class="mt-6">
+        <a  href="/contact">
             <DefaultButton bold filled text="MEET WITH US"/>
         </a>
+    </AnimateIn>
     </ContentWidth>
   </div>
 
@@ -154,18 +161,21 @@
                 <p class="md:w-1/2 md:pr-12">    The young designer soon realized that in city where "your wheels" are a part of your identity he had two choices: be embarrassed or embrace the moment. Choosing the latter he quickly told his friend how excited he was to get a red door since he always wanted a red sports car and thought he'd start with the driver's side door and just work his way around replacing one piece at a time.</p>
                 <p class="md:w-1/2 md:pr-12">The car soon became known as "reddoor" having its own personality because of the one thing that most people would see as unfortunate. With a proud owner it had no other reason than to be proud, too. What once was headed for the trash heap was now a gem of a story.</p>
             </div>
-        <AnimateIn class="w-full border-t-1 border-t-mid pt-6">
-            <p class="large-body text-primary">The original "reddoor" taught us two things at Reddoor Creative:</p>
-            <div class="w-full flex flex-col sm:flex-row gap-4 sm:gap-16  mt-12">
+        <div class="w-full border-t-1 border-t-mid pt-6">
+            <AnimateIn>
+                <p class="large-body text-primary">The original "reddoor" taught us two things at Reddoor Creative:</p>
+            </AnimateIn>
+            
+            <AnimateIn class="w-full flex flex-col sm:flex-row gap-4 sm:gap-16  mt-12">
                 <div class="text-mid border-1 border-mid rounded-full w-12 h-12 flex justify-center items-center"><h5 class="-translate-x-[1px]">1</h5></div>
                 
                 <h5 class="sm:w-4/5">Find the unique quality within a business and tell that story in a compelling way.</h5>
-            </div>
-            <div class="w-full flex flex-col sm:flex-row gap-4 sm:gap-16 mt-12">
+            </AnimateIn>
+            <AnimateIn class="w-full flex flex-col sm:flex-row gap-4 sm:gap-16 mt-12">
                 <div class="text-mid border-1 border-mid rounded-full w-12 h-12 flex justify-center items-center"><h5>2</h5></div>
                 <h5 class="sm:w-4/5">Champion our clients and remember that we exist to serve them with our talents. </h5>
-            </div>
-        </AnimateIn>
+            </AnimateIn>
+        </div>
         </div>
     </ContentWidth>
 </div>

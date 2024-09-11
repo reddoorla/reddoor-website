@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
     let isInView = false;
     let el:HTMLElement | null;
@@ -7,28 +7,42 @@
     export let style ="";
 
     export let transitionDelayMax = 400;
+    export let transitionDuration = 2400;
 
-
-    onMount(()=>{
-        if(el){
-            let rect = el.getBoundingClientRect();
-            isInView = rect.bottom <= window.innerHeight + rect.height
-            transitionDelay= transitionDelayMax * (rect.left/window.innerWidth)
-        }
-
-        window.addEventListener('scroll', ()=>{
-            if (el) { 
+    const checkViewport = () => {
+        if(window&&el){
                 let rect = el.getBoundingClientRect();
                 isInView = rect.bottom <= window.innerHeight + rect.height
+                transitionDelay= transitionDelayMax * (rect.left/window.innerWidth)
             }
-        
-        })
+    }
+    let checking:NodeJS.Timeout;
+
+    onMount(()=>{
+        checkViewport()
+
+        checking = setInterval(()=>{
+            checkViewport()
+        }
+    ,4000)
+       
+
+        window.addEventListener('scroll', checkViewport)
     })
+
+    onDestroy(()=>{
+        if(typeof window !== 'undefined'){
+        window.removeEventListener('scroll', checkViewport)
+       
+        if(checking)
+            clearInterval(checking);
+        }}
+    )
 </script>
 
 
    
 
-        <div bind:this={el} class="transition duration-[2000ms] ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; {style}">
+        <div bind:this={el} class="transition ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; transition-duration:{transitionDuration}ms; {style}">
             <slot />
         </div>
