@@ -225,7 +225,7 @@
   
   </div>
   <div class="bg-white">
-    <ContentWidth class="flex flex-col gap-8 md:gap-0 md:flex-row justify-around flex-wrap py-32">
+    <ContentWidth class="flex gap-8 flex-row justify-around flex-wrap py-16">
       <AnimateIn transitionDelayMax={2400}>
       <img class="h-48 aspect-square object-contain" src={progressLogo} alt="progress lighting logo" />
       </AnimateIn>
