@@ -5,6 +5,7 @@
     let el:HTMLElement | null;
     let transitionDelay = 0;
     export let style ="";
+    export let href="";
 
     export let transitionDelayMax = 400;
     export let transitionDuration = 2400;
@@ -42,7 +43,12 @@
 
 
    
-
+{#if href}
+<a {href} bind:this={el} class="transition ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; transition-duration:{transitionDuration}ms; {style}">
+    <slot />
+</a>
+{:else}
         <div bind:this={el} class="transition ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; transition-duration:{transitionDuration}ms; {style}">
             <slot />
         </div>
+{/if}
