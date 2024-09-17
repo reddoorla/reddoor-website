@@ -200,7 +200,7 @@
               <div class="absolute w-full h-full">
               {#key sliderIndex}
               <div class="w-full h-full absolute" out:fade={{duration:300}} in:fade={{delay:280, duration:400}}>
-                {#if innerWidth<=1024}
+                {#if viewportWidth<=1024}
                 <div out:fade={{duration:300}} in:fade={{delay:280, duration:400}}>
                   <SquareImage  src={projectArray[sliderIndex].image} />
                 </div>
@@ -225,7 +225,7 @@
         </div>
         <div class="w-0 h-0 lg:w-1/2"></div>
     </ContentWidth>
-    {#if innerWidth>1024}
+    {#if viewportWidth>1024}
     <div class="w-2/5 absolute top-0 right-0 ">
         {#key sliderIndex}
             <div out:fade={{duration:300}} in:fade={{delay:280, duration:300}}>
@@ -274,7 +274,7 @@
   <section class="max-w-screen overflow-x-clip">
     <div class="right-0 max-h-screen aspect-video relative {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'}">
 
-            <img src={compositionTestimonial} alt="ceo name tag" class="absolute h-full w-full max-w-screen object-cover object-left" style="object-position:{viewportWidth<1440&&viewportWidth>768? viewportWidth-viewportHeight*16/9 + 480 :0}px center"/>
+            <img src={compositionTestimonial} alt="ceo name tag" class="absolute h-full w-full max-w-screen object-cover object-left" />
     
         <div class="w-full max-w-[100vw] h-full max-h-screen relative">
         <ContentWidth class='{$$props.class || ''} h-full z-10 relative'>
