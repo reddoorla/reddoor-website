@@ -85,9 +85,7 @@
           
           clearInterval(sliderInterval);
 	        sliderInterval = setInterval(()=>slideRight(), SLIDER_INTERVAL_IN_MS);
-          
-          
-          console.log(sliderIndex)
+      
     
       }
       const slideLeft = () => {
@@ -103,44 +101,15 @@
 
          
       }
-  
-      const setSliderIndex = (index:number) => {
-        clearInterval(sliderInterval);
-            if(sliderIndex<index){
-                sliderInterval = setInterval(()=>slideLeft(), SLIDER_INTERVAL_IN_MS);
-            }
-            else{
-                sliderInterval = setInterval(()=>slideRight(), SLIDER_INTERVAL_IN_MS);
-            }
-          sliderIndex=index;        
-      }
 
-      const setSliderIndexWithDelay = (index:number) => {
-            showImage=false;
-            clearInterval(sliderInterval);
-            sliderIndex=index;
-            setTimeout(()=>{
-                showImage=true;
-            },300)
-          
-          
-      }
   
       let sliderInterval:NodeJS.Timeout;
   
-      const handleSwipe = (e:CustomEvent<{ direction: "left" | "top" | "right" | "bottom"; target: EventTarget; }>) => {
-        if(e.detail.direction==="left") 
-          slideLeft();
-  
-          if(e.detail.direction==="right") 
-          slideRight();
-      }
-
-      let progressPosistion = 0;
-      let progressWrapForwardPosition = -100;
-      let progressWrapBackwardPosition = projectArray.length*100
-
+ 
       let isReadMoreOpen = false;
+
+      let viewportHeight:number;
+      let viewportWidth:number;
 
   
       onMount(()=>{
@@ -156,7 +125,7 @@
 <svelte:head>
 	<title>Reddoor Creative | Home</title>
 </svelte:head>
-<svelte:window bind:innerWidth />
+<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 <div class="w-screen bg-paper">
   <ContentWidth class="flex flex-col md:flex-row md:py-40 justify-between">
     <img src={printedReddoorLogo} alt="reddoor logo" class="w-full h-fit md:w-1/5  max-w-24 max-h-[67.67px] my-20"/>
@@ -230,17 +199,17 @@
             <div class="w-full h-full relative">
               <div class="absolute w-full h-full">
               {#key sliderIndex}
-              <div class="w-full h-full absolute" out:fade={{duration:300}} in:fade={{delay:300, duration:400}}>
+              <div class="w-full h-full absolute" out:fade={{duration:300}} in:fade={{delay:280, duration:400}}>
                 {#if innerWidth<=1024}
-                <div out:fade={{duration:300}} in:fade={{delay:300, duration:400}}>
+                <div out:fade={{duration:300}} in:fade={{delay:280, duration:400}}>
                   <SquareImage  src={projectArray[sliderIndex].image} />
                 </div>
                 {/if}
-                <p  class="md:ml-[20%] lg:ml-[40%] mt-24" out:fade={{duration:300}} in:fade={{delay:300, duration:400}}>{tripledProjects[sliderIndex].bodyText}</p>
-                <h1 out:fade={{duration:300}} in:fade={{delay:300, duration:400}} class="text-primary mt-24">{tripledProjects[sliderIndex].projectName}</h1>
+                <p  class="md:ml-[20%] lg:ml-[40%] mt-24" out:fade={{duration:300}} in:fade={{delay:280, duration:400}}>{tripledProjects[sliderIndex].bodyText}</p>
+                <h1 out:fade={{duration:300}} in:fade={{delay:280, duration:400}} class="text-primary mt-24">{tripledProjects[sliderIndex].projectName}</h1>
 
             
-                <div  out:fade={{duration:300}} in:fade={{delay:300, duration:400}} class="flex flex-row gap-3 md:ml-[20%] lg:ml-[40%] mt-24">
+                <div  out:fade={{duration:300}} in:fade={{delay:280, duration:400}} class="flex flex-row gap-3 md:ml-[20%] lg:ml-[40%] mt-24">
                   <a href={projectArray[sliderIndex].projectLink}>
                     <DefaultButton class="text-primary border-primary border-1 transition hover:bg-mid hover:bg-opacity-20" filled={false}  text="OPEN" />
                   </a>
@@ -259,7 +228,7 @@
     {#if innerWidth>1024}
     <div class="w-2/5 absolute top-0 right-0 ">
         {#key sliderIndex}
-            <div out:fade={{duration:300}} in:fade={{delay:500, duration:300}}>
+            <div out:fade={{duration:300}} in:fade={{delay:280, duration:300}}>
                 {#each tripledProjects as project, i }
                     {#if i===sliderIndex%projectArray.length}
                         <SquareImage src={project.image}/>
@@ -302,7 +271,13 @@
     </ContentWidth>
 
   </div>
-  <ScreenWidthImage image={compositionTestimonial} class="z-20">
+  <section class="max-w-screen overflow-x-clip">
+    <div class="right-0 max-h-screen aspect-video relative {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'}">
+
+            <img src={compositionTestimonial} alt="ceo name tag" class="absolute h-full w-full max-w-screen object-cover object-left" style="object-position:{viewportWidth<1440&&viewportWidth>768? viewportWidth-viewportHeight*16/9 + 480 :0}px center"/>
+    
+        <div class="w-full max-w-[100vw] h-full max-h-screen relative">
+        <ContentWidth class='{$$props.class || ''} h-full z-10 relative'>
 
       <h4 class="text-white absolute md:w-3/5 bottom-36 md:ml-[20%]">“I’ve depended on Reddoor Creative for the last four companies I’ve led. Is there a better testimonial than that?”</h4>
       <div class="absolute h-40 md:left-[20%] -bottom-24 flex flex-row justify-start items-end gap-8">
@@ -315,7 +290,10 @@
       </div>
 
 
-  </ScreenWidthImage>
+    </ContentWidth>
+  </div>
+  </div>
+  </section>
 
   <div class="w-screen bg-paper pt-64 pb-16">
   
