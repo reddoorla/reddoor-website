@@ -15,7 +15,7 @@
 	<svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
 	
 	<section class="max-w-screen overflow-x-clip">
-		<div class="right-0 left-0 max-h-screen lg:aspect-video relative w-screen">
+		<div class="right-0 left-0 max-h-screen aspect-video relative w-screen">
 			{#if vimeoId}
 				
 					<iframe 
