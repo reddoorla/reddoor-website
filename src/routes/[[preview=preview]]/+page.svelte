@@ -1,11 +1,9 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import ContentBox from "$lib/components/FullWidth/ContentBox.svelte";
   import SquareImage from "$lib/components/FullWidth/SquareImage.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import AnimateIn from "$lib/components/AnimateIn.svelte";
   import { onMount } from "svelte";
-  import { swipe } from "svelte-gestures";
   import { fade,slide } from "svelte/transition";
   import printedReddoorLogo from "$lib/assets/icons/logos/printedReddoor.png"
   import applause from "$lib/assets/images/applause.jpg"
@@ -21,8 +19,6 @@
   import worthLogo from "$lib/assets/icons/logos/worthe.svg"
   import compositionTestimonial from "$lib/assets/images/compositionTestimonial.jpg"
   import jeff from "$lib/assets/images/jeff.png"
-  import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
- 
 
 
   let innerWidth:number;  
