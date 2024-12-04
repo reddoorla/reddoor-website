@@ -28,6 +28,6 @@
          "font-semibold":
          "font-light"
          } 
-         tracking-wider w-auto text-center mb-5 sm:mb-0 uppercase cursor-pointer text-nowrap transition-all duration-300 active:-translate-y-2 {$$props.class || ''}">
+         tracking-wider text-center mb-5 sm:mb-0 uppercase cursor-pointer text-nowrap transition-all duration-300 active:-translate-y-2 {$$props.class || ''}">
         {text}
 </button>
