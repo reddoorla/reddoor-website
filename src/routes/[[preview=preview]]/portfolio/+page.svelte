@@ -230,7 +230,7 @@ line-height: 140%; /* 84px */
                 <img class="w-full aspect-[4/3]" src={bed} alt="a beautiful bed"/>
             </AnimateIn>
             <div class="w-full flex flex-col-reverse lg:flex-row">
-                <AnimateIn class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square">
+                <AnimateIn transitionDelayMax={0} class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square">
                     <h5 class="font-sm text-primary" >A mission to create beautiful and affordable lighting for the home.</h5>
                     <div class="w-full flex flex-row justify-between">
                         <div>
@@ -242,7 +242,7 @@ line-height: 140%; /* 84px */
                         </a>
                     </div>
                 </AnimateIn>
-                <AnimateIn class="w-full lg:w-1/2  aspect-square overflow-hidden">
+                <AnimateIn transitionDelayMax={0} class="w-full lg:w-1/2  aspect-square overflow-hidden">
                     <img class="h-full w-auto top-0 left-0 object-cover object-left" src={catalogs} alt="catalogs">
 
                 </AnimateIn>
@@ -281,7 +281,7 @@ line-height: 140%; /* 84px */
 </ContentWidth>
 <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse md:flex-row">
-        <AnimateIn class="flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square relative" style="background-image: url({screamer}); background-size: 180%; background-position:35% 0">
+        <AnimateIn transitionDelayMax={0} class="flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square relative" style="background-image: url({screamer}); background-size: 180%; background-position:35% 0">
             <div class="w-full h-full absolute top-0 left-0" style="background: linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.25) 100%)" />
             <div/>
             <div class="w-full flex flex-row justify-between z-10" >
@@ -294,7 +294,7 @@ line-height: 140%; /* 84px */
                 </a>
             </div>
         </AnimateIn>
-        <AnimateIn class="w-full lg:w-1/2  aspect-square overflow-hidden">
+        <AnimateIn transitionDelayMax={0} class="w-full lg:w-1/2  aspect-square overflow-hidden">
             <img class="h-full object-cover" src={roadmap} alt="roadmap mockup on iphone">
 
         </AnimateIn>
@@ -305,7 +305,7 @@ line-height: 140%; /* 84px */
 <ContentWidth>
     <div class="w-full mt-12 md:w-4/5 md:ml-[20%] flex flex-col">
         <div class="w-full flex flex-col-reverse lg:flex-row">
-            <AnimateIn class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square">
+            <AnimateIn transitionDelayMax={0} class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square">
                 <h5 class="font-sm text-primary" >A diverse, joyful, and inclusive community of young learners.</h5>
                 <div class="w-full flex flex-row justify-between">
                     <div>
@@ -317,7 +317,7 @@ line-height: 140%; /* 84px */
                     </a>
                 </div>
             </AnimateIn>
-            <AnimateIn class="w-full lg:w-1/2  aspect-square overflow-hidden">
+            <AnimateIn transitionDelayMax={0} class="w-full lg:w-1/2  aspect-square overflow-hidden">
                 <img class="h-full object-cover" src={report} alt="annual reports">
 
             </AnimateIn>
