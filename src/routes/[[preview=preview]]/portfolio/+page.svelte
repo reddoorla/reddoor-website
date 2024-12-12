@@ -187,7 +187,7 @@ line-height: 140%; /* 84px */
 </svelte:head>
 
 
-<section class="w-screen max-h-[720px] flex flex-col justify-between lg:aspect-video pt-24">
+<section class="w-screen max-h-[720px] flex flex-col justify-between lg:aspect-video pt-24 bg-paper">
     <div/>
     <ContentWidth>
         <h5 class="w-4/5 max-w-screen-lg mr-0 ml-auto">We are honored to work with these amazing clients. Take a look and consider taking your place among them.</h5>
