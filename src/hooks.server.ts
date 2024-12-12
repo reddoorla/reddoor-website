@@ -12,8 +12,7 @@ export async function handle({ event, resolve }) {
     path: '/',
     secure: true,
     sameSite: 'lax',
-    httpOnly: true,
-    domain: event.url.hostname 
+    httpOnly: true
   }
 
   event.cookies.set('io.prismic.preview', previewCookie, cookieOptions)
