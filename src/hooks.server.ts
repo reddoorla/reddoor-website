@@ -1,14 +1,15 @@
-// src/hooks.server.js (or .ts)
+// src/hooks.server.ts
 import { createClient } from '$lib/prismicio'
+import type { Handle } from '@sveltejs/kit'
 import type { CookieSerializeOptions } from 'cookie'
 
-export async function handle({ event, resolve }) {
+export const handle: Handle = async ({ event, resolve }) => {
   // Set preview cookie defaults
   const previewCookie = event.cookies.get('io.prismic.preview') || ''
   const previewSessionCookie = event.cookies.get('io.prismic.previewSession') || ''
 
   // Set secure cookie attributes
-  const cookieOptions:CookieSerializeOptions & { path: string; } = {
+  const cookieOptions: CookieSerializeOptions & { path: string } = {
     path: '/',
     secure: true,
     sameSite: 'lax',

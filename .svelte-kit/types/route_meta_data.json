@@ -6,9 +6,6 @@
 		"src/routes/[[preview=preview]]/about/+page.server.js",
 		"src/routes/+layout.server.js"
 	],
-	"/api/preview": [
-		"src/routes/api/preview/+server.ts"
-	],
 	"/blogs": [
 		"src/routes/+layout.server.js"
 	],
@@ -53,6 +50,9 @@
 	"/[[preview=preview]]/portfolio/[uid]": [
 		"src/routes/[[preview=preview]]/portfolio/[uid]/+page.server.ts",
 		"src/routes/+layout.server.js"
+	],
+	"/preview": [
+		"src/routes/preview/+server.ts"
 	],
 	"/[[preview=preview]]/showcase/[uid]": [
 		"src/routes/[[preview=preview]]/showcase/[uid]/+page.server.ts",
