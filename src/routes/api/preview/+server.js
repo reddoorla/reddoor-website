@@ -1,8 +1,21 @@
 import { redirectToPreviewURL } from '@prismicio/svelte/kit';
 import { createClient } from '$lib/prismicio.js';
 
+// src/routes/preview/+server.js
 export async function GET({ fetch, request, cookies }) {
+	// Add a response header for debugging
+	const headers = new Headers();
+	headers.append('x-debug-url', request.url);
+	
 	const client = createClient({ fetch });
-
-	return await redirectToPreviewURL({ client, request, cookies });
-}
+	try {
+	  const response = await redirectToPreviewURL({ client, request, cookies });
+	  return response;
+	} catch (error) {
+	  // Return error response instead of throwing
+	  return new Response(`Preview Error: ${error.message}`, {
+		status: 500,
+		headers
+	  });
+	}
+  }
