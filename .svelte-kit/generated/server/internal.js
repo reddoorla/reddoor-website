@@ -29,7 +29,7 @@ export async function get_hooks() {
 	let handleFetch;
 	let handleError;
 	let init;
-	({ handle, handleFetch, handleError, init } = await import("../../../src/hooks.server.ts"));
+	
 
 	let reroute;
 	let transport;
