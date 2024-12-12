@@ -6,6 +6,13 @@ export async function GET({ fetch, request, cookies }) {
 	// Add a response header for debugging
 	const headers = new Headers();
 	headers.append('x-debug-url', request.url);
+
+	cookies.set('io.prismic.preview', '', {
+		path: '/',
+		secure: true,
+		sameSite: 'lax'
+	  });
+	
 	
 	const client = createClient({ fetch });
 	try {
