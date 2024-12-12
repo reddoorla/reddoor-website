@@ -43,7 +43,7 @@
 		"@fortawesome/free-regular-svg-icons": "^6.5.1",
 		"@fortawesome/free-solid-svg-icons": "^6.5.1",
 		"@fortawesome/svelte-fontawesome": "^0.2.2",
-		"@prismicio/client": "^7.7.4",
+		"@prismicio/client": "^7.13.1",
 		"@prismicio/svelte": "^1.2.0",
 		"svelte-gestures": "^4.0.0",
 		"svelte-inview": "^4.0.2",
