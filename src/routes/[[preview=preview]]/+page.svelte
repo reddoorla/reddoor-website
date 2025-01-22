@@ -159,13 +159,13 @@
   </div>
 </div>
 
-<div class="w-screen relative bg-paper h-[120vh] sm:h-[175vh] lg:h-screen overflow-hidden">
+<div class="w-screen relative bg-paper h-[155vh] lg:h-screen overflow-hidden">
   <div class="w-full h-full absolute">
       
     <ContentWidth class="flex flex-col lg:flex-row h-full">
 
         <div class="w-full lg:w-1/2 mt-8 lg:left-0 flex justify-center items-center">
-          <h6 class="text-primary absolute top-8 left-0 md:left-[20%] ">Featured <br /> Design</h6>
+          <h6 class="text-primary absolute top-8 left-[4%] md:left-[20%] ">Featured <br /> Design</h6>
             <div class="w-full h-full relative">
               <div class="absolute w-full h-full">
               {#key sliderIndex}
