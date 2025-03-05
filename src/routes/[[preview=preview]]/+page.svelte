@@ -141,7 +141,7 @@
   <AnimateIn class="h-1/2">
     <ContentWidth class="flex flex-col md:flex-row relative h-full items-start py-8">
       <div class="w-1/5" />
-      <p class="w-4/5 md:w-2/5 md:pr-20">When you have a brand that is clear and compelling, you can't help but be confident in any sales situation. Your clients sense this and are attracted to your offering.</p>
+      <p class="w-4/5 md:w-2/5 md:pr-20">You have something great to offer and when your audience clearly understands how you can solve their problem, it will help you close more deals.</p>
     </ContentWidth>
     <img src={graph} alt="applause" class=" md:absolute top-1/2 right-0 md:-translate-y-1/2 md:w-2/5"/>
   </AnimateIn>
