@@ -19,6 +19,8 @@
   import worthLogo from "$lib/assets/icons/logos/worthe.svg"
   import compositionTestimonial from "$lib/assets/images/compositionTestimonial.jpg"
   import jeff from "$lib/assets/images/jeff.png"
+  import OpeningAnimation from "$lib/components/OpeningAnimation.svelte";
+
 
 
   let innerWidth:number;  
@@ -52,7 +54,6 @@
   const SLIDER_TRANSITION_LENGTH_IN_MS=2000;
   const SLIDER_INTERVAL_IN_MS = 5000;
 
-  let scrollPosition:number;
 
 
 
@@ -83,35 +84,26 @@
       let viewportWidth:number;
 
   
-      onMount(()=>{
-         sliderInterval = setInterval(()=>slideLeft(), SLIDER_INTERVAL_IN_MS);
-      });
-  
+     
 
+        
 
+      onMount(() => {
+  sliderInterval = setInterval(() => slideLeft(), SLIDER_INTERVAL_IN_MS);
 
-</script>
+  return () => {
+    clearInterval(sliderInterval);
+
+  }
+});
+    </script>
 
 <svelte:head>
 	<title>Reddoor Creative | Home</title>
 </svelte:head>
 <svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
-<div class="w-screen bg-paper">
-  <ContentWidth class="flex flex-col md:flex-row md:py-40 justify-between">
-    <img src={printedReddoorLogo} alt="reddoor logo" class="w-full h-fit md:w-1/5  max-w-24 max-h-[67.67px] my-20"/>
-    <div class="w-full md:w-4/5 flex flex-col md:py-16 items-start">
-      <h3 class="text-primary w-full ">Arm your brand with a clear story and compelling design.</h3>
-      <div class="flex flex-row gap-6 mt-12">
-        <a href="/contact">
-        <DefaultButton bold filled text="MEET WITH US"/>
-        </a>
-        <a href="/portfolio">
-        <DefaultButton filled={false} class="border-1 border-dark text-dark hover:bg-mid hover:bg-opacity-20" text="VIEW WORK"/>
-        </a>
-        </div>
-    </div>
-  </ContentWidth>
-</div>
+<OpeningAnimation />
+
 <div class="relative w-screen">
   <div class='w-screen bg-paper pt-32 md:pt-0 pb-8 md:h-2/5'>
     <ContentWidth class="flex flex-row items-end">
