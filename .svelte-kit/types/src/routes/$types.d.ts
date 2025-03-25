@@ -12,7 +12,7 @@ type EnsureDefined<T> = T extends null | undefined ? {} : T;
 type OptionalUnion<U extends Record<string, any>, A extends keyof U = U extends U ? keyof U : never> = U extends unknown ? { [P in Exclude<A, keyof U>]?: never } & U : never;
 export type Snapshot<T = any> = Kit.Snapshot<T>;
 type LayoutRouteId = RouteId | "/[[preview=preview]]" | "/[[preview=preview]]/[uid]" | "/[[preview=preview]]/about" | "/[[preview=preview]]/contact" | "/[[preview=preview]]/portfolio" | "/[[preview=preview]]/portfolio/[uid]" | "/[[preview=preview]]/showcase/[uid]" | "/[[preview=preview]]/slider-test" | "/blogs" | "/contacts" | "/content" | "/ctas" | "/faqs" | "/footers" | "/lists" | "/mastheads" | "/navs" | "/plans" | "/portfolios" | "/slice-simulator" | "/sliders" | "/teams" | "/testimonials" | "/values" | null
-type LayoutParams = RouteParams & { preview?: MatcherParam<typeof import('../../../../src/params/preview').match>; uid?: string }
+type LayoutParams = RouteParams & { preview?: MatcherParam<typeof import('../../../../src/params/preview.js').match>; uid?: string }
 type LayoutServerParentData = EnsureDefined<{}>;
 type LayoutParentData = EnsureDefined<{}>;
 
@@ -20,4 +20,5 @@ export type LayoutServerLoad<OutputData extends OutputDataShape<LayoutServerPare
 export type LayoutServerLoadEvent = Parameters<LayoutServerLoad>[0];
 export type LayoutServerData = Expand<OptionalUnion<EnsureDefined<Kit.LoadProperties<Awaited<ReturnType<typeof import('../../../../src/routes/+layout.server.js').load>>>>>>;
 export type LayoutData = Expand<Omit<LayoutParentData, keyof LayoutServerData> & EnsureDefined<LayoutServerData>>;
+export type LayoutProps = { data: LayoutData; children: import("svelte").Snippet }
 export type RequestEvent = Kit.RequestEvent<RouteParams, RouteId>;
