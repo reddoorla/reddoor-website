@@ -104,7 +104,7 @@ afterNavigate(() => {
 <main out:fade={{duration:500}} in:fade={{delay:700, duration:700}}>
     {#if !showNav &&!$isTop}
 
-    <div class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes("portfolio/")||data.pathname.includes("about") ?"text-white":"text-black"}" transition:fly={{y:-64, delay:500}}>
+    <div class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes("portfolio/")||data.pathname.includes("about") ?"text-white":"text-black"}" transition:fly={{y:-64, delay:200}}>
         <ContentWidth class="flex flex-row justify-between items-center h-full">
             <a href="/" class="hover:opacity-80 transition-all duration-500 bump label ">
                 Reddoor Creative

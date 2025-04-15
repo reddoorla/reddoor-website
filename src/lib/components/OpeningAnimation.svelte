@@ -29,6 +29,7 @@
   };
   
   onMount(() => {
+    isTop.set(true)
     window.addEventListener('scroll', handleScroll);
     setTimeout(() => transitioning = false, 100);
     return () => {
@@ -61,6 +62,11 @@
          class="fixed top-0 left-0 w-full h-full z-20"
          style="clip-path: url(#mask-path);"
        >
+        <img
+            src={backgroundImageUrl}
+            alt="Background"
+            class="absolute h-full w-full object-cover"
+        />
          <img
            src={backgroundImageUrl}
            alt="Background"
