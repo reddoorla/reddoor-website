@@ -11,6 +11,8 @@
 	import ContentWidth from '$lib/components/ContentWidth/ContentWidth.svelte';
   import { onMount } from 'svelte';
 
+  import { isTop } from '$lib/stores/isTop';
+
 
     const NAV_LINKS=[
         {
@@ -100,7 +102,7 @@ afterNavigate(() => {
 {/if}
 {#key data.pathname}
 <main out:fade={{duration:500}} in:fade={{delay:700, duration:700}}>
-    {#if !showNav}
+    {#if !showNav &&!$isTop}
 
     <div class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes("portfolio/")||data.pathname.includes("about") ?"text-white":"text-black"}" transition:fly={{y:-64, delay:500}}>
         <ContentWidth class="flex flex-row justify-between items-center h-full">
@@ -130,7 +132,7 @@ afterNavigate(() => {
     </div>
     {/if}
 	<!-- nav #2 -->
-{#if showNav}
+{#if showNav &&!$isTop}
 <div class="h-12 w-screen top-0 fixed z-20 {isNavTransparent ? "bg-transparent text-white" : "bg-white"} bg-opacity-80" transition:fly={{y:-64, delay:500}}>
     <ContentWidth class="flex flex-row justify-between items-center h-full">
         <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
