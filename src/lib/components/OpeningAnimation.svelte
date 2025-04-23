@@ -61,14 +61,14 @@
     percentageScrolled = 100 - (containerRect.bottom - viewportHeight) / (containerRect.height - viewportHeight) * 100;
     percentageScrolled = Math.min(Math.max(percentageScrolled, 0), 100);
 
-    maskScale = 0.2 + (percentageScrolled / 100) * 9; 
+    maskScale = 0.2 + (percentageScrolled / 100) * 10; 
     if(percentageScrolled<95){
       isTop.set(true)
     }else{
       isTop.set(false)
     }
 
-    if (percentageScrolled > 45) {
+    if (percentageScrolled > 40) {
       showCompelling = true;
       showButtons = true;
     } else {
@@ -136,9 +136,10 @@
           </div>
           
           {/if}
+          <div class='w-screen h-dvh bg-black opacity-25 fixed'></div>
  
           {#key currentImageIndex}
-          <div class='hidden lg:block h-dvh w-screen fixed top-0 left-0 {hideTopImage?'opacity-0':''}' in:fly={{y:'100%', duration: 500}}>
+          <div class='hidden lg:block h-dvh w-screen fixed top-0 left-0 {hideTopImage?'opacity-0':''}' in:fly={{y:'100%', duration: 800}}>
            <ContentWidth class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16">
              <p class='text-white text-left underline underline-offset-4'>{backgrounds[currentImageIndex].name}</p>
              <p class='text-white text-left'>{backgrounds[currentImageIndex].media}</p>
