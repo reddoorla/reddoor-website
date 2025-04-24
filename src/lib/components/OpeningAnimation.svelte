@@ -119,8 +119,16 @@
          style="clip-path: url(#mask-path);"
 
        >
-      
+
+       {#each backgrounds as background, index}
           <Img
+              src={background.src}
+              alt="Background"
+              class="absolute h-full w-full object-cover will-change-contents transition-opacity duration-1000 ease-fast-slow {index === currentImageIndex ? 'opacity-100' : 'opacity-0'}"
+          />
+        {/each}
+      
+          <!-- <Img
               src={backgrounds[(currentImageIndex+1)%backgrounds.length].src}
               alt="Background"
               class="absolute h-full w-full object-cover will-change-contents"
@@ -135,12 +143,12 @@
          />
       
           </div>
-          
-          {/if}
+           
+          {/if} -->
           <div class='w-screen h-dvh bg-black opacity-25 fixed'></div>
  
           {#key currentImageIndex}
-          <div class='hidden lg:block h-dvh w-screen fixed top-0 left-0 {hideTopImage?'opacity-0':''}' in:fly={{y:'100%', duration: 800}}>
+          <div class='hidden lg:block h-dvh w-screen fixed top-0 left-0' in:fly={{y:'100%', duration: 800}} out:fade>
            <ContentWidth class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16">
              <p class='text-white text-left underline underline-offset-4'>{backgrounds[currentImageIndex].name}</p>
              <p class='text-white text-left'>{backgrounds[currentImageIndex].media}</p>
