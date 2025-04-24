@@ -57,10 +57,11 @@ button{
 }
 
 h1{
-    font-size: 100px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: 130px; 
+
+font-size: 80px;
+font-style: normal;
+font-weight: 200;
+line-height: normal;
 }
 
 h2{
@@ -126,11 +127,25 @@ line-height: 25px;
 font-weight: 200;
 }
 
+@media only screen and (max-width:1600px){
+    h1{
+        font-size: 70px;
+        line-height: 80px;
+    }
+}
+
+@media only screen and (max-width:1340px){
+    h1{
+        font-size: 54px;
+        line-height: 64px;
+    }
+}
+
 
 @media only screen and (max-width:1024px) {
     h1{
         font-size: 80px;
-        line-height: 90px; 
+        line-height: 90px;
     }
     
     h2{
@@ -159,8 +174,8 @@ font-weight: 200;
 
 @media only screen and (max-width:768px) {
     h1{
-        font-size: 70px;
-        line-height: 80px; /* 121.212% */
+        font-size: 54px;
+        line-height: 64px; /* 121.212% */
     }
     
     h2{
@@ -176,10 +191,18 @@ font-weight: 200;
 
 }
 
-@media only screen and (max-width: 480px) {
+@media only screen and (max-width: 560px) {
     h1{
         font-size:44px;
         line-height: 54px;
+    }
+}
+
+
+@media only screen and (max-width: 480px) {
+    h1{
+        font-size:36px;
+        line-height:44px;
     }
 
     h3{
@@ -261,4 +284,25 @@ input[type='textarea']::placeholder{
 .rich-text a:hover{
     
     color: #aa1419;
+}
+
+@keyframes pos-y-wiggle {
+    0% {
+        transform: translateY(1px);
+    }
+    50% {
+        transform: translateY(-1px);
+    }
+    100% {
+        transform: translateY(1px);
+    }
+}
+.bob-on-hover:hover {
+    animation-name: pos-y-wiggle;
+    animation-play-state: running;
+}
+
+.bob-always{
+
+    animation: 1s infinite forwards pos-y-wiggle ease-out;
 }

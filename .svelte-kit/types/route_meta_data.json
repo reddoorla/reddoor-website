@@ -9,41 +9,8 @@
 	"/api/preview": [
 		"src/routes/api/preview/+server.ts"
 	],
-	"/blogs": [
-		"src/routes/+layout.server.js"
-	],
-	"/contacts": [
-		"src/routes/+layout.server.js"
-	],
 	"/[[preview=preview]]/contact": [
 		"src/routes/[[preview=preview]]/contact/+page.server.js",
-		"src/routes/+layout.server.js"
-	],
-	"/content": [
-		"src/routes/+layout.server.js"
-	],
-	"/ctas": [
-		"src/routes/+layout.server.js"
-	],
-	"/faqs": [
-		"src/routes/+layout.server.js"
-	],
-	"/footers": [
-		"src/routes/+layout.server.js"
-	],
-	"/lists": [
-		"src/routes/+layout.server.js"
-	],
-	"/mastheads": [
-		"src/routes/+layout.server.js"
-	],
-	"/navs": [
-		"src/routes/+layout.server.js"
-	],
-	"/plans": [
-		"src/routes/+layout.server.js"
-	],
-	"/portfolios": [
 		"src/routes/+layout.server.js"
 	],
 	"/[[preview=preview]]/portfolio": [
@@ -62,18 +29,6 @@
 		"src/routes/+layout.server.js"
 	],
 	"/[[preview=preview]]/slider-test": [
-		"src/routes/+layout.server.js"
-	],
-	"/sliders": [
-		"src/routes/+layout.server.js"
-	],
-	"/teams": [
-		"src/routes/+layout.server.js"
-	],
-	"/testimonials": [
-		"src/routes/+layout.server.js"
-	],
-	"/values": [
 		"src/routes/+layout.server.js"
 	],
 	"/[[preview=preview]]": [

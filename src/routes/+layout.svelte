@@ -11,6 +11,9 @@
 	import ContentWidth from '$lib/components/ContentWidth/ContentWidth.svelte';
   import { onMount } from 'svelte';
 
+  import { isTop } from '$lib/stores/isTop';
+  import LandscapeModal from '$lib/components/LandscapeModal.svelte';
+
 
     const NAV_LINKS=[
         {
@@ -98,11 +101,12 @@ afterNavigate(() => {
     </button>
 </div>
 {/if}
+<LandscapeModal />
 {#key data.pathname}
 <main out:fade={{duration:500}} in:fade={{delay:700, duration:700}}>
-    {#if !showNav}
+    {#if !showNav &&!$isTop}
 
-    <div class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes("portfolio/")||data.pathname.includes("about") ?"text-white":"text-black"}" transition:fly={{y:-64, delay:500}}>
+    <div class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes("portfolio/")||data.pathname.includes("about") ?"text-white":"text-black"}" transition:fly={{y:-64, delay:200}}>
         <ContentWidth class="flex flex-row justify-between items-center h-full">
             <a href="/" class="hover:opacity-80 transition-all duration-500 bump label ">
                 Reddoor Creative
@@ -130,7 +134,7 @@ afterNavigate(() => {
     </div>
     {/if}
 	<!-- nav #2 -->
-{#if showNav}
+{#if showNav &&!$isTop}
 <div class="h-12 w-screen top-0 fixed z-20 {isNavTransparent ? "bg-transparent text-white" : "bg-white"} bg-opacity-80" transition:fly={{y:-64, delay:500}}>
     <ContentWidth class="flex flex-row justify-between items-center h-full">
         <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
@@ -163,9 +167,10 @@ afterNavigate(() => {
 
 	<slot />
 
-<footer>
+<footer class='relative'>
+    <div class='w-full h-full absolute top-0 left-0 bg-white'></div>
 
-    <ContentWidth class="py-10 flex flex-row justify-between">
+    <ContentWidth class="py-10 flex flex-row justify-between z-20 relative">
         <div class="flex flex-col gap-8 justify-between items-start">
             <div class="flex flex-row gap-3">
                 <a href="https://www.linkedin.com/company/reddoor-creative" class=" p-2 flex items-center justify-center border-[1px] border-mid rounded-full h-8 w-8 hover:bg-dark text-mid hover:text-light bump">

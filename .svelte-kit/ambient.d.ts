@@ -85,6 +85,7 @@ declare module '$env/static/private' {
 	export const npm_config_prefix: string;
 	export const COLORTERM: string;
 	export const NODE_ENV: string;
+	export const VIPSHOME: string;
 }
 
 /**
@@ -175,6 +176,7 @@ declare module '$env/dynamic/private' {
 		npm_config_prefix: string;
 		COLORTERM: string;
 		NODE_ENV: string;
+		VIPSHOME: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}
