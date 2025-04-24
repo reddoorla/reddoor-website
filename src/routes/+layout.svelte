@@ -167,9 +167,10 @@ afterNavigate(() => {
 
 	<slot />
 
-<footer>
+<footer class='relative'>
+    <div class='w-full h-full absolute top-0 left-0 bg-white'></div>
 
-    <ContentWidth class="py-10 flex flex-row justify-between">
+    <ContentWidth class="py-10 flex flex-row justify-between z-20 relative">
         <div class="flex flex-col gap-8 justify-between items-start">
             <div class="flex flex-row gap-3">
                 <a href="https://www.linkedin.com/company/reddoor-creative" class=" p-2 flex items-center justify-center border-[1px] border-mid rounded-full h-8 w-8 hover:bg-dark text-mid hover:text-light bump">

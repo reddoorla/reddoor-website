@@ -68,7 +68,7 @@
       isTop.set(false)
     }
 
-    if (percentageScrolled > 40) {
+    if (percentageScrolled > 30) {
       showCompelling = true;
       showButtons = true;
     } else {
@@ -110,6 +110,7 @@
          <h1 class="text-white text-left w-fit">a clear story...</h1>
          
        </div>
+       <i class="fa-light fa-arrow-down fa-2xl opacity-50 absolute bottom-12 text-white bob-always" />
      </ContentWidth>
      
      <div class="fixed top-0 left-0 w-screen h-dvh overflow-hidden z-20">
@@ -148,13 +149,9 @@
            </div>
            {/key}
 
-        
-         
-         <div class="w-96 bg-paper-red h-96 absolute -top-[280px] -left-32 rotate-[-30deg]">
 
-         </div>
 
-         <img src={printedReddoorLogo} alt="reddoor logo" class="absolute top-8 left-8 w-16 opacity-20" />
+         <img src={printedReddoorLogo} alt="reddoor logo" class="absolute top-8 left-8 w-16" />
          
 
          <ContentWidth class="flex flex-col justify-center items-center h-full z-20 relative">
