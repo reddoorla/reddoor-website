@@ -104,7 +104,7 @@
  
  <div class="w-screen" bind:this={openingSection}>
    <div class="h-dvh w-screen fixed bottom-0 left-0 bg-paper-red">
-     <ContentWidth class="flex flex-col justify-center items-center h-full z-10 relative">
+     <ContentWidth class="flex flex-col justify-center items-center h-full z-10 relative {percentageScrolled > 30 ? "opacity-0 ": 'opacity-100'}">  
        <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
          <h1 class="text-white text-left w-fit">Arm your brand with</h1>
          <h1 class="text-white text-left w-fit">a clear story...</h1>
