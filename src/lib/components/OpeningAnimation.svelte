@@ -123,7 +123,7 @@
           <Img
               src={backgrounds[(currentImageIndex+1)%backgrounds.length].src}
               alt="Background"
-              class="absolute h-full w-full object-cover"
+              class="absolute h-full w-full object-cover will-change-contents"
           />
    
           {#if !hideTopImage}
@@ -131,7 +131,7 @@
          <Img
            src={backgrounds[currentImageIndex].src}
            alt="Background"
-           class="absolute h-full w-full object-cover"
+           class="absolute h-full w-full object-cover will-change-contents"
          />
       
           </div>
@@ -160,14 +160,19 @@
             <h1 class="text-white text-left md:translate-x-[14.5px] lg:translate-x-[7.5px]">Arm your brand with</h1>
             <h1 class="text-white text-left md:translate-x-[14.5px] lg:translate-x-[7.5px] transition duration-1000 ease-fast-slow {showCompelling? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"}">compelling design</h1>
             <div class="w-full flex flex-col md:flex-row md:gap-4 mt-8 transition duration-1000 ease-fast-slow {showButtons? "opacity-100 translate-y-0 delay-1000":"opacity-0 translate-y-[50%]"}">
-              <PillButton
+              <DefaultButton
+                filled={false}
+                class='border-1 border-white text-primary bg-white hover:bg-primary hover:text-white'
                 href="/contact"
                 text="Meet With Us"
                 red={false}
                 />
-              <PillButton
+              <DefaultButton
+                filled={true}
+                bold={true}
                 href="/portfolio"
                 text="View Our Work"
+
               />
             </div>
             <!-- {#key currentImageIndex}
