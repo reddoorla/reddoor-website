@@ -254,7 +254,7 @@ line-height: 140%; /* 84px */
 
 </section>
 
-<ScreenWidthImage image={longHollow} />
+<ScreenWidthImage src={longHollow} />
 <section class="bg-paper pt-16 pb-60 -mb-56">
 <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%]">
@@ -301,7 +301,7 @@ line-height: 140%; /* 84px */
     </div>
 </ContentWidth>
 <section class="mt-16">
-<ScreenWidthImage image={stJames}/>
+<ScreenWidthImage src={stJames}/>
 <ContentWidth>
     <div class="w-full mt-12 md:w-4/5 md:ml-[20%] flex flex-col">
         <div class="w-full flex flex-col-reverse lg:flex-row">
