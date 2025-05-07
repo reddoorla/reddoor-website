@@ -1,7 +1,7 @@
 <script lang="ts">
 
 
-    export let text = "BUTTON";
+    export let text = "";
     export let click = ()=>{};
     export let filled = false;
     export let red = false;
@@ -27,7 +27,7 @@
             {filled && red ?
                 "bg-primary border-primary hover:bg-primary-dark active:bg-black text-white" 
             : red ?
-            'border-primary hover:bg-primary-dark active:bg-black text-primary' 
+            'border-primary hover:bg-primary-dark active:bg-black text-primary hover:text-white' 
             : filled ?
                 "bg-white border-white hover:opacity-80 active:bg-black text-white"
             :
@@ -48,7 +48,7 @@
             {filled && red ?
                 "bg-primary border-primary hover:bg-primary-dark active:bg-black text-white" 
             : red ?
-            'border-primary hover:bg-primary-dark active:bg-black text-primary' 
+            'border-primary hover:bg-primary-dark active:bg-black text-primary hover:text-white' 
             : filled ?
                 "bg-white border-white hover:opacity-80 active:bg-black text-white"
             :

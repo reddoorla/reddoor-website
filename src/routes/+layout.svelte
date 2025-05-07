@@ -14,6 +14,8 @@
   import { isTop } from '$lib/stores/isTop';
   import LandscapeModal from '$lib/components/LandscapeModal.svelte';
 
+  import rotatingReddoor from '$lib/assets/icons/logos/drawnReddoors.gif'
+
 
     const NAV_LINKS=[
         {
@@ -167,45 +169,21 @@ afterNavigate(() => {
 
 	<slot />
 
-<footer class='relative'>
-    <div class='w-full h-full absolute top-0 left-0 bg-white'></div>
+<footer class='relative bg-paper'>
+    <div class='w-full h-full absolute top-0 left-0 bg-paper'></div>
 
-    <ContentWidth class="py-10 flex flex-row justify-between z-20 relative">
-        <div class="flex flex-col gap-8 justify-between items-start">
-            <div class="flex flex-row gap-3">
-                <a href="https://www.linkedin.com/company/reddoor-creative" class=" p-2 flex items-center justify-center border-[1px] border-mid rounded-full h-8 w-8 hover:bg-dark text-mid hover:text-light bump">
-                    <i class="fa-brands fa-linkedin-in"/>
-                </a>
-                <a href="https://www.instagram.com/reddoorla/" class=" p-2 flex items-center justify-center border-[1px] border-mid hover:bg-dark text-mid hover:text-light rounded-full h-8 w-8 bump">
-                    <i class="fa-brands fa-instagram d"/>
-                </a>
+    <ContentWidth class="pb-4 flex flex-row justify-end items-end z-20 relative">
+            
+        <div class="flex flex-col tracking-wide label gap-16 w-full md:w-1/3 lg:w-1/5">
+            
+            <div class="flex flex-col gap-1">
+                <a href="/" class="-translate-x-[8%] w-3/5 md:w-full"><img src={rotatingReddoor} alt='reddoor drawn in multiple styles'/></a>
+                <a href="/portfolio" class="text-primary underline">Portfolio</a>
+                <a href="/about" class="text-primary underline">About</a>
+                <a href="/contact" class="text-primary underline">Meet with Us</a>
+                <a href="https://www.linkedin.com/company/reddoor-creative" class="">LinkedIn</a>
+                <a href="https://www.instagram.com/reddoorla/" class="">Instagram</a>
             </div>
-            <div class="flex md:hidden flex-col tracking-wide label gap-8">
-                <div class="flex flex-col">
-                    <div>CONTACT</div>
-                    <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
-                    <a href="mailto:info@reddoorla.com" class="text-primary underline">info@reddoorla.com</a>
-                </div>
-                <div class="flex flex-col">
-                    <div>HQ MAILING ADDRESS</div>
-                    <div>29027 Dapper Dan Dr.</div>
-                    <div>Fair Oaks Ranch, TX 78015</div>
-                </div>
-                <div class="flex flex-row gap-1">
-                    <a href="/" class="text-primary underline">Home</a>
-                    <div>/</div>
-                    <a href="/" class="text-primary underline">Portfolio</a>
-                    <div>/</div>
-                    <a href="/about" class="text-primary underline">About</a>
-                    <div>/</div>
-                    <a href="/contact" class="text-primary underline">Meet with Us</a>
-                </div>
-            </div>
-            <div class="label">
-                {"© Reddoor Creative 2006-"+ new Date().getFullYear() + ", All Rights Reserved"}
-            </div>
-        </div>
-        <div class="hidden md:flex flex-col tracking-wide label gap-16">
             <div class="flex flex-col">
                 <div>CONTACT</div>
                 <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
@@ -216,16 +194,10 @@ afterNavigate(() => {
                 <div>29027 Dapper Dan Dr.</div>
                 <div>Fair Oaks Ranch, TX 78015</div>
             </div>
-            <div class="flex flex-row gap-1">
-                <a href="/" class="text-primary underline">Home</a>
-                <div>/</div>
-                <a href="/portfolio" class="text-primary underline">Portfolio</a>
-                <div>/</div>
-                <a href="/about" class="text-primary underline">About</a>
-                <div>/</div>
-                <a href="/contact" class="text-primary underline">Meet with Us</a>
+            <div class="label text-nowrap">
+                {"© Reddoor Creative 2006-"+ new Date().getFullYear() + ", All Rights Reserved"}
             </div>
-        </div>
+        
     </ContentWidth>
 
 </footer>

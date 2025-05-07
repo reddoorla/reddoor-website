@@ -4,6 +4,7 @@ import type { LogoSoupDocument } from "../../prismicio-types";
   import ContentBox from "./FullWidth/ContentBox.svelte";
   import ContentWidth from "./ContentWidth/ContentWidth.svelte";
   import { fade } from "svelte/transition";
+  import AnimateIn from "./AnimateIn.svelte";
 
 
     export let data;
@@ -40,24 +41,29 @@ import type { LogoSoupDocument } from "../../prismicio-types";
         {/each}
     </div>
     <ContentWidth class='h-full py-32 flex flex-row justify-end relative'>
-        <h6 class='absolute left-0 top-40 transition duration-300 ease-fast-slow {showImage?'text-white':'text-red'}'>
-            Join these brands <br/> in fighting mediocrity.
-        </h6>
+        <AnimateIn class='absolute left-0 top-40'>
+            <h6 class='åtransition duration-300 ease-fast-slow {showImage?'text-white':'text-red'}'>
+                Join these brands <br/> in fighting mediocrity.
+            </h6>
+        </AnimateIn>
         
         <div class='w-3/5 h-full flex flex-row justify-between items-center flex-wrap gap-12'>
             {#each brands as brand, i }
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div class='w-1/4 relative' on:mouseenter={() => {showImage = true; brandIndex = i}} on:mouseleave={() => {showImage = false}}>
-                <PrismicLink field={brand.project_link}  >
-                    <PrismicImage field={brand.logo_negative} class='h-full absolute transition-opacity duration-300 ease-fast-slow {showImage&&brandIndex===i?'':'opacity-0'}' loading='eager'/>
-                    <PrismicImage field={brand.logo_color}  class='h-full transition-opacity duration-300 ease-fast-slow {showImage?'opacity-0':''}' loading='eager'/>
-                </PrismicLink>
-            </div>
+            <AnimateIn class='w-1/4 relative'>
+                <div  on:mouseenter={() => {showImage = true; brandIndex = i}} on:mouseleave={() => {showImage = false}}>
+                    <PrismicLink field={brand.project_link}  >
+                        <PrismicImage field={brand.logo_negative} class='h-full absolute transition-opacity duration-300 ease-fast-slow {showImage&&brandIndex===i?'':'opacity-0'}' loading='eager'/>
+                        <PrismicImage field={brand.logo_color}  class='h-full transition-opacity duration-300 ease-fast-slow {showImage?'opacity-0':''}' loading='eager'/>
+                    </PrismicLink>
+                </div>
+            </AnimateIn>
             {/each}
         </div>
 
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="absolute  bottom-[20%] left-0 w-64 pt-10" on:mouseenter={() => {showImage = true}} on:mouseleave={() => {showImage = false}}>
+         <AnimateIn class="absolute  bottom-[20%] left-0 w-64">
+        <div class='pt-10' on:mouseenter={() => {showImage = true}} on:mouseleave={() => {showImage = false}}>
             {#key brandIndex}
                 <p class='underline underline-offset-4 text-white transition duration-300 ease-fast-slow' in:fade>
                     {showImage?brands[brandIndex].name:''}
@@ -75,6 +81,7 @@ import type { LogoSoupDocument } from "../../prismicio-types";
                 </button>
             </div>
         </div>
+         </AnimateIn>
     </ContentWidth>
 
 </div>

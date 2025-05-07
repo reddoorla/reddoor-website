@@ -11,8 +11,7 @@
   import printedReddoorLogo from '$lib/assets/icons/logos/reddoor_logo.png'
   import { isTop } from "$lib/stores/isTop";
   import Img from "@zerodevx/svelte-img";
-  import PillButton from "./Buttons/PillButton.svelte";
-  import AnimateInTriggered from "./AnimateInTriggered.svelte";
+  import drawnLogo from '$lib/assets/icons/logos/staticReddoor.png'
 
   
   let viewportHeight: number;
@@ -104,7 +103,9 @@
  
  <div class="w-screen" bind:this={openingSection}>
    <div class="h-lvh w-screen fixed bottom-0 left-0 bg-paper-red">
+    
      <ContentWidth class="flex flex-col justify-center items-center h-full z-10 relative {percentageScrolled > 30 ? "opacity-0 ": 'opacity-100'}">  
+      
        <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
          <h1 class="text-white text-left w-fit opacity-0">Arm your brand with</h1>
          <h1 class="text-white text-left w-fit">a clear story...</h1>
@@ -114,6 +115,9 @@
      </ContentWidth>
      
      <div class="fixed top-0 left-0 w-screen h-lvh overflow-hidden z-20">
+      <ContentWidth>
+        <img src={drawnLogo} class='absolute top-8 left-0 h-20' alt='reddoor'/>
+      </ContentWidth>
        <div
          class="fixed top-0 left-0 w-full h-full z-20"
          style="clip-path: url(#mask-path);"
@@ -142,7 +146,9 @@
 
 
            {#if $isTop}
-            <img src={printedReddoorLogo} alt="reddoor logo" class="absolute top-8 left-8 w-12" in:fade={{delay:400}} out:fade/>
+           <ContentWidth>
+            <img src={printedReddoorLogo} alt="reddoor logo" class="absolute top-8 left-0 w-12" in:fade={{delay:400}} out:fade/>
+           </ContentWidth>
           {/if}
          
 
