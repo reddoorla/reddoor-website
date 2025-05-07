@@ -26,16 +26,24 @@
   const backgrounds = [
     {name: "St James' School" ,
     src: stJames,
-    media: 'Branding, Print'},
+    media: 'Branding, Print',
+    link: '/portfolio/st-james-episcopal-school'
+  },
     {name: 'Enzo\'s Hand Wash',
     src: enzos,
-    media: 'Branding, Print, Digital'},
+    media: 'Branding, Print, Digital',
+    link: '/portfolio/enzos'
+  },
     {name: 'Freedom Youth Foundation',
     src: fyf,
-    media: 'Branding, Print'},
+    media: 'Branding, Print',
+    link: '/portfolio/freedom-youth-foundation'
+  },
     {name: 'Gallery Sonder',
     src: sonder,
-    media: 'Branding, Print, Digital'},
+    media: 'Branding, Print, Digital',
+    link: '/portfolio/gallery-sonder'
+  },
   ];
   
   let currentImageIndex = 0;
@@ -135,9 +143,9 @@
           <div class='w-screen h-lvh bg-black opacity-25 fixed'></div>
  
           {#key currentImageIndex}
-          <div class='hidden lg:block h-lvh w-screen fixed top-0 left-0' in:fly={{y:'100%', duration: 800}} out:fade>
+          <div class='hidden lg:block h-lvh w-screen fixed top-0 left-0 z-30' in:fade={{delay:400}} out:fade>
            <ContentWidth class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16">
-             <p class='text-white text-left underline underline-offset-4'>{backgrounds[currentImageIndex].name}</p>
+             <a href={backgrounds[currentImageIndex].link}><p class='text-white text-left underline underline-offset-4'>{backgrounds[currentImageIndex].name}</p></a>
              <p class='text-white text-left'>{backgrounds[currentImageIndex].media}</p>
  
            </ContentWidth>
