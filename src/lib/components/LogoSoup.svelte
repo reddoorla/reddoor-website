@@ -311,7 +311,7 @@ function calculateScrollPositionForBrand(index: number) {
         <div class="absolute bottom-1/2 translate-y-1/2 left-6 flex justify-center">
           <div class="flex flex-col gap-2">
             {#each brands as _, i}
-              <button on:click={()=>navigateToBrand(i+1)} class="w-3 h-3 rounded-full transition-all duration-300 z-20 
+              <button on:click={()=>navigateToBrand(i+1)} class="w-1.5 h-1.5 rounded-full transition-all duration-300 z-20 
                 {i === brandIndex ? 'bg-white scale-125' : 'bg-white/50 scale-100'}">
               </button>
             {/each}
