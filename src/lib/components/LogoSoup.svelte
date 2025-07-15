@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PrismicImage, PrismicLink } from "@prismicio/svelte";
-  import type { LogoSoupDocument } from "../../prismicio-types";
+  import type { LogoSoupDocumentData, LogoSoupDocumentDataBrandsItem } from "../../prismicio-types";
   import ContentBox from "./FullWidth/ContentBox.svelte";
   import ContentWidth from "./ContentWidth/ContentWidth.svelte";
   import { fade } from "svelte/transition";
@@ -9,7 +9,20 @@
 
   export let data;
 
-  const brands = data.logoSoup.data.brands;
+  const logoSoupData:LogoSoupDocumentData = data.logoSoup.data
+
+  const allBrands = logoSoupData.brands;
+
+
+  let featuredBrands: LogoSoupDocumentDataBrandsItem[] = [];
+
+  allBrands.forEach((brand:any) => {if(brand.isFeatured)featuredBrands.push(brand)});
+
+  let brands: LogoSoupDocumentDataBrandsItem[] = allBrands;
+
+
+
+
 
   let showImage = false;
   let brandIndex = 0;
@@ -102,6 +115,13 @@ function calculateScrollPositionForBrand(index: number) {
 
   $: if (viewportWidth) checkMobile();
   $: if (scrollY !== undefined && isMobile) handleScroll();
+  $:{ 
+    isMobile;
+    if(isMobile) {
+      brands=featuredBrands;
+    }else{
+      brands=allBrands;
+  }}
 </script>
 
 <svelte:window
@@ -125,7 +145,7 @@ function calculateScrollPositionForBrand(index: number) {
       >
         {#each brands as brand, i}
           <PrismicImage
-            field={brand.active_background}
+            field={isMobile && brand.active_background_mobile_crop ? brand.active_background_mobile_crop : brand.active_background}
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow 
         {showImage && brandIndex === i ? '' : 'opacity-0'}"
           />

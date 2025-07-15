@@ -50,6 +50,14 @@
                 "thumbnails": []
               }
             },
+            "active_background_mobile_crop": {
+              "type": "Image",
+              "config": {
+                "label": "active background mobile crop",
+                "constraint": {},
+                "thumbnails": []
+              }
+            },
             "project_link": {
               "type": "Link",
               "config": {
@@ -59,6 +67,15 @@
                 "allowTargetBlank": true,
                 "allowText": true,
                 "repeat": false
+              }
+            },
+            "isFeatured": {
+              "type": "Boolean",
+              "config": {
+                "label": "isFeatured",
+                "placeholder_false": "desktop only",
+                "placeholder_true": "desktop and mobile",
+                "default_value": false
               }
             }
           }

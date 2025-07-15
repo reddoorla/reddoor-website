@@ -59,6 +59,16 @@ export interface LogoSoupDocumentDataBrandsItem {
   active_background: prismic.ImageField<never>;
 
   /**
+   * active background mobile crop field in *Logo Soup → brands*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: *None*
+   * - **API ID Path**: logo_soup.brands[].active_background_mobile_crop
+   * - **Documentation**: https://prismic.io/docs/field#image
+   */
+  active_background_mobile_crop: prismic.ImageField<never>;
+
+  /**
    * project link field in *Logo Soup → brands*
    *
    * - **Field Type**: Link
@@ -73,6 +83,17 @@ export interface LogoSoupDocumentDataBrandsItem {
     prismic.FieldState,
     never
   >;
+
+  /**
+   * isFeatured field in *Logo Soup → brands*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: logo_soup.brands[].isFeatured
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  isFeatured: prismic.BooleanField;
 }
 
 /**
