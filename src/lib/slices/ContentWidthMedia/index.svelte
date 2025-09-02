@@ -9,26 +9,18 @@ export let slice: ContentWidthImageSlice;
 
 let backgroundColorString = 'bg-' + slice.primary.background;
 
-// Create a Map to track loading state for each video by index
-let videoLoadStates = new Map<number, boolean>();
+let showVideos = new Array<boolean>(slice.primary.images.length).fill(true);
+let frames = new Array<HTMLIFrameElement|undefined>(slice.primary.images.length);
 
-const handleVideoLoad = (index: number) => {
-  videoLoadStates.set(index, true);
-  // Trigger reactivity by reassigning the Map
-  videoLoadStates = videoLoadStates;
-};
 
-// Helper function to get video load state
-const getVideoLoadState = (index: number): boolean => {
-  return videoLoadStates.get(index) || false;
-};
+
 </script>
 
 {#if !slice.primary.hide}
 <section
   data-slice-type={slice.slice_type}
   data-slice-variation={slice.variation}
-  class="w-screen {slice.primary.hasPadding ? 'py-12' : ''} {backgroundColorString}"
+  class="w-screen relative {slice.primary.hasPadding ? 'py-12' : ''} {backgroundColorString}"
 >
   <ContentWidth>
     <div class="w-full flex flex-col {slice.primary.isFullContentWidth ? '' : 'md:flex-row'}">
@@ -41,7 +33,7 @@ const getVideoLoadState = (index: number): boolean => {
       </AnimateIn>
       
       <div class="{slice.primary.isFullContentWidth ? 'w-full' : 'w-full md:w-4/5'} flex flex-row justify-center flex-wrap">
-        {#each slice.primary.images as item, index}
+        {#each slice.primary.images as item, i}
           {#if isFilled.link(item.link)}
             <AnimateIn 
               isOff={slice.primary.isAnimated !== null && !slice.primary.isAnimated} 
@@ -58,10 +50,11 @@ const getVideoLoadState = (index: number): boolean => {
                   <iframe
                     title="background video"
                     src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo ? '&background=1&loop=1&autoplay=1&muted=1' : ''}`}
-                    class="object-cover aspect-video w-full mx-auto z-10 {getVideoLoadState(index) ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
+                    class="object-cover aspect-video w-full mx-auto z-10 {showVideos[i] ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
                     frameborder="0"
                     allow="autoplay"
-                    on:load={() => handleVideoLoad(index)}
+                    on:error={() => showVideos[i]=false}
+                    bind:this={frames[i]}
                   ></iframe>
                 {:else}
                   <PrismicImage class="w-full object-cover cursor-pointer" field={item.image} />
@@ -84,10 +77,11 @@ const getVideoLoadState = (index: number): boolean => {
                 <iframe
                   title="background video"
                   src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo ? '&background=1&loop=1&autoplay=1&muted=1' : ''}`}
-                  class="object-cover aspect-video w-full mx-auto z-10 {getVideoLoadState(index) ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
+                  class="object-cover aspect-video w-full mx-auto z-10 {showVideos[i] ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
                   frameborder="0"
                   allow="autoplay"
-                  on:load={() => handleVideoLoad(index)}
+                  on:error={() => showVideos[i]=false}
+                  bind:this={frames[i]}
                 ></iframe>
               {/if}
             </AnimateIn>

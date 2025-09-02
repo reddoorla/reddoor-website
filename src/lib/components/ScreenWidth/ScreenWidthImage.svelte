@@ -14,17 +14,8 @@
   let viewportHeight: number = 1024;
   let viewportWidth: number = 768;
   let videoLoaded = false;
-  let showVideo = false;
-  
-  function handleVideoLoad() {
-    videoLoaded = true;
+  let showVideo = true;
 
-	console.log('loaded')
-    // Quick fade transition
-    setTimeout(() => {
-      showVideo = true;
-    }, 100);
-  }
 
   const handleVideoError = (error:any) => {
 	console.log(error);
@@ -93,7 +84,6 @@
         {showVideo ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
         frameborder="0"
         allowfullscreen
-        on:load={handleVideoLoad}
 		on:error={handleVideoError}
       ></iframe>
     {/if}
