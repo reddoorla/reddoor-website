@@ -63,13 +63,13 @@
         alt={altText}
         class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover -z-10
         {src === placeholder ? 'lg:w-[45%] md:h-auto' : ''}
-        {showVideo ? 'transition-opacity duration-300 opacity-0' : 'opacity-100'}"
+        "
       />
     {:else}
       <PrismicImage
         {field}
         class="absolute h-full w-full object-cover -z-10
-        {showVideo ? 'transition-opacity duration-300 opacity-0' : 'opacity-100'}"
+        "
       />
     {/if}
 
