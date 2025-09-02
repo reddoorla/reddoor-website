@@ -5,9 +5,12 @@
   import AnimateIn from "$lib/components/AnimateIn.svelte";
   export let slice:ScreenWidthColumnsSlice;
   let backgroundColorString = 'bg-'+slice.primary.background;
+  
+  let showVideo = false
+  const handleLoad = () => showVideo = true;
 </script>
 
-
+{#if !slice.primary.hide}
 
 <section
   data-slice-type={slice.slice_type}
@@ -24,13 +27,15 @@
             <div class="w-full border-b-1 border-dark label mb-8">{item.label}</div>
           {/if}
           {#if item.vimeoId}
+          <PrismicImage class="w-full object-cover absolute top-0 left-0" field={item.image} />
        
             <iframe 
 	  					title="background video" 
 	 					src={`https://player.vimeo.com/video/${item.vimeoId}?title=0${item.loopvideo? "&background=1&loop=1&autoplay=1&muted=1":""}`}
-	  					class="object-cover aspect-video w-full mx-auto z-10"
+	  					class="object-cover aspect-video w-full mx-auto z-10 {showVideo?"opacity-0":"opacity-100"} transition-opacity duration-200"
 	  					frameborder="0"
               allow="autoplay"
+              on:load={handleLoad}
 					></iframe>
           {:else}
           <PrismicImage class="w-full object-cover" field={item.image} />
@@ -65,3 +70,4 @@
 
   
 </section>
+{/if}

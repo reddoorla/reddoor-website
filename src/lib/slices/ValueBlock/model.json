@@ -42,6 +42,15 @@
             "constraint": {},
             "thumbnails": []
           }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
         }
       },
       "items": {}

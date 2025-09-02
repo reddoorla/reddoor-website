@@ -12,6 +12,7 @@
 
 </script>
 
+{#if !slice.primary.hide}
 
 <section class="w-full {slice.primary.hasPadding? "py-12" : ""} text-{slice.primary.textColor} {backgroundColorString}">
 	<ContentWidth class="flex flex-col 
@@ -37,3 +38,4 @@
 	</ContentWidth>
 </section>
 
+{/if}
