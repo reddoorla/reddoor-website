@@ -63,6 +63,10 @@
 			"isFullContentWidth": {
 				"__TYPE__": "BooleanContent",
 				"value": false
+			},
+			"hide": {
+				"__TYPE__": "BooleanContent",
+				"value": false
 			}
 		},
 		"items": []

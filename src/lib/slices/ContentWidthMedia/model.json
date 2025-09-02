@@ -139,6 +139,15 @@
               }
             }
           }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "show",
+            "placeholder_true": "hide",
+            "default_value": false
+          }
         }
       },
       "items": {}

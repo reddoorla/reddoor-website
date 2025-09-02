@@ -41,6 +41,10 @@
 			"isAnimated": {
 				"__TYPE__": "BooleanContent",
 				"value": true
+			},
+			"hide": {
+				"__TYPE__": "BooleanContent",
+				"value": true
 			}
 		},
 		"items": [

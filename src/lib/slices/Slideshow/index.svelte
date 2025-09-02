@@ -78,6 +78,7 @@ sliderInterval = setInterval(()=>slideRight(), SLIDER_INTERVAL_IN_MS);
 
 
 </script>
+{#if !slice.primary.hide}
 
 <div class="w-full py-12 {backgroundColorString}">
   <ContentWidth>
@@ -115,3 +116,4 @@ sliderInterval = setInterval(()=>slideRight(), SLIDER_INTERVAL_IN_MS);
     </div>
   </ContentWidth>
 </div>
+{/if}

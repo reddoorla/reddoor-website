@@ -773,6 +773,17 @@ export interface ContentWidthImageSliceDefaultPrimary {
   images: prismic.GroupField<
     Simplify<ContentWidthImageSliceDefaultPrimaryImagesItem>
   >;
+
+  /**
+   * hide field in *ContentWidthMedia → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: content_width_image.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hide: prismic.BooleanField;
 }
 
 /**
@@ -886,6 +897,17 @@ export interface RichTextSliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
   isAnimated: prismic.BooleanField;
+
+  /**
+   * hide field in *RichText → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: rich_text.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hide: prismic.BooleanField;
 }
 
 /**
@@ -1047,6 +1069,17 @@ export interface ScreenWidthColumnsSliceDefaultPrimary {
   media: prismic.GroupField<
     Simplify<ScreenWidthColumnsSliceDefaultPrimaryMediaItem>
   >;
+
+  /**
+   * hide field in *ScreenWidthColumns → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: screen_width_columns.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hide: prismic.BooleanField;
 }
 
 /**
@@ -1138,6 +1171,17 @@ export interface ScreenWidthImageSliceDefaultPrimary {
     "white" | "gray" | "red" | "paper" | "paper-red",
     "filled"
   >;
+
+  /**
+   * hide field in *ScreenWidthMedia → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: screen_width_image.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hide: prismic.BooleanField;
 }
 
 /**
@@ -1243,6 +1287,17 @@ export interface SlideshowSliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
   isFullContentWidth: prismic.BooleanField;
+
+  /**
+   * hide field in *Slideshow → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: slideshow.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hide: prismic.BooleanField;
 }
 
 /**
@@ -1318,6 +1373,17 @@ export interface ValueBlockSliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/field#image
    */
   drawn_image: prismic.ImageField<never>;
+
+  /**
+   * hide field in *ValueBlock → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: value_block.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hide: prismic.BooleanField;
 }
 
 /**

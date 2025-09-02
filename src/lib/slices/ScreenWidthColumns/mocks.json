@@ -61,6 +61,7 @@
 							[
 								"link",
 								{
+									"key": "24947506-dd2a-48af-b3ab-43d54b25a817",
 									"__TYPE__": "LinkContent",
 									"value": {
 										"__TYPE__": "ExternalLink",
@@ -93,6 +94,10 @@
 			"isAnimated": {
 				"__TYPE__": "BooleanContent",
 				"value": false
+			},
+			"hide": {
+				"__TYPE__": "BooleanContent",
+				"value": true
 			}
 		},
 		"items": []
