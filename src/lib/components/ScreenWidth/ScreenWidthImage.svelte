@@ -10,6 +10,7 @@
   export let vimeoId = "";
   export let darken = false;
   export let backdrop = false;
+  export let alt = ""
   
   let viewportHeight: number = 1024;
   let viewportWidth: number = 768;
@@ -46,7 +47,7 @@
     {#if !field}
       <img
         {src}
-        alt={altText}
+        alt={alt||altText}
         class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover -z-10
         {src === placeholder ? 'lg:w-[45%] md:h-auto' : ''}
         "
