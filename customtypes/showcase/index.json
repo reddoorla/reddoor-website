@@ -116,7 +116,26 @@
         "type": "Slices",
         "fieldset": "Slice Zone",
         "config": {
-          "choices": {}
+          "choices": {
+            "value_block": {
+              "type": "SharedSlice"
+            },
+            "slideshow": {
+              "type": "SharedSlice"
+            },
+            "screen_width_columns": {
+              "type": "SharedSlice"
+            },
+            "content_width_image": {
+              "type": "SharedSlice"
+            },
+            "screen_width_image": {
+              "type": "SharedSlice"
+            },
+            "rich_text": {
+              "type": "SharedSlice"
+            }
+          }
         }
       }
     },

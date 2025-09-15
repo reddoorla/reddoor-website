@@ -109,6 +109,7 @@
 
 <div class="py-12"/>
 
+<SliceZone slices={data.page.data.slices} {components} />
 
 <!-- footer -->
 <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">

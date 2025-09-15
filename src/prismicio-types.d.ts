@@ -443,7 +443,13 @@ export interface ShowcaseDocumentDataProjectsItem {
   subtitleOverride: prismic.KeyTextField;
 }
 
-type ShowcaseDocumentDataSlicesSlice = never;
+type ShowcaseDocumentDataSlicesSlice =
+  | ValueBlockSlice
+  | SlideshowSlice
+  | ScreenWidthColumnsSlice
+  | ContentWidthImageSlice
+  | ScreenWidthImageSlice
+  | RichTextSlice;
 
 /**
  * Content for showcase documents
