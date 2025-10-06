@@ -143,7 +143,7 @@
           <div class='w-screen h-dvh bg-black opacity-25 fixed'></div>
  
           {#key currentImageIndex}
-          <div class='hidden lg:block h-dvh w-screen fixed top-0 left-0 z-30' in:fade={{delay:400}} out:fade>
+          <div class='hidden lg:block h-dvh w-screen fixed top-0 left-0' in:fade={{delay:400}} out:fade>
            <ContentWidth class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16">
              <a href={backgrounds[currentImageIndex].link}><p class='text-white text-left underline underline-offset-4'>{backgrounds[currentImageIndex].name}</p></a>
              <p class='text-white text-left'>{backgrounds[currentImageIndex].media}</p>
@@ -160,14 +160,14 @@
           {/if}
          
 
-         <ContentWidth class="flex flex-col justify-center items-center h-full z-20 relative">
-          <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
+         <ContentWidth class="flex flex-col justify-center items-center h-full pointer-events-auto z-30">
+          <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full z-20">
             <h1 class="text-white text-left md:translate-x-[14.5px] lg:translate-x-[7.5px] opacity-0">Arm your brand with</h1>
             <h1 class="text-white text-left transition duration-1000 ease-fast-slow {showCompelling? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"}">compelling design</h1>
             <div class="w-full flex flex-col md:flex-row md:gap-4 mt-8 transition duration-1000 ease-fast-slow {showButtons? "opacity-100 translate-y-0 delay-1000":"opacity-0 translate-y-[50%]"}">
              
               <DefaultButton
-
+                class=""
                 href="/portfolio"
                 text="View Our Work"
 
@@ -193,7 +193,7 @@
    </div>
    
    <div class="h-dvh w-screen fixed bottom-0 left-0 pointer-events-none">
-    <ContentWidth class="flex flex-col justify-center items-center h-full z-20 relative">  
+    <ContentWidth class="flex flex-col justify-center items-center h-full relative">  
       <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
         <h1 class="text-white text-left w-fit ">Arm your brand with</h1>
        
