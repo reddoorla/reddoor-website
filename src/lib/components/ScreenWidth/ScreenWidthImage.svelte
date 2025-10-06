@@ -44,6 +44,7 @@
     {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full': 'w-screen min-h-full'}"
   >
     <!-- Image fallback - always present -->
+     
     {#if !field}
       <img
         {src}
@@ -55,8 +56,7 @@
     {:else}
       <PrismicImage
         {field}
-        class="absolute h-full w-full object-cover -z-10
-        "
+        class="absolute h-full w-full object-cover -z-10"
       />
     {/if}
 
@@ -92,4 +92,21 @@
       rgba(0, 0, 0, 0.45) 100%
     );
   }
+
+  img:not([src]) {
+  font-size: 0; /* Hide the alt text visually */
+  position: relative; /* Establish a positioning context for the pseudo-element */
+}
+
+img:not([src])::after {
+  content: ""; /* Or a custom fallback message */
+  display: block;
+  font-size: 1rem; /* Reset font size for the custom content */
+  /* Add styling for your custom fallback element if desired */
+  /* For example:
+  border: 1px solid #ccc;
+  padding: 5px;
+  background-color: #f0f0f0;
+  */
+}
 </style>

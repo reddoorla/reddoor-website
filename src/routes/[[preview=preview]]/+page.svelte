@@ -132,7 +132,7 @@
   </ContentWidth>
   <ScreenWidthImage
     vimeoId="1082293395"
-    altText="sonder brand drawinf"
+    altText="sonder brand drawing"
     class="mix-blend-multiply opacity-60 pointer-events-none"
   ></ScreenWidthImage>
 </section>

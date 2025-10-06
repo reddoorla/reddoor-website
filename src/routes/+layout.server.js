@@ -1,9 +1,26 @@
+import { createClient } from '$lib/prismicio';
+import { filter } from '@prismicio/client';
+
 export const prerender = 'auto';
 
-export const load = ({ url }) => {
+export const load = async ({ url, fetch, cookies }) => {
 	const { pathname } = url;
+	const client = createClient({ fetch, cookies });
+	const  latestFourProjects  = await client.getByType("project",
+				{
+						orderings: {
+						  field: 'document.first_publication_date',
+						  direction: 'desc'
+						},
+						
+						filters: [filter.not('document.tags', ['hide'])],
+						pageSize: 4
+					  }
+			);
+	
 
 	return {
-		pathname
+		pathname,
+		latestFourProjects
 	};
 };
