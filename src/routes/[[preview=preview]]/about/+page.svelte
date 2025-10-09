@@ -211,7 +211,7 @@
             compelling way.
           </p>
         </AnimateIn>
-        <AnimateIn class="flex flex-col w-2/3 md:w-1/3 mt-6 pr-4">
+        <AnimateIn class="flex flex-col w-2/3 md:w-1/3 mt-6 md:mt-0 pr-4">
           <p class="text-primary">02</p>
           <p class="mt-2">
             Champion our clients and remember that we exist to serve them with
