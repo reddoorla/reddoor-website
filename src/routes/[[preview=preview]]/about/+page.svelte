@@ -12,6 +12,7 @@
   import AnimateIn from "$lib/components/AnimateIn.svelte";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import { onMount } from 'svelte'
+  import LogoSoup from "$lib/components/LogoSoup.svelte";
   
 
   let carTranslationInVW = 0;
@@ -33,6 +34,8 @@
   onMount(()=>{
     window.addEventListener('scroll', handleScroll)
   })
+
+  export let data:any;
   
 </script>
 
@@ -241,7 +244,9 @@
   </ContentWidth>
 </section>
 
-<section class="h-96 bg-paper"></section>
+<section class="bg-paper">
+    <LogoSoup {data} />
+</section>
 
 <section class="relative w-screen bg-paper py-16 md:py-32">
   <ContentWidth class="flex flex-col" animateIn>

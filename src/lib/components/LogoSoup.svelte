@@ -83,9 +83,7 @@ function calculateScrollPositionForBrand(index: number) {
   const sectionHeight = section.offsetHeight;
   const sectionTop = section.getBoundingClientRect().top;
   const currentAbsolutePosition = window.scrollY + sectionTop;
-  
-  // Calculate target position based on brand index
-  // We add 2 to compensate for the -2 offset in the handleScroll function
+
   const targetProgress = (index + 2) / (brands.length + 2);
   const targetScrollPosition = currentAbsolutePosition + (targetProgress * sectionHeight) - viewportHeight;
   
@@ -131,7 +129,7 @@ function calculateScrollPositionForBrand(index: number) {
 />
 
 <section bind:this={section}>
-  <!-- Desktop Version -->
+
   {#if !isMobile}
     <section
       class="h-lvh w-screen relative overflow-hidden"

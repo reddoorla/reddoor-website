@@ -9,8 +9,6 @@ export async function load({ fetch, cookies }) {
 
 	const logoSoup = await client.getSingle('logo_soup');
 
-	console.log(logoSoup.data)
-
 
 	return {
 		page,
