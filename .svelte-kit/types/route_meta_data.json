@@ -31,6 +31,10 @@
 	"/slice-simulator": [
 		"src/routes/+layout.server.js"
 	],
+	"/[[preview=preview]]/twenty-for-twenty": [
+		"src/routes/[[preview=preview]]/twenty-for-twenty/+page.server.js",
+		"src/routes/+layout.server.js"
+	],
 	"/[[preview=preview]]": [
 		"src/routes/[[preview=preview]]/+page.server.js",
 		"src/routes/+layout.server.js"

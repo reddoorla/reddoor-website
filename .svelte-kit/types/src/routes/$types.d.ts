@@ -11,7 +11,7 @@ type OutputDataShape<T> = MaybeWithVoid<Omit<App.PageData, RequiredKeys<T>> & Pa
 type EnsureDefined<T> = T extends null | undefined ? {} : T;
 type OptionalUnion<U extends Record<string, any>, A extends keyof U = U extends U ? keyof U : never> = U extends unknown ? { [P in Exclude<A, keyof U>]?: never } & U : never;
 export type Snapshot<T = any> = Kit.Snapshot<T>;
-type LayoutRouteId = RouteId | "/[[preview=preview]]" | "/[[preview=preview]]/[uid]" | "/[[preview=preview]]/about" | "/[[preview=preview]]/contact" | "/[[preview=preview]]/portfolio" | "/[[preview=preview]]/portfolio/[uid]" | "/[[preview=preview]]/showcase" | "/[[preview=preview]]/showcase/[uid]" | "/slice-simulator" | null
+type LayoutRouteId = RouteId | "/[[preview=preview]]" | "/[[preview=preview]]/[uid]" | "/[[preview=preview]]/about" | "/[[preview=preview]]/contact" | "/[[preview=preview]]/portfolio" | "/[[preview=preview]]/portfolio/[uid]" | "/[[preview=preview]]/showcase" | "/[[preview=preview]]/showcase/[uid]" | "/[[preview=preview]]/twenty-for-twenty" | "/slice-simulator" | null
 type LayoutParams = RouteParams & { preview?: MatcherParam<typeof import('../../../../src/params/preview.js').match>; uid?: string }
 type LayoutServerParentData = EnsureDefined<{}>;
 type LayoutParentData = EnsureDefined<{}>;

@@ -14,7 +14,8 @@ export const nodes = [
 	() => import('./nodes/10'),
 	() => import('./nodes/11'),
 	() => import('./nodes/12'),
-	() => import('./nodes/13')
+	() => import('./nodes/13'),
+	() => import('./nodes/14')
 ];
 
 export const server_loads = [0];
@@ -26,7 +27,8 @@ export const dictionary = {
 		"/[[preview=preview]]/portfolio/[uid]": [~10,[],[3]],
 		"/[[preview=preview]]/showcase": [11],
 		"/[[preview=preview]]/showcase/[uid]": [~12,[],[4]],
-		"/slice-simulator": [13],
+		"/slice-simulator": [14],
+		"/[[preview=preview]]/twenty-for-twenty": [~13],
 		"/[[preview=preview]]": [~5],
 		"/[[preview=preview]]/[uid]": [~6,[],[2]]
 	};

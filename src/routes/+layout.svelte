@@ -44,11 +44,11 @@
     let scrollY:number;
     export let data;
 
-    $: showNav = $page.status === 404 || scrollY > 300;
+    $: showNav = $page.status === 404 || scrollY > 300 || $page.url.pathname.includes('about');
 
 
     const handleScroll = () =>{
-            showNav=$page.status === 404 ||scrollY>300;
+            showNav=$page.status === 404 ||scrollY>300 || $page.url.pathname.includes('about');
     }
     function disableScrollRestoration() {
   if ('scrollRestoration' in history) {

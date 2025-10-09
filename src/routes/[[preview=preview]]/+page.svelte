@@ -132,14 +132,14 @@
   </ContentWidth>
   <ScreenWidthImage
     vimeoId="1082293395"
-    altText="sonder brand drawing"
+    altText="sonder brand drawinf"
     class="mix-blend-multiply opacity-60 pointer-events-none"
   ></ScreenWidthImage>
 </section>
 
 <section class="relative w-screen bg-paper py-16 md:py-32">
   <ContentWidth class="flex flex-col" animateIn>
-    <h2 class="text-primary w-3/5">
+    <h2 class="text-primary md:w-3/5">
       Feel confidence when you share your story with the world.
     </h2>
     <div class="flex flex-row mt-16 gap-8">
