@@ -27,6 +27,10 @@
             href:"/about"
         },
         {
+            label:"20 for 20",
+            href:"/twenty-for-twenty"
+        },
+        {
             label:"Meet With Us",
             href:"/contact"
         },
