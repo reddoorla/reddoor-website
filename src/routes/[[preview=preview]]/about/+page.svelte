@@ -106,7 +106,7 @@
   <ContentWidth class="flex relative border-primary border-b-1">
     <img src={key} alt="keys" class="lg:w-1/5 md:w-1/3 w-2/3" />
     <h2 class="text-primary absolute left-0 bottom-2 md:bottom-8">
-      Our Values
+      Our Promises
     </h2>
   </ContentWidth>
   <ContentWidth class="flex flex-row justify-end">
