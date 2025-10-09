@@ -11,8 +11,9 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import AnimateIn from "$lib/components/AnimateIn.svelte";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import LogoSoup from "$lib/components/LogoSoup.svelte";
+  import {fade} from 'svelte/transition'
   
 
   let carTranslationInVW = 0;
@@ -31,8 +32,47 @@
     carTranslationInVW = 100*(carRect.top-carRect.height/2)/viewportHeight
   }
 
+  let popupText = "";
+
+
+
+  let popupX = 0;
+  let popupY = 0;
+
+  const handleMouseMove = (e:MouseEvent) => {
+    if(!popupText)return;
+    popupX = e.x
+    popupY = e.y
+
+  }
+
+  let valuesIndex = 1;
+  let isValuesTransitioning = false;
+
+  const incrementValues = () => {
+    if(isValuesTransitioning)return;
+    if(valuesIndex<3){valuesIndex++;}
+    else{valuesIndex=1}
+    isValuesTransitioning =true;
+    setTimeout(()=>isValuesTransitioning=false, 1000)
+  }
+
+  const decrementValues = () => {
+    if(isValuesTransitioning)return;
+    if(valuesIndex>1){valuesIndex--;}
+    else{valuesIndex=3}
+    isValuesTransitioning =true;
+    setTimeout(()=>isValuesTransitioning=false, 1000)
+  }
+
   onMount(()=>{
     window.addEventListener('scroll', handleScroll)
+    window.addEventListener('mousemove', handleMouseMove)
+  });
+
+  onDestroy(()=>{
+     window.removeEventListener('scroll', handleScroll)
+    window.removeEventListener('mousemove', handleMouseMove)
   })
 
   export let data:any;
@@ -44,6 +84,10 @@
 </svelte:head>
 
 <svelte:window bind:innerHeight={viewportHeight} />
+
+{#if popupText}
+    <h5 transition:fade  class="pointer-events-none -translate-y-full w-[360px] p-5 fixed z-20 bg-white/80 backdrop-blur text-primary" style="top:{popupY}px;left:{popupX}px">{popupText}</h5>
+{/if}
 
 <div class="w-screen max-h-96 relative bg-paper">
   <ContentWidth class="h-full flex justify-center items-center py-48">
@@ -67,24 +111,112 @@
   </ContentWidth>
   <ContentWidth class="flex flex-row justify-end">
     <div class="md:w-3/5 h-72 relative">
-      <div class="flex flex-col gap-4">
+
+    {#if valuesIndex === 1}
+      <div class="flex flex-col gap-4 absolute" in:fade={{duration:400, delay:420}} out:fade={{duration:400}}>
         <p class="mt-8">01/03</p>
         <h5 class="text-primary">
-          We value <span class="underline underline-offset-[25%] cursor-pointer"
-            >acting on your behalf</span
-          >,<br /> therefore
-          <span class="underline underline-offset-[25%] cursor-pointer">we work hard and smart</span
-          ><br /> so you can
-          <span class="underline underline-offset-[25%] cursor-pointer">feel relief</span>
+          We value our ability to
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="by using our creative expertise to serve."} 
+            class="underline underline-offset-[25%]  cursor-default">
+            act on your behalf,
+        </span>
+        <br /> therefore we
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="in order to efficiently deliver excellence."} 
+            class="underline underline-offset-[25%] cursor-default">
+             work hard and smart
+        </span>
+        <br /> so you can 
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="because you have a partner committed to your success."}
+            class="underline underline-offset-[25%]  cursor-default">
+                feel relief.
+            </span>
         </h5>
       </div>
+      
+      {:else if valuesIndex===2}
+
+       <div class="flex flex-col gap-4 absolute" in:fade={{duration:400, delay:420}} out:fade={{duration:400}}>
+        <p class="mt-8">02/03</p>
+        <h5 class="text-primary">
+          We value our ability to
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="by being enemies of mediocrity."} 
+            class="underline underline-offset-[25%]  cursor-default">
+            create compelling design,
+        </span>
+        <br /> therefore we
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="because exceptional work requires it."} 
+            class="underline underline-offset-[25%] cursor-default">
+             take risks
+        </span>
+        <br /> so you can 
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="in the way you share your story with the world."}
+            class="underline underline-offset-[25%]  cursor-default">
+                feel confident.
+            </span>
+        </h5>
+      </div>
+
+      {:else if valuesIndex===3}
+
+       <div class="flex flex-col gap-4 absolute" in:fade={{duration:400, delay:420}} out:fade={{duration:400}}>
+        <p class="mt-8">03/03</p>
+        <h5 class="text-primary">
+          We value our ability to
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="so we may care deeply about it."} 
+            class="underline underline-offset-[25%]  cursor-default">
+            do meaningful work,
+        </span>
+        <br /> therefore we
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="because reducing noise and obstacles allows us to connect with purpose."} 
+            class="underline underline-offset-[25%] cursor-default">
+             seek order
+        </span>
+        <br /> so you can 
+          <span 
+            role="tooltip" 
+            on:mouseleave={()=>popupText=""} 
+            on:mouseenter={()=>popupText="by finding clarity and focus in what you do."}
+            class="underline underline-offset-[25%]  cursor-default">
+                feel energized.
+            </span>
+        </h5>
+      </div>
+
+      {/if}
       <div class="absolute left-0 bottom-0 flex gap-6 text-primary">
-        <button
+        <button on:click={decrementValues} class="{isValuesTransitioning?"cursor-default":""}"
           ><i
             class="fa-solid fa-light fa-arrow-left fa-xl hover:text-primary-dark transition-colors duration-300"
           ></i></button
         >
         <button
+            on:click={incrementValues}
+            class="{isValuesTransitioning?"cursor-default":""}"
           ><i
             class="fa-solid fa-light fa-arrow-right fa-xl hover:text-primary-dark transition-colors duration-300"
           ></i></button
