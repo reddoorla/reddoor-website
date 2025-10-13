@@ -125,7 +125,7 @@ onMount(() => {
             <a
               href={card.href}
               class="absolute top-0 sm:left-12 w-full h-full flex flex-col justify-between bg-paper shadow-md shadow-black/20 hover:shadow-lg hover:z-10 hover:shadow-black/40 p-5 md:p-9 hover:scale-[102%] hover:-translate-y-2 active:shadow-black/90 active:-translate-y-8 active:rotate-0 transition-all duration-200 ease-out -rotate-3"
-              style="transform: translateX( calc( 100vh - {cardStackProgress * 100}vh ) ) rotate(-3deg);"
+              style="transform: translateX( calc( 100vh - {cardStackProgress * 100}vh ) ) rotate({((2*(i%2)-1))*(i+1)/projectCardArray.length*6}deg);"
             >
               <div class="w-full aspect-square relative inset-shadow">
                 {#if typeof card.image === "string"}
