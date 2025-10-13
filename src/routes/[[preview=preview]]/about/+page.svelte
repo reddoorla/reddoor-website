@@ -14,6 +14,7 @@
   import { onDestroy, onMount } from 'svelte'
   import LogoSoup from "$lib/components/LogoSoup.svelte";
   import {fade} from 'svelte/transition'
+  import { browser } from '$app/environment';
   
 
   let carTranslationInVW = 0;
@@ -21,7 +22,7 @@
   let carRef:HTMLImageElement;
 
   const handleScroll = () =>{
-    if (typeof window === 'undefined') return;
+    if (!browser || typeof window === 'undefined') return;
     if (!carRef) return;
 
     const carRect = carRef.getBoundingClientRect();
@@ -41,7 +42,7 @@
   let popupY = 0;
 
   const handleMouseMove = (e:MouseEvent) => {
-      if (typeof window === 'undefined') return;
+      if (!browser || typeof window === 'undefined') return;
     if(!popupText)return;
     popupX = e.x
     popupY = e.y
@@ -68,7 +69,7 @@
   }
 
  onMount(() => {
-    if (typeof window !== 'undefined') {
+    if (browser || typeof window !== 'undefined') {
       window.addEventListener('scroll', handleScroll);
       window.addEventListener('mousemove', handleMouseMove);
     }
