@@ -7,6 +7,7 @@
   import { PrismicImage } from "@prismicio/svelte";
   import { onMount } from "svelte";
 
+    export let data;
 
   type ProjectCard = {
     number: number;
@@ -19,14 +20,14 @@
   };
 
 
-  let projectCardArray: ProjectCard[] = [];
 
+   let projectCardArray: ProjectCard[] = data.projectCards || []; 
   let cardStackProgress = 0;
   let cardsSection:HTMLElement;
   let viewportHeight:number;
 
  const handleScroll = () => {
-    if(!cardsSection||!window)return;
+    if(!cardsSection||typeof window === 'undefined')return;
 
 
     const cardsRect = cardsSection.getBoundingClientRect();
@@ -48,14 +49,17 @@
 
   }
 
-  $: projectCardArray = data.projectCards;
 
-  onMount(() => {
-    projectCardArray = data.projectCards;
-    window.addEventListener("scroll", handleScroll)
-  });
 
-  export let data;
+onMount(() => {
+     projectCardArray = data.projectCards;
+     window.addEventListener("scroll", handleScroll);
+     
+     return () => {
+       window.removeEventListener("scroll", handleScroll);
+     };
+   });
+
 </script>
 
 <svelte:window bind:innerHeight={viewportHeight} />
@@ -116,11 +120,12 @@
       </div>
       <div class="w-[125%] md:w-3/5 aspect-square p-6 sm:translate-y-0 -translate-x-[10%] md:translate-x-0" >
         <div class="h-full w-4/5 relative">
+ 
           {#each projectCardArray as card, i}
             <a
               href={card.href}
               class="absolute top-0 sm:left-12 w-full h-full flex flex-col justify-between bg-paper shadow-md shadow-black/20 hover:shadow-lg hover:z-10 hover:shadow-black/40 p-5 md:p-9 hover:scale-[102%] hover:-translate-y-2 active:shadow-black/90 active:-translate-y-8 active:rotate-0 transition-all duration-200 ease-out -rotate-3"
-              style="transform: translateX( 100vh-{100-(cardStackProgress*100)}vh );"
+              style="transform: translateX( calc( 100vh - {cardStackProgress * 100}vh ) ) rotate(-3deg);"
             >
               <div class="w-full aspect-square relative inset-shadow">
                 {#if typeof card.image === "string"}
@@ -154,6 +159,7 @@
               </div>
             </a>
           {/each}
+         
         </div>
       </div>
     </ContentWidth>
