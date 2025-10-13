@@ -21,7 +21,7 @@
   let carRef:HTMLImageElement;
 
   const handleScroll = () =>{
-    if(!carRef)return;
+    if(!carRef||!window)return;
 
     const carRect = carRef.getBoundingClientRect();
 
