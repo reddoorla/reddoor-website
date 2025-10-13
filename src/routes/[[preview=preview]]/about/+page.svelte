@@ -66,8 +66,9 @@
   }
 
   onMount(()=>{
+    if(window){
     window.addEventListener('scroll', handleScroll)
-    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mousemove', handleMouseMove)}
   });
 
   onDestroy(()=>{
