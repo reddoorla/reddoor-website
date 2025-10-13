@@ -69,7 +69,6 @@ onMount(() => {
     <div class="md:w-1/2 flex flex-col">
       <h1 class="opacity-0 hidden md:block">20</h1>
       <h2 class="opacity-0 hidden md:block">for</h2>
-      <h1 class="opacity-0 md:-mb-20 hidden md:block">20</h1>
       <p class="w-4/5 max-w-md">
         As we step into our 20th year in business, our team has taken a moment
         to look back — revisiting the clients and projects that have shaped who
