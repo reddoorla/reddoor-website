@@ -76,8 +76,10 @@
   });
 
   onDestroy(()=>{
+    if (browser || typeof window !== 'undefined') {
      window.removeEventListener('scroll', handleScroll)
     window.removeEventListener('mousemove', handleMouseMove)
+    }
   })
 
   export let data:any;
