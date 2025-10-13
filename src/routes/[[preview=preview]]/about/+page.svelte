@@ -41,6 +41,7 @@
   let popupY = 0;
 
   const handleMouseMove = (e:MouseEvent) => {
+      if (typeof window === 'undefined') return;
     if(!popupText)return;
     popupX = e.x
     popupY = e.y
