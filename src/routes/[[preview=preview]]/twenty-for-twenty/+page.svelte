@@ -105,8 +105,8 @@ onMount(() => {
   style="height:{100 * (projectCardArray.length+1)}vh"
   bind:this={cardsSection}
 >
-  <div class="h-screen w-screen sticky top-0">
-    <ContentWidth class="flex flex-col md:flex-row  py-12 md:py-24">
+  <div class="h-screen w-screen sticky top-0 overflow-hidden">
+    <ContentWidth class="flex flex-col md:flex-row  py-24">
       <div class="md:w-2/5">
         <p class="w-full max-w-sm">
           We’ll continue to build on this collection throughout the year,
@@ -117,7 +117,7 @@ onMount(() => {
             <div class="w-full h-full bg-primary absolute -left-[100%] rounded-xl" style="transform: translateX({100*cardStackProgress}%);"/>
         </div>
       </div>
-      <div class="w-[125%] md:w-3/5 aspect-square p-6 sm:translate-y-0 -translate-x-[10%] md:translate-x-0" >
+      <div class="w-[125%] md:w-3/5 aspect-square p-6 sm:translate-y-0 -translate-x-[2%] md:translate-x-0" >
         <div class="h-full w-4/5 relative">
  
           {#each projectCardArray as card, i}
