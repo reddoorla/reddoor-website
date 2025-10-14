@@ -52,6 +52,16 @@
     animationFrameId = requestAnimationFrame(animate);
   };
 
+  // Reactive function that recalculates on every cardStackProgress change
+  $: calcCardTranslationInVH = (i: number) => {
+    const l = projectCardArray.length-1;
+    const p = cardStackProgress;
+    
+    if (p < i/l) return 100;
+    if (p > (i+1)/l) return 0;
+    return (1-l * (p - i/l)) * 100;
+  }
+
   const handleScroll = () => {
     calculateTargetProgress();
   };
@@ -61,7 +71,6 @@
     
     window.addEventListener("scroll", handleScroll, { passive: true });
     
-
     animationFrameId = requestAnimationFrame(animate);
 
     handleScroll();
@@ -137,7 +146,7 @@
             <a
               href={card.href}
               class="card-item absolute top-0 sm:left-12 w-full h-full flex flex-col justify-between bg-paper shadow-md shadow-black/20 p-5 md:p-9 -rotate-3"
-              style="transform: translate3d({100 - (cardStackProgress * 100)}vh, 0, 0) rotate({((2*(i%2)-1))*(i+1)/projectCardArray.length*6}deg);"
+              style="transform: translate3d({calcCardTranslationInVH(i-1)}vh, 0, 0) rotate({((2*(i%2)-1))*(i+1)/projectCardArray.length*6}deg);"
             >
               <div class="w-full aspect-square relative inset-shadow">
                 {#if typeof card.image === "string"}
