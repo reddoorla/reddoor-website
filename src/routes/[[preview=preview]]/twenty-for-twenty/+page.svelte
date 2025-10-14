@@ -64,7 +64,7 @@ onMount(() => {
 
 <svelte:window bind:innerHeight={viewportHeight} />
 
-<section class="w-screen bg-paper py-16 md:pt-48 md:pb-24">
+<section class="w-screen bg-paper py-16">
   <ContentWidth class="flex flex-col-reverse md:flex-row">
     <div class="md:w-1/2 flex flex-col">
       <h1 class="opacity-0 hidden md:block">20</h1>
@@ -85,13 +85,13 @@ onMount(() => {
       </div>
     </div>
     <div class="md:w-1/2 flex flex-col text-primary items-center">
-      <div class="flex flex-col text-primary items-center relative">
+      <div class="flex flex-col text-primary items-center relative ">
         <h1>20</h1>
-        <h2>for</h2>
+        <h2 class="-mt-4">for</h2>
         <iframe
           title="background video"
           src={`https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1`}
-          class="aspect-square w-full mix-blend-multiply opacity-90 scale-110"
+          class="aspect-square w-full mix-blend-multiply opacity-90 scale-110 -mt-8"
           frameborder="0"
           allowfullscreen
         ></iframe>
