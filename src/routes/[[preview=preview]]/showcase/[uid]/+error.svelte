@@ -38,15 +38,16 @@
     <title>{"Reddoor Creative | " + page.error?.message}</title>
 </svelte:head>
 <div class="h-screen w-screen fixed top-0 left-0">
-<ContentWidth class="flex flex-row py-64">
+<ContentWidth class="flex flex-row py-24 md:py-64">
     <h1 class="text-primary/20">404</h1>
 </ContentWidth>
 </div>
 <section class="">
     <ContentWidth class="py-24 md:py-48 flex flex-col items-end">
         <h4 class="md:w-4/5">Nothing to see here...<br/>Let’s get you back on track.</h4>
-
-        <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap mt-24 md:mt-48" >
+        
+          <h6 class="text-primary w-full md:w-4/5  mt-24 md:mt-48">Enjoy our most recent work</h6>
+        <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap mt-12" >
         {#each projects as project, i (project.uid)}
         <div animate:flip={{ duration:4500, easing: expoOut}}  class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-[4/3] transition-opacity duration-700 relative">
           
@@ -70,6 +71,7 @@
         </div>
         {/each}
     </div>
+      
 
     </ContentWidth>
     
