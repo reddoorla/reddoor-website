@@ -63,9 +63,15 @@
     return (1 - l * (p - i / l)) * 100;
   };
 
+
   const handleScroll = () => {
     calculateTargetProgress();
   };
+
+  function easeInQuint(x: number): number {
+return x * x * x * x * x;
+
+}
 
   onMount(() => {
     projectCardArray = data.projectCards;
@@ -123,7 +129,7 @@
 
 <section
   class="w-screen relative z-10"
-  style="height:{100 * (projectCardArray.length + 1)}vh"
+  style="height:{60 * (projectCardArray.length + 1)}vh"
   bind:this={cardsSection}
 >
   <div class="h-screen w-screen sticky top-0 overflow-hidden z-10">
@@ -135,7 +141,7 @@
           joining us on the journey!
         </p>
         <div
-          class="w-2/3 h-2 hidden md:relative overflow-hidden rounded-full mt-4 bg-mid"
+          class="w-2/3 h-2 hidden md:block relative overflow-hidden rounded-full mt-4 bg-mid"
         >
           <div
             class="progress-bar w-full h-full bg-primary absolute rounded-xl"
@@ -152,11 +158,7 @@
             <a
               href={card.href}
               class="card-item absolute top-0 sm:left-12 w-full h-full flex flex-col justify-between bg-paper shadow-md shadow-black/20 p-5 md:p-9"
-              style="transform: translate3d({calcCardTranslationInVH(
-                i - 1
-              )}vw, 0, 0) rotate({(((2 * (i % 2) - 1) * (i + 1)) /
-                projectCardArray.length) *
-                6}deg);"
+              style="transform: translate3d({calcCardTranslationInVH(i - 1)}vw, 0, 0) rotate({(((2 * (i % 2) - 1) * (i + 1)) / projectCardArray.length) * 6 * easeInQuint((100-calcCardTranslationInVH(i - 1))/100)}deg);"
             >
               <div class="w-full aspect-square relative inset-shadow">
                 {#if typeof card.image === "string"}
