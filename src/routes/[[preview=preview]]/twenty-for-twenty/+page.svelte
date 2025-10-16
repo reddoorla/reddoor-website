@@ -95,7 +95,7 @@
     <div class="md:w-1/2 flex flex-col">
       <h1 class="opacity-0 hidden md:block">20</h1>
       <h2 class="opacity-0 hidden md:block">for</h2>
-      <p class="md:w-4/5 max-w-md">
+      <p class="md:w-4/5 max-w-lg large-body">
         As we step into our 20th year in business, our team has taken a moment
         to look back — revisiting the clients and projects that have shaped who
         we are today. From early partnerships to defining milestones, these 20
@@ -103,21 +103,21 @@
         refined our craft, deepened our client relationships, and shaped our
         approach to design and branding.
       </p>
-      <h5 class=" text-primary md:w-4/5 max-w-md mt-8">
+      <p class=" text-primary md:w-4/5 max-w-lg mt-8 large-body">
         Through it all, one constant has remained: clear stories brought to life
         through <span class="underline-offset-[25%] underline"
           >compelling design.</span
         >
-      </h5>
+      </p>
     </div>
     <div class="md:w-1/2 flex flex-col text-primary items-center">
       <div class="flex flex-col text-primary items-center relative">
         <h1>20</h1>
-        <h2 class="-mt-4">for</h2>
+        <h2 class="-mt-8">for</h2>
         <iframe
           title="background video"
           src={`https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1`}
-          class="aspect-square w-full mix-blend-multiply opacity-90 scale-110 -mt-8"
+          class="aspect-square w-full mix-blend-multiply opacity-90 scale-110 -mt-12"
           frameborder="0"
           allowfullscreen
         ></iframe>
@@ -134,13 +134,13 @@
   <div class="h-screen w-screen sticky top-0 overflow-hidden z-10">
     <ContentWidth class="flex flex-col md:flex-row py-12 md:py-24">
       <div class="md:w-2/5">
-        <p class="w-full max-w-sm large-body">
+        <p class="w-full max-w-lg large-body">
           We'll continue to build on this collection throughout the year,
           leading up to our 20th anniversary on October 2, 2026. Thanks for
           joining us on the journey!
         </p>
         <div
-          class="w-2/3 h-2 hidden md:block relative overflow-hidden rounded-full mt-4 bg-mid"
+          class="w-2/3 h-2 hidden md:block relative overflow-hidden rounded-full mt-8 bg-mid"
         >
           <div
             class="progress-bar w-full h-full bg-primary absolute rounded-xl"
