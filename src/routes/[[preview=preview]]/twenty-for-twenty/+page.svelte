@@ -40,7 +40,7 @@
     const sectionOffsetTop = cardsSection.offsetTop;
 
     const scrollStart = sectionOffsetTop;
-    const scrollEnd = sectionOffsetTop + cardsRect.height - viewportHeight;
+  const scrollEnd = sectionOffsetTop + cardsRect.height - viewportHeight - (40 * viewportHeight / 100);
     const scrollRange = scrollEnd - scrollStart;
 
     const rawProgress = (pageScrollTop - scrollStart) / scrollRange;
@@ -128,7 +128,7 @@
 
 <section
   class="w-screen relative z-10"
-  style="height:{60 * (projectCardArray.length + 1)}vh"
+  style="height:{60 * (projectCardArray.length + 1.5)}vh"
   bind:this={cardsSection}
 >
   <div class="h-screen w-screen sticky top-0 overflow-hidden z-10">
@@ -140,7 +140,7 @@
           joining us on the journey!
         </p>
         <div
-          class="w-2/3 h-2 hidden md:block relative overflow-hidden rounded-full mt-8 bg-mid"
+          class="w-2/3 h-1.5 hidden md:block relative overflow-hidden rounded-full mt-8 bg-light"
         >
           <div
             class="progress-bar w-full h-full bg-primary absolute rounded-xl"
@@ -162,7 +162,7 @@
               <!-- Anchor with its own transitions -->
               <a
                 href={card.href}
-                class="card-item w-full h-full flex flex-col justify-between bg-paper shadow-md hover:shadow-xl hover:shadow-black/60 translate-y-0 active:-translate-y-6 active:shadow-black/90 shadow-black/20 p-5 md:p-9 transition-all duration-300"
+                class="card-item w-full h-full flex flex-col justify-between bg-paper shadow-md hover:shadow-black/20 translate-y-0 active:-translate-y-6 active:shadow-black/25 shadow-black/15 p-[4.5%] transition-all duration-300"
               >
                 <div class="w-full aspect-square relative inset-shadow">
                   {#if typeof card.image === "string"}
@@ -180,7 +180,7 @@
                   {/if}
 
                   <h1
-                    class="text-primary mix-blend-multiply absolute top-0 right-0 xl:right-9 xl:top-9 number"
+                    class="text-primary mix-blend-multiply absolute top-[6.5%] right-[6.5%] number"
                   >
                     {card.number.toString().padStart(2, "0")}
                   </h1>
@@ -197,10 +197,10 @@
                 >
                   <h5 class="text-black">{card.name}</h5>
                   <div
-                    class="flex flex-row md:flex-col xl:flex-row justify-between flex-wrap"
+                    class="flex flex-row lg:flex-col xl:flex-row justify-between flex-wrap"
                   >
-                    <p class="text-primary uppercase">{card.mediums}</p>
-                    <p class="text-primary uppercase">{card.dates}</p>
+                    <p class="text-primary uppercase card-label">{card.mediums}</p>
+                    <p class="text-primary uppercase card-label">{card.dates}</p>
                   </div>
                 </div>
               </a>
@@ -317,12 +317,16 @@
       font-size: 80px;
       line-height: 125%;
     }
+        p.card-label{
+      font-size: 12px;
+    }
   }
 
   @media only screen and (max-width: 768px) {
     h1.number {
       font-size: 160px;
     }
+
   }
 
   @media only screen and (max-width: 540px) {

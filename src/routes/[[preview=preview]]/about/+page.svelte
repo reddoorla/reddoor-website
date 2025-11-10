@@ -191,6 +191,44 @@
   
 </script>
 
+<style>
+    h4{
+        
+font-family: Pragmatica;
+font-size: 60px;
+font-style: normal;
+font-weight: 250;
+line-height: 125%; /* 75px */
+    }
+
+    h5.title{
+      
+font-family: Pragmatica;
+font-size: 50px;
+font-style: normal;
+font-weight: 250;
+line-height: 140%; /* 70px */
+    }
+
+    .archive-title{
+
+font-size: 60px;
+font-style: normal;
+font-weight: 700;
+line-height: 140%; /* 84px */
+    }
+
+    @media only screen and (max-width:768px) {
+        h4{
+            font-size: 40px
+        }
+        h5.title{
+            font-size: 28px
+        }
+    }
+</style>
+
+
 <svelte:head>
   <title>About | Reddoor Creative</title>
 </svelte:head>
@@ -226,9 +264,9 @@
     </div>
 {/if}
 
-<div class="w-screen max-h-96 relative bg-paper">
+<div class="w-screen relative bg-paper">
   <ContentWidth class="h-full flex justify-center items-center py-48">
-    <h5 class="w-full md:w-4/5 max-w-[800px] z-10">
+    <h5 class="w-full md:w-4/5 max-w-[800px] z-10 title">
       We save you from drowning in an ocean of noise by arming you with a clear story and compelling design.
     </h5>
   </ContentWidth>
