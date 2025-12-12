@@ -1,4 +1,4 @@
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png"
+import metaImage from "$lib/assets/images/20_4_20_key_art.jpg"
 import { createClient } from "$lib/prismicio.js";
 import { isFilled } from "@prismicio/client";
 import type { ProjectDocument, ProjectDocumentData } from "../../../prismicio-types.js";
