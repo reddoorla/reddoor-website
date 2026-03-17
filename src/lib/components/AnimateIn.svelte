@@ -14,7 +14,7 @@
     const checkViewport = () => {
         if(window&&el){
                 let rect = el.getBoundingClientRect();
-                isInView = rect.top - rect.height/2 <= window.innerHeight * 0.9
+                isInView = rect.top - rect.height/2 <= window.innerHeight
                 transitionDelay= transitionDelayMax * (rect.left/window.innerWidth)
             }
     }
@@ -52,11 +52,11 @@
     </div>
 {:else}
     {#if href}
-        <a {href} bind:this={el} class="transition ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; transition-duration:{transitionDuration}ms; {style}">
+        <a {href} bind:this={el} class="transition ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[25%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; transition-duration:{transitionDuration}ms; {style}">
             <slot />
         </a>
     {:else}
-        <div bind:this={el} class="transition ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[50%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; transition-duration:{transitionDuration}ms; {style}">
+        <div bind:this={el} class="transition ease-fast-slow {isInView ? "opacity-100 translate-y-0":"opacity-0 translate-y-[25%]"} {$$props.class || ''}" style="transition-delay:{transitionDelay}ms; transition-duration:{transitionDuration}ms; {style}">
             <slot />
         </div>
     {/if}

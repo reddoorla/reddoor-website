@@ -146,9 +146,9 @@
 
      <div class="fixed top-0 left-0 w-screen h-dvh overflow-hidden z-20">
       <ContentWidth class="h-32 flex justify-between items-center">
-        <img src={drawnLogo} class=' h-20' alt='reddoor'/>
+        <img src={drawnLogo} class='brightness-0 invert h-20' alt='reddoor'/>
         <button class="opacity-100 hover:opacity-60 transition " on:click={() => isOverlayVisible = true} in:fade={{delay:400}} out:fade>
-          <i class="fa-sharp fa-bars fa-xl text-black"/>
+          <i class="fa-sharp fa-bars fa-xl text-white"/>
         </button>
       </ContentWidth>
        <div
