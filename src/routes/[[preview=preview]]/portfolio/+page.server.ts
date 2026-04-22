@@ -1,11 +1,12 @@
 import { createClient } from '$lib/prismicio';
 import { filter } from '@prismicio/client';
 import metaImage from "$lib/assets/icons/logos/printedReddoor.png"
+import type { PageServerLoad } from './$types';
 
-export async function load({ fetch, cookies }) {
+export const load: PageServerLoad = async ({ fetch, cookies }) => {
 	const client = createClient({ fetch, cookies });
 
-	
+
 
 	const allProjects = await client.getAllByType('project', {
 		orderings: {
@@ -15,7 +16,7 @@ export async function load({ fetch, cookies }) {
 		filters: [filter.not('document.tags', ['hide'])]
 	  });
 
-	  
+
 
 	return {
 		allProjects: allProjects,
@@ -23,6 +24,6 @@ export async function load({ fetch, cookies }) {
 		meta_description: "We design beautiful marketing materials that help you thrive. See our work.",
 		meta_title: "Portfolio | Reddoor Creative",
 		meta_image: metaImage
-		
+
 	};
-}
+};

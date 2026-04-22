@@ -107,7 +107,7 @@
         <a href="/about" class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>About</a>
         <a href="/twenty-for-twenty" class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>20 for 20</a>
         <a href="/contact" class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>Meet With Us</a>
-        <button class="absolute top-12 right-0 opacity-60 hover:opacity-100 transition z-40" on:click={()=>isOverlayVisible=false}>
+        <button class="absolute top-12 right-0 opacity-60 hover:opacity-100 transition z-40" on:click={()=>isOverlayVisible=false} aria-label="Close menu">
           <div in:fade={{delay: 600}} out:fade class="text-white">
             <i class="fa-sharp fa-thin fa-xmark fa-2xl" />
           </div>
@@ -134,7 +134,7 @@
      <div class="fixed top-0 left-0 w-screen h-dvh overflow-hidden z-20">
       <ContentWidth class="h-32 flex justify-between items-center">
         <img src={drawnLogo} class='brightness-0 invert h-20' alt='reddoor'/>
-        <button class="opacity-100 hover:opacity-60 transition " on:click={() => isOverlayVisible = true} in:fade={{delay:400}} out:fade>
+        <button class="opacity-100 hover:opacity-60 transition " on:click={() => isOverlayVisible = true} in:fade={{delay:400}} out:fade aria-label="Open menu">
           <i class="fa-sharp fa-bars fa-xl text-white"/>
         </button>
       </ContentWidth>
@@ -188,7 +188,6 @@
             </div>
 
           </div>
-          <div>
          </ContentWidth>
        </div>
 

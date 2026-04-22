@@ -3,6 +3,7 @@ import { createClient } from "$lib/prismicio.js";
 import { isFilled } from "@prismicio/client";
 import type { ProjectDocument, ProjectDocumentData } from "../../../prismicio-types.js";
 import type { ImageField } from "@prismicio/client";
+import type { PageServerLoad } from './$types';
 
 type ProjectCard = {
   number: number;
@@ -37,7 +38,7 @@ function mediumString (project:ProjectDocument<string>|undefined) {
 }, "");
   }
 
-export async function load({ params, fetch, cookies }) {
+export const load: PageServerLoad = async ({ fetch, cookies }) => {
 
 	const client = createClient({fetch, cookies});
 

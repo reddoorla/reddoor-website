@@ -79,11 +79,10 @@
         <slot />
         <div class="absolute h-10 flex align-middle justify-start {dotFloat === "left" ? "left-[4%]  xl:left-8" : ""} {dotFloat === "left" ? "left-[4%]  xl:left-8 translate-x-[2px]" : ""} {dotFloat === "right" ? "right-[4%]  xl:right-8 translate-x-[-2px]" : ""} {dotFloat === "center" ? "left-1/2 -translate-x-1/2" : ""}  bottom-10">
             {#each  imageArray as _image, i}
-                <button class="h-[10px] w-[10px] border-2  rounded-full transition-colors duration-1000 cursor-pointer active:translate-y-[-0.5px] hover:opacity-60 mr-4 
+                <button class="h-[10px] w-[10px] border-2  rounded-full transition-colors duration-1000 cursor-pointer active:translate-y-[-0.5px] hover:opacity-60 mr-4
 								{(sliderIndex%imageArray.length>=0&&sliderIndex%imageArray.length===i)|| (sliderIndex%imageArray.length<=0&&imageArray.length+sliderIndex%imageArray.length===i) ? "bg-dark border-dark" : "border-light"}"
                     on:click={()=>setSliderIndex(i)}
                     aria-label="image {i} of {imageArray.length}"
-                    aria-hidden
                 ></button>
             {/each}
         </div>

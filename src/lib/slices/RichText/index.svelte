@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
 	import { PrismicRichText } from '@prismicio/svelte';
+	import type { Content } from "@prismicio/client";
 
   import ContentWidth from '$lib/components/ContentWidth/ContentWidth.svelte';
 
-	/** @type {import("@prismicio/client").Content.RichTextSlice} */
-	export let slice;
+	export let slice: Content.RichTextSlice;
 
 	let backgroundColorString = 'bg-'+slice.primary.backgroundcolor;
 	const float = slice.primary.float;

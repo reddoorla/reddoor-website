@@ -235,6 +235,7 @@ function calculateScrollPositionForBrand(index: number) {
             }}> 
               <button
                 on:click={prevBrand}
+                aria-label="Previous brand"
                 class="{showImage && brandIndex > -1
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
@@ -243,6 +244,7 @@ function calculateScrollPositionForBrand(index: number) {
               </button>
               <button
                 on:click={nextBrand}
+                aria-label="Next brand"
                 class="{showImage && brandIndex > -1
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
@@ -340,8 +342,8 @@ function calculateScrollPositionForBrand(index: number) {
         <!-- Progress indicator -->
         <div class="absolute bottom-1/2 translate-y-1/2 left-6 flex justify-center">
           <div class="flex flex-col gap-2">
-            {#each brands as _, i}
-              <button on:click={()=>navigateToBrand(i+1)} class="w-1.5 h-1.5 rounded-full transition-all duration-300 z-20 
+            {#each brands as brand, i}
+              <button on:click={()=>navigateToBrand(i+1)} aria-label="Jump to {brand.name}" class="w-1.5 h-1.5 rounded-full transition-all duration-300 z-20
                 {i === brandIndex ? 'bg-white scale-125' : 'bg-white/50 scale-100'}">
               </button>
             {/each}

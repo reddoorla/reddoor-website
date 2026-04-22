@@ -116,7 +116,7 @@
           {#if item.href}
           <a href={item?.href||"#"} class="h-full mx-4 relative" style="width:{imageWidth}px;">
               <FourByThreeImage  src={item?.featuredImage} label={item?.featuredText||""} alt={item.name} class="h-full object-cover -z-10"/>
-              <div class="absolute w-full aspect-4/3 top-8 left-0 bg-dark opacity-0 hover:opacity-100 hover:bg-opacity-80 transition-opacity duration-500 flex justify-center items-center">
+              <div class="absolute w-full aspect-4/3 top-8 left-0 bg-dark/80 opacity-0 hover:opacity-100 transition-opacity duration-500 flex justify-center items-center">
                 <h4 class="text-white">{item.name}</h4>
             </div>
           </a>
@@ -137,7 +137,6 @@
                                     {(sliderIndex%itemArray.length>=0&&sliderIndex%itemArray.length===i)|| (sliderIndex%itemArray.length<=0&&itemArray.length+sliderIndex%itemArray.length===i) ? "bg-dark border-dark" : "border-light"}"
                         on:click={()=>setSliderIndex(i)}
                         aria-label="image {i} of {itemArray.length}"
-                        aria-hidden
                     ></button>
                 {/each}
             </div>

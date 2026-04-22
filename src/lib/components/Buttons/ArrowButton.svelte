@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
     import linkArrow from "$lib/assets/icons/wireframe-link-arrow-right.svg"
-    export let text = "";
-    export let href ="#"
+    export let text: string = "";
+    export let href: string = "#";
 
 
-    let isLinkArrowActive=false;
+    let isLinkArrowActive = false;
 
 </script>
 

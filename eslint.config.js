@@ -43,6 +43,7 @@ export default [
 		ignores: [
 			'.svelte-kit/**',
 			'.slicemachine/**',
+			'.netlify/**',
 			'build/**',
 			'dist/**',
 			'node_modules/**',

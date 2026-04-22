@@ -1,7 +1,8 @@
 import metaImage from "$lib/assets/icons/logos/printedReddoor.png"
 import { createClient } from '$lib/prismicio';
+import type { PageServerLoad } from './$types';
 
-export async function load({ fetch, cookies }) {
+export const load: PageServerLoad = async ({ fetch, cookies }) => {
 	const client = createClient({ fetch, cookies } );
 
 	const logoSoup = await client.getSingle('logo_soup');
@@ -15,4 +16,4 @@ export async function load({ fetch, cookies }) {
 		meta_image: metaImage,
 		logoSoup
 	};
-}
+};

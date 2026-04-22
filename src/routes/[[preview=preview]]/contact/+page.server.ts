@@ -1,6 +1,7 @@
 import metaImage from "$lib/assets/icons/logos/printedReddoor.png"
+import type { PageServerLoad } from './$types';
 
-export async function load() {
+export const load: PageServerLoad = async () => {
 	return {
 
 		title: "Contact | Reddoor Creative",
@@ -8,4 +9,4 @@ export async function load() {
 		meta_title: "Contact | Reddoor Creative",
 		meta_image: metaImage
 	};
-}
+};

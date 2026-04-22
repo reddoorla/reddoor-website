@@ -3,15 +3,16 @@ import { isFilled } from '@prismicio/client';
 import type { ProjectDocument } from '../../../../prismicio-types.js';
 import metaImage from "$lib/assets/icons/logos/printedReddoor.png"
 import { error } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
-export async function load({ params, fetch, cookies }) {
+export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 	const client = createClient({ fetch, cookies });
 	
 	let page;
 	
 	try {
 		page = await client.getByUID('showcase', params.uid);
-	} catch (err) {
+	} catch {
 		throw error(404, {
 			message: 'Showcase not found'
 		});

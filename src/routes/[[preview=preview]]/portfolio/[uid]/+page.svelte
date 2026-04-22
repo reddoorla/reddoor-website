@@ -68,10 +68,10 @@ function mediumString (project:ProjectDocument<string>) {
                 <div class="font-extralight">{services}</div>
                 <div class="h-6 w-20 flex flex-row justify-between text-white">
                     {#if data.prevProject}
-                        <a href={"/portfolio/"+data.prevProject.uid}> <i class="fa-thin fa-sharp fa-chevron-left fa-2xl bump hover:text-light"/></a>
+                        <a href={"/portfolio/"+data.prevProject.uid} aria-label="Previous project"> <i class="fa-thin fa-sharp fa-chevron-left fa-2xl bump hover:text-light"/></a>
                     {/if}
                     {#if data.nextProject}
-                        <a href={"/portfolio/"+data.nextProject.uid}> <i class="fa-thin fa-sharp fa-chevron-right fa-2xl bump hover:text-light"/></a>
+                        <a href={"/portfolio/"+data.nextProject.uid} aria-label="Next project"> <i class="fa-thin fa-sharp fa-chevron-right fa-2xl bump hover:text-light"/></a>
                     {/if}
                 </div>
             </div>
@@ -89,7 +89,7 @@ function mediumString (project:ProjectDocument<string>) {
       <h3 class="text-white md:w-3/5">Isn’t it time to arm your brand with a clear story and compelling design?</h3>
       <AnimateIn transitionDelayMax={1600}>
       <a href="/contact">
-      <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />
+      <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid/10" text="MEET WITH US" filled={false} />
       </a>
       </AnimateIn>
   </ContentWidth>
@@ -102,7 +102,7 @@ function mediumString (project:ProjectDocument<string>) {
       <div class="w-1/5" />
       <div class="w-full md:w-2/5 md:pr-2 aspect-4/3 relative">
         <a href={"/portfolio/"+(data.relatedProjectOne.uid||'')} class="h-full w-full flex flex-col justify-end relative">
-          <img src={data.relatedProjectOne.data.hero.url||''} alt={data.relatedProjectOne.data.title||''  + " Hero Image"} class="absolute w-full h-full object-cover"/>
+          <img src={data.relatedProjectOne.data.hero.url||''} alt={(data.relatedProjectOne.data.title||'') + " Hero Image"} class="absolute w-full h-full object-cover"/>
           <div class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700" style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;" />
           <div class="w-full flex flex-row justify-between p-6 z-10" >
               <div>
@@ -117,7 +117,7 @@ function mediumString (project:ProjectDocument<string>) {
       </div>
       <div class="w-full md:w-2/5 md:pl-2 aspect-4/3 relative">
         <a href={"/portfolio/"+data.relatedProjectTwo.uid} class="h-full w-full flex flex-col justify-end relative">
-          <img src={data.relatedProjectTwo.data.hero.url||''} alt={data.relatedProjectTwo.data.title||''  + " Hero Image"} class="absolute w-full h-full object-cover"/>
+          <img src={data.relatedProjectTwo.data.hero.url||''} alt={(data.relatedProjectTwo.data.title||'') + " Hero Image"} class="absolute w-full h-full object-cover"/>
           <div class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700" style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;" />
           <div class="w-full flex flex-row justify-between p-6 z-10" >
               <div>

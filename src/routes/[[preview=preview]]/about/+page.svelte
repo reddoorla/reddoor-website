@@ -419,13 +419,14 @@ line-height: 140%; /* 70px */
 
       {/if}
       <div class="absolute left-0 bottom-0 flex gap-6 text-primary">
-        <button on:click={decrementValues} class="{isValuesTransitioning?"cursor-default":""}"
+        <button on:click={decrementValues} aria-label="Previous promise" class="{isValuesTransitioning?"cursor-default":""}"
           ><i
             class="fa-solid fa-light fa-arrow-left fa-xl hover:text-primary-dark transition-colors duration-300"
           ></i></button
         >
         <button
             on:click={incrementValues}
+            aria-label="Next promise"
             class="{isValuesTransitioning?"cursor-default":""}"
           ><i
             class="fa-solid fa-light fa-arrow-right fa-xl hover:text-primary-dark transition-colors duration-300"

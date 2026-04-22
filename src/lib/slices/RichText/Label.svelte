@@ -1,6 +1,6 @@
-<script>
-	/** @type {import("@prismicio/client").RTLabelNode} */
-	export let node;
+<script lang="ts">
+	import type { RTLabelNode } from "@prismicio/client";
+	export let node: RTLabelNode;
 </script>
 
 {#if node.data.label === 'codespan'}

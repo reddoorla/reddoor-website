@@ -101,11 +101,11 @@ afterNavigate(() => {
         <a href={item.href} class="text-white text-2xl" on:click={()=>isOverlayVisible=false}>{item.label}</a>
     {/each}
 
-    <button class="absolute top-5 right-5 opacity-60 hover:opacity-100 transition z-40" on:click={toggleOverlayOff}>
+    <button class="absolute top-5 right-5 opacity-60 hover:opacity-100 transition z-40" on:click={toggleOverlayOff} aria-label="Close menu">
         <div in:fade={{delay: 600}} out:fade class="text-white">
         <i class="fa-sharp fa-thin fa-xmark fa-2xl"  />
         </div>
-      
+
     </button>
 </div>
 {/if}
@@ -143,7 +143,7 @@ afterNavigate(() => {
     {/if}
 	<!-- nav #2 -->
 {#if showNav &&!$isTop}
-<div class="h-12 w-screen top-0 fixed z-20 {isNavTransparent ? "bg-transparent text-white" : "bg-white"} bg-opacity-80" transition:fly={{y:-64, delay:500}}>
+<div class="h-12 w-screen top-0 fixed z-20 {isNavTransparent ? "bg-transparent text-white" : "bg-white/80"}" transition:fly={{y:-64, delay:500}}>
     <ContentWidth class="flex flex-row justify-between items-center h-full">
         <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
             Reddoor Creative
@@ -203,7 +203,7 @@ afterNavigate(() => {
             <div class="label text-nowrap">
                 {"© Reddoor Creative 2006-"+ new Date().getFullYear() + ", All Rights Reserved"}
             </div>
-        
+        </div>
     </ContentWidth>
 
 </footer>

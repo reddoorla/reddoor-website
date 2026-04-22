@@ -40,6 +40,7 @@
 		"vite": "^8.0.9"
 	},
 	"type": "module",
+	"packageManager": "pnpm@10.33.1",
 	"dependencies": {
 		"@prismicio/client": "^7.21.8",
 		"@prismicio/svelte": "^2.2.1",
@@ -47,5 +48,11 @@
 		"svelte-inview": "^4.0.4",
 		"svelte-select": "^5.8.3",
 		"svelte-turnstile": "^0.11.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"sharp"
+		]
 	}
 }

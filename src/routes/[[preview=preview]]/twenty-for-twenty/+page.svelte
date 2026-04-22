@@ -232,7 +232,7 @@
     <AnimateIn>
       <a href="/contact">
         <DefaultButton
-          class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10"
+          class="mt-6 text-white border-white border-1 hover:bg-mid/10"
           text="MEET WITH US"
           filled={false}
         />
@@ -334,7 +334,7 @@
     }
   }
 
-  .inset-shadow::after {
+  .inset-shadow-sm::after {
     content: "";
     position: absolute;
     inset: 0;

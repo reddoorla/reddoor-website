@@ -386,7 +386,7 @@ line-height: 140%; /* 84px */
                     </AnimateIn>
                     <AnimateIn>
                     <a href="/contact">
-                        <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />
+                        <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid/10" text="MEET WITH US" filled={false} />
                     </a>
                     </AnimateIn>
                 </ContentWidth>
@@ -468,7 +468,7 @@ line-height: 140%; /* 84px */
         </AnimateIn>
         <AnimateIn>
         <a href="/contact">
-        <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid hover:bg-opacity-10" text="MEET WITH US" filled={false} />
+        <DefaultButton class="mt-6 text-white border-white border-1 hover:bg-mid/10" text="MEET WITH US" filled={false} />
         </a>
         </AnimateIn>
     </ContentWidth>

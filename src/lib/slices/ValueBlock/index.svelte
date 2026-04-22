@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { PrismicRichText, PrismicImage } from "@prismicio/svelte";
-  /** @type {import("@prismicio/client").Content.ValueBlockSlice} */
-  export let slice;
+  import type { Content } from "@prismicio/client";
+  export let slice: Content.ValueBlockSlice;
 </script>
 {#if !slice.primary.hide}
 <section
