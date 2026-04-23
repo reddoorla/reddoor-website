@@ -8,9 +8,20 @@
   import sonder from "$lib/assets/images/openingBgs/sonderBg.jpg?as=run";
 
   import printedReddoorLogo from "$lib/assets/icons/logos/reddoor_logo.png";
-  import { isTop } from "$lib/stores/isTop.svelte";
+  import { isInHero } from "$lib/stores/isInHero.svelte";
   import Img from "@zerodevx/svelte-img";
   import drawnLogo from "$lib/assets/icons/logos/staticReddoor.png";
+
+  const MASK_BASE = 0.25;
+  const MASK_GROWTH = 14;
+  const MASK_MAX = MASK_BASE + MASK_GROWTH;
+  const HERO_EXIT_PCT = 99;
+  const COMPELLING_DESKTOP_PCT = 30;
+  const COMPELLING_MOBILE_PCT = 10;
+  const MOBILE_BREAKPOINT_PX = 768;
+  const ROTATE_INTERVAL_MS = 5000;
+  const INTRO_FADE_MS = 400;
+  const HEADLINE_INTRO = "Arm your brand with";
 
   let isOverlayVisible = $state(false);
 
@@ -19,9 +30,13 @@
   let transitioning = $state(true);
   let openingSection: HTMLElement;
   let percentageScrolled = $state(0);
-  let maskScale = $state(0.2);
+  let maskScale = $state(MASK_BASE);
   let showCompelling = $state(false);
   let showButtons = $state(false);
+  let reducedMotion = $state(false);
+  let scrollFrame = 0;
+
+  const isScrolledPastHero = $derived(percentageScrolled >= HERO_EXIT_PCT);
 
   const backgrounds = [
     {
@@ -55,50 +70,91 @@
     currentImageIndex = (currentImageIndex + 1) % backgrounds.length;
   };
 
-  const handleScroll = () => {
+  const scrollThroughHero = () => {
     if (!openingSection) return;
-    const containerRect = openingSection.getBoundingClientRect();
-    const pct = Math.min(
-      Math.max(
-        100 -
-          ((containerRect.bottom - viewportHeight) /
-            (containerRect.height - viewportHeight)) *
+    const targetY =
+      openingSection.offsetTop + openingSection.offsetHeight - viewportHeight;
+    window.scrollTo({ top: targetY });
+  };
+
+  const updateScroll = () => {
+    if (!openingSection) return;
+    const rect = openingSection.getBoundingClientRect();
+    const scrollable = rect.height - viewportHeight;
+    const pct =
+      scrollable <= 0
+        ? 100
+        : Math.min(
+            Math.max(
+              100 - ((rect.bottom - viewportHeight) / scrollable) * 100,
+              0,
+            ),
             100,
-        0,
-      ),
-      100,
-    );
+          );
+
     percentageScrolled = pct;
+    isInHero.value = pct < HERO_EXIT_PCT;
 
-    maskScale = 0.2 + (pct / 100) * 14;
-    isTop.value = pct < 99;
+    if (reducedMotion) return;
 
-    if (pct > 30 || (pct > 10 && viewportWidth < 768)) {
+    maskScale = MASK_BASE + (pct / 100) * MASK_GROWTH;
+    const threshold =
+      viewportWidth < MOBILE_BREAKPOINT_PX
+        ? COMPELLING_MOBILE_PCT
+        : COMPELLING_DESKTOP_PCT;
+    if (pct > threshold) {
       showCompelling = true;
       showButtons = true;
-    } else {
-      showCompelling = false;
-      showButtons = false;
     }
   };
 
+  const handleScroll = () => {
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      updateScroll();
+    });
+  };
+
   $effect(() => {
-    isTop.value = true;
+    isInHero.value = true;
+
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reducedMotion = mq.matches;
+    const handleMQ = (e: MediaQueryListEvent) => (reducedMotion = e.matches);
+    mq.addEventListener("change", handleMQ);
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    const transitionTimer = setTimeout(() => (transitioning = false), 100);
-    const rotateImageInterval = setInterval(changeBackgroundImage, 5000);
+    updateScroll();
+
+    const transitionTimer = setTimeout(
+      () => (transitioning = false),
+      INTRO_FADE_MS,
+    );
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      mq.removeEventListener("change", handleMQ);
       clearTimeout(transitionTimer);
-      clearInterval(rotateImageInterval);
+      if (scrollFrame) cancelAnimationFrame(scrollFrame);
     };
   });
-</script>
 
-<svelte:head>
-  <title>Reddoor Creative | Home</title>
-</svelte:head>
+  // Reduced-motion: skip the scroll-driven scale/reveal and render the final frame directly.
+  $effect(() => {
+    if (!reducedMotion) return;
+    maskScale = MASK_MAX;
+    showCompelling = true;
+    showButtons = true;
+  });
+
+  // Rotate background images only while visibly inside the hero and motion is allowed.
+  $effect(() => {
+    if (reducedMotion || isScrolledPastHero) return;
+    const id = setInterval(changeBackgroundImage, ROTATE_INTERVAL_MS);
+    return () => clearInterval(id);
+  });
+</script>
 
 <svelte:window
   bind:innerWidth={viewportWidth}
@@ -158,7 +214,11 @@
   </div>
 {/if}
 
-<div class="w-screen" bind:this={openingSection}>
+<div
+  class="w-screen"
+  bind:this={openingSection}
+  style:--mask-scale={maskScale}
+>
   <div class="h-dvh w-screen fixed bottom-0 left-0 bg-paper-red">
     <ContentWidth
       class="flex flex-col justify-center items-center h-full z-10 relative {percentageScrolled >
@@ -169,13 +229,14 @@
       <div
         class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full"
       >
-        <h1 class="text-white text-left w-fit opacity-0">
-          Arm your brand with
+        <h1 class="text-white text-left w-fit opacity-0" role="presentation">
+          {HEADLINE_INTRO}
         </h1>
         <h1 class="text-white text-left w-fit">a clear story...</h1>
       </div>
       <i
         class="fa-light fa-arrow-down fa-2xl opacity-50 absolute bottom-12 text-white bob-always"
+        aria-hidden="true"
       ></i>
     </ContentWidth>
 
@@ -200,25 +261,38 @@
           <Img
             src={background.src}
             alt={background.name}
-            class="absolute h-full w-full object-cover will-change-contents transition-opacity duration-1000 ease-fast-slow {index ===
+            loading={index === 0 ? "eager" : "lazy"}
+            fetchpriority={index === 0 ? "high" : "auto"}
+            class="absolute h-full w-full object-cover will-change-[opacity] transition-opacity duration-1000 ease-fast-slow {index ===
             currentImageIndex
               ? 'opacity-100'
               : ' delay-1000 opacity-0'}"
           />
         {/each}
 
-        <div class="w-screen h-dvh bg-black opacity-25 fixed"></div>
+        <div
+          class="w-screen h-dvh bg-black opacity-25 fixed pointer-events-none"
+        ></div>
+
+        <button
+          type="button"
+          class="absolute inset-0 cursor-pointer bg-transparent border-0"
+          onclick={scrollThroughHero}
+          aria-label="Scroll to continue"
+        ></button>
 
         {#key currentImageIndex}
           <div
-            class="hidden lg:block h-dvh w-screen fixed top-0 left-0"
+            class="hidden lg:block h-dvh w-screen fixed top-0 left-0 pointer-events-none"
             in:fade={{ delay: 400 }}
             out:fade
           >
             <ContentWidth
               class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16"
             >
-              <a href={backgrounds[currentImageIndex].link}
+              <a
+                class="pointer-events-auto"
+                href={backgrounds[currentImageIndex].link}
                 ><p class="text-white text-left underline underline-offset-4">
                   {backgrounds[currentImageIndex].name}
                 </p></a
@@ -230,7 +304,7 @@
           </div>
         {/key}
 
-        {#if isTop.value}
+        {#if isInHero.value}
           <ContentWidth
             class="flex flex-row justify-between items-center absolute top-8 left-0 right-0"
           >
@@ -245,15 +319,16 @@
         {/if}
 
         <ContentWidth
-          class="flex flex-col justify-center items-center h-full pointer-events-auto z-30"
+          class="flex flex-col justify-center items-center h-full pointer-events-none z-30"
         >
           <div
             class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full z-20"
           >
             <h1
               class="text-white text-left md:translate-x-[14.5px] lg:translate-x-[7.5px] opacity-0"
+              role="presentation"
             >
-              Arm your brand with
+              {HEADLINE_INTRO}
             </h1>
             <h1
               class="text-white text-left transition duration-1000 ease-fast-slow {showCompelling
@@ -273,13 +348,12 @@
         </ContentWidth>
       </div>
 
-      <svg class="pointer-events-none w-0 h-0">
+      <svg class="pointer-events-none w-0 h-0" aria-hidden="true">
         <defs>
           <clipPath id="mask-path">
             <path
               d="M 0,183.85 V 78.73 L 126.46,0 H 290.72 V 183.85 Z"
-              transform="translate({viewportWidth / 2}, {viewportHeight /
-                2}) scale({maskScale}) translate(-145.36, -91.93)"
+              style="transform: translate(50vw, 50vh) scale(var(--mask-scale)) translate(-145.36px, -91.93px); transform-origin: 0 0;"
             />
           </clipPath>
         </defs>
@@ -294,10 +368,11 @@
       <div
         class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full"
       >
-        <h1 class="text-white text-left w-fit">Arm your brand with</h1>
+        <h1 class="text-white text-left w-fit">{HEADLINE_INTRO}</h1>
       </div>
       <i
         class="fa-light fa-arrow-down fa-2xl opacity-50 absolute bottom-12 text-white bob-always"
+        aria-hidden="true"
       ></i>
     </ContentWidth>
   </div>

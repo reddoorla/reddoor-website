@@ -10,7 +10,7 @@
 
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
 
-  import { isTop } from "$lib/stores/isTop.svelte";
+  import { isInHero } from "$lib/stores/isInHero.svelte";
   import LandscapeModal from "$lib/components/LandscapeModal.svelte";
 
   import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.gif";
@@ -143,7 +143,7 @@
 <LandscapeModal />
 {#key data.pathname}
   <main out:fade={{ duration: 500 }} in:fade={{ delay: 700, duration: 700 }}>
-    {#if !showNav && !isTop.value}
+    {#if !showNav && !isInHero.value}
       <div
         class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
           'portfolio/',
@@ -187,7 +187,7 @@
       </div>
     {/if}
     <!-- nav #2 -->
-    {#if showNav && !isTop.value}
+    {#if showNav && !isInHero.value}
       <div
         class="h-12 w-screen top-0 fixed z-20 bg-white/80"
         transition:fly={{ y: -64, delay: 500 }}
