@@ -2,7 +2,8 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { PrismicRichText, PrismicImage } from "@prismicio/svelte";
   import type { Content } from "@prismicio/client";
-  export let slice: Content.ValueBlockSlice;
+
+  let { slice }: { slice: Content.ValueBlockSlice } = $props();
 </script>
 {#if !slice.primary.hide}
 <section
@@ -17,12 +18,12 @@
     </div>
     <div class="w-full xl:w-2/5 text-white flex flex-col gap-2 p-4 rich-text">
         <h3 class="mb-4">{slice.primary.title||''}</h3>
-    
+
         <PrismicRichText field={slice.primary.body} />
-       
+
 
     </div>
-    
+
   </div>
 </ContentWidth>
 <PrismicImage field={slice.primary.drawn_image} class="w-3/5 md:w-1/3 absolute right-0 top-1/2 -translate-y-1/2 mix-blend-multiply" />

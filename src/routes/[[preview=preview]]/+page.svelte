@@ -7,20 +7,14 @@
   import LogoSoup from "$lib/components/LogoSoup.svelte";
   import pencil from "$lib/assets/icons/RD_TakeAction-02.png";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
+  import type { PageData } from './$types';
 
-  let viewportHeight: number;
-  let viewportWidth: number;
-
-  export let data;
+  let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>
   <title>Reddoor Creative | Home</title>
 </svelte:head>
-<svelte:window
-  bind:innerWidth={viewportWidth}
-  bind:innerHeight={viewportHeight}
-/>
 <OpeningAnimation />
 
 <div class="relative w-screen bg-paper">

@@ -3,33 +3,45 @@
     import DefaultButton from "../Buttons/DefaultButton.svelte";
     import ArrowButton from "../Buttons/ArrowButton.svelte";
 
+    interface Props {
+        icon?: string;
+        iconAltText?: string;
+        labelText?: string;
+        titleText?: string;
+        subtitleText?: string;
+        paragraphText?: string;
+        buttonText?: string;
+        linkText?: string;
+        linkHref?: string;
+        backgroundColor?: string;
+        float?: string;
+        class?: string;
+    }
 
-export let icon = placeholderIcon;
-export let iconAltText = "logo"
-export let labelText = ""
-export let titleText = ""
-export let subtitleText = ""
-export let paragraphText = ""
-export let buttonText = ""
-export let linkText=""
-export let linkHref=""
-export let backgroundColor="transparent"
-export let float = "center"
+    let {
+        icon = placeholderIcon,
+        iconAltText = "logo",
+        labelText = "",
+        titleText = "",
+        subtitleText = "",
+        paragraphText = "",
+        buttonText = "",
+        linkText = "",
+        linkHref = "",
+        backgroundColor = "transparent",
+        float = "center",
+        class: className = ''
+    }: Props = $props();
 
-let justify=float;
-if(float==="left")
-    justify="start";
-if(float==="right")
-    justify="end"
-
-let horizontalFloatMargin = "mx-auto"
-if(float==="left")
-    horizontalFloatMargin="ml-0 mr-auto";
-if(float==="right")
-    horizontalFloatMargin="ml-auto mr-0"
+    const justify = $derived(float === "left" ? "start" : float === "right" ? "end" : float);
+    const horizontalFloatMargin = $derived(
+        float === "left" ? "ml-0 mr-auto"
+        : float === "right" ? "ml-auto mr-0"
+        : "mx-auto"
+    );
 </script>
 
-<div class="w-full flex flex-col p-2 md:p-8 justify-{justify} text-{float} {$$props.class || ''}"
+<div class="w-full flex flex-col p-2 md:p-8 justify-{justify} text-{float} {className}"
      style="background-color: {backgroundColor}"
 >
     {#if icon}

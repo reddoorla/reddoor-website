@@ -12,43 +12,40 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import AnimateIn from "$lib/components/AnimateIn.svelte";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
-  import { onDestroy, onMount } from 'svelte'
   import LogoSoup from "$lib/components/LogoSoup.svelte";
-  import {fade} from 'svelte/transition'
+  import { fade } from 'svelte/transition'
   import { browser } from '$app/environment';
 
-  let targetCarTranslation = 0;
-  let targetMonoCarTranslation = 0;
-  let carTranslationInVW = 0;
-  let monoCarTranslationInVW = 0;
-  let viewportHeight = 1024;
-  let viewportWidth = 1024;
-  let carRef:HTMLImageElement;
-  let monoCarDivRef:HTMLDivElement;
-  let animationFrameId: number;
-  let isMobile = false;
-  
- 
+  let { data }: { data: any } = $props();
+
+  let targetCarTranslation = $state(0);
+  let targetMonoCarTranslation = $state(0);
+  let carTranslationInVW = $state(0);
+  let monoCarTranslationInVW = $state(0);
+  let viewportHeight = $state(1024);
+  let viewportWidth = $state(1024);
+  let carRef: HTMLImageElement;
+  let monoCarDivRef: HTMLDivElement;
+  let animationFrameId = 0;
+  let isMobile = $state(false);
+
   const lerp = (start: number, end: number, factor: number) => {
     return start + (end - start) * factor;
   };
-  
-  // (0.02 = slow and smooth, 0.2 = faster)
+
   const LERP_FACTOR = 0.02;
 
-  const handleScroll = () =>{
+  const handleScroll = () => {
     if (!browser || typeof window === 'undefined') return;
-    if (!carRef||!monoCarDivRef) return;
+    if (!carRef || !monoCarDivRef) return;
 
     const carRect = carRef.getBoundingClientRect();
     const monoCarDivRect = monoCarDivRef.getBoundingClientRect();
     const y = window.pageYOffset || document.documentElement.scrollTop;
 
-    targetMonoCarTranslation = 100 * (y/(monoCarDivRect.bottom));
-    targetCarTranslation = 100*(carRect.top-carRect.height/2)/viewportHeight;
-    
-  }
-  
+    targetMonoCarTranslation = 100 * (y / (monoCarDivRect.bottom));
+    targetCarTranslation = 100 * (carRect.top - carRect.height / 2) / viewportHeight;
+  };
 
   const animate = () => {
     carTranslationInVW = lerp(carTranslationInVW, targetCarTranslation, LERP_FACTOR);
@@ -56,18 +53,18 @@
     animationFrameId = requestAnimationFrame(animate);
   };
 
-  let popupText = "";
-  let popupX = 0;
-  let popupY = 0;
-  let showMobilePopup = false;
+  let popupText = $state("");
+  let popupX = $state(0);
+  let popupY = $state(0);
+  let showMobilePopup = $state(false);
   let mobilePopupTarget: HTMLElement | null = null;
 
-  const handleMouseMove = (e:MouseEvent) => {
+  const handleMouseMove = (e: MouseEvent) => {
     if (!browser || typeof window === 'undefined') return;
-    if(!popupText || isMobile)return;
-    popupX = e.x
-    popupY = e.y
-  }
+    if (!popupText || isMobile) return;
+    popupX = e.x;
+    popupY = e.y;
+  };
 
   const handleMobilePopupOpen = (text: string, target: HTMLElement) => {
     if (!isMobile) return;
@@ -78,7 +75,7 @@
       const closeBtn = document.querySelector('[data-popup-close]') as HTMLElement;
       closeBtn?.focus();
     }, 50);
-  }
+  };
 
   const closeMobilePopup = () => {
     showMobilePopup = false;
@@ -87,13 +84,13 @@
       mobilePopupTarget.focus();
       mobilePopupTarget = null;
     }
-  }
+  };
 
   const handleClickOutside = (e: MouseEvent) => {
     if (showMobilePopup && mobilePopupTarget && !mobilePopupTarget.contains(e.target as Node)) {
       closeMobilePopup();
     }
-  }
+  };
 
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && (showMobilePopup || popupText)) {
@@ -104,7 +101,7 @@
         popupText = "";
       }
     }
-  }
+  };
 
   const handleTooltipKeydown = (e: KeyboardEvent, text: string) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -118,7 +115,7 @@
         popupText = text;
       }
     }
-  }
+  };
 
   const handleTooltipFocus = (text: string, e: FocusEvent) => {
     if (!isMobile) {
@@ -127,68 +124,63 @@
       popupY = rect.top;
       popupText = text;
     }
-  }
+  };
 
   const handleTooltipBlur = () => {
     if (!isMobile) {
       popupText = "";
     }
-  }
+  };
 
   const checkIfMobile = () => {
     if (!browser) return;
     isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
-  }
+  };
 
-  let valuesIndex = 1;
-  let isValuesTransitioning = false;
+  let valuesIndex = $state(1);
+  let isValuesTransitioning = $state(false);
 
   const incrementValues = () => {
-    if(isValuesTransitioning)return;
-    if(valuesIndex<3){valuesIndex++;}
-    else{valuesIndex=1}
-    isValuesTransitioning =true;
-    setTimeout(()=>isValuesTransitioning=false, 1000)
-  }
+    if (isValuesTransitioning) return;
+    if (valuesIndex < 3) { valuesIndex++; }
+    else { valuesIndex = 1; }
+    isValuesTransitioning = true;
+    setTimeout(() => isValuesTransitioning = false, 1000);
+  };
 
   const decrementValues = () => {
-    if(isValuesTransitioning)return;
-    if(valuesIndex>1){valuesIndex--;}
-    else{valuesIndex=3}
-    isValuesTransitioning =true;
-    setTimeout(()=>isValuesTransitioning=false, 1000)
-  }
+    if (isValuesTransitioning) return;
+    if (valuesIndex > 1) { valuesIndex--; }
+    else { valuesIndex = 3; }
+    isValuesTransitioning = true;
+    setTimeout(() => isValuesTransitioning = false, 1000);
+  };
 
-  onMount(() => {
-    if (browser && typeof window !== 'undefined') {
-      checkIfMobile();
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('resize', checkIfMobile);
-      window.addEventListener('click', handleClickOutside);
-      window.addEventListener('keydown', handleKeydown);
-      
-      animate();
-      handleScroll();
-    }
-  });
+  $effect(() => {
+    if (!browser || typeof window === 'undefined') return;
 
-  onDestroy(()=>{
-    if (browser && typeof window !== 'undefined') {
+    checkIfMobile();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('resize', checkIfMobile);
+    window.addEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', handleKeydown);
+
+    animationFrameId = requestAnimationFrame(animate);
+    handleScroll();
+
+    return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', checkIfMobile);
       window.removeEventListener('click', handleClickOutside);
       window.removeEventListener('keydown', handleKeydown);
-      
+
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
-    }
-  })
-
-  export let data:any;
-  
+    };
+  });
 </script>
 
 <style>
@@ -225,15 +217,15 @@ line-height: 140%; /* 70px */
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-black/20" aria-hidden="true"></div>
         <!-- Popup -->
-        <div 
+        <div
             role="dialog"
             aria-label="Additional information"
             aria-modal="true"
             class="relative bg-white/95 backdrop-blur-sm shadow-xl p-6 max-w-sm w-full border border-primary"
         >
-            <button 
+            <button
                 data-popup-close
-                on:click={closeMobilePopup}
+                onclick={closeMobilePopup}
                 class="absolute top-3 right-3 text-primary hover:text-primary-dark transition-colors"
                 aria-label="Close popup"
             >
@@ -273,95 +265,95 @@ line-height: 140%; /* 70px */
         <p class="mt-8">01/03</p>
         <h5 class="text-primary">
           We will
-          <span 
+          <span
             role="button"
             tabindex="0"
             aria-label="act on your behalf - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="by using our creative expertise to serve.")}
-            on:click={(e) => handleMobilePopupOpen("by using our creative expertise to serve.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "by using our creative expertise to serve.")}
-            on:focus={(e) => handleTooltipFocus("by using our creative expertise to serve.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="by using our creative expertise to serve.")}
+            onclick={(e) => handleMobilePopupOpen("by using our creative expertise to serve.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "by using our creative expertise to serve.")}
+            onfocus={(e) => handleTooltipFocus("by using our creative expertise to serve.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
             act on your behalf
         </span>
         <br /> by choosing to
-          <span 
+          <span
             role="button"
             tabindex="0"
             aria-label="work hard and smart - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="in order to efficiently deliver excellence.")}
-            on:click={(e) => handleMobilePopupOpen("in order to efficiently deliver excellence.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "in order to efficiently deliver excellence.")}
-            on:focus={(e) => handleTooltipFocus("in order to efficiently deliver excellence.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="in order to efficiently deliver excellence.")}
+            onclick={(e) => handleMobilePopupOpen("in order to efficiently deliver excellence.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "in order to efficiently deliver excellence.")}
+            onfocus={(e) => handleTooltipFocus("in order to efficiently deliver excellence.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
              work hard and smart
         </span>
-        <br /> so you can 
-          <span 
+        <br /> so you can
+          <span
             role="button"
             tabindex="0"
             aria-label="feel relief - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="because you have a partner committed to your success.")}
-            on:click={(e) => handleMobilePopupOpen("because you have a partner committed to your success.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "because you have a partner committed to your success.")}
-            on:focus={(e) => handleTooltipFocus("because you have a partner committed to your success.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="because you have a partner committed to your success.")}
+            onclick={(e) => handleMobilePopupOpen("because you have a partner committed to your success.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "because you have a partner committed to your success.")}
+            onfocus={(e) => handleTooltipFocus("because you have a partner committed to your success.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
                 feel relief.
             </span>
         </h5>
       </div>
-      
+
       {:else if valuesIndex===2}
 
        <div class="flex flex-col gap-4 absolute" in:fade={{duration:400, delay:420}} out:fade={{duration:400}}>
         <p class="mt-8">02/03</p>
         <h5 class="text-primary">
           We will
-          <span 
+          <span
             role="button"
             tabindex="0"
             aria-label="create compelling design - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="since we define ourselves as enemies of mediocrity.")}
-            on:click={(e) => handleMobilePopupOpen("since we define ourselves as enemies of mediocrity.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "since we define ourselves as enemies of mediocrity.")}
-            on:focus={(e) => handleTooltipFocus("since we define ourselves as enemies of mediocrity.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="since we define ourselves as enemies of mediocrity.")}
+            onclick={(e) => handleMobilePopupOpen("since we define ourselves as enemies of mediocrity.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "since we define ourselves as enemies of mediocrity.")}
+            onfocus={(e) => handleTooltipFocus("since we define ourselves as enemies of mediocrity.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
             create compelling design
         </span>
         <br /> by choosing to
-          <span 
+          <span
             role="button"
             tabindex="0"
             aria-label="take risks - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="because exceptional work requires it.")}
-            on:click={(e) => handleMobilePopupOpen("because exceptional work requires it.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "because exceptional work requires it.")}
-            on:focus={(e) => handleTooltipFocus("because exceptional work requires it.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="because exceptional work requires it.")}
+            onclick={(e) => handleMobilePopupOpen("because exceptional work requires it.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "because exceptional work requires it.")}
+            onfocus={(e) => handleTooltipFocus("because exceptional work requires it.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
              take risks
         </span>
-        <br /> so you can 
-          <span 
+        <br /> so you can
+          <span
             role="button"
             tabindex="0"
             aria-label="feel confident - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="in the way you share your story with the world.")}
-            on:click={(e) => handleMobilePopupOpen("in the way you share your story with the world.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "in the way you share your story with the world.")}
-            on:focus={(e) => handleTooltipFocus("in the way you share your story with the world.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="in the way you share your story with the world.")}
+            onclick={(e) => handleMobilePopupOpen("in the way you share your story with the world.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "in the way you share your story with the world.")}
+            onfocus={(e) => handleTooltipFocus("in the way you share your story with the world.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
                 feel confident.
             </span>
         </h5>
@@ -373,45 +365,45 @@ line-height: 140%; /* 70px */
         <p class="mt-8">03/03</p>
         <h5 class="text-primary">
           We will
-          <span 
+          <span
             role="button"
             tabindex="0"
             aria-label="do meaningful work - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="so we may care deeply about it.")}
-            on:click={(e) => handleMobilePopupOpen("so we may care deeply about it.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "so we may care deeply about it.")}
-            on:focus={(e) => handleTooltipFocus("so we may care deeply about it.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="so we may care deeply about it.")}
+            onclick={(e) => handleMobilePopupOpen("so we may care deeply about it.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "so we may care deeply about it.")}
+            onfocus={(e) => handleTooltipFocus("so we may care deeply about it.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
             do meaningful work
         </span>
         <br /> by choosing to
-          <span 
+          <span
             role="button"
             tabindex="0"
             aria-label="seek order - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="because reducing noise and obstacles allows us to connect with purpose.")}
-            on:click={(e) => handleMobilePopupOpen("because reducing noise and obstacles allows us to connect with purpose.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "because reducing noise and obstacles allows us to connect with purpose.")}
-            on:focus={(e) => handleTooltipFocus("because reducing noise and obstacles allows us to connect with purpose.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="because reducing noise and obstacles allows us to connect with purpose.")}
+            onclick={(e) => handleMobilePopupOpen("because reducing noise and obstacles allows us to connect with purpose.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "because reducing noise and obstacles allows us to connect with purpose.")}
+            onfocus={(e) => handleTooltipFocus("because reducing noise and obstacles allows us to connect with purpose.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
              seek order
         </span>
-        <br /> so you can 
-          <span 
+        <br /> so you can
+          <span
             role="button"
             tabindex="0"
             aria-label="feel energized - more information"
-            on:mouseleave={()=> !isMobile && (popupText="")} 
-            on:mouseenter={()=> !isMobile && (popupText="by finding clarity and focus in what you do.")}
-            on:click={(e) => handleMobilePopupOpen("by finding clarity and focus in what you do.", e.currentTarget)}
-            on:keydown={(e) => handleTooltipKeydown(e, "by finding clarity and focus in what you do.")}
-            on:focus={(e) => handleTooltipFocus("by finding clarity and focus in what you do.", e)}
-            on:blur={handleTooltipBlur}
-            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-xs">
+            onmouseleave={()=> !isMobile && (popupText="")}
+            onmouseenter={()=> !isMobile && (popupText="by finding clarity and focus in what you do.")}
+            onclick={(e) => handleMobilePopupOpen("by finding clarity and focus in what you do.", e.currentTarget as HTMLElement)}
+            onkeydown={(e) => handleTooltipKeydown(e, "by finding clarity and focus in what you do.")}
+            onfocus={(e) => handleTooltipFocus("by finding clarity and focus in what you do.", e)}
+            onblur={handleTooltipBlur}
+            class="underline underline-offset-[25%] {isMobile ? 'cursor-pointer' : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs">
                 feel energized.
             </span>
         </h5>
@@ -419,13 +411,13 @@ line-height: 140%; /* 70px */
 
       {/if}
       <div class="absolute left-0 bottom-0 flex gap-6 text-primary">
-        <button on:click={decrementValues} aria-label="Previous promise" class="{isValuesTransitioning?"cursor-default":""}"
+        <button onclick={decrementValues} aria-label="Previous promise" class="{isValuesTransitioning?"cursor-default":""}"
           ><i
             class="fa-solid fa-light fa-arrow-left fa-xl hover:text-primary-dark transition-colors duration-300"
           ></i></button
         >
         <button
-            on:click={incrementValues}
+            onclick={incrementValues}
             aria-label="Next promise"
             class="{isValuesTransitioning?"cursor-default":""}"
           ><i
@@ -488,12 +480,12 @@ line-height: 140%; /* 70px */
     </AnimateIn>
     <div class="md:w-3/5 flex flex-col items-center gap-6 md:gap-0 md:flex-row mt-16">
       <AnimateIn class="w-4/5 md:w-1/3 md:pr-4 flex flex-col">
-        <img src={tim} alt="tim holmes" class="w-full aspect-square" />
+        <img src={tim} alt="tim holmes" class="w-full aspect-square" loading="lazy" />
         <div class="text-primary large-body font-thin mt-2">Tim Holmes</div>
         <p class="text-mid font-thin">CA+ID Creative Director</p>
       </AnimateIn>
       <AnimateIn class="w-4/5 md:w-1/3 md:pl-4 flex flex-col">
-        <img src={erik} alt="Erik Svendsen" class="w-full aspect-square" />
+        <img src={erik} alt="Erik Svendsen" class="w-full aspect-square" loading="lazy" />
         <p class="text-primary large-body mt-2 large-body">Erik Svendsen</p>
         <div class="font-thin">TX Creative Director</div>
       </AnimateIn>
@@ -514,7 +506,7 @@ line-height: 140%; /* 70px */
       </h5>
     </AnimateIn>
   </ContentWidth>
-  
+
   <!-- Car in separate container outside ContentWidth -->
   <div class="w-full mt-8 relative overflow-x-hidden">
     <div class="will-change-transform" style="transform:translateX({carTranslationInVW}vw)">
@@ -585,7 +577,7 @@ line-height: 140%; /* 70px */
         itself but also the people I'm working with."
       </h5>
       <div class="flex flex-row gap-5 mt-10">
-        <img src={tim} alt="tim holmes" class="w-20" />
+        <img src={tim} alt="tim holmes" class="w-20" loading="lazy" />
         <div class="flex flex-col">
           <div class="large-body">Tim Holmes</div>
           <p>CA+ID Creative Director</p>

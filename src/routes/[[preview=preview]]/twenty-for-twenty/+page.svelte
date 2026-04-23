@@ -4,9 +4,6 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import type { ImageField } from "@prismicio/client";
   import { PrismicImage } from "@prismicio/svelte";
-  import { onMount } from "svelte";
-
-  export let data;
 
   type ProjectCard = {
     number: number;
@@ -18,14 +15,16 @@
     href: string | null | undefined;
   };
 
-  let projectCardArray: ProjectCard[] = data.projectCards || [];
-  let cardStackProgress = 0;
-  let targetProgress = 0;
-  let cardsSection: HTMLElement;
-  let viewportHeight: number;
-  let animationFrameId: number;
+  let { data }: { data: { projectCards: ProjectCard[] } } = $props();
 
-  // Smooth interpolation
+  const projectCardArray = $derived<ProjectCard[]>(data.projectCards || []);
+
+  let cardStackProgress = $state(0);
+  let targetProgress = $state(0);
+  let cardsSection: HTMLElement;
+  let viewportHeight = $state(0);
+  let animationFrameId = 0;
+
   const lerp = (start: number, end: number, factor: number) => {
     return start + (end - start) * factor;
   };
@@ -39,7 +38,7 @@
     const sectionOffsetTop = cardsSection.offsetTop;
 
     const scrollStart = sectionOffsetTop;
-  const scrollEnd = sectionOffsetTop + cardsRect.height - viewportHeight - (40 * viewportHeight / 100);
+    const scrollEnd = sectionOffsetTop + cardsRect.height - viewportHeight - (40 * viewportHeight / 100);
     const scrollRange = scrollEnd - scrollStart;
 
     const rawProgress = (pageScrollTop - scrollStart) / scrollRange;
@@ -48,12 +47,10 @@
 
   const animate = () => {
     cardStackProgress = lerp(cardStackProgress, targetProgress, 0.15);
-
     animationFrameId = requestAnimationFrame(animate);
   };
 
-  // Reactive function that recalculates on every cardStackProgress change
-  $: calcCardTranslationInVH = (i: number) => {
+  const calcCardTranslationInVH = (i: number) => {
     const l = projectCardArray.length - 1;
     const p = cardStackProgress;
 
@@ -71,13 +68,9 @@
     return x * x * x * x * x;
   }
 
-  onMount(() => {
-    projectCardArray = data.projectCards;
-
+  $effect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
-
     animationFrameId = requestAnimationFrame(animate);
-
     handleScroll();
 
     return () => {
@@ -115,7 +108,7 @@
         <h2 class="-mt-8">for</h2>
         <iframe
           title="background video"
-          src={`https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1`}
+          src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1"
           class="aspect-square w-full mix-blend-multiply opacity-90 scale-110 -mt-12"
           frameborder="0"
           allowfullscreen
@@ -145,19 +138,19 @@
             class="progress-bar w-full h-full bg-primary absolute rounded-xl"
             style="transform: translate3d({-100 +
               100 * cardStackProgress}%, 0, 0);"
-          />
+          ></div>
         </div>
       </div>
       <div
         class="w-[125%] md:w-3/5 max-h-[80vh] aspect-square p-6 sm:translate-y-0 translate-x-[-2%] sm:translate-x-[-2%] md:translate-x-0 card-square"
       >
         <div class="h-full w-4/5 relative cards-container">
-          {#each projectCardArray as card, i}
+          {#each projectCardArray as card, i (card.number)}
             <!-- Transform wrapper div -->
             <div
               class="card-transform-wrapper absolute top-0 sm:left-12 w-full h-full"
               style="transform: translate3d({calcCardTranslationInVH(i - 1)}vw, 0, 0) rotate({(((2 * (i % 2) - 1) * (i + 1)) / projectCardArray.length) * 6 * easeInQuint((100-calcCardTranslationInVH(i - 1))/100)}deg);"
-            > 
+            >
               <!-- Anchor with its own transitions -->
               <a
                 href={card.href}
@@ -214,7 +207,7 @@
             class="progress-bar w-full h-full bg-primary absolute rounded-xl"
             style="transform: translate3d({-100 +
               100 * cardStackProgress}%, 0, 0);"
-          />
+          ></div>
         </div>
     </ContentWidth>
   </div>

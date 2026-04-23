@@ -1,14 +1,18 @@
 <script lang="ts">
-    export let socials= [{
-        platform: "",
-        href:""
-                        }];
+    interface Social {
+        platform: string;
+        href: string;
+    }
 
+    interface Props {
+        socials?: Social[];
+    }
 
+    let { socials = [{ platform: "", href: "" }] }: Props = $props();
 </script>
 
-        <div class="h-full flex flex-row items center justify-center transition-opacity">
-            {#each socials as social }
+        <div class="h-full flex flex-row items-center justify-center transition-opacity">
+            {#each socials as social (social.platform + social.href)}
 
                 <a href={social.href} class="mx-6 w-6 h-6 hover:opacity-75 transition-all bump">
                     {#if social.platform==='facebook'}
@@ -27,4 +31,3 @@
 
             {/each}
         </div>
-

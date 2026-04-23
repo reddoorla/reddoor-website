@@ -22,13 +22,9 @@ export default [
 				'error',
 				{ argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
 			],
-			// Stricter rules added in eslint-plugin-svelte v3 — pre-existing patterns flagged across the codebase.
-			// Re-enable and address incrementally.
-			'svelte/no-navigation-without-resolve': 'off',
-			'svelte/require-each-key': 'off',
-			'svelte/no-reactive-functions': 'off',
-			'svelte/no-useless-mustaches': 'off',
-			'svelte/no-at-html-tags': 'off'
+			// {@html} is used in +layout.svelte for Organization JSON-LD with a hardcoded object.
+			'svelte/no-at-html-tags': 'off',
+			'svelte/no-navigation-without-resolve': 'off'
 		}
 	},
 	{

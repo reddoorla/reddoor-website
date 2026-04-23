@@ -1,29 +1,42 @@
 <script lang="ts">
   import placeholder from "../../assets/images/background_placeholder.svg";
   import { PrismicImage } from "@prismicio/svelte";
+  import type { Snippet } from 'svelte';
+  import type { ImageField } from '@prismicio/client';
 
-  export let src = '';
-  export let field = undefined;
-  export let altText = "background image";
-  export let placeholderSide = "right";
-  export let vimeoId = "";
-  export let darken = false;
-  export let backdrop = false;
-  export let alt = ""
-
-  let viewportHeight: number = 1024;
-  let viewportWidth: number = 768;
-  let showVideo = true;
-
-
-  const handleVideoError = (error:any) => {
-	console.log(error);
-	showVideo=false;
-
+  interface Props {
+    src?: string;
+    field?: ImageField | undefined;
+    altText?: string;
+    placeholderSide?: string;
+    vimeoId?: string;
+    darken?: boolean;
+    backdrop?: boolean;
+    alt?: string;
+    class?: string;
+    children?: Snippet;
   }
-  
 
+  let {
+    src = '',
+    field = undefined,
+    altText = "background image",
+    placeholderSide = "right",
+    vimeoId = "",
+    darken = false,
+    backdrop = false,
+    alt = "",
+    class: className = '',
+    children
+  }: Props = $props();
 
+  let viewportHeight = $state(1024);
+  let viewportWidth = $state(768);
+  let showVideo = $state(true);
+
+  const handleVideoError = () => {
+    showVideo = false;
+  }
 </script>
 
 <svelte:window
@@ -32,7 +45,7 @@
 />
 
 <section
-  class="h-screen w-screen overflow-clip {$$props.class || ''}
+  class="h-screen w-screen overflow-clip {className}
   {backdrop
     ? 'fixed -z-10 top-0 left-0'
     : 'relative'}"
@@ -42,7 +55,7 @@
     {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full': 'w-screen min-h-full'}"
   >
     <!-- Image fallback - always present -->
-     
+
     {#if !field&&src}
       <img
         {src}
@@ -69,7 +82,7 @@
         {showVideo ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
         frameborder="0"
         allowfullscreen
-		on:error={handleVideoError}
+        onerror={handleVideoError}
       ></iframe>
     {/if}
 
@@ -79,7 +92,7 @@
       ></div>
     {/if}
   </div>
-  <slot/>
+  {@render children?.()}
 </section>
 
 <style>
@@ -100,11 +113,5 @@ img:not([src])::after {
   content: ""; /* Or a custom fallback message */
   display: block;
   font-size: 1rem; /* Reset font size for the custom content */
-  /* Add styling for your custom fallback element if desired */
-  /* For example:
-  border: 1px solid #ccc;
-  padding: 5px;
-  background-color: #f0f0f0;
-  */
 }
 </style>

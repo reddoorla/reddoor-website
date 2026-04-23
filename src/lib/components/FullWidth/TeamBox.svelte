@@ -1,18 +1,28 @@
 <script lang="ts">
     import profile_placeholder from "$lib/assets/images/profile_placeholder.jpeg"
 
+    interface Social {
+        platform: string;
+        href: string;
+    }
 
-    export let src = profile_placeholder;
-    export let alt = "profile picture placeholder"
-    export let href = ""
-    export let name = ""
-    export let title =""
-    export let socials= [{
-        platform: "",
-        href:""
-                        }];
+    interface Props {
+        src?: string;
+        alt?: string;
+        href?: string;
+        name?: string;
+        title?: string;
+        socials?: Social[];
+    }
 
-    
+    let {
+        src = profile_placeholder,
+        alt = "profile picture placeholder",
+        href = "",
+        name = "",
+        title = "",
+        socials = [{ platform: "", href: "" }]
+    }: Props = $props();
 </script>
 
 {#if href}
@@ -25,7 +35,7 @@
         <h5 class="text-white my-3">{name}</h5>
         <p class="text-light my-3">{title}</p>
         <div class="pointer-events-auto h-6 my-3 flex flex-row items-center justify-center transition-opacity">
-            {#each socials as social }
+            {#each socials as social (social.platform + social.href)}
 
                 <a href={social.href} class="mx-6 w-6 h-6 hover:opacity-75 transition-all bump">
                     {#if social.platform==='facebook'}
@@ -52,8 +62,8 @@
         <div class="h-2"></div>
         <h5 class="text-white my-3">{name}</h5>
         <p class="text-light my-3">{title}</p>
-        <div class="h-6 my-3 flex flex-row items center justify-center ">
-            {#each socials as social }
+        <div class="h-6 my-3 flex flex-row items-center justify-center ">
+            {#each socials as social (social.platform + social.href)}
             <a href={social.href} class="mx-6 w-6 h-6 hover:opacity-75 transition-all bump">
                 {#if social.platform==='facebook'}
                     <i class="fa-brands fa-facebook fa-inverse fa-2x"></i>

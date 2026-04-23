@@ -7,7 +7,7 @@
 	import DefaultButton from '$lib/components/Buttons/DefaultButton.svelte';
   import AnimateIn from '$lib/components/AnimateIn.svelte';
 
-	export let data: PageData;
+	let { data }: { data: PageData } = $props();
 </script>
 
 <SliceZone slices={data.page.data.slices} {components} />

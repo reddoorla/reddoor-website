@@ -4,18 +4,17 @@
 
   import ContentWidth from '$lib/components/ContentWidth/ContentWidth.svelte';
 
-	export let slice: Content.RichTextSlice;
+	let { slice }: { slice: Content.RichTextSlice } = $props();
 
-	let backgroundColorString = 'bg-'+slice.primary.backgroundcolor;
-	const float = slice.primary.float;
-	const width = slice.primary.width;
-
+	const backgroundColorString = $derived('bg-' + slice.primary.backgroundcolor);
+	const float = $derived(slice.primary.float);
+	const width = $derived(slice.primary.width);
 </script>
 
 {#if !slice.primary.hide}
 
 <section class="w-full {slice.primary.hasPadding? "py-12" : ""} text-{slice.primary.textColor} {backgroundColorString}">
-	<ContentWidth class="flex flex-col 
+	<ContentWidth class="flex flex-col
 		{float==="right"?"items-end":""}
 		{float==="center"?"items-center":""}
 		{float==="left"?"items-start":""}
@@ -29,12 +28,12 @@
 		rich-text
 		"
 	>
-		
+
 			<PrismicRichText
 			field={slice.primary.content}
 		/>
 	</div>
-		
+
 	</ContentWidth>
 </section>
 
