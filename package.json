@@ -45,8 +45,6 @@
     "@prismicio/client": "^7.21.8",
     "@prismicio/svelte": "^2.2.1",
     "svelte-gestures": "^5.2.2",
-    "svelte-inview": "^4.0.4",
-    "svelte-select": "^5.8.3",
     "svelte-turnstile": "^0.11.0"
   },
   "pnpm": {

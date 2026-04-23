@@ -1,11 +1,13 @@
 <script lang="ts">
   import placeholder from "../../assets/images/background_placeholder.svg";
   import { PrismicImage } from "@prismicio/svelte";
+  import Img from "@zerodevx/svelte-img";
   import type { Snippet } from "svelte";
   import type { ImageField } from "@prismicio/client";
 
   interface Props {
     src?: string;
+    img?: unknown;
     field?: ImageField | undefined;
     altText?: string;
     placeholderSide?: string;
@@ -19,6 +21,7 @@
 
   let {
     src = "",
+    img,
     field = undefined,
     altText = "background image",
     placeholderSide = "right",
@@ -56,13 +59,21 @@
   >
     <!-- Image fallback - always present -->
 
-    {#if !field && src}
+    {#if img}
+      <Img
+        src={img}
+        alt={alt || altText}
+        class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover -z-10"
+        loading="lazy"
+      />
+    {:else if !field && src}
       <img
         {src}
         alt={alt || altText}
         class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover -z-10
         {src === placeholder ? 'lg:w-[45%] md:h-auto' : ''}
         "
+        loading="lazy"
       />
     {:else}
       <PrismicImage {field} class="absolute h-full w-full object-cover -z-10" />

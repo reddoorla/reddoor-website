@@ -2,42 +2,21 @@
   import { SliceZone } from "@prismicio/svelte";
   import { components } from "$lib/slices";
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import { isFilled, asLink } from "@prismicio/client";
   import type { ProjectDocument } from "../../../../prismicio-types";
+  import type { PageData } from "./$types";
+  import { mediumString } from "$lib/utils/projectServices";
 
-  function mediumString(project: ProjectDocument<string>) {
-    const servicesArray = [
-      project.data.branding,
-      project.data.product,
-      project.data.print,
-      project.data.environmental,
-      project.data.packaging,
-      project.data.digital,
-    ];
-    return servicesArray.reduce<string>((acc, service, index) => {
-      if (service) {
-        if (acc) acc += ", ";
-        acc += [
-          "Brand",
-          "Product",
-          "Print",
-          "Environmental",
-          "Packaging",
-          "Digital",
-        ][index];
-      }
-      return acc;
-    }, "");
-  }
-
-  let { data }: { data: any } = $props();
+  let { data }: { data: PageData } = $props();
 
   const pageData = $derived(data.page.data);
-  const featuredProject = $derived<ProjectDocument>(data.featuredProject);
+  const featuredProject = $derived<ProjectDocument | undefined>(
+    data.featuredProject,
+  );
   const projects = $derived<ProjectDocument[]>(data.projects);
 </script>
 
@@ -78,9 +57,9 @@
       >
         <img
           src={pageData.featuredImageOverride.url ||
-            featuredProject.data.hero.url ||
+            featuredProject?.data.hero.url ||
             ""}
-          alt={featuredProject.data.title || "" + " Hero Image"}
+          alt={featuredProject?.data.title || "" + " Hero Image"}
           class="absolute w-full h-full object-cover"
         />
         <div
@@ -91,12 +70,12 @@
           <div class="w-4/5">
             <p class="text-white uppercase">
               {pageData.featuredTitleOverride ||
-                featuredProject.data.title ||
+                featuredProject?.data.title ||
                 ""}
             </p>
             <p class="text-light">
               {pageData.featuredSubtitleOverride ||
-                mediumString(featuredProject) ||
+                (featuredProject && mediumString(featuredProject)) ||
                 ""}
             </p>
           </div>
@@ -136,9 +115,9 @@
               style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
             ></div>
 
-            <AnimateIn
+            <div
+              use:anim={{ delayMax: 800 }}
               class="w-full flex flex-row justify-between items-end p-6 z-10"
-              transitionDelayMax={800}
             >
               <div class="w-4/5">
                 <p class="text-white uppercase">
@@ -155,7 +134,7 @@
               >
                 <img src={arrowButton} alt="" class="w-full" />
               </div>
-            </AnimateIn>
+            </div>
           </a>
         </div>
       {/each}

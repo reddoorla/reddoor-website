@@ -1,6 +1,6 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import { Turnstile } from "svelte-turnstile";
   import { fade } from "svelte/transition";
 
@@ -81,22 +81,22 @@
     <div class="w-full md:w-4/5 flex flex-col">
       <h5>Give us a ring to set something up:</h5>
       <div class="w-full flex flex-col md:flex-row">
-        <AnimateIn class="flex flex-col md:w-1/2">
+        <div use:anim class="flex flex-col md:w-1/2">
           <div class="large-body text-primary my-8">California Office</div>
           <p>
             Tim Holmes <br />
             Creative Director <br />
             +1 310-341-3571
           </p>
-        </AnimateIn>
-        <AnimateIn class="flex flex-col w-1/2">
+        </div>
+        <div use:anim class="flex flex-col w-1/2">
           <div class="large-body text-primary my-8">Texas Office</div>
           <p>
             Erik Svendsen <br />
             Creative Director <br />
             +1 310-418-9976
           </p>
-        </AnimateIn>
+        </div>
       </div>
     </div>
   </ContentWidth>
@@ -115,7 +115,7 @@
         <Turnstile siteKey="0x4AAAAAAAh2fGW6xIcdsqNr" />
 
         <input type="hidden" name="form-name" value="contact" />
-        <AnimateIn class="w-full">
+        <div use:anim class="w-full">
           <p>Name</p>
           <input
             type="text"
@@ -124,8 +124,8 @@
             placeholder="first and last name"
             class="w-full border-1 border-mid p-2 mb-4"
           />
-        </AnimateIn>
-        <AnimateIn class="w-full">
+        </div>
+        <div use:anim class="w-full">
           <p>Company Name</p>
           <input
             type="text"
@@ -133,8 +133,8 @@
             placeholder="company name"
             class="w-full border-1 border-mid p-2 mb-4"
           />
-        </AnimateIn>
-        <AnimateIn class="w-full">
+        </div>
+        <div use:anim class="w-full">
           <p>Phone</p>
           <input
             type="phone"
@@ -143,8 +143,8 @@
             placeholder="000-000-0000"
             class="w-full border-1 border-mid p-2 mb-4"
           />
-        </AnimateIn>
-        <AnimateIn class="w-full">
+        </div>
+        <div use:anim class="w-full">
           <p>Email</p>
           <input
             type="email"
@@ -153,13 +153,13 @@
             placeholder="you@domain.com"
             class="w-full border-1 border-mid p-2 mb-4"
           />
-        </AnimateIn>
+        </div>
         <p class="hidden">
           <label>
             Don’t fill this out if you’re human: <input name="bot-field" />
           </label>
         </p>
-        <AnimateIn class="w-full">
+        <div use:anim class="w-full">
           <p>Message</p>
           <textarea
             name="message"
@@ -167,15 +167,15 @@
             placeholder="how can we help?"
             class="min-h-24 w-full border-1 border-mid p-1 mb-4"
           ></textarea>
-        </AnimateIn>
-        <AnimateIn>
+        </div>
+        <div use:anim>
           <input
             type="submit"
             value={submitting ? "SENDING…" : "LET'S CONNECT"}
             disabled={submitting}
             class="text-primary border-b-2 hover:bg-primary hover:text-white p-3 font-bold border-primary bump cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           />
-        </AnimateIn>
+        </div>
         {#if submitError}
           <p role="alert" class="text-primary mt-2">{submitError}</p>
         {/if}
@@ -189,11 +189,11 @@
   class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
 >
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-    <AnimateIn>
+    <div use:anim>
       <h3 class="text-white md:w-3/5">
         Isn’t it time to arm your brand with a clear story and compelling
         design?
       </h3>
-    </AnimateIn>
+    </div>
   </ContentWidth>
 </div>

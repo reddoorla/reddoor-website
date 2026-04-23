@@ -1,22 +1,24 @@
 <script lang="ts">
-  import beach from "$lib/assets/images/beach.jpg";
-  import hills from "$lib/assets/images/hills.jpg";
-  import lake from "$lib/assets/images/alpineLake.jpg";
-  import tim from "$lib/assets/images/tim.jpg";
-  import erik from "$lib/assets/images/erik.jpg";
-  import car from "$lib/assets/images/reddoorcar.png";
-  import monotoneCar from "$lib/assets/images/RD_CarOnly.png";
-  import applause from "$lib/assets/images/applause.jpg";
+  import beach from "$lib/assets/images/beach.jpg?as=run";
+  import hills from "$lib/assets/images/hills.jpg?as=run";
+  import lake from "$lib/assets/images/alpineLake.jpg?as=run";
+  import tim from "$lib/assets/images/tim.jpg?as=run";
+  import erik from "$lib/assets/images/erik.jpg?as=run";
+  import car from "$lib/assets/images/reddoorcar.png?as=run";
+  import monotoneCar from "$lib/assets/images/RD_CarOnly.png?as=run";
+  import applause from "$lib/assets/images/applause.jpg?as=run";
+  import Img from "@zerodevx/svelte-img";
   import key from "$lib/assets/icons/RD_Keys-04.png";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
   import { fade } from "svelte/transition";
   import { browser } from "$app/environment";
+  import type { PageData } from "./$types";
 
-  let { data }: { data: any } = $props();
+  let { data }: { data: PageData } = $props();
 
   let targetCarTranslation = $state(0);
   let targetMonoCarTranslation = $state(0);
@@ -24,8 +26,8 @@
   let monoCarTranslationInVW = $state(0);
   let viewportHeight = $state(1024);
   let viewportWidth = $state(1024);
-  let carRef: HTMLImageElement;
-  let monoCarDivRef: HTMLDivElement;
+  let carRef: HTMLImageElement | null = $state(null);
+  let monoCarDivRef: HTMLDivElement | null = $state(null);
   let animationFrameId = 0;
   let isMobile = $state(false);
 
@@ -118,20 +120,6 @@
     }
   };
 
-  const handleTooltipKeydown = (e: KeyboardEvent, text: string) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (isMobile) {
-        handleMobilePopupOpen(text, e.currentTarget as HTMLElement);
-      } else {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        popupX = rect.left + rect.width / 2;
-        popupY = rect.top;
-        popupText = text;
-      }
-    }
-  };
-
   const handleTooltipFocus = (text: string, e: FocusEvent) => {
     if (!isMobile) {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -213,6 +201,24 @@
   bind:innerWidth={viewportWidth}
 />
 
+{#snippet promiseLink(label: string, tooltip: string)}
+  <button
+    type="button"
+    aria-label="{label} - more information"
+    onmouseleave={() => !isMobile && (popupText = "")}
+    onmouseenter={() => !isMobile && (popupText = tooltip)}
+    onclick={(e) =>
+      handleMobilePopupOpen(tooltip, e.currentTarget as HTMLElement)}
+    onfocus={(e) => handleTooltipFocus(tooltip, e)}
+    onblur={handleTooltipBlur}
+    class="bg-transparent border-0 p-0 text-inherit font-inherit underline underline-offset-[25%] {isMobile
+      ? 'cursor-pointer'
+      : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
+  >
+    {label}
+  </button>
+{/snippet}
+
 {#if popupText && !isMobile}
   <h5
     transition:fade
@@ -266,14 +272,15 @@
   <ContentWidth class="flex ">
     <h3 class="text-primary z-10 relative">About</h3>
   </ContentWidth>
-  <img
+  <Img
     src={monotoneCar}
     alt="moving car"
     class="absolute -right-48 bottom-0 w-64 will-change-transform"
     style="transform:translate3d({-monoCarTranslationInVW}vw,0,0)"
+    loading="lazy"
   />
 </div>
-<ScreenWidthImage src={applause} />
+<ScreenWidthImage img={applause} />
 <div class="w-screen bg-paper pb-12 md:pb-48">
   <ContentWidth class="flex relative border-primary border-b-1">
     <img src={key} alt="keys" class="lg:w-1/5 md:w-1/3 w-2/3" />
@@ -292,99 +299,20 @@
           <p class="mt-8">01/03</p>
           <h5 class="text-primary">
             We will
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="act on your behalf - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText = "by using our creative expertise to serve.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "by using our creative expertise to serve.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "by using our creative expertise to serve.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus(
-                  "by using our creative expertise to serve.",
-                  e,
-                )}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              act on your behalf
-            </span>
+            {@render promiseLink(
+              "act on your behalf",
+              "by using our creative expertise to serve.",
+            )}
             <br /> by choosing to
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="work hard and smart - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText = "in order to efficiently deliver excellence.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "in order to efficiently deliver excellence.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "in order to efficiently deliver excellence.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus(
-                  "in order to efficiently deliver excellence.",
-                  e,
-                )}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              work hard and smart
-            </span>
+            {@render promiseLink(
+              "work hard and smart",
+              "in order to efficiently deliver excellence.",
+            )}
             <br /> so you can
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="feel relief - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText =
-                  "because you have a partner committed to your success.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "because you have a partner committed to your success.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "because you have a partner committed to your success.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus(
-                  "because you have a partner committed to your success.",
-                  e,
-                )}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              feel relief.
-            </span>
+            {@render promiseLink(
+              "feel relief.",
+              "because you have a partner committed to your success.",
+            )}
           </h5>
         </div>
       {:else if valuesIndex === 2}
@@ -396,96 +324,20 @@
           <p class="mt-8">02/03</p>
           <h5 class="text-primary">
             We will
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="create compelling design - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText =
-                  "since we define ourselves as enemies of mediocrity.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "since we define ourselves as enemies of mediocrity.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "since we define ourselves as enemies of mediocrity.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus(
-                  "since we define ourselves as enemies of mediocrity.",
-                  e,
-                )}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              create compelling design
-            </span>
+            {@render promiseLink(
+              "create compelling design",
+              "since we define ourselves as enemies of mediocrity.",
+            )}
             <br /> by choosing to
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="take risks - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText = "because exceptional work requires it.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "because exceptional work requires it.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "because exceptional work requires it.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus("because exceptional work requires it.", e)}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              take risks
-            </span>
+            {@render promiseLink(
+              "take risks",
+              "because exceptional work requires it.",
+            )}
             <br /> so you can
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="feel confident - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText = "in the way you share your story with the world.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "in the way you share your story with the world.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "in the way you share your story with the world.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus(
-                  "in the way you share your story with the world.",
-                  e,
-                )}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              feel confident.
-            </span>
+            {@render promiseLink(
+              "feel confident.",
+              "in the way you share your story with the world.",
+            )}
           </h5>
         </div>
       {:else if valuesIndex === 3}
@@ -497,92 +349,20 @@
           <p class="mt-8">03/03</p>
           <h5 class="text-primary">
             We will
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="do meaningful work - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile && (popupText = "so we may care deeply about it.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "so we may care deeply about it.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(e, "so we may care deeply about it.")}
-              onfocus={(e) =>
-                handleTooltipFocus("so we may care deeply about it.", e)}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              do meaningful work
-            </span>
+            {@render promiseLink(
+              "do meaningful work",
+              "so we may care deeply about it.",
+            )}
             <br /> by choosing to
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="seek order - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText =
-                  "because reducing noise and obstacles allows us to connect with purpose.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "because reducing noise and obstacles allows us to connect with purpose.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "because reducing noise and obstacles allows us to connect with purpose.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus(
-                  "because reducing noise and obstacles allows us to connect with purpose.",
-                  e,
-                )}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              seek order
-            </span>
+            {@render promiseLink(
+              "seek order",
+              "because reducing noise and obstacles allows us to connect with purpose.",
+            )}
             <br /> so you can
-            <span
-              role="button"
-              tabindex="0"
-              aria-label="feel energized - more information"
-              onmouseleave={() => !isMobile && (popupText = "")}
-              onmouseenter={() =>
-                !isMobile &&
-                (popupText = "by finding clarity and focus in what you do.")}
-              onclick={(e) =>
-                handleMobilePopupOpen(
-                  "by finding clarity and focus in what you do.",
-                  e.currentTarget as HTMLElement,
-                )}
-              onkeydown={(e) =>
-                handleTooltipKeydown(
-                  e,
-                  "by finding clarity and focus in what you do.",
-                )}
-              onfocus={(e) =>
-                handleTooltipFocus(
-                  "by finding clarity and focus in what you do.",
-                  e,
-                )}
-              onblur={handleTooltipBlur}
-              class="underline underline-offset-[25%] {isMobile
-                ? 'cursor-pointer'
-                : 'cursor-default'} focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded-xs"
-            >
-              feel energized.
-            </span>
+            {@render promiseLink(
+              "feel energized.",
+              "by finding clarity and focus in what you do.",
+            )}
           </h5>
         </div>
       {/if}
@@ -610,36 +390,42 @@
 
 <!-- Rest of the component remains the same... -->
 <div class="w-screen flex flex-col lg:flex-row relative bg-paper">
-  <AnimateIn
+  <div
+    use:anim
     class="w-full md:w-1/3 aspect-square relative flex items-center justify-center"
   >
-    <img
+    <Img
       class="w-full h-full absolute z-0 object-cover"
       src={beach}
       alt="beach"
+      loading="lazy"
     />
     <h3 class="text-white z-10">CA</h3>
-  </AnimateIn>
-  <AnimateIn
+  </div>
+  <div
+    use:anim
     class="w-full md:w-1/3 aspect-square relative flex items-center justify-center"
   >
-    <img
+    <Img
       class="w-full h-full absolute z-0 object-cover"
       src={hills}
       alt="hills"
+      loading="lazy"
     />
     <h3 class="text-white z-10">TX</h3>
-  </AnimateIn>
-  <AnimateIn
+  </div>
+  <div
+    use:anim
     class="w-full md:w-1/3 aspect-square relative flex items-center justify-center"
   >
-    <img
+    <Img
       class="w-full h-full absolute z-0 object-cover"
       src={lake}
       alt="lake"
+      loading="lazy"
     />
     <h3 class="text-white z-10">ID</h3>
-  </AnimateIn>
+  </div>
 </div>
 <div class="w-screen text-center py-20 bg-paper">
   <ContentWidth class="flex flex-col border-primary border-b-1 pb-8" animateIn>
@@ -648,7 +434,7 @@
     </h2>
   </ContentWidth>
   <ContentWidth class="flex flex-col items-end" animateIn>
-    <AnimateIn class="md:w-3/5">
+    <div use:anim class="md:w-3/5">
       <p class="text-left md:w-2/3 mt-8">
         We work with clients across the US and occasionally around the globe. We
         have designers sprinkled across California, Texas and Idaho,
@@ -656,12 +442,12 @@
         areas. Regardless of your location, partnering with Reddoor Creative
         will give you the confidence in your brand that you've been needing.
       </p>
-    </AnimateIn>
+    </div>
     <div
       class="md:w-3/5 flex flex-col items-center gap-6 md:gap-0 md:flex-row mt-16"
     >
-      <AnimateIn class="w-4/5 md:w-1/3 md:pr-4 flex flex-col">
-        <img
+      <div use:anim class="w-4/5 md:w-1/3 md:pr-4 flex flex-col">
+        <Img
           src={tim}
           alt="tim holmes"
           class="w-full aspect-square"
@@ -669,9 +455,9 @@
         />
         <div class="text-primary large-body font-thin mt-2">Tim Holmes</div>
         <p class="text-mid font-thin">CA+ID Creative Director</p>
-      </AnimateIn>
-      <AnimateIn class="w-4/5 md:w-1/3 md:pl-4 flex flex-col">
-        <img
+      </div>
+      <div use:anim class="w-4/5 md:w-1/3 md:pl-4 flex flex-col">
+        <Img
           src={erik}
           alt="Erik Svendsen"
           class="w-full aspect-square"
@@ -679,7 +465,7 @@
         />
         <p class="text-primary large-body mt-2 large-body">Erik Svendsen</p>
         <div class="font-thin">TX Creative Director</div>
-      </AnimateIn>
+      </div>
     </div>
   </ContentWidth>
 </div>
@@ -690,12 +476,12 @@
   </ContentWidth>
 
   <ContentWidth class="flex flex-col justify-end items-end">
-    <AnimateIn class="md:w-3/5">
+    <div use:anim class="md:w-3/5">
       <h5 class="md:w-2/3">
         Because of unforeseen circumstances owner, Tim Holmes, found himself
         stuck in LA with a white Toyota and a seemingly unfortunate red door.
       </h5>
-    </AnimateIn>
+    </div>
   </ContentWidth>
 
   <!-- Car in separate container outside ContentWidth -->
@@ -704,18 +490,19 @@
       class="will-change-transform"
       style="transform:translateX({carTranslationInVW}vw)"
     >
-      <img
+      <Img
         class="w-[150%] md:w-3/5"
         src={car}
         alt="a white car with a red door"
-        bind:this={carRef}
+        bind:ref={carRef}
+        loading="lazy"
       />
     </div>
   </div>
 
   <ContentWidth class="flex flex-col justify-end items-end">
     <div class="flex flex-col md:w-3/5 my-8 gap-8">
-      <AnimateIn class="md:w-2/3">
+      <div use:anim class="md:w-2/3">
         <p>
           The young designer soon realized that in city where "your wheels" are
           a part of your identity he had two choices: be embarrassed or embrace
@@ -724,37 +511,37 @@
           thought he'd start with the driver's side door and just work his way
           around replacing one piece at a time.
         </p>
-      </AnimateIn>
-      <AnimateIn class="md:w-2/3">
+      </div>
+      <div use:anim class="md:w-2/3">
         <p>
           The car soon became known as "reddoor" having its own personality
           because of the one thing that most people would see as unfortunate.
           With a proud owner it had no other reason than to be proud, too. What
           once was headed for the trash heap was now a gem of a story.
         </p>
-      </AnimateIn>
+      </div>
 
-      <AnimateIn class="md:w-2/3 border-t-1 border-t-primary pt-6">
+      <div use:anim class="md:w-2/3 border-t-1 border-t-primary pt-6">
         <h6 class="text-primary">
           The original "reddoor" taught us two things at Reddoor Creative:
         </h6>
-      </AnimateIn>
+      </div>
 
       <div class="w-full flex flex-col md:flex-row">
-        <AnimateIn class="flex flex-col w-2/3 md:w-1/3 pr-4">
+        <div use:anim class="flex flex-col w-2/3 md:w-1/3 pr-4">
           <p class="text-primary">01</p>
           <p class="mt-2">
             Find the unique quality within a business and tell that story in a
             compelling way.
           </p>
-        </AnimateIn>
-        <AnimateIn class="flex flex-col w-2/3 md:w-1/3 mt-6 md:mt-0 pr-4">
+        </div>
+        <div use:anim class="flex flex-col w-2/3 md:w-1/3 mt-6 md:mt-0 pr-4">
           <p class="text-primary">02</p>
           <p class="mt-2">
             Champion our clients and remember that we exist to serve them with
             our talents.
           </p>
-        </AnimateIn>
+        </div>
       </div>
     </div>
   </ContentWidth>
@@ -762,10 +549,10 @@
 
 <section class="w-screen py-16 bg-paper-red">
   <ContentWidth class="flex flex-col md:flex-row">
-    <AnimateIn class="md:w-2/5 mb-6">
+    <div use:anim class="md:w-2/5 mb-6">
       <h6 class="text-white">Perspective</h6>
-    </AnimateIn>
-    <AnimateIn class="md:w-3/5 text-white">
+    </div>
+    <div use:anim class="md:w-3/5 text-white">
       <h5 class=" md:w-2/3">
         "Time has taught me that true north is to not just focus on the work
         itself but also the people I'm working with."
@@ -777,7 +564,7 @@
           <p>CA+ID Creative Director</p>
         </div>
       </div>
-    </AnimateIn>
+    </div>
   </ContentWidth>
 </section>
 

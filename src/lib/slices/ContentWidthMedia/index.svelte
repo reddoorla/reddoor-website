@@ -3,7 +3,7 @@
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import type { ContentWidthImageSlice } from "../../../prismicio-types";
   import { isFilled } from "@prismicio/client";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
 
   let { slice }: { slice: ContentWidthImageSlice } = $props();
 
@@ -12,6 +12,10 @@
   // Track which videos have failed to load (rather than a pre-sized boolean array, which
   // would require reading slice.primary.images.length in a state initializer).
   const hiddenVideos = $state(new Set<number>());
+  const animationEnabled = $derived(
+    slice.primary.isAnimated === null || slice.primary.isAnimated === true,
+  );
+  const itemDelayMax = $derived(slice.primary.hasGap ? 400 : 0);
 </script>
 
 {#if !slice.primary.hide}
@@ -28,15 +32,15 @@
           ? ''
           : 'md:flex-row'}"
       >
-        <AnimateIn
-          isOff={slice.primary.isAnimated !== null && !slice.primary.isAnimated}
+        <div
+          use:anim={{ enabled: animationEnabled }}
           class="{slice.primary.isFullContentWidth
             ? 'w-full'
             : 'w-full md:w-1/5'} h-full overflow-hidden pr-6"
         >
           <h6 class="text-primary">{slice.primary.label || ""}</h6>
           <PrismicRichText field={slice.primary.body} />
-        </AnimateIn>
+        </div>
 
         <div
           class="{slice.primary.isFullContentWidth
@@ -45,10 +49,11 @@
         >
           {#each slice.primary.images as item, i (i)}
             {#if isFilled.link(item.link)}
-              <AnimateIn
-                isOff={slice.primary.isAnimated !== null &&
-                  !slice.primary.isAnimated}
-                transitionDelayMax={slice.primary.hasGap ? 400 : 0}
+              <div
+                use:anim={{
+                  enabled: animationEnabled,
+                  delayMax: itemDelayMax,
+                }}
                 class="{slice.primary.hasGap
                   ? 'pr-6 pb-6'
                   : ''} relative w-full flex flex-col items-center justify-start cursor-pointer {slice
@@ -109,11 +114,10 @@
                     />
                   {/if}
                 </a>
-              </AnimateIn>
+              </div>
             {:else}
-              <AnimateIn
-                isOff={slice.primary.isAnimated !== null &&
-                  !slice.primary.isAnimated}
+              <div
+                use:anim={{ enabled: animationEnabled }}
                 class="{slice.primary.hasGap
                   ? 'pr-6 pb-6'
                   : ''} relative w-full flex flex-col items-center justify-start
@@ -163,7 +167,7 @@
                     onerror={() => hiddenVideos.add(i)}
                   ></iframe>
                 {/if}
-              </AnimateIn>
+              </div>
             {/if}
           {/each}
         </div>

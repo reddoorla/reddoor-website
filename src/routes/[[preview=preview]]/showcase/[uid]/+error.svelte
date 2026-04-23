@@ -1,11 +1,12 @@
 <script lang="ts">
   import { page } from "$app/state";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import { flip } from "svelte/animate";
   import { expoOut } from "svelte/easing";
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
   import type { ProjectDocument } from "../../../../prismicio-types";
+  import { mediumString } from "$lib/utils/projectServices";
 
   let {
     data,
@@ -13,31 +14,6 @@
     $props();
 
   const projects = $derived(data.latestFourProjects.results);
-
-  function mediumString(project: ProjectDocument) {
-    const servicesArray = [
-      project.data.branding,
-      project.data.product,
-      project.data.print,
-      project.data.environmental,
-      project.data.packaging,
-      project.data.digital,
-    ];
-    return servicesArray.reduce<string>((acc, service, index) => {
-      if (service) {
-        if (acc) acc += ", ";
-        acc += [
-          "Brand",
-          "Product",
-          "Print",
-          "Environmental",
-          "Packaging",
-          "Digital",
-        ][index];
-      }
-      return acc;
-    }, "");
-  }
 </script>
 
 <svelte:head>
@@ -78,22 +54,21 @@
               style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
             ></div>
 
-            <AnimateIn
+            <div
+              use:anim={{ delayMax: 800 }}
               class="w-full flex flex-row justify-between p-6 z-10"
-              transitionDelayMax={800}
             >
               <div>
                 <p class="text-white uppercase">{project.data.title}</p>
                 <p class="text-light">{mediumString(project) || ""}</p>
               </div>
-              <a
-                href={"/portfolio/" + project.uid}
+              <span
                 class="brightness-200 hover:brightness-50 transition bump"
-                aria-label="Go to {project.data.title}"
+                aria-hidden="true"
               >
                 <img src={arrowButton} alt="" class="h-full" />
-              </a>
-            </AnimateIn>
+              </span>
+            </div>
           </a>
         </div>
       {/each}

@@ -159,8 +159,6 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     } else {
       relatedProjectTwo = mostRelatedProject;
     }
-
-    //console.log(relatedProjectOne, mostRelatedProjectScore)
   }
 
   return {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import type { ImageField } from "@prismicio/client";
   import { PrismicImage } from "@prismicio/svelte";
@@ -229,12 +229,12 @@
   class="w-screen py-48 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center relative"
 >
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-    <AnimateIn>
+    <div use:anim>
       <h3 class="text-white md:w-3/5">
         It's time to arm your brand with a clear story and compelling design
       </h3>
-    </AnimateIn>
-    <AnimateIn>
+    </div>
+    <div use:anim>
       <a href="/contact">
         <DefaultButton
           class="mt-6 text-white border-white border-1 hover:bg-mid/10"
@@ -242,7 +242,7 @@
           filled={false}
         />
       </a>
-    </AnimateIn>
+    </div>
   </ContentWidth>
 </section>
 

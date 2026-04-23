@@ -3,65 +3,15 @@
 
   import { components } from "$lib/slices";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
-  import type { ProjectDocument } from "../../../../prismicio-types.js";
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
+  import type { PageData } from "./$types";
+  import { mediumString } from "$lib/utils/projectServices";
 
-  let { data }: { data: any } = $props();
+  let { data }: { data: PageData } = $props();
 
-  const pageData = $derived(data.page.data);
-
-  const servicesArray = $derived([
-    pageData.branding,
-    pageData.product,
-    pageData.print,
-    pageData.environmental,
-    pageData.packaging,
-    pageData.digital,
-  ]);
-
-  const services = $derived(
-    servicesArray.reduce<string>((acc, service, index) => {
-      if (service) {
-        if (acc) acc += ", ";
-        acc += [
-          "Brand",
-          "Product",
-          "Print",
-          "Environmental",
-          "Packaging",
-          "Digital",
-        ][index];
-      }
-      return acc;
-    }, ""),
-  );
-
-  function mediumString(project: ProjectDocument<string>) {
-    const servicesArrayLocal = [
-      project.data.branding,
-      project.data.product,
-      project.data.print,
-      project.data.environmental,
-      project.data.packaging,
-      project.data.digital,
-    ];
-    return servicesArrayLocal.reduce<string>((acc, service, index) => {
-      if (service) {
-        if (acc) acc += ", ";
-        acc += [
-          "Brand",
-          "Product",
-          "Print",
-          "Environmental",
-          "Packaging",
-          "Digital",
-        ][index];
-      }
-      return acc;
-    }, "");
-  }
+  const services = $derived(mediumString(data.page));
 </script>
 
 <div class="w-screen h-[80vh] relative">
@@ -122,7 +72,7 @@
     <h3 class="text-white md:w-3/5">
       Isn’t it time to arm your brand with a clear story and compelling design?
     </h3>
-    <AnimateIn transitionDelayMax={1600}>
+    <div use:anim={{ delayMax: 1600 }}>
       <a href="/contact">
         <DefaultButton
           class="mt-6 text-white border-white border-1 hover:bg-mid/10"
@@ -130,7 +80,7 @@
           filled={false}
         />
       </a>
-    </AnimateIn>
+    </div>
   </ContentWidth>
 </div>
 

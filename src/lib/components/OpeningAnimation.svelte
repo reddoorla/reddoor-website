@@ -84,7 +84,7 @@
 
   $effect(() => {
     isTop.value = true;
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     const transitionTimer = setTimeout(() => (transitioning = false), 100);
     const rotateImageInterval = setInterval(changeBackgroundImage, 5000);

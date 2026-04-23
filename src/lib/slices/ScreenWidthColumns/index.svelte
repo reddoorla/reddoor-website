@@ -2,12 +2,15 @@
   import type { ScreenWidthColumnsSlice } from "../../../prismicio-types";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
 
   let { slice }: { slice: ScreenWidthColumnsSlice } = $props();
 
   const backgroundColorString = $derived("bg-" + slice.primary.background);
   const hiddenVideos = $state(new Set<number>());
+  const animationEnabled = $derived(
+    slice.primary.isAnimated === null || slice.primary.isAnimated === true,
+  );
 </script>
 
 {#if !slice.primary.hide}
@@ -21,8 +24,8 @@
   >
     {#each slice.primary.media as item, i (i)}
       {#if isFilled.link(item.link)}
-        <AnimateIn
-          isOff={slice.primary.isAnimated !== null && !slice.primary.isAnimated}
+        <div
+          use:anim={{ enabled: animationEnabled }}
           class="
             {slice.primary.hasGap ? 'mr-6 mb-6' : ''}
             {item.aspect === 'square'
@@ -79,10 +82,10 @@
               />
             {/if}
           </a>
-        </AnimateIn>
+        </div>
       {:else}
-        <AnimateIn
-          isOff={slice.primary.isAnimated !== null && !slice.primary.isAnimated}
+        <div
+          use:anim={{ enabled: animationEnabled }}
           class="{slice.primary.hasGap
             ? 'mr-6 mb-6'
             : ''} relative w-full flex flex-col items-center justify-start
@@ -136,7 +139,7 @@
               field={item.image}
             />
           {/if}
-        </AnimateIn>
+        </div>
       {/if}
     {/each}
   </section>

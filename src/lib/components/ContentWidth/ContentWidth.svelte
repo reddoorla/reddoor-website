@@ -1,5 +1,5 @@
 <script lang="ts">
-  import AnimateIn from "../AnimateIn.svelte";
+  import { animateIn as animateInAction } from "$lib/actions/animateIn";
   import type { Snippet } from "svelte";
 
   interface Props {
@@ -9,22 +9,20 @@
   }
 
   let { animateIn = false, class: className = "", children }: Props = $props();
+
+  const innerClass = $derived(
+    `max-w-[1220px] xl:max-w-[1440px] xl:mx-auto mx-[4%] w-[92%] ${
+      className || "flex flex-col items-center justify-center relative"
+    }`,
+  );
 </script>
 
 {#if animateIn}
-  <AnimateIn
-    ><div
-      class="max-w-[1220px] xl:max-w-[1440px] xl:mx-auto mx-[4%] w-[92%] {className ||
-        'flex flex-col items-center justify-center relative'}"
-    >
-      {@render children?.()}
-    </div></AnimateIn
-  >
+  <div use:animateInAction class={innerClass}>
+    {@render children?.()}
+  </div>
 {:else}
-  <div
-    class="max-w-[1220px] xl:max-w-[1440px] xl:mx-auto mx-[4%] w-[92%] {className ||
-      'flex flex-col items-center justify-center relative'}"
-  >
+  <div class={innerClass}>
     {@render children?.()}
   </div>
 {/if}

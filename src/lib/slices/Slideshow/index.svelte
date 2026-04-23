@@ -3,7 +3,7 @@
   import type { SlideshowSlice } from "../../../prismicio-types";
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
 
   let { slice }: { slice: SlideshowSlice } = $props();
 
@@ -102,8 +102,8 @@
 </script>
 
 {#if !slice.primary.hide}
-  <AnimateIn
-    isOff={!slice.primary.isAnimated}
+  <div
+    use:anim={{ enabled: !!slice.primary.isAnimated }}
     class="w-full py-12 {backgroundColorString}"
   >
     <ContentWidth>
@@ -214,5 +214,5 @@
         </div>
       </div>
     </ContentWidth>
-  </AnimateIn>
+  </div>
 {/if}

@@ -1,12 +1,10 @@
 import metaImage from "$lib/assets/images/20_4_20_key_art.jpg";
 import { createClient } from "$lib/prismicio.js";
 import { isFilled } from "@prismicio/client";
-import type {
-  ProjectDocument,
-  ProjectDocumentData,
-} from "../../../prismicio-types.js";
+import type { ProjectDocument } from "../../../prismicio-types.js";
 import type { ImageField } from "@prismicio/client";
 import type { PageServerLoad } from "./$types";
+import { mediumString } from "$lib/utils/projectServices";
 
 type ProjectCard = {
   number: number;
@@ -17,35 +15,6 @@ type ProjectCard = {
   mediums: string;
   href: string | null | undefined;
 };
-
-function mediumString(project: ProjectDocument<string> | undefined) {
-  if (!project) return "";
-
-  let acc = "";
-
-  let servicesArray = [
-    project.data.branding,
-    project.data.product,
-    project.data.print,
-    project.data.environmental,
-    project.data.packaging,
-    project.data.digital,
-  ];
-  return servicesArray.reduce((acc, service, index) => {
-    if (service) {
-      if (acc) acc += ", ";
-      acc += [
-        "Brand",
-        "Product",
-        "Print",
-        "Environmental",
-        "Packaging",
-        "Digital",
-      ][index];
-    }
-    return acc;
-  }, "");
-}
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
   const client = createClient({ fetch, cookies });

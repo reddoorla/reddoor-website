@@ -16,12 +16,6 @@ importers:
       svelte-gestures:
         specifier: ^5.2.2
         version: 5.2.2
-      svelte-inview:
-        specifier: ^4.0.4
-        version: 4.0.4(svelte@5.55.4(@typescript-eslint/types@8.59.0))
-      svelte-select:
-        specifier: ^5.8.3
-        version: 5.8.3
       svelte-turnstile:
         specifier: ^0.11.0
         version: 0.11.0(svelte@5.55.4(@typescript-eslint/types@8.59.0))
@@ -478,24 +472,6 @@ packages:
         integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==,
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
-
-  "@floating-ui/core@1.7.5":
-    resolution:
-      {
-        integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==,
-      }
-
-  "@floating-ui/dom@1.7.6":
-    resolution:
-      {
-        integrity: sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ==,
-      }
-
-  "@floating-ui/utils@0.2.11":
-    resolution:
-      {
-        integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==,
-      }
 
   "@hapi/hoek@9.3.0":
     resolution:
@@ -3946,30 +3922,10 @@ packages:
       svelte:
         optional: true
 
-  svelte-floating-ui@1.5.8:
-    resolution:
-      {
-        integrity: sha512-dVvJhZ2bT+kQDHlE4Lep8t+sgEc0XD96fXLzAi2DDI2bsaegBbClxXVNMma0C2WsG+n9GJSYx292dTvA8CYRtw==,
-      }
-
   svelte-gestures@5.2.2:
     resolution:
       {
         integrity: sha512-Y+chXPaSx8OsPoFppUwPk8PJzgrZ7xoDJKXeiEc7JBqyKKzXer9hlf8F9O34eFuAWB4/WQEvccACvyBplESL7A==,
-      }
-
-  svelte-inview@4.0.4:
-    resolution:
-      {
-        integrity: sha512-PlXNSHHijvQ6MhmSYUj6cMyS+39NttoTffk7W5WYF8T2tsyLgJnKhyuAF+/hSujbY0vpsmqXaMd2nolEKvR8Kw==,
-      }
-    peerDependencies:
-      svelte: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^5.0.0-next
-
-  svelte-select@5.8.3:
-    resolution:
-      {
-        integrity: sha512-nQsvflWmTCOZjssdrNptzfD1Ok45hHVMTL5IHay5DINk7dfu5Er+8KsVJnZMJdSircqtR0YlT4YkCFlxOUhVPA==,
       }
 
   svelte-turnstile@0.11.0:
@@ -4542,17 +4498,6 @@ snapshots:
     dependencies:
       "@eslint/core": 0.17.0
       levn: 0.4.1
-
-  "@floating-ui/core@1.7.5":
-    dependencies:
-      "@floating-ui/utils": 0.2.11
-
-  "@floating-ui/dom@1.7.6":
-    dependencies:
-      "@floating-ui/core": 1.7.5
-      "@floating-ui/utils": 0.2.11
-
-  "@floating-ui/utils@0.2.11": {}
 
   "@hapi/hoek@9.3.0": {}
 
@@ -6605,20 +6550,7 @@ snapshots:
     optionalDependencies:
       svelte: 5.55.4(@typescript-eslint/types@8.59.0)
 
-  svelte-floating-ui@1.5.8:
-    dependencies:
-      "@floating-ui/core": 1.7.5
-      "@floating-ui/dom": 1.7.6
-
   svelte-gestures@5.2.2: {}
-
-  svelte-inview@4.0.4(svelte@5.55.4(@typescript-eslint/types@8.59.0)):
-    dependencies:
-      svelte: 5.55.4(@typescript-eslint/types@8.59.0)
-
-  svelte-select@5.8.3:
-    dependencies:
-      svelte-floating-ui: 1.5.8
 
   svelte-turnstile@0.11.0(svelte@5.55.4(@typescript-eslint/types@8.59.0)):
     dependencies:

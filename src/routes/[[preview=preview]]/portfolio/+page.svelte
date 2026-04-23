@@ -1,27 +1,30 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import FourByThreeImage from "$lib/components/FullWidth/FourByThreeImage.svelte";
-  import ceoHeroDesktop from "$lib/assets/images/CEO_HERO_Badge_Lanyard 1.jpg";
-  import ceoHeroMobile from "$lib/assets/images/ceoHeroMobile.jpg";
+  import ceoHeroDesktop from "$lib/assets/images/CEO_HERO_Badge_Lanyard 1.jpg?as=run";
+  import ceoHeroMobile from "$lib/assets/images/ceoHeroMobile.jpg?as=run";
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
-  import bed from "$lib/assets/images/bed.jpg";
-  import catalogs from "$lib/assets/images/catalogs.jpg";
-  import longHollow from "$lib/assets/images/longHollow.png";
-  import hq from "$lib/assets/images/headquarters.png";
+  import bed from "$lib/assets/images/bed.jpg?as=run";
+  import catalogs from "$lib/assets/images/catalogs.jpg?as=run";
+  import longHollow from "$lib/assets/images/longHollow.png?as=run";
+  import hq from "$lib/assets/images/headquarters.png?as=run";
   import screamer from "$lib/assets/images/screamer.jpg";
-  import roadmap from "$lib/assets/images/roadmap.png";
-  import stJames from "$lib/assets/images/stJames.jpg";
-  import report from "$lib/assets/images/annualReport.png";
-  import dentist from "$lib/assets/images/1800dentist.png";
+  import roadmap from "$lib/assets/images/roadmap.png?as=run";
+  import stJames from "$lib/assets/images/stJames.jpg?as=run";
+  import report from "$lib/assets/images/annualReport.png?as=run";
+  import dentist from "$lib/assets/images/1800dentist.png?as=run";
+  import Img from "@zerodevx/svelte-img";
   import type { ProjectDocument } from "../../../prismicio-types.js";
   import { flip } from "svelte/animate";
   import { fade, scale, slide } from "svelte/transition";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { expoOut } from "svelte/easing";
+  import type { PageData } from "./$types";
+  import { mediumString } from "$lib/utils/projectServices";
 
-  let { data }: { data: any } = $props();
+  let { data }: { data: PageData } = $props();
 
   let projectsDiv: HTMLElement;
 
@@ -109,38 +112,13 @@
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
   });
-
-  function mediumString(project: ProjectDocument<string>) {
-    const servicesArray = [
-      project.data.branding,
-      project.data.product,
-      project.data.print,
-      project.data.environmental,
-      project.data.packaging,
-      project.data.digital,
-    ];
-    return servicesArray.reduce<string>((acc, service, index) => {
-      if (service) {
-        if (acc) acc += ", ";
-        acc += [
-          "Brand",
-          "Product",
-          "Print",
-          "Environmental",
-          "Packaging",
-          "Digital",
-        ][index];
-      }
-      return acc;
-    }, "");
-  }
 </script>
 
 <svelte:window
@@ -188,13 +166,14 @@
       ? 'h-screen min-w-full'
       : 'w-screen min-h-full'}"
   >
-    <img
+    <Img
       src={ceoHero}
       alt="ceo name tag"
       class="absolute h-full w-full max-w-screen object-cover object-left"
       style="object-position:{viewportWidth < 1440 && viewportWidth > 768
         ? viewportWidth - (viewportHeight * 16) / 9 + 240
         : 0}px center"
+      loading="eager"
     />
 
     <div class="w-full max-w-[100vw] h-full max-h-screen relative">
@@ -224,18 +203,18 @@
 <section class="my-24">
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col">
-      <AnimateIn>
-        <img
+      <div use:anim>
+        <Img
           class="w-full aspect-4/3"
           src={bed}
           alt="a beautiful bed"
           loading="lazy"
         />
-      </AnimateIn>
+      </div>
       <div class="w-full flex flex-col-reverse lg:flex-row">
-        <AnimateIn
-          transitionDelayMax={0}
-          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square"
+        <div
+          use:anim={{ delayMax: 0 }}
+          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
         >
           <h5 class="font-sm text-primary">
             A mission to create beautiful and affordable lighting for the home.
@@ -253,34 +232,34 @@
               <img src={arrowButton} alt="" class="h-full" />
             </a>
           </div>
-        </AnimateIn>
-        <AnimateIn
-          transitionDelayMax={0}
-          class="w-full lg:w-1/2  aspect-square overflow-hidden"
+        </div>
+        <div
+          use:anim={{ delayMax: 0 }}
+          class="w-full lg:w-1/2 aspect-square overflow-hidden"
         >
-          <img
+          <Img
             class="h-full w-auto top-0 left-0 object-cover object-left"
             src={catalogs}
             alt="catalogs"
             loading="lazy"
           />
-        </AnimateIn>
+        </div>
       </div>
     </div>
   </ContentWidth>
 </section>
 
-<ScreenWidthImage src={longHollow} alt="longhollow ranch" />
+<ScreenWidthImage img={longHollow} alt="longhollow ranch" />
 <section class="bg-paper pt-16 pb-60 -mb-56">
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%]">
-      <AnimateIn>
+      <div use:anim>
         <h4 class=" mb-20">
           An Authentic Texas Ranch <br /> Offering Resort-Quality Retreats.
         </h4>
-      </AnimateIn>
+      </div>
 
-      <AnimateIn class="w-full md:w-1/2 flex flex-row justify-between">
+      <div use:anim class="w-full md:w-1/2 flex flex-row justify-between">
         <div>
           <p class="text-primary">LONEHOLLOW RANCH</p>
           <p class="text-light">brand, digital, environmental, print</p>
@@ -292,20 +271,20 @@
         >
           <img src={arrowButton} alt="" class="h-full" />
         </a>
-      </AnimateIn>
+      </div>
     </div>
   </ContentWidth>
 </section>
 <ContentWidth animateIn>
   <div class="w-full md:w-4/5 md:ml-[20%]">
-    <FourByThreeImage src={hq} alt="rustic headquarters sign" />
+    <FourByThreeImage img={hq} alt="rustic headquarters sign" />
   </div>
 </ContentWidth>
 <ContentWidth>
   <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse md:flex-row">
-    <AnimateIn
-      transitionDelayMax={0}
-      class="flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square relative"
+    <div
+      use:anim={{ delayMax: 0 }}
+      class="flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square relative"
       style="background-image: url({screamer}); background-size: 180%; background-position:35% 0"
     >
       <div
@@ -326,28 +305,28 @@
           <img src={arrowButton} alt="" class="h-full" />
         </a>
       </div>
-    </AnimateIn>
-    <AnimateIn
-      transitionDelayMax={0}
-      class="w-full lg:w-1/2  aspect-square overflow-hidden"
+    </div>
+    <div
+      use:anim={{ delayMax: 0 }}
+      class="w-full lg:w-1/2 aspect-square overflow-hidden"
     >
-      <img
+      <Img
         class="h-full object-cover"
         src={roadmap}
         alt="roadmap mockup on iphone"
         loading="lazy"
       />
-    </AnimateIn>
+    </div>
   </div>
 </ContentWidth>
 <section class="mt-16">
-  <ScreenWidthImage src={stJames} alt="st james' stairwell" />
+  <ScreenWidthImage img={stJames} alt="st james' stairwell" />
   <ContentWidth>
     <div class="w-full mt-12 md:w-4/5 md:ml-[20%] flex flex-col">
       <div class="w-full flex flex-col-reverse lg:flex-row">
-        <AnimateIn
-          transitionDelayMax={0}
-          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2  aspect-square"
+        <div
+          use:anim={{ delayMax: 0 }}
+          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
         >
           <h5 class="font-sm text-primary">
             A diverse, joyful, and inclusive community of young learners.
@@ -365,18 +344,18 @@
               <img src={arrowButton} alt="" class="h-full" />
             </a>
           </div>
-        </AnimateIn>
-        <AnimateIn
-          transitionDelayMax={0}
-          class="w-full lg:w-1/2  aspect-square overflow-hidden"
+        </div>
+        <div
+          use:anim={{ delayMax: 0 }}
+          class="w-full lg:w-1/2 aspect-square overflow-hidden"
         >
-          <img
+          <Img
             class="h-full object-cover"
             src={report}
             alt="annual reports"
             loading="lazy"
           />
-        </AnimateIn>
+        </div>
       </div>
     </div>
   </ContentWidth>
@@ -384,19 +363,19 @@
 
 <ContentWidth animateIn>
   <div class="mt-24 w-full md:w-4/5 md:ml-[20%]">
-    <FourByThreeImage src={dentist} alt="a dentist" />
+    <FourByThreeImage img={dentist} alt="a dentist" />
   </div>
 </ContentWidth>
 <section class="bg-paper pb-16 pt-60 -mt-56">
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%]">
-      <AnimateIn>
+      <div use:anim>
         <h4 class=" mb-20">
           A dental referral service bridging the gap between patients and
           providers.
         </h4>
-      </AnimateIn>
-      <AnimateIn class="w-full md:w-1/2 flex flex-row justify-between">
+      </div>
+      <div use:anim class="w-full md:w-1/2 flex flex-row justify-between">
         <div>
           <p class="text-primary">1-800-DENTIST</p>
           <p class="text-light">digital</p>
@@ -408,7 +387,7 @@
         >
           <img src={arrowButton} alt="" class="h-full" />
         </a>
-      </AnimateIn>
+      </div>
     </div>
   </ContentWidth>
 </section>
@@ -417,13 +396,13 @@
     class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
   >
     <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-      <AnimateIn>
+      <div use:anim>
         <h3 class="text-white md:w-3/5">
           Isn't it time to arm your brand with a clear story and compelling
           design?
         </h3>
-      </AnimateIn>
-      <AnimateIn>
+      </div>
+      <div use:anim>
         <a href="/contact">
           <DefaultButton
             class="mt-6 text-white border-white border-1 hover:bg-mid/10"
@@ -431,20 +410,20 @@
             filled={false}
           />
         </a>
-      </AnimateIn>
+      </div>
     </ContentWidth>
   </div>
 </section>
 
 <div class="py-24 bg-paper" bind:this={projectsDiv} id="projectsDiv">
   <ContentWidth>
-    <AnimateIn class="w-full">
+    <div use:anim class="w-full">
       <div class="archive-title text-primary w-full text-left mb-12">
         But wait, there's more!
       </div>
-    </AnimateIn>
+    </div>
     <div class="flex flex-row justify-between w-full">
-      <AnimateIn class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
+      <div use:anim class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showBrand
             ? 'border-primary bg-primary  hover:text-light text-white'
@@ -476,8 +455,8 @@
             : 'border-light text-light hover:border-primary hover:text-primary'}"
           onclick={() => (showDigital = !showDigital)}>DIGITAL</button
         >
-      </AnimateIn>
-      <AnimateIn class="relative z-10">
+      </div>
+      <div use:anim class="relative z-10">
         <div class="w-48 h-12 bg-paper absolute z-20"></div>
         {#if isOrderSelectOpen}
           <button
@@ -533,7 +512,7 @@
             {/if}
           </div>
         </button>
-      </AnimateIn>
+      </div>
     </div>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
       {#each sortedProjects as project (project.uid)}
@@ -564,9 +543,9 @@
               style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
             ></div>
 
-            <AnimateIn
+            <div
+              use:anim={{ delayMax: 800 }}
               class="w-full flex flex-row justify-between p-6 z-10"
-              transitionDelayMax={800}
             >
               <div>
                 <p class="text-white uppercase">{project.data.title}</p>
@@ -578,7 +557,7 @@
               >
                 <img src={arrowButton} alt="" class="h-full" />
               </span>
-            </AnimateIn>
+            </div>
           </a>
         </div>
       {/each}
@@ -591,12 +570,12 @@
   class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
 >
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-    <AnimateIn>
+    <div use:anim>
       <h3 class="text-white md:w-3/5">
         It's time to arm your brand with a clear story and compelling design
       </h3>
-    </AnimateIn>
-    <AnimateIn>
+    </div>
+    <div use:anim>
       <a href="/contact">
         <DefaultButton
           class="mt-6 text-white border-white border-1 hover:bg-mid/10"
@@ -604,7 +583,7 @@
           filled={false}
         />
       </a>
-    </AnimateIn>
+    </div>
   </ContentWidth>
 </div>
 
