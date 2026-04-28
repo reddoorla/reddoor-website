@@ -1,98 +1,87 @@
 <script lang="ts">
   import { PrismicImage, PrismicLink } from "@prismicio/svelte";
-  import type { LogoSoupDocumentData, LogoSoupDocumentDataBrandsItem } from "../../prismicio-types";
-  import ContentBox from "./FullWidth/ContentBox.svelte";
+  import type {
+    LogoSoupDocumentData,
+    LogoSoupDocumentDataBrandsItem,
+  } from "../../prismicio-types";
   import ContentWidth from "./ContentWidth/ContentWidth.svelte";
   import { fade } from "svelte/transition";
-  import AnimateIn from "./AnimateIn.svelte";
-  import { onMount } from "svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
 
-  export let data;
+  interface Props {
+    data: { logoSoup: { data: LogoSoupDocumentData } };
+  }
 
-  const logoSoupData:LogoSoupDocumentData = data.logoSoup.data
+  let { data }: Props = $props();
 
-  const allBrands = logoSoupData.brands;
+  const logoSoupData = $derived<LogoSoupDocumentData>(data.logoSoup.data);
+  const allBrands = $derived(logoSoupData.brands);
+  const featuredBrands = $derived(
+    allBrands.filter(
+      (brand: LogoSoupDocumentDataBrandsItem) => brand.isFeatured,
+    ),
+  );
 
-
-  let featuredBrands: LogoSoupDocumentDataBrandsItem[] = [];
-
-  allBrands.forEach((brand:any) => {if(brand.isFeatured)featuredBrands.push(brand)});
-
-  let brands: LogoSoupDocumentDataBrandsItem[] = allBrands;
-
-
-
-
-
-  let showImage = false;
-  let brandIndex = -1;
-  let isMobile = false;
-  let scrollY = 0;
-  let viewportHeight: number;
-  let viewportWidth: number;
-  let mobileScrollActive = false;
+  let showImage = $state(false);
+  let brandIndex = $state(-1);
+  let scrollY = $state(0);
+  let viewportHeight = $state(0);
+  let viewportWidth = $state(0);
+  let mobileScrollActive = $state(false);
   let section: HTMLElement;
 
-  // Function to handle scrolling on mobile
+  const isMobile = $derived(viewportWidth > 0 && viewportWidth < 768);
+  const brands = $derived<LogoSoupDocumentDataBrandsItem[]>(
+    isMobile ? featuredBrands : allBrands,
+  );
+
   function handleScroll() {
-    if (isMobile) {
-        const sectionTop = section.getBoundingClientRect().top;
-        const sectionHeight = section.offsetHeight;
-        
-      let scrollProgress = 0;
-      if(sectionTop < 0) 
-        scrollProgress = (Math.abs(sectionTop)+viewportHeight)/sectionHeight;
+    if (!isMobile || !section) return;
+    const sectionTop = section.getBoundingClientRect().top;
+    const sectionHeight = section.offsetHeight;
 
-        if (scrollProgress > 1) scrollProgress = 1;
+    let scrollProgress = 0;
+    if (sectionTop < 0)
+      scrollProgress = (Math.abs(sectionTop) + viewportHeight) / sectionHeight;
 
-      console.log(sectionTop, sectionHeight, scrollY, viewportHeight, scrollProgress);
+    if (scrollProgress > 1) scrollProgress = 1;
 
-      let newIndex = Math.floor(scrollProgress * (brands.length + 2))-2;
-        if (newIndex < 0) newIndex = 0;
-        if (newIndex > brands.length - 1) newIndex = brands.length - 1;
-        
-      if (newIndex > brands.length - 1) {
-        mobileScrollActive = false;
-        showImage = false;
-      } else {
-        mobileScrollActive = true;
-      }
+    let newIndex = Math.floor(scrollProgress * (brands.length + 2)) - 2;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex > brands.length - 1) newIndex = brands.length - 1;
 
-      if (newIndex !== brandIndex) {
-        brandIndex = newIndex;
-        showImage = true;
-        mobileScrollActive = true;
-      }
+    if (newIndex > brands.length - 1) {
+      mobileScrollActive = false;
+      showImage = false;
+    } else {
+      mobileScrollActive = true;
+    }
+
+    if (newIndex !== brandIndex) {
+      brandIndex = newIndex;
+      showImage = true;
+      mobileScrollActive = true;
     }
   }
 
-    // Function to navigate to a specific brand
-function navigateToBrand(index: number) {
-  if (isMobile) {
-    // Calculate and scroll to the position for the selected brand
-    const targetScrollPosition = calculateScrollPositionForBrand(index);
-    window.scrollTo({
-      top: targetScrollPosition,
-    });
+  function navigateToBrand(index: number) {
+    if (isMobile) {
+      const targetScrollPosition = calculateScrollPositionForBrand(index);
+      window.scrollTo({ top: targetScrollPosition });
+    }
   }
-}
 
-function calculateScrollPositionForBrand(index: number) {
-  if (!isMobile || !section) return 0;
-  
-  const sectionHeight = section.offsetHeight;
-  const sectionTop = section.getBoundingClientRect().top;
-  const currentAbsolutePosition = window.scrollY + sectionTop;
+  function calculateScrollPositionForBrand(index: number) {
+    if (!isMobile || !section) return 0;
 
-  const targetProgress = (index + 2) / (brands.length + 2);
-  const targetScrollPosition = currentAbsolutePosition + (targetProgress * sectionHeight) - viewportHeight;
-  
-  return targetScrollPosition;
-}
+    const sectionHeight = section.offsetHeight;
+    const sectionTop = section.getBoundingClientRect().top;
+    const currentAbsolutePosition = window.scrollY + sectionTop;
 
-  // Watch for resize to detect mobile
-  function checkMobile() {
-    isMobile = viewportWidth < 768; // Standard mobile breakpoint
+    const targetProgress = (index + 2) / (brands.length + 2);
+    return (
+      currentAbsolutePosition + targetProgress * sectionHeight - viewportHeight
+    );
   }
 
   const nextBrand = () => {
@@ -103,78 +92,76 @@ function calculateScrollPositionForBrand(index: number) {
     brandIndex = (brandIndex - 1 + brands.length) % brands.length;
   };
 
-  // Set up scroll listener
-  onMount(() => {
-    checkMobile();
-
-    // Clean up on component destruction
-    return () => {};
+  $effect(() => {
+    // track scrollY so this re-runs on scroll
+    scrollY;
+    if (isMobile) handleScroll();
   });
-
-  $: if (viewportWidth) checkMobile();
-  $: if (scrollY !== undefined && isMobile) handleScroll();
-  $:{ 
-    isMobile;
-    if(isMobile) {
-      brands=featuredBrands;
-    }else{
-      brands=allBrands;
-  }}
 </script>
 
 <svelte:window
   bind:innerHeight={viewportHeight}
   bind:innerWidth={viewportWidth}
-  bind:scrollY={scrollY}
+  bind:scrollY
 />
 
 <section bind:this={section}>
-
   {#if !isMobile}
-    <section
-      class="h-lvh w-screen relative overflow-hidden"
-    >
+    <section class="h-lvh w-screen relative overflow-hidden">
       <div
         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 aspect-video transition-opacity duration-500
-    {showImage && brandIndex > -1 ? '' : 'opacity-0'}  
+    {showImage && brandIndex > -1 ? '' : 'opacity-0'}
     {viewportHeight * 16 > viewportWidth * 9
           ? 'h-lvh min-w-full'
           : 'w-screen min-h-full'}"
       >
-        {#each brands as brand, i}
+        {#each brands as brand, i (brand.name || i)}
           <PrismicImage
-            field={isMobile && brand.active_background_mobile_crop ? brand.active_background_mobile_crop : brand.active_background}
-            class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow 
+            field={isMobile && brand.active_background_mobile_crop
+              ? brand.active_background_mobile_crop
+              : brand.active_background}
+            class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
         {showImage && brandIndex === i ? '' : 'opacity-0'}"
           />
         {/each}
       </div>
       <ContentWidth class="h-full py-32 flex flex-row justify-end relative">
-        <AnimateIn class="absolute left-0 top-40">
+        <div use:anim class="absolute left-0 top-40">
           <h6
-            class="transition duration-300 ease-fast-slow {showImage && brandIndex > -1
+            class="transition duration-300 ease-fast-slow {showImage &&
+            brandIndex > -1
               ? 'text-white'
               : 'text-red'}"
           >
             Join these brands <br /> in fighting mediocrity.
           </h6>
-        </AnimateIn>
+        </div>
 
         <div
           class="w-3/5 h-full flex flex-row justify-between items-center flex-wrap gap-12"
         >
-          {#each brands as brand, i}
-            <AnimateIn class="w-1/4 relative">
-              <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <div
-                on:mouseenter={() => {
+          {#each brands as brand, i (brand.name || i)}
+            <div use:anim class="w-1/4 relative">
+              <button
+                type="button"
+                class="block w-full text-left bg-transparent border-0 p-0 cursor-pointer"
+                onmouseenter={() => {
                   showImage = true;
                   brandIndex = i;
                 }}
-                on:mouseleave={() => {
+                onmouseleave={() => {
                   showImage = false;
                   brandIndex = -1;
                 }}
+                onfocus={() => {
+                  showImage = true;
+                  brandIndex = i;
+                }}
+                onblur={() => {
+                  showImage = false;
+                  brandIndex = -1;
+                }}
+                aria-label="Preview {brand.name}"
               >
                 <PrismicLink field={brand.project_link}>
                   <PrismicImage
@@ -187,23 +174,23 @@ function calculateScrollPositionForBrand(index: number) {
                   />
                   <PrismicImage
                     field={brand.logo_color}
-                    class="h-full transition-opacity duration-300 ease-fast-slow {showImage && brandIndex > -1
+                    class="h-full transition-opacity duration-300 ease-fast-slow {showImage &&
+                    brandIndex > -1
                       ? 'opacity-0'
                       : ''}"
                     loading="eager"
                   />
                 </PrismicLink>
-              </div>
-            </AnimateIn>
+              </button>
+            </div>
           {/each}
         </div>
 
-        <AnimateIn class="absolute bottom-[20%] left-0 w-64">
-          <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div use:anim class="absolute bottom-[20%] left-0 w-64">
           <div
             class="pt-10"
-            
-            on:mouseleave={() => {
+            role="presentation"
+            onmouseleave={() => {
               showImage = false;
             }}
           >
@@ -214,7 +201,9 @@ function calculateScrollPositionForBrand(index: number) {
                     class="underline underline-offset-4 text-white transition duration-300 ease-fast-slow"
                     in:fade
                   >
-                    {showImage && brandIndex > -1 ? brands[brandIndex].name : ""}
+                    {showImage && brandIndex > -1
+                      ? brands[brandIndex].name
+                      : ""}
                   </p>
                 </PrismicLink>
                 <p
@@ -223,7 +212,9 @@ function calculateScrollPositionForBrand(index: number) {
                     : 'text-red'} transition duration-300 ease-fast-slow"
                   in:fade
                 >
-                  {showImage && brandIndex > -1 ? brands[brandIndex].services : "Browse Our Work"}
+                  {showImage && brandIndex > -1
+                    ? brands[brandIndex].services
+                    : "Browse Our Work"}
                 </p>
               {:else}
                 <p class="text-red transition duration-300 ease-fast-slow">
@@ -231,52 +222,58 @@ function calculateScrollPositionForBrand(index: number) {
                 </p>
               {/if}
             {/key}
-            <div class="mt-8 gap-8 flex flex-row w-fit" on:mouseenter={() => {
-              showImage = true;
-            }}> 
+            <div
+              class="mt-8 gap-8 flex flex-row w-fit"
+              role="presentation"
+              onmouseenter={() => {
+                showImage = true;
+              }}
+            >
               <button
-                on:click={prevBrand}
+                onclick={prevBrand}
+                aria-label="Previous brand"
                 class="{showImage && brandIndex > -1
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
               >
-                <i class="fa-sharp fa-regular fa-arrow-left fa-2xl" />
+                <i class="fa-sharp fa-regular fa-arrow-left fa-2xl"></i>
               </button>
               <button
-                on:click={nextBrand}
+                onclick={nextBrand}
+                aria-label="Next brand"
                 class="{showImage && brandIndex > -1
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
               >
-                <i class="fa-sharp fa-regular fa-arrow-right fa-2xl" />
+                <i class="fa-sharp fa-regular fa-arrow-right fa-2xl"></i>
               </button>
             </div>
           </div>
-        </AnimateIn>
+        </div>
       </ContentWidth>
     </section>
   {:else}
     <!-- Mobile Version -->
-    <section
-      class="h-lvh w-screen sticky top-0 overflow-hidden"
-    >
+    <section class="h-lvh w-screen sticky top-0 overflow-hidden">
       <div
         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 aspect-video transition-opacity duration-500
-        {mobileScrollActive ? '' : 'opacity-0'}  
+        {mobileScrollActive ? '' : 'opacity-0'}
         {viewportHeight * 16 > viewportWidth * 9
           ? 'h-lvh min-w-full'
           : 'w-screen min-h-full'}"
       >
-        {#each brands as brand, i}
+        {#each brands as brand, i (brand.name || i)}
           <PrismicImage
             field={brand.active_background}
-            class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow 
+            class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
             {mobileScrollActive && brandIndex === i ? '' : 'opacity-0'}"
           />
         {/each}
       </div>
 
-      <div class="absolute bottom-0 left-0 w-screen h-lvh bg-black opacity-25"></div>
+      <div
+        class="absolute bottom-0 left-0 w-screen h-lvh bg-black opacity-25"
+      ></div>
       <div
         class="h-lvh w-screen flex flex-col items-center justify-evenly absolute top-0 left-0"
       >
@@ -289,8 +286,10 @@ function calculateScrollPositionForBrand(index: number) {
         </h6>
 
         <!-- Mobile logo display -->
-        <div class="relative h-24 w-full flex justify-center items-center mb-16">
-          {#each brands as brand, i}
+        <div
+          class="relative h-24 w-full flex justify-center items-center mb-16"
+        >
+          {#each brands as brand, i (brand.name || i)}
             <div
               class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             >
@@ -339,18 +338,26 @@ function calculateScrollPositionForBrand(index: number) {
         </div>
 
         <!-- Progress indicator -->
-        <div class="absolute bottom-1/2 translate-y-1/2 left-6 flex justify-center">
+        <div
+          class="absolute bottom-1/2 translate-y-1/2 left-6 flex justify-center"
+        >
           <div class="flex flex-col gap-2">
-            {#each brands as _, i}
-              <button on:click={()=>navigateToBrand(i+1)} class="w-1.5 h-1.5 rounded-full transition-all duration-300 z-20 
-                {i === brandIndex ? 'bg-white scale-125' : 'bg-white/50 scale-100'}">
+            {#each brands as brand, i (brand.name || i)}
+              <button
+                onclick={() => navigateToBrand(i + 1)}
+                aria-label="Jump to {brand.name}"
+                class="w-1.5 h-1.5 rounded-full transition-all duration-300 z-20
+                {i === brandIndex
+                  ? 'bg-white scale-125'
+                  : 'bg-white/50 scale-100'}"
+              >
               </button>
             {/each}
           </div>
         </div>
       </div>
     </section>
-    
+
     <!-- Spacer section to control scroll length -->
     <div class="h-[500vh]"></div>
   {/if}

@@ -1,9 +1,9 @@
-<script lang='ts'>
-    export let height = "60px";
-    export let color = "transparent";
-
-    if(color==="dark")
-        color="#424B5A;"
+<script lang="ts">
+  let {
+    height = "60px",
+    color = "transparent",
+  }: { height?: string; color?: string } = $props();
+  const bgColor = $derived(color === "dark" ? "#424B5A;" : color);
 </script>
 
-<div style="height:{height}; background-color:{color}"></div>
+<div style="height:{height}; background-color:{bgColor}"></div>

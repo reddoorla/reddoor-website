@@ -17,13 +17,7 @@
           "config": {
             "label": "background",
             "placeholder": "",
-            "options": [
-              "white",
-              "gray",
-              "red",
-              "paper",
-              "paper-red"
-            ],
+            "options": ["white", "gray", "red", "paper", "paper-red"],
             "default_value": "white"
           }
         },
@@ -32,11 +26,7 @@
           "config": {
             "label": "desktopColumns",
             "placeholder": "",
-            "options": [
-              "1",
-              "2",
-              "3"
-            ],
+            "options": ["1", "2", "3"],
             "default_value": "1"
           }
         },
@@ -117,14 +107,7 @@
                 "config": {
                   "label": "aspect",
                   "placeholder": "",
-                  "options": [
-                    "free",
-                    "square",
-                    "4/3",
-                    "3/4",
-                    "16/9",
-                    "9/16"
-                  ],
+                  "options": ["free", "square", "4/3", "3/4", "16/9", "9/16"],
                   "default_value": "free"
                 }
               }

@@ -22,17 +22,17 @@ This library will grow as we require new interactive functions or layouts, and a
 
 ## How to Use
 
-1) clone this repo
+1. clone this repo
 
-2) initiate new prismic repo and connect to this
+2. initiate new prismic repo and connect to this
 
-3) launch site on netlify
+3. launch site on netlify
 
-4) set up prismic previews with netlify site
+4. set up prismic previews with netlify site
 
-5) wireframe site using slices of default components
+5. wireframe site using slices of default components
 
-6) after receiving design, convert wireframed components into designed components
+6. after receiving design, convert wireframed components into designed components
 
 //TODO: mirror prismic docs
 

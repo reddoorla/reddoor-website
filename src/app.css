@@ -1,318 +1,287 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-html{
-    scroll-behavior: smooth;
-}
-body{
-    font-family: "pragmatica", "helvetica", sans-serif;
-    transition-property: all;
-    transition-timing-function: cubic-bezier(.5,0,0,1);
-    transition-duration: 500ms;
-    max-width: 100vw;
-    overflow-x: clip;
-    scrollbar-width: none !important;
-    overflow-y: auto;
-    color: #6D6E71;
-    background-color: white;
-    scroll-behavior: smooth;
+@import "tailwindcss";
+
+@config '../tailwind.config.js';
+
+:root {
+  --transition-fast-slow: cubic-bezier(0.5, 0, 0, 1);
 }
 
-body::-webkit-scrollbar { 
-    display: none !important;  /* Safari and Chrome */
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+body {
+  font-family: "pragmatica", "helvetica", sans-serif;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.5, 0, 0, 1);
+  transition-duration: 500ms;
+  max-width: 100vw;
+  overflow-x: clip;
+  scrollbar-width: none !important;
+  overflow-y: auto;
+  color: #6d6e71;
+  background-color: white;
+  scroll-behavior: smooth;
 }
 
 body::-webkit-scrollbar {
-    width: 0 !important;  /* Remove scrollbar space */  /* Optional: just make scrollbar invisible */
+  display: none !important; /* Safari and Chrome */
 }
 
-.bg-paper{
-    background-image: url('/waterColorBg.jpg');
-    background-size: 300px;
-    background-position: center;
+body::-webkit-scrollbar {
+  width: 0 !important; /* Remove scrollbar space */ /* Optional: just make scrollbar invisible */
 }
 
-.bg-paper-red{
-    background-image: url('/waterColorBgRed.jpg');
-    background-size: 300px;
-    background-position: center;
-
+.bg-paper {
+  background-image: url("/waterColorBg.jpg");
+  background-size: 300px;
+  background-position: center;
 }
 
-.bump, .negative-bump{
-    transition: transform 150ms ease-out, color 300ms ease-out, background-color 300ms ease-out, filter 300ms ease-out;
+.bg-paper-red {
+  background-image: url("/waterColorBgRed.jpg");
+  background-size: 300px;
+  background-position: center;
 }
 
-.bump:active{
-    transform: translateY(-5px);
+.bump,
+.negative-bump {
+  transition:
+    transform 150ms ease-out,
+    color 300ms ease-out,
+    background-color 300ms ease-out,
+    filter 300ms ease-out;
 }
 
-
-.bump:active{
-    transform: translateY(5px);
+.bump:active {
+  transform: translateY(-5px);
 }
 
-a{
-    transition: color 600ms;
-    cursor: pointer;
+.bump:active {
+  transform: translateY(5px);
 }
 
-
-
-button{
-    transition: background-color 600ms;
-    cursor: pointer;
+a {
+  transition: color 600ms;
+  cursor: pointer;
 }
 
-h1{
-
-font-size: 80px;
-font-style: normal;
-font-weight: 200;
-line-height: normal;
+button {
+  transition: background-color 600ms;
+  cursor: pointer;
 }
 
-h2{
-    font-family: 'Besley', serif;
-font-size: 60px;
-font-style: normal;
-font-weight: 300;
-line-height: 125%; 
+h1 {
+  font-size: 80px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: normal;
 }
 
-h3{
+h2 {
+  font-family: "Besley", serif;
+  font-size: 60px;
+  font-style: normal;
+  font-weight: 300;
+  line-height: 125%;
+}
+
+h3 {
+  font-size: 80px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: 90px;
+}
+
+h4 {
+  font-size: 50px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: 66px;
+}
+
+h5 {
+  font-size: 30px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: 46px;
+}
+
+h6 {
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 30px;
+}
+
+p,
+.rich-text em,
+.rich-text i {
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: 30px;
+}
+
+.large-body,
+.rich-text p {
+  font-size: 23px;
+  font-style: normal;
+  font-weight: 200;
+  line-height: 35px;
+}
+
+.nav-link {
+  font-size: 16px;
+  font-weight: 300;
+}
+
+button {
+  cursor: pointer;
+}
+
+.label {
+  font-size: 14px;
+  line-height: 25px;
+  font-weight: 200;
+}
+
+@media only screen and (max-width: 1600px) {
+  h1 {
+    font-size: 70px;
+    line-height: 80px;
+  }
+}
+
+@media only screen and (max-width: 1340px) {
+  h1 {
+    font-size: 54px;
+    line-height: 64px;
+  }
+}
+
+@media only screen and (max-width: 1024px) {
+  h1 {
     font-size: 80px;
-    font-style: normal;
-    font-weight: 200;
-    line-height: 90px; 
+    line-height: 90px;
+  }
+
+  h2 {
+    font-size: 35px;
+    line-height: 45px;
+  }
+
+  h3 {
+    font-size: 60px;
+    line-height: 70px;
+  }
+
+  h4 {
+    font-size: 45px;
+    line-height: 60px;
+  }
+  h5 {
+    font-size: 22px;
+    line-height: 32px;
+  }
 }
 
-h4{
-    font-size: 50px;
-    font-style: normal;
-    font-weight: 200;
-    line-height: 66px; 
-}
+@media only screen and (max-width: 768px) {
+  h1 {
+    font-size: 54px;
+    line-height: 64px; /* 121.212% */
+  }
 
-h5{
-   font-size: 30px;
-   font-style: normal;
-   font-weight: 200; 
-   line-height: 46px;
-}
+  h2 {
+    font-size: 27px;
+    line-height: 35px;
+  }
 
-h6{
-    font-size: 18px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: 30px; 
-}
-
-p, .rich-text em, .rich-text i{
-    font-size: 18px;
-    font-style: normal;
-    font-weight: 200;
-    line-height: 30px;
-}
-
-.large-body, .rich-text p{
-    font-size: 23px;
-    font-style: normal;
-    font-weight: 200;
-    line-height: 35px; 
-}
-
-.nav-link{
-    font-size: 16px;
-    font-weight: 300;
-}
-
-button{
-    cursor: pointer;
-}
-
-.label{
-font-size: 14px;
-line-height: 25px;
-font-weight: 200;
-}
-
-@media only screen and (max-width:1600px){
-    h1{
-        font-size: 70px;
-        line-height: 80px;
-    }
-}
-
-@media only screen and (max-width:1340px){
-    h1{
-        font-size: 54px;
-        line-height: 64px;
-    }
-}
-
-
-@media only screen and (max-width:1024px) {
-    h1{
-        font-size: 80px;
-        line-height: 90px;
-    }
-    
-    h2{
-        font-size: 35px;
-        line-height: 45px;
-    }
-    
-    h3{
-        font-size: 60px;
-        line-height: 70px;
-    }
-    
-    h4{
-        font-size: 45px;
-        line-height: 60px;
-    }
-    h5{
-        font-size:22px;
-        line-height:32px;
-    }
-    
-    
-
-
-}
-
-@media only screen and (max-width:768px) {
-    h1{
-        font-size: 54px;
-        line-height: 64px; /* 121.212% */
-    }
-    
-    h2{
-        font-size: 27px;
-        line-height: 35px;
-    }
-    
-    
-    h4{
-        font-size: 40px;
-        line-height: 50px;
-    }
-
+  h4 {
+    font-size: 40px;
+    line-height: 50px;
+  }
 }
 
 @media only screen and (max-width: 560px) {
-    h1{
-        font-size:44px;
-        line-height: 54px;
-    }
+  h1 {
+    font-size: 44px;
+    line-height: 54px;
+  }
 }
-
 
 @media only screen and (max-width: 480px) {
-    h1{
-        font-size:36px;
-        line-height:44px;
-    }
+  h1 {
+    font-size: 36px;
+    line-height: 44px;
+  }
 
-    h3{
-        font-size: 36px;
-        line-height: 48px;
-    }
+  h3 {
+    font-size: 36px;
+    line-height: 48px;
+  }
 }
 
-/* svelte-select stylings*/
-.indicators{
-    display: none !important;
-    opacity: 0 !important;
+::placeholder {
+  color: #6d6e7140 !important;
 }
 
-.svelte-select{
-    border-radius: 3px !important;
-    border: 1px solid #C2D1D9 !important;
-    cursor: pointer !important;
+input[type="textarea"]::placeholder {
+  margin-top: 0;
 }
 
-.svelte-select-list{
-    cursor: pointer !important;
+.rich-text a {
+  color: #d71920;
+  transition: color 400ms;
 }
 
-.svelte-select input{
-    cursor: pointer !important;
+.rich-text p,
+.rich-text h1,
+.rich-text h2,
+.rich-text h3,
+.rich-text h4,
+.rich-text h5,
+.rich-text h6 {
+  padding-bottom: 36px;
 }
 
-::placeholder{
-    color: #6D6E7140 !important;
-    
-}
-
-input[type='textarea']::placeholder{
-    margin-top:0;
-}
-
-.multi-item-clear{
-    cursor: pointer !important;
-    transform: translateY(-0.5px);
-    color: #424B5A !important;
-    margin-left: 1em !important;
-    filter: invert(25%) sepia(15%) saturate(703%) hue-rotate(178deg) brightness(99%) contrast(85%);
-    transition: all 300ms cubic-bezier(.5,0,0,1);
-}
-
-.multi-item-clear:hover{
-    opacity: .4;
-}
-
-
-
-
-.multi-item{
-    margin-right: 3em !important;
-    background-color: transparent !important;
-    outline-color:#C2D1D9 !important;
-}
-
-.multi-item-text, .svelte-select-list{
-    transform: translateY(1px);
-    color: #424B5A !important;
-    font-size: 14px !important;
-    font-style: normal;
-    font-weight: 700 !important;
-    /* 142.857% */
-}
-
-.rich-text a{
-    
-    color: #D71920;
-    transition: color 400ms;
-}
-
-.rich-text p, .rich-text h1, .rich-text h2, .rich-text h3, .rich-text h4, .rich-text h5, .rich-text h6{
-    padding-bottom: 36px;
-}
-
-.rich-text a:hover{
-    
-    color: #aa1419;
+.rich-text a:hover {
+  color: #aa1419;
 }
 
 @keyframes pos-y-wiggle {
-    0% {
-        transform: translateY(1px);
-    }
-    50% {
-        transform: translateY(-1px);
-    }
-    100% {
-        transform: translateY(1px);
-    }
+  0% {
+    transform: translateY(1px);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+  100% {
+    transform: translateY(1px);
+  }
 }
 .bob-on-hover:hover {
-    animation-name: pos-y-wiggle;
-    animation-play-state: running;
+  animation-name: pos-y-wiggle;
+  animation-play-state: running;
 }
 
-.bob-always{
-
-    animation: 1s infinite forwards pos-y-wiggle ease-out;
+.bob-always {
+  animation: 1s infinite forwards pos-y-wiggle ease-out;
 }

@@ -50,13 +50,7 @@
           "config": {
             "label": "backgroundColor",
             "placeholder": "",
-            "options": [
-              "white",
-              "gray",
-              "red",
-              "paper",
-              "paper-red"
-            ],
+            "options": ["white", "gray", "red", "paper", "paper-red"],
             "default_value": "white"
           }
         },

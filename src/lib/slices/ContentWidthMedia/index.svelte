@@ -3,16 +3,19 @@
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import type { ContentWidthImageSlice } from "../../../prismicio-types";
   import { isFilled } from "@prismicio/client";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
 
-  export let slice: ContentWidthImageSlice;
+  let { slice }: { slice: ContentWidthImageSlice } = $props();
 
-  let backgroundColorString = "bg-" + slice.primary.background;
+  const backgroundColorString = $derived("bg-" + slice.primary.background);
 
-  let showVideos = new Array<boolean>(slice.primary.images.length).fill(true);
-  let frames = new Array<HTMLIFrameElement | undefined>(
-    slice.primary.images.length
+  // Track which videos have failed to load (rather than a pre-sized boolean array, which
+  // would require reading slice.primary.images.length in a state initializer).
+  const hiddenVideos = $state(new Set<number>());
+  const animationEnabled = $derived(
+    slice.primary.isAnimated === null || slice.primary.isAnimated === true,
   );
+  const itemDelayMax = $derived(slice.primary.hasGap ? 400 : 0);
 </script>
 
 {#if !slice.primary.hide}
@@ -29,27 +32,28 @@
           ? ''
           : 'md:flex-row'}"
       >
-        <AnimateIn
-          isOff={slice.primary.isAnimated !== null && !slice.primary.isAnimated}
+        <div
+          use:anim={{ enabled: animationEnabled }}
           class="{slice.primary.isFullContentWidth
             ? 'w-full'
             : 'w-full md:w-1/5'} h-full overflow-hidden pr-6"
         >
           <h6 class="text-primary">{slice.primary.label || ""}</h6>
           <PrismicRichText field={slice.primary.body} />
-        </AnimateIn>
+        </div>
 
         <div
           class="{slice.primary.isFullContentWidth
             ? 'w-full'
             : 'w-full md:w-4/5'} flex flex-row justify-center flex-wrap"
         >
-          {#each slice.primary.images as item, i}
+          {#each slice.primary.images as item, i (i)}
             {#if isFilled.link(item.link)}
-              <AnimateIn
-                isOff={slice.primary.isAnimated !== null &&
-                  !slice.primary.isAnimated}
-                transitionDelayMax={slice.primary.hasGap ? 400 : 0}
+              <div
+                use:anim={{
+                  enabled: animationEnabled,
+                  delayMax: itemDelayMax,
+                }}
                 class="{slice.primary.hasGap
                   ? 'pr-6 pb-6'
                   : ''} relative w-full flex flex-col items-center justify-start cursor-pointer {slice
@@ -57,14 +61,18 @@
                   ? 'lg:w-1/2'
                   : ''} {slice.primary.desktopcolumns === '3'
                   ? 'lg:w-1/3'
-                  : ' '} 
-                  {item.aspect==="square" ? "aspect-square" :
-                    item.aspect==="4/3" ? "aspect-[4/3]" :
-                    item.aspect==="3/4" ? "aspect-[3/4]" :
-                    item.aspect==="16/9" ? "aspect-video" :
-                    item.aspect==="9/16" ? "aspect-[9/16]" :
-                    ""
-                  }
+                  : ' '}
+                  {item.aspect === 'square'
+                  ? 'aspect-square'
+                  : item.aspect === '4/3'
+                    ? 'aspect-4/3'
+                    : item.aspect === '3/4'
+                      ? 'aspect-3/4'
+                      : item.aspect === '16/9'
+                        ? 'aspect-video'
+                        : item.aspect === '9/16'
+                          ? 'aspect-9/16'
+                          : ''}
                   "
               >
                 <a
@@ -87,42 +95,46 @@
                     <iframe
                       title="background video"
                       src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
-                      class="object-cover w-full {item.aspect!=="free"?"h-full":""} mx-auto z-10 
-                        {showVideos[i]
+                      class="object-cover w-full {item.aspect !== 'free'
+                        ? 'h-full'
+                        : ''} mx-auto z-10
+                        {!hiddenVideos.has(i)
                         ? 'opacity-100'
                         : 'opacity-0'} transition-opacity duration-300"
                       frameborder="0"
                       allow="autoplay"
-                      on:error={() => (showVideos[i] = false)}
-                      bind:this={frames[i]}
+                      onerror={() => hiddenVideos.add(i)}
                     ></iframe>
                   {:else}
                     <PrismicImage
-                      class="w-full {item.aspect!=="free"?"h-full":""} object-cover cursor-pointer"
+                      class="w-full {item.aspect !== 'free'
+                        ? 'h-full'
+                        : ''} object-cover cursor-pointer"
                       field={item.image}
                     />
                   {/if}
                 </a>
-              </AnimateIn>
+              </div>
             {:else}
-              <AnimateIn
-                isOff={slice.primary.isAnimated !== null &&
-                  !slice.primary.isAnimated}
+              <div
+                use:anim={{ enabled: animationEnabled }}
                 class="{slice.primary.hasGap
                   ? 'pr-6 pb-6'
-                  : ''} relative w-full flex flex-col items-center justify-start 
+                  : ''} relative w-full flex flex-col items-center justify-start
                       {slice.primary.desktopcolumns === '2'
                   ? 'lg:w-1/2'
-                  : ''} {slice.primary.desktopcolumns === '3'
-                  ? 'lg:w-1/3'
-                  : ''}
-                  {item.aspect==="square" ? "aspect-square" :
-                    item.aspect==="4/3" ? "aspect-[4/3]" :
-                    item.aspect==="3/4" ? "aspect-[3/4]" :
-                    item.aspect==="16/9" ? "aspect-video" :
-                    item.aspect==="9/16" ? "aspect-[9/16]" :
-                    ""
-                  }"
+                  : ''} {slice.primary.desktopcolumns === '3' ? 'lg:w-1/3' : ''}
+                  {item.aspect === 'square'
+                  ? 'aspect-square'
+                  : item.aspect === '4/3'
+                    ? 'aspect-4/3'
+                    : item.aspect === '3/4'
+                      ? 'aspect-3/4'
+                      : item.aspect === '16/9'
+                        ? 'aspect-video'
+                        : item.aspect === '9/16'
+                          ? 'aspect-9/16'
+                          : ''}"
               >
                 {#if item.label}
                   <div class="w-full border-b-1 border-dark label mb-8">
@@ -131,7 +143,9 @@
                 {/if}
 
                 <PrismicImage
-                  class="w-full {item.aspect!=="free"?"h-full":""} object-cover"
+                  class="w-full {item.aspect !== 'free'
+                    ? 'h-full'
+                    : ''} object-cover"
                   field={item.image}
                 />
 
@@ -143,18 +157,17 @@
                   <iframe
                     title="background video"
                     src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
-                    class="object-cover w-full {item.aspect!=="free"?"h-full":""} z-10 {showVideos[
-                      i
-                    ]
+                    class="object-cover w-full {item.aspect !== 'free'
+                      ? 'h-full'
+                      : ''} z-10 {!hiddenVideos.has(i)
                       ? 'opacity-100'
                       : 'opacity-0'} transition-opacity duration-300"
                     frameborder="0"
                     allow="autoplay"
-                    on:error={() => (showVideos[i] = false)}
-                    bind:this={frames[i]}
+                    onerror={() => hiddenVideos.add(i)}
                   ></iframe>
                 {/if}
-              </AnimateIn>
+              </div>
             {/if}
           {/each}
         </div>

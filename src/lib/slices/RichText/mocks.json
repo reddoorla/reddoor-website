@@ -1,57 +1,57 @@
 [
-	{
-		"__TYPE__": "SharedSliceContent",
-		"variation": "default",
-		"primary": {
-			"content": {
-				"__TYPE__": "StructuredTextContent",
-				"value": [
-					{
-						"type": "paragraph",
-						"content": {
-							"text": "Officia proident pariatur minim mollit et labore voluptate ea ut labore amet duis ipsum id. Excepteur et sint dolore aliqua ex consectetur occaecat esse magna laboris elit nostrud mollit adipisicing non."
-						}
-					}
-				]
-			},
-			"backgroundcolor": {
-				"__TYPE__": "FieldContent",
-				"value": "paper-red",
-				"type": "Select"
-			},
-			"textColor": {
-				"__TYPE__": "FieldContent",
-				"value": "red",
-				"type": "Select"
-			},
-			"width": {
-				"__TYPE__": "FieldContent",
-				"value": "3/5",
-				"type": "Select"
-			},
-			"float": {
-				"__TYPE__": "FieldContent",
-				"value": "right",
-				"type": "Select"
-			},
-			"hasPadding": {
-				"__TYPE__": "BooleanContent",
-				"value": false
-			},
-			"isAnimated": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			},
-			"hide": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			}
-		},
-		"items": [
-			{
-				"__TYPE__": "GroupItemContent",
-				"value": []
-			}
-		]
-	}
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "content": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "Officia proident pariatur minim mollit et labore voluptate ea ut labore amet duis ipsum id. Excepteur et sint dolore aliqua ex consectetur occaecat esse magna laboris elit nostrud mollit adipisicing non."
+            }
+          }
+        ]
+      },
+      "backgroundcolor": {
+        "__TYPE__": "FieldContent",
+        "value": "paper-red",
+        "type": "Select"
+      },
+      "textColor": {
+        "__TYPE__": "FieldContent",
+        "value": "red",
+        "type": "Select"
+      },
+      "width": {
+        "__TYPE__": "FieldContent",
+        "value": "3/5",
+        "type": "Select"
+      },
+      "float": {
+        "__TYPE__": "FieldContent",
+        "value": "right",
+        "type": "Select"
+      },
+      "hasPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      }
+    },
+    "items": [
+      {
+        "__TYPE__": "GroupItemContent",
+        "value": []
+      }
+    ]
+  }
 ]

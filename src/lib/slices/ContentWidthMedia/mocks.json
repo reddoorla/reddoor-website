@@ -1,133 +1,133 @@
 [
-	{
-		"__TYPE__": "SharedSliceContent",
-		"variation": "default",
-		"primary": {
-			"images": {
-				"__TYPE__": "GroupContentType",
-				"value": [
-					{
-						"__TYPE__": "GroupItemContent",
-						"value": [
-							[
-								"image",
-								{
-									"origin": {
-										"id": "main",
-										"url": "https://images.unsplash.com/photo-1491975474562-1f4e30bc9468",
-										"width": 4000,
-										"height": 6000
-									},
-									"url": "https://images.unsplash.com/photo-1491975474562-1f4e30bc9468",
-									"width": 4000,
-									"height": 6000,
-									"edit": {
-										"zoom": 1,
-										"crop": {
-											"x": 0,
-											"y": 0
-										},
-										"background": "transparent"
-									},
-									"credits": null,
-									"alt": null,
-									"__TYPE__": "ImageContent",
-									"thumbnails": {}
-								}
-							],
-							[
-								"vimeoid",
-								{
-									"__TYPE__": "FieldContent",
-									"value": "stems",
-									"type": "Text"
-								}
-							],
-							[
-								"label",
-								{
-									"__TYPE__": "FieldContent",
-									"value": "area",
-									"type": "Text"
-								}
-							],
-							[
-								"loopvideo",
-								{
-									"__TYPE__": "BooleanContent",
-									"value": false
-								}
-							],
-							[
-								"link",
-								{
-									"key": "ecca1330-a407-4471-b52d-129ba0ca5be9",
-									"__TYPE__": "LinkContent",
-									"value": {
-										"__TYPE__": "ExternalLink",
-										"url": "https://prismic.io"
-									}
-								}
-							],
-							[
-								"aspect",
-								{
-									"__TYPE__": "FieldContent",
-									"value": "9/16",
-									"type": "Select"
-								}
-							]
-						]
-					}
-				]
-			},
-			"label": {
-				"__TYPE__": "FieldContent",
-				"value": "star",
-				"type": "Text"
-			},
-			"background": {
-				"__TYPE__": "FieldContent",
-				"value": "white",
-				"type": "Select"
-			},
-			"desktopcolumns": {
-				"__TYPE__": "FieldContent",
-				"value": "2",
-				"type": "Select"
-			},
-			"isFullContentWidth": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			},
-			"body": {
-				"__TYPE__": "StructuredTextContent",
-				"value": [
-					{
-						"type": "paragraph",
-						"content": {
-							"text": "Aute dolor veniam Lorem. Consequat culpa magna cupidatat nisi do enim ea incididunt aute tempor reprehenderit laborum commodo non."
-						}
-					}
-				]
-			},
-			"hasPadding": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			},
-			"hasGap": {
-				"__TYPE__": "BooleanContent",
-				"value": false
-			},
-			"isAnimated": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			},
-			"hide": {
-				"__TYPE__": "BooleanContent",
-				"value": false
-			}
-		},
-		"items": []
-	}
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "images": {
+        "__TYPE__": "GroupContentType",
+        "value": [
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "image",
+                {
+                  "origin": {
+                    "id": "main",
+                    "url": "https://images.unsplash.com/photo-1491975474562-1f4e30bc9468",
+                    "width": 4000,
+                    "height": 6000
+                  },
+                  "url": "https://images.unsplash.com/photo-1491975474562-1f4e30bc9468",
+                  "width": 4000,
+                  "height": 6000,
+                  "edit": {
+                    "zoom": 1,
+                    "crop": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "background": "transparent"
+                  },
+                  "credits": null,
+                  "alt": null,
+                  "__TYPE__": "ImageContent",
+                  "thumbnails": {}
+                }
+              ],
+              [
+                "vimeoid",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "stems",
+                  "type": "Text"
+                }
+              ],
+              [
+                "label",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "area",
+                  "type": "Text"
+                }
+              ],
+              [
+                "loopvideo",
+                {
+                  "__TYPE__": "BooleanContent",
+                  "value": false
+                }
+              ],
+              [
+                "link",
+                {
+                  "key": "ecca1330-a407-4471-b52d-129ba0ca5be9",
+                  "__TYPE__": "LinkContent",
+                  "value": {
+                    "__TYPE__": "ExternalLink",
+                    "url": "https://prismic.io"
+                  }
+                }
+              ],
+              [
+                "aspect",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "9/16",
+                  "type": "Select"
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "label": {
+        "__TYPE__": "FieldContent",
+        "value": "star",
+        "type": "Text"
+      },
+      "background": {
+        "__TYPE__": "FieldContent",
+        "value": "white",
+        "type": "Select"
+      },
+      "desktopcolumns": {
+        "__TYPE__": "FieldContent",
+        "value": "2",
+        "type": "Select"
+      },
+      "isFullContentWidth": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "body": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "Aute dolor veniam Lorem. Consequat culpa magna cupidatat nisi do enim ea incididunt aute tempor reprehenderit laborum commodo non."
+            }
+          }
+        ]
+      },
+      "hasPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hasGap": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
 ]

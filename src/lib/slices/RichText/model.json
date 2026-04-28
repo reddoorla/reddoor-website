@@ -18,9 +18,7 @@
             "placeholder": "Lorem ipsum...",
             "allowTargetBlank": true,
             "multi": "paragraph,preformatted,heading1,heading2,heading3,strong,em,hyperlink,embed,list-item,heading4,heading5,heading6,image",
-            "labels": [
-              "codespan"
-            ]
+            "labels": ["codespan"]
           }
         },
         "textColor": {
@@ -28,11 +26,7 @@
           "config": {
             "label": "textColor",
             "placeholder": "",
-            "options": [
-              "dark",
-              "white",
-              "red"
-            ],
+            "options": ["dark", "white", "red"],
             "default_value": "dark"
           }
         },
@@ -41,13 +35,7 @@
           "config": {
             "label": "backgroundColor",
             "placeholder": "",
-            "options": [
-              "white",
-              "gray",
-              "red",
-              "paper",
-              "paper-red"
-            ],
+            "options": ["white", "gray", "red", "paper", "paper-red"],
             "default_value": "white"
           }
         },
@@ -56,11 +44,7 @@
           "config": {
             "label": "width",
             "placeholder": "",
-            "options": [
-              "full",
-              "4/5",
-              "3/5"
-            ],
+            "options": ["full", "4/5", "3/5"],
             "default_value": "full"
           }
         },
@@ -69,11 +53,7 @@
           "config": {
             "label": "float",
             "placeholder": "",
-            "options": [
-              "center",
-              "left",
-              "right"
-            ]
+            "options": ["center", "left", "right"]
           }
         },
         "hasPadding": {

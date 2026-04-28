@@ -1,7 +1,6 @@
 declare namespace svelteHTML {
-    interface HTMLAttributes<T> {
-      netlify?: boolean;
-      'netlify-honeypot'?: string;
-    }
+  interface HTMLAttributes<T> {
+    netlify?: boolean;
+    "netlify-honeypot"?: string;
   }
-  
+}

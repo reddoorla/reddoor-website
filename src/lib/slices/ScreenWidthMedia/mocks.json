@@ -1,59 +1,59 @@
 [
-	{
-		"__TYPE__": "SharedSliceContent",
-		"variation": "default",
-		"primary": {
-			"image": {
-				"origin": {
-					"id": "main",
-					"url": "https://images.unsplash.com/photo-1587840171670-8b850147754e",
-					"width": 4480,
-					"height": 4480
-				},
-				"url": "https://images.unsplash.com/photo-1587840171670-8b850147754e",
-				"width": 4480,
-				"height": 4480,
-				"edit": {
-					"zoom": 1,
-					"crop": {
-						"x": 0,
-						"y": 0
-					},
-					"background": "transparent"
-				},
-				"credits": null,
-				"alt": null,
-				"__TYPE__": "ImageContent",
-				"thumbnails": {}
-			},
-			"vimeoid": {
-				"__TYPE__": "FieldContent",
-				"value": "page",
-				"type": "Text"
-			},
-			"loopvideo": {
-				"__TYPE__": "BooleanContent",
-				"value": false
-			},
-			"hasPadding": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			},
-			"background": {
-				"__TYPE__": "FieldContent",
-				"value": "paper-red",
-				"type": "Select"
-			},
-			"hide": {
-				"__TYPE__": "BooleanContent",
-				"value": false
-			},
-			"aspect": {
-				"__TYPE__": "FieldContent",
-				"value": "free",
-				"type": "Select"
-			}
-		},
-		"items": []
-	}
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "image": {
+        "origin": {
+          "id": "main",
+          "url": "https://images.unsplash.com/photo-1587840171670-8b850147754e",
+          "width": 4480,
+          "height": 4480
+        },
+        "url": "https://images.unsplash.com/photo-1587840171670-8b850147754e",
+        "width": 4480,
+        "height": 4480,
+        "edit": {
+          "zoom": 1,
+          "crop": {
+            "x": 0,
+            "y": 0
+          },
+          "background": "transparent"
+        },
+        "credits": null,
+        "alt": null,
+        "__TYPE__": "ImageContent",
+        "thumbnails": {}
+      },
+      "vimeoid": {
+        "__TYPE__": "FieldContent",
+        "value": "page",
+        "type": "Text"
+      },
+      "loopvideo": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "hasPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "background": {
+        "__TYPE__": "FieldContent",
+        "value": "paper-red",
+        "type": "Select"
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "aspect": {
+        "__TYPE__": "FieldContent",
+        "value": "free",
+        "type": "Select"
+      }
+    },
+    "items": []
+  }
 ]

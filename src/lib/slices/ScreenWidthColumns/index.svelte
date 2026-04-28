@@ -2,17 +2,15 @@
   import type { ScreenWidthColumnsSlice } from "../../../prismicio-types";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
-  import AnimateIn from "$lib/components/AnimateIn.svelte";
-  import { onMount } from "svelte";
-  export let slice: ScreenWidthColumnsSlice;
-  let backgroundColorString = "bg-" + slice.primary.background;
+  import { animateIn as anim } from "$lib/actions/animateIn";
 
-  let showVideos = new Array<boolean>(slice.primary.media.length).fill(true);
-  let frames = new Array<HTMLIFrameElement | undefined>(
-    slice.primary.media.length
+  let { slice }: { slice: ScreenWidthColumnsSlice } = $props();
+
+  const backgroundColorString = $derived("bg-" + slice.primary.background);
+  const hiddenVideos = $state(new Set<number>());
+  const animationEnabled = $derived(
+    slice.primary.isAnimated === null || slice.primary.isAnimated === true,
   );
-
-  onMount(() => {});
 </script>
 
 {#if !slice.primary.hide}
@@ -24,20 +22,29 @@
       ? 'py-12'
       : ''} {backgroundColorString}"
   >
-    {#each slice.primary.media as item, i}
+    {#each slice.primary.media as item, i (i)}
       {#if isFilled.link(item.link)}
-        <AnimateIn
-          isOff={slice.primary.isAnimated !== null && !slice.primary.isAnimated}
+        <div
+          use:anim={{ enabled: animationEnabled }}
           class="
-            {slice.primary.hasGap ? 'mr-6 mb-6' : ''} 
-            {item.aspect ==='square' ? 'aspect-square':
-             item.aspect === '4/3' ? 'aspect-[4/3]': 
-             item.aspect === '3/4' ? 'aspect-[3/4]' :
-             item.aspect === '16/9' ? 'aspect-video' :
-             item.aspect === '9/16' ? 'aspect-[9/16]' : ''} 
-            relative w-full flex flex-col items-center justify-start 
-            {slice.primary.desktopcolumns === '2' ? 'lg:w-1/2' : 
-              slice.primary.desktopcolumns === '3' ? 'lg:w-1/3' : ''}"
+            {slice.primary.hasGap ? 'mr-6 mb-6' : ''}
+            {item.aspect === 'square'
+            ? 'aspect-square'
+            : item.aspect === '4/3'
+              ? 'aspect-4/3'
+              : item.aspect === '3/4'
+                ? 'aspect-3/4'
+                : item.aspect === '16/9'
+                  ? 'aspect-video'
+                  : item.aspect === '9/16'
+                    ? 'aspect-9/16'
+                    : ''}
+            relative w-full flex flex-col items-center justify-start
+            {slice.primary.desktopcolumns === '2'
+            ? 'lg:w-1/2'
+            : slice.primary.desktopcolumns === '3'
+              ? 'lg:w-1/3'
+              : ''}"
         >
           <a
             href={item.link.url}
@@ -57,35 +64,48 @@
               <iframe
                 title="background video"
                 src={`https://player.vimeo.com/video/${item.vimeoId}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
-                class="object-cover {item.aspect!=="free"?"h-full":""} relative w-full  mx-auto z-10 {showVideos[
-                  i
-                ]
+                class="object-cover {item.aspect !== 'free'
+                  ? 'h-full'
+                  : ''} relative w-full mx-auto z-10 {!hiddenVideos.has(i)
                   ? 'opacity-100'
                   : 'opacity-0'} transition-opacity duration-200"
                 frameborder="0"
                 allow="autoplay"
-                bind:this={frames[i]}
-                on:error={() => (showVideos[i] = false)}
+                onerror={() => hiddenVideos.add(i)}
               ></iframe>
             {:else}
-              <PrismicImage class="w-full {item.aspect!=="free"?"h-full":""} object-cover" field={item.image} />
+              <PrismicImage
+                class="w-full {item.aspect !== 'free'
+                  ? 'h-full'
+                  : ''} object-cover"
+                field={item.image}
+              />
             {/if}
           </a>
-        </AnimateIn>
+        </div>
       {:else}
-        <AnimateIn
-          isOff={slice.primary.isAnimated !== null && !slice.primary.isAnimated}
+        <div
+          use:anim={{ enabled: animationEnabled }}
           class="{slice.primary.hasGap
             ? 'mr-6 mb-6'
-            : ''} relative w-full flex flex-col items-center justify-start 
-            {item.aspect ==='square' ? 'aspect-square':
-             item.aspect === '4/3' ? 'aspect-[4/3]': 
-             item.aspect === '3/4' ? 'aspect-[3/4]' :
-             item.aspect === '16/9' ? 'aspect-video' :
-             item.aspect === '9/16' ? 'aspect-[9/16]' : ''} 
-            relative w-full flex flex-col items-center justify-start 
-            {slice.primary.desktopcolumns === '2' ? 'lg:w-1/2' : 
-              slice.primary.desktopcolumns === '3' ? 'lg:w-1/3' : ''}"
+            : ''} relative w-full flex flex-col items-center justify-start
+            {item.aspect === 'square'
+            ? 'aspect-square'
+            : item.aspect === '4/3'
+              ? 'aspect-4/3'
+              : item.aspect === '3/4'
+                ? 'aspect-3/4'
+                : item.aspect === '16/9'
+                  ? 'aspect-video'
+                  : item.aspect === '9/16'
+                    ? 'aspect-9/16'
+                    : ''}
+            relative w-full flex flex-col items-center justify-start
+            {slice.primary.desktopcolumns === '2'
+            ? 'lg:w-1/2'
+            : slice.primary.desktopcolumns === '3'
+              ? 'lg:w-1/3'
+              : ''}"
         >
           {#if item.label}
             <div class="w-full border-b-1 border-dark label mb-8">
@@ -101,17 +121,25 @@
             <iframe
               title="background video"
               src={`https://player.vimeo.com/video/${item.vimeoId}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
-              class="object-cover {item.aspect!=="free"?"h-full":""} w-full mx-auto z-10 relative 
-              {showVideos[i]  ? 'opacity-100'  : 'opacity-0'} transition-opacity duration-200"
+              class="object-cover {item.aspect !== 'free'
+                ? 'h-full'
+                : ''} w-full mx-auto z-10 relative
+              {!hiddenVideos.has(i)
+                ? 'opacity-100'
+                : 'opacity-0'} transition-opacity duration-200"
               frameborder="0"
               allow="autoplay"
-              bind:this={frames[i]}
-              on:error={() => (showVideos[i] = false)}
+              onerror={() => hiddenVideos.add(i)}
             ></iframe>
           {:else}
-            <PrismicImage class="w-full {item.aspect!=="free"?"h-full":""} object-cover" field={item.image} />
+            <PrismicImage
+              class="w-full {item.aspect !== 'free'
+                ? 'h-full'
+                : ''} object-cover"
+              field={item.image}
+            />
           {/if}
-        </AnimateIn>
+        </div>
       {/if}
     {/each}
   </section>

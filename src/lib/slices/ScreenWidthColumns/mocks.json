@@ -1,113 +1,113 @@
 [
-	{
-		"__TYPE__": "SharedSliceContent",
-		"variation": "default",
-		"primary": {
-			"hasPadding": {
-				"__TYPE__": "BooleanContent",
-				"value": false
-			},
-			"hasGap": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			},
-			"media": {
-				"__TYPE__": "GroupContentType",
-				"value": [
-					{
-						"__TYPE__": "GroupItemContent",
-						"value": [
-							[
-								"image",
-								{
-									"origin": {
-										"id": "main",
-										"url": "https://images.unsplash.com/photo-1471897488648-5eae4ac6686b",
-										"width": 3560,
-										"height": 5340
-									},
-									"url": "https://images.unsplash.com/photo-1471897488648-5eae4ac6686b",
-									"width": 3560,
-									"height": 5340,
-									"edit": {
-										"zoom": 1,
-										"crop": {
-											"x": 0,
-											"y": 0
-										},
-										"background": "transparent"
-									},
-									"credits": null,
-									"alt": null,
-									"__TYPE__": "ImageContent",
-									"thumbnails": {}
-								}
-							],
-							[
-								"vimeoId",
-								{
-									"__TYPE__": "FieldContent",
-									"value": "electricity",
-									"type": "Text"
-								}
-							],
-							[
-								"loopvideo",
-								{
-									"__TYPE__": "BooleanContent",
-									"value": true
-								}
-							],
-							[
-								"link",
-								{
-									"key": "24947506-dd2a-48af-b3ab-43d54b25a817",
-									"__TYPE__": "LinkContent",
-									"value": {
-										"__TYPE__": "ExternalLink",
-										"url": "https://prismic.io"
-									}
-								}
-							],
-							[
-								"label",
-								{
-									"__TYPE__": "FieldContent",
-									"value": "swept",
-									"type": "Text"
-								}
-							],
-							[
-								"aspect",
-								{
-									"__TYPE__": "FieldContent",
-									"value": "free",
-									"type": "Select"
-								}
-							]
-						]
-					}
-				]
-			},
-			"desktopcolumns": {
-				"__TYPE__": "FieldContent",
-				"value": "1",
-				"type": "Select"
-			},
-			"background": {
-				"__TYPE__": "FieldContent",
-				"value": "paper",
-				"type": "Select"
-			},
-			"isAnimated": {
-				"__TYPE__": "BooleanContent",
-				"value": false
-			},
-			"hide": {
-				"__TYPE__": "BooleanContent",
-				"value": true
-			}
-		},
-		"items": []
-	}
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "hasPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "hasGap": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "media": {
+        "__TYPE__": "GroupContentType",
+        "value": [
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "image",
+                {
+                  "origin": {
+                    "id": "main",
+                    "url": "https://images.unsplash.com/photo-1471897488648-5eae4ac6686b",
+                    "width": 3560,
+                    "height": 5340
+                  },
+                  "url": "https://images.unsplash.com/photo-1471897488648-5eae4ac6686b",
+                  "width": 3560,
+                  "height": 5340,
+                  "edit": {
+                    "zoom": 1,
+                    "crop": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "background": "transparent"
+                  },
+                  "credits": null,
+                  "alt": null,
+                  "__TYPE__": "ImageContent",
+                  "thumbnails": {}
+                }
+              ],
+              [
+                "vimeoId",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "electricity",
+                  "type": "Text"
+                }
+              ],
+              [
+                "loopvideo",
+                {
+                  "__TYPE__": "BooleanContent",
+                  "value": true
+                }
+              ],
+              [
+                "link",
+                {
+                  "key": "24947506-dd2a-48af-b3ab-43d54b25a817",
+                  "__TYPE__": "LinkContent",
+                  "value": {
+                    "__TYPE__": "ExternalLink",
+                    "url": "https://prismic.io"
+                  }
+                }
+              ],
+              [
+                "label",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "swept",
+                  "type": "Text"
+                }
+              ],
+              [
+                "aspect",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "free",
+                  "type": "Select"
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "desktopcolumns": {
+        "__TYPE__": "FieldContent",
+        "value": "1",
+        "type": "Select"
+      },
+      "background": {
+        "__TYPE__": "FieldContent",
+        "value": "paper",
+        "type": "Select"
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      }
+    },
+    "items": []
+  }
 ]
