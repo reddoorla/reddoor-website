@@ -136,6 +136,9 @@
     );
 
     return () => {
+      // Reset the global flag so the layout nav reappears on the next page —
+      // otherwise navigating away mid-hero leaves isInHero stuck at true.
+      isInHero.value = false;
       window.removeEventListener("scroll", handleScroll);
       mq.removeEventListener("change", handleMQ);
       clearTimeout(transitionTimer);
