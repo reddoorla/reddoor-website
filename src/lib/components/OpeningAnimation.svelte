@@ -9,7 +9,7 @@
 
   import printedReddoorLogo from "$lib/assets/icons/logos/reddoor_logo.png";
   import { isInHero } from "$lib/stores/isInHero.svelte";
-  import Img from "@zerodevx/svelte-img";
+  import Img from "$lib/components/Img.svelte";
   import drawnLogo from "$lib/assets/icons/logos/staticReddoor.png";
   import { untrack } from "svelte";
 

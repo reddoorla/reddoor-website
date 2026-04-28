@@ -1,7 +1,7 @@
 <script lang="ts">
   import placeholder from "../../assets/images/background_placeholder.svg";
   import { PrismicImage } from "@prismicio/svelte";
-  import Img from "@zerodevx/svelte-img";
+  import Img from "$lib/components/Img.svelte";
   import type { Snippet } from "svelte";
   import type { ImageField } from "@prismicio/client";
 
@@ -64,7 +64,6 @@
         src={img}
         alt={alt || altText}
         class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover -z-10"
-        loading="lazy"
       />
     {:else if !field && src}
       <img
@@ -73,7 +72,6 @@
         class="absolute bottom-0 {placeholderSide}-0 h-full w-full object-cover -z-10
         {src === placeholder ? 'lg:w-[45%] md:h-auto' : ''}
         "
-        loading="lazy"
       />
     {:else}
       <PrismicImage {field} class="absolute h-full w-full object-cover -z-10" />

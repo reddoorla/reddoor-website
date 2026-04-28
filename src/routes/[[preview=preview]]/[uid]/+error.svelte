@@ -47,7 +47,6 @@
               src={project.data.hero.url || ""}
               alt={project.data.title + " Hero Image"}
               class="absolute w-full h-full object-cover"
-              loading="lazy"
             />
             <div
               class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"

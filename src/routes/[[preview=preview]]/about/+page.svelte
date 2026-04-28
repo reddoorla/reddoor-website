@@ -4,10 +4,10 @@
   import lake from "$lib/assets/images/alpineLake.jpg?as=run";
   import tim from "$lib/assets/images/tim.jpg?as=run";
   import erik from "$lib/assets/images/erik.jpg?as=run";
-  import car from "$lib/assets/images/reddoorcar.png?as=run";
-  import monotoneCar from "$lib/assets/images/RD_CarOnly.png?as=run";
+  import car from "$lib/assets/images/reddoorcar.png";
+  import monotoneCar from "$lib/assets/images/RD_CarOnly.png";
   import applause from "$lib/assets/images/applause.jpg?as=run";
-  import Img from "@zerodevx/svelte-img";
+  import Img from "$lib/components/Img.svelte";
   import key from "$lib/assets/icons/RD_Keys-04.png";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
@@ -277,12 +277,11 @@
   <ContentWidth class="flex ">
     <h3 class="text-primary z-10 relative">About</h3>
   </ContentWidth>
-  <Img
+  <img
     src={monotoneCar}
     alt="moving car"
     class="absolute -right-48 bottom-0 w-64 will-change-transform"
     style="transform:translate3d({-monoCarTranslationInVW}vw,0,0)"
-    loading="lazy"
   />
 </div>
 <ScreenWidthImage img={applause} />
@@ -393,43 +392,39 @@
   </ContentWidth>
 </div>
 
-<!-- Rest of the component remains the same... -->
 <div class="w-screen flex flex-col lg:flex-row relative bg-paper">
   <div
     use:anim
-    class="w-full md:w-1/3 aspect-square relative flex items-center justify-center"
+    class="w-full md:w-1/3 aspect-square relative"
   >
     <Img
       class="w-full h-full absolute z-0 object-cover"
       src={beach}
       alt="beach"
-      loading="lazy"
     />
-    <h3 class="text-white z-10">CA</h3>
+    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">CA</h3>
   </div>
   <div
     use:anim
-    class="w-full md:w-1/3 aspect-square relative flex items-center justify-center"
+    class="w-full md:w-1/3 aspect-square relative"
   >
     <Img
       class="w-full h-full absolute z-0 object-cover"
       src={hills}
       alt="hills"
-      loading="lazy"
     />
-    <h3 class="text-white z-10">TX</h3>
+    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">TX</h3>
   </div>
   <div
     use:anim
-    class="w-full md:w-1/3 aspect-square relative flex items-center justify-center"
+    class="w-full md:w-1/3 aspect-square relative"
   >
     <Img
       class="w-full h-full absolute z-0 object-cover"
       src={lake}
       alt="lake"
-      loading="lazy"
     />
-    <h3 class="text-white z-10">ID</h3>
+    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">ID</h3>
   </div>
 </div>
 <div class="w-screen text-center py-20 bg-paper">
@@ -456,7 +451,6 @@
           src={tim}
           alt="tim holmes"
           class="w-full aspect-square"
-          loading="lazy"
         />
         <div class="text-primary large-body font-thin mt-2">Tim Holmes</div>
         <p class="text-mid font-thin">CA+ID Creative Director</p>
@@ -466,7 +460,6 @@
           src={erik}
           alt="Erik Svendsen"
           class="w-full aspect-square"
-          loading="lazy"
         />
         <p class="text-primary large-body mt-2 large-body">Erik Svendsen</p>
         <div class="font-thin">TX Creative Director</div>
@@ -495,12 +488,11 @@
       class="will-change-transform"
       style="transform:translateX({carTranslationInVW}vw)"
     >
-      <Img
+      <img
         class="w-[150%] md:w-3/5"
         src={car}
         alt="a white car with a red door"
-        bind:ref={carRef}
-        loading="lazy"
+        bind:this={carRef}
       />
     </div>
   </div>
@@ -563,7 +555,7 @@
         itself but also the people I'm working with."
       </h5>
       <div class="flex flex-row gap-5 mt-10">
-        <img src={tim} alt="tim holmes" class="w-20" loading="lazy" />
+        <Img src={tim} alt="tim holmes" class="w-20" />
         <div class="flex flex-col">
           <div class="large-body">Tim Holmes</div>
           <p>CA+ID Creative Director</p>

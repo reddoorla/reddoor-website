@@ -100,7 +100,6 @@
             src={data.relatedProjectOne.data.hero.url || ""}
             alt={(data.relatedProjectOne.data.title || "") + " Hero Image"}
             class="absolute w-full h-full object-cover"
-            loading="lazy"
             fetchpriority="low"
           />
           <div
@@ -131,7 +130,6 @@
             src={data.relatedProjectTwo.data.hero.url || ""}
             alt={(data.relatedProjectTwo.data.title || "") + " Hero Image"}
             class="absolute w-full h-full object-cover"
-            loading="lazy"
             fetchpriority="low"
           />
           <div

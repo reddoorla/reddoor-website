@@ -1,6 +1,6 @@
 <script lang="ts">
   import placeholder from "$lib/assets/images/image_placeholder.svg";
-  import Img from "@zerodevx/svelte-img";
+  import Img from "$lib/components/Img.svelte";
 
   // `img` is the object returned from `$lib/assets/images/...?as=run` imports.
   // Its type is generated at build time, so we intentionally accept `unknown`.
@@ -32,13 +32,12 @@
       : ''}  rounded-xs flex items-center justify-center relative"
   >
     {#if img}
-      <Img src={img} {alt} class="z-10 w-full" loading="lazy" />
+      <Img src={img} {alt} class="z-10 w-full" />
     {:else}
       <img
         {src}
         {alt}
         class="z-10 {isPlaceholder ? 'w-16 bg-[#F2F5F7]' : 'w-full'}"
-        loading="lazy"
       />
     {/if}
     <div
