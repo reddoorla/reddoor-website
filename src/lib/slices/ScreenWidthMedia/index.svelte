@@ -10,20 +10,30 @@
   const handleError = () => {
     showVideo = false;
   };
+
+  // Fallback to legacy `hasPadding` for docs not yet migrated to top/bottom flags.
+  const padding = $derived(
+    slice.primary as {
+      hasTopPadding?: boolean | null;
+      hasBottomPadding?: boolean | null;
+      hasPadding?: boolean | null;
+    },
+  );
+  const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? false);
+  const padBottom = $derived(
+    padding.hasBottomPadding ?? padding.hasPadding ?? false,
+  );
 </script>
 
 {#if !slice.primary.hide}
   <section
-    class="w-full relative overflow-hidden {slice.primary.hasTopPadding
-      ? 'pt-12'
-      : ''} {slice.primary.hasBottomPadding
+    class="w-full relative overflow-hidden {padTop ? 'pt-12' : ''} {padBottom
       ? 'pb-12'
       : ''} {backgroundColorString}"
   >
     {#if slice.primary.vimeoid}
       <PrismicImage
-        class="w-screen h-full object-cover absolute {slice.primary
-          .hasTopPadding
+        class="w-screen h-full object-cover absolute {padTop
           ? 'top-12'
           : 'top-0'} left-0 z-0"
         field={slice.primary.image}

@@ -9,12 +9,24 @@
   const backgroundColorString = $derived("bg-" + slice.primary.backgroundcolor);
   const float = $derived(slice.primary.float);
   const width = $derived(slice.primary.width);
+
+  // Fallback to legacy `hasPadding` for docs not yet migrated to top/bottom flags.
+  const padding = $derived(
+    slice.primary as {
+      hasTopPadding?: boolean | null;
+      hasBottomPadding?: boolean | null;
+      hasPadding?: boolean | null;
+    },
+  );
+  const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? false);
+  const padBottom = $derived(
+    padding.hasBottomPadding ?? padding.hasPadding ?? false,
+  );
 </script>
 
 {#if !slice.primary.hide}
   <section
-    class="w-full {slice.primary.hasTopPadding ? 'pt-12' : ''} {slice.primary
-      .hasBottomPadding
+    class="w-full {padTop ? 'pt-12' : ''} {padBottom
       ? 'pb-12'
       : ''} text-{slice.primary.textColor} {backgroundColorString}"
   >

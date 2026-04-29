@@ -11,16 +11,28 @@
   const animationEnabled = $derived(
     slice.primary.isAnimated === null || slice.primary.isAnimated === true,
   );
+
+  // Fallback to legacy `hasPadding` for docs not yet migrated to top/bottom flags.
+  const padding = $derived(
+    slice.primary as {
+      hasTopPadding?: boolean | null;
+      hasBottomPadding?: boolean | null;
+      hasPadding?: boolean | null;
+    },
+  );
+  const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? false);
+  const padBottom = $derived(
+    padding.hasBottomPadding ?? padding.hasPadding ?? false,
+  );
 </script>
 
 {#if !slice.primary.hide}
   <section
     data-slice-type={slice.slice_type}
     data-slice-variation={slice.variation}
-    class="w-screen flex flex-row justify-center flex-wrap relative {slice
-      .primary.hasTopPadding
+    class="w-screen flex flex-row justify-center flex-wrap relative {padTop
       ? 'pt-12'
-      : ''} {slice.primary.hasBottomPadding
+      : ''} {padBottom
       ? 'pb-12'
       : ''} {backgroundColorString}"
   >
