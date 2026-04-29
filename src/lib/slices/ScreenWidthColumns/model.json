@@ -30,12 +30,21 @@
             "default_value": "1"
           }
         },
-        "hasPadding": {
+        "hasTopPadding": {
           "type": "Boolean",
           "config": {
-            "label": "slice vertical padding",
-            "placeholder_false": "no padding",
-            "placeholder_true": "vertical padding",
+            "label": "top padding",
+            "placeholder_false": "no top padding",
+            "placeholder_true": "top padding",
+            "default_value": true
+          }
+        },
+        "hasBottomPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "bottom padding",
+            "placeholder_false": "no bottom padding",
+            "placeholder_true": "bottom padding",
             "default_value": true
           }
         },

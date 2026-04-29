@@ -2,6 +2,7 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { fade, fly } from "svelte/transition";
+  import { page } from "$app/state";
   import stJames from "$lib/assets/images/openingBgs/stJamesBg.jpg?as=run";
   import enzos from "$lib/assets/images/openingBgs/enzosBg.jpg?as=run";
   import fyf from "$lib/assets/images/openingBgs/fyfBg.jpg?as=run";
@@ -12,6 +13,13 @@
   import Img from "$lib/components/Img.svelte";
   import drawnLogo from "$lib/assets/icons/logos/staticReddoor.png";
   import { untrack } from "svelte";
+
+  const NAV_LINKS = [
+    { label: "Portfolio", href: "/portfolio" },
+    { label: "About", href: "/about" },
+    { label: "20 for 20", href: "/twenty-for-twenty" },
+    { label: "Meet With Us", href: "/contact" },
+  ];
 
   const MASK_BASE = 0.25;
   const MASK_GROWTH = 14;
@@ -176,47 +184,51 @@
 
 {#if isOverlayVisible}
   <div
-    class="w-screen h-lvh fixed bg-paper-red top-0 left-0 z-50"
+    class="w-screen h-lvh fixed inset-0 bg-paper z-50 overflow-hidden"
     transition:fly={{ y: "-100%" }}
   >
-    <ContentWidth
-      class="h-full flex flex-col items-center justify-center gap-12 relative"
-    >
+    <div class="flex items-start justify-between px-6 md:px-20 py-2.5">
       <a
         href="/"
-        class="text-white text-2xl"
-        onclick={() => (isOverlayVisible = false)}>Home</a
+        onclick={() => (isOverlayVisible = false)}
+        class="block w-30 md:w-37.75 mix-blend-multiply opacity-85"
+        aria-label="Reddoor home"
       >
-      <a
-        href="/portfolio"
-        class="text-white text-2xl"
-        onclick={() => (isOverlayVisible = false)}>Portfolio</a
-      >
-      <a
-        href="/about"
-        class="text-white text-2xl"
-        onclick={() => (isOverlayVisible = false)}>About</a
-      >
-      <a
-        href="/twenty-for-twenty"
-        class="text-white text-2xl"
-        onclick={() => (isOverlayVisible = false)}>20 for 20</a
-      >
-      <a
-        href="/contact"
-        class="text-white text-2xl"
-        onclick={() => (isOverlayVisible = false)}>Meet With Us</a
-      >
+        <img
+          src={drawnLogo}
+          alt="Reddoor"
+          class="w-full h-auto block"
+        />
+      </a>
       <button
-        class="absolute top-12 right-0 opacity-60 hover:opacity-100 transition z-40"
+        class="text-black opacity-95 hover:opacity-100 transition mt-3"
         onclick={() => (isOverlayVisible = false)}
         aria-label="Close menu"
       >
-        <div in:fade={{ delay: 600 }} out:fade class="text-white">
-          <i class="fa-sharp fa-thin fa-xmark fa-2xl"></i>
-        </div>
+        <i class="fa-sharp fa-thin fa-xmark fa-2xl"></i>
       </button>
-    </ContentWidth>
+    </div>
+
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 md:gap-10 opacity-85"
+    >
+      {#each NAV_LINKS as item (item.href)}
+        {@const isActive =
+          item.href === "/"
+            ? page.url.pathname === "/"
+            : page.url.pathname === item.href ||
+              page.url.pathname.startsWith(item.href + "/")}
+        <a
+          href={item.href}
+          onclick={() => (isOverlayVisible = false)}
+          class="relative text-primary py-2 whitespace-nowrap font-['Besley'] text-[40px] md:text-[60px] leading-tight after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1.5px] after:bg-primary after:origin-left after:transition-transform after:duration-300 after:ease-out {isActive
+            ? 'after:scale-x-100'
+            : 'after:scale-x-0 hover:after:scale-x-100'}"
+        >
+          {item.label}
+        </a>
+      {/each}
+    </div>
   </div>
 {/if}
 

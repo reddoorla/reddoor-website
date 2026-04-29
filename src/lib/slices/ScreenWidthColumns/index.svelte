@@ -18,8 +18,10 @@
     data-slice-type={slice.slice_type}
     data-slice-variation={slice.variation}
     class="w-screen flex flex-row justify-center flex-wrap relative {slice
-      .primary.hasPadding
-      ? 'py-12'
+      .primary.hasTopPadding
+      ? 'pt-12'
+      : ''} {slice.primary.hasBottomPadding
+      ? 'pb-12'
       : ''} {backgroundColorString}"
   >
     {#each slice.primary.media as item, i (i)}

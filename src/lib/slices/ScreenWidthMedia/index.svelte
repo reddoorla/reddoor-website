@@ -14,13 +14,16 @@
 
 {#if !slice.primary.hide}
   <section
-    class="w-full relative overflow-hidden {slice.primary.hasPadding
-      ? 'py-12'
+    class="w-full relative overflow-hidden {slice.primary.hasTopPadding
+      ? 'pt-12'
+      : ''} {slice.primary.hasBottomPadding
+      ? 'pb-12'
       : ''} {backgroundColorString}"
   >
     {#if slice.primary.vimeoid}
       <PrismicImage
-        class="w-screen h-full object-cover absolute {slice.primary.hasPadding
+        class="w-screen h-full object-cover absolute {slice.primary
+          .hasTopPadding
           ? 'top-12'
           : 'top-0'} left-0 z-0"
         field={slice.primary.image}

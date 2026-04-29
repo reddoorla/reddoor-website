@@ -22,8 +22,10 @@
   <section
     data-slice-type={slice.slice_type}
     data-slice-variation={slice.variation}
-    class="w-screen relative {slice.primary.hasPadding
-      ? 'py-12'
+    class="w-screen relative {slice.primary.hasTopPadding
+      ? 'pt-12'
+      : ''} {slice.primary.hasBottomPadding
+      ? 'pb-12'
       : ''} {backgroundColorString}"
   >
     <ContentWidth>

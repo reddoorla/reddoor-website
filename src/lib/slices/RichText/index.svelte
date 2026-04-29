@@ -13,8 +13,10 @@
 
 {#if !slice.primary.hide}
   <section
-    class="w-full {slice.primary.hasPadding ? 'py-12' : ''} text-{slice.primary
-      .textColor} {backgroundColorString}"
+    class="w-full {slice.primary.hasTopPadding ? 'pt-12' : ''} {slice.primary
+      .hasBottomPadding
+      ? 'pb-12'
+      : ''} text-{slice.primary.textColor} {backgroundColorString}"
   >
     <ContentWidth
       class="flex flex-col

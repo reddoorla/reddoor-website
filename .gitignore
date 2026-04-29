@@ -13,3 +13,4 @@ yarn.lock
 test-results
 playwright-report
 .playwright
+scripts/padding-snapshot.json

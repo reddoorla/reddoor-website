@@ -14,6 +14,7 @@
   import LandscapeModal from "$lib/components/LandscapeModal.svelte";
 
   import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.gif";
+  import scriptReddoor from "$lib/assets/icons/logos/staticReddoor.png";
   import type { Snippet } from "svelte";
 
   const NAV_LINKS = [
@@ -113,31 +114,51 @@
 
 {#if isOverlayVisible}
   <div
-    class="w-screen h-lvh fixed bg-paper-red flex flex-col items-center justify-center gap-12 z-30"
+    class="w-screen h-lvh fixed inset-0 bg-paper z-30 overflow-hidden"
     transition:fly={{ y: "-100%" }}
   >
-    <a
-      href="/"
-      class="text-white text-2xl"
-      onclick={() => (isOverlayVisible = false)}>Home</a
-    >
-    {#each NAV_LINKS as item (item.href)}
+    <div class="flex items-start justify-between px-6 md:px-20 py-2.5">
       <a
-        href={item.href}
-        class="text-white text-2xl"
-        onclick={() => (isOverlayVisible = false)}>{item.label}</a
+        href="/"
+        onclick={toggleOverlayOff}
+        class="block w-30 md:w-37.75 mix-blend-multiply opacity-85"
+        aria-label="Reddoor home"
       >
-    {/each}
-
-    <button
-      class="absolute top-5 right-5 opacity-60 hover:opacity-100 transition z-40"
-      onclick={toggleOverlayOff}
-      aria-label="Close menu"
-    >
-      <div in:fade={{ delay: 600 }} out:fade class="text-white">
+        <img
+          src={scriptReddoor}
+          alt="Reddoor"
+          class="w-full h-auto block"
+        />
+      </a>
+      <button
+        class="text-black opacity-95 hover:opacity-100 transition mt-3"
+        onclick={toggleOverlayOff}
+        aria-label="Close menu"
+      >
         <i class="fa-sharp fa-thin fa-xmark fa-2xl"></i>
-      </div>
-    </button>
+      </button>
+    </div>
+
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 md:gap-10 opacity-85"
+    >
+      {#each NAV_LINKS as item (item.href)}
+        {@const isActive =
+          item.href === "/"
+            ? page.url.pathname === "/"
+            : page.url.pathname === item.href ||
+              page.url.pathname.startsWith(item.href + "/")}
+        <a
+          href={item.href}
+          onclick={toggleOverlayOff}
+          class="relative text-primary py-2 whitespace-nowrap font-['Besley'] text-[40px] md:text-[60px] leading-tight after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[1.5px] after:bg-primary after:origin-left after:transition-transform after:duration-300 after:ease-out {isActive
+            ? 'after:scale-x-100'
+            : 'after:scale-x-0 hover:after:scale-x-100'}"
+        >
+          {item.label}
+        </a>
+      {/each}
+    </div>
   </div>
 {/if}
 <LandscapeModal />

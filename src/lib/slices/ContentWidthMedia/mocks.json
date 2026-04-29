@@ -111,7 +111,11 @@
           }
         ]
       },
-      "hasPadding": {
+      "hasTopPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hasBottomPadding": {
         "__TYPE__": "BooleanContent",
         "value": true
       },

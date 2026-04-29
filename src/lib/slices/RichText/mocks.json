@@ -34,7 +34,11 @@
         "value": "right",
         "type": "Select"
       },
-      "hasPadding": {
+      "hasTopPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "hasBottomPadding": {
         "__TYPE__": "BooleanContent",
         "value": false
       },

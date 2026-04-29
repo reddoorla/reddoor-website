@@ -917,15 +917,26 @@ export interface ContentWidthImageSliceDefaultPrimary {
   isAnimated: prismic.BooleanField;
 
   /**
-   * slice vertical padding field in *ContentWidthMedia → Default → Primary*
+   * top padding field in *ContentWidthMedia → Default → Primary*
    *
    * - **Field Type**: Boolean
    * - **Placeholder**: *None*
    * - **Default Value**: true
-   * - **API ID Path**: content_width_image.default.primary.hasPadding
+   * - **API ID Path**: content_width_image.default.primary.hasTopPadding
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
-  hasPadding: prismic.BooleanField;
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * bottom padding field in *ContentWidthMedia → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: content_width_image.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * margin/gaps between images field in *ContentWidthMedia → Default → Primary*
@@ -1058,10 +1069,21 @@ export interface RichTextSliceDefaultPrimary {
    * - **Field Type**: Boolean
    * - **Placeholder**: *None*
    * - **Default Value**: true
-   * - **API ID Path**: rich_text.default.primary.hasPadding
+   * - **API ID Path**: rich_text.default.primary.hasTopPadding
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
-  hasPadding: prismic.BooleanField;
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * bottom padding field in *RichText → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: rich_text.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * animate in field in *RichText → Default → Primary*
@@ -1221,10 +1243,21 @@ export interface ScreenWidthColumnsSliceDefaultPrimary {
    * - **Field Type**: Boolean
    * - **Placeholder**: *None*
    * - **Default Value**: true
-   * - **API ID Path**: screen_width_columns.default.primary.hasPadding
+   * - **API ID Path**: screen_width_columns.default.primary.hasTopPadding
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
-  hasPadding: prismic.BooleanField;
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * bottom padding field in *ScreenWidthColumns → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: screen_width_columns.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * animate in field in *ScreenWidthColumns → Default → Primary*
@@ -1343,10 +1376,21 @@ export interface ScreenWidthImageSliceDefaultPrimary {
    * - **Field Type**: Boolean
    * - **Placeholder**: *None*
    * - **Default Value**: false
-   * - **API ID Path**: screen_width_image.default.primary.hasPadding
+   * - **API ID Path**: screen_width_image.default.primary.hasTopPadding
    * - **Documentation**: https://prismic.io/docs/field#boolean
    */
-  hasPadding: prismic.BooleanField;
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * bottom padding field in *ScreenWidthMedia → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: screen_width_image.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/field#boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * background field in *ScreenWidthMedia → Default → Primary*

@@ -3,7 +3,11 @@
     "__TYPE__": "SharedSliceContent",
     "variation": "default",
     "primary": {
-      "hasPadding": {
+      "hasTopPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "hasBottomPadding": {
         "__TYPE__": "BooleanContent",
         "value": false
       },
