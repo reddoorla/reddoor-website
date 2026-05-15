@@ -25,9 +25,9 @@
       hasPadding?: boolean | null;
     },
   );
-  const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? false);
+  const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? true);
   const padBottom = $derived(
-    padding.hasBottomPadding ?? padding.hasPadding ?? false,
+    padding.hasBottomPadding ?? padding.hasPadding ?? true,
   );
 </script>
 
