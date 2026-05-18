@@ -4,6 +4,10 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import type { ImageField } from "@prismicio/client";
   import { PrismicImage } from "@prismicio/svelte";
+  import {
+    slugForCard,
+    parseCardNumberFromHash,
+  } from "$lib/twenty-for-twenty/hash";
 
   type ProjectCard = {
     number: number;
@@ -63,8 +67,86 @@
     return (1 - l * (p - i / l)) * 100;
   };
 
+  const scrollTargetForCard = (cardIndex: number) => {
+    if (!cardsSection || typeof window === "undefined") return null;
+    const cardsRect = cardsSection.getBoundingClientRect();
+    const sectionOffsetTop = cardsSection.offsetTop;
+    const scrollStart = sectionOffsetTop;
+    const scrollEnd =
+      sectionOffsetTop +
+      cardsRect.height -
+      viewportHeight -
+      (40 * viewportHeight) / 100;
+    const L = projectCardArray.length;
+    if (L === 0) return null;
+    const progress = L === 1 ? 0 : cardIndex / (L - 1);
+    return {
+      scrollY: scrollStart + progress * (scrollEnd - scrollStart),
+      progress,
+    };
+  };
+
+  const resolveHashToScroll = () => {
+    if (typeof window === "undefined") return;
+    const number = parseCardNumberFromHash(window.location.hash);
+    if (number === null) return;
+    const cardIndex = projectCardArray.findIndex((c) => c.number === number);
+    if (cardIndex < 0) return;
+    const target = scrollTargetForCard(cardIndex);
+    if (!target) return;
+    window.scrollTo({ top: target.scrollY, behavior: "instant" });
+    targetProgress = target.progress;
+    cardStackProgress = target.progress;
+  };
+
+  let lastWrittenHash = "";
+
+  const syncHashFromScroll = () => {
+    if (typeof window === "undefined") return;
+    if (!cardsSection) return;
+    const L = projectCardArray.length;
+    if (L === 0) return;
+
+    const cardsRect = cardsSection.getBoundingClientRect();
+    const sectionOffsetTop = cardsSection.offsetTop;
+    const scrollStart = sectionOffsetTop;
+    // Extend the upper bound past the animation-complete point so the trailing
+    // grace at the bottom of the section belongs to the last card's hash,
+    // rather than clearing the hash as soon as progress hits 1.
+    const scrollEnd =
+      sectionOffsetTop + cardsRect.height - viewportHeight;
+    const pageScrollTop =
+      window.pageYOffset || document.documentElement.scrollTop;
+
+    const inside = pageScrollTop >= scrollStart && pageScrollTop <= scrollEnd;
+
+    if (!inside) {
+      if (lastWrittenHash && window.location.hash === lastWrittenHash) {
+        const url = window.location.pathname + window.location.search;
+        window.history.replaceState(null, "", url);
+        lastWrittenHash = "";
+      }
+      return;
+    }
+
+    const cardIndex = Math.max(
+      0,
+      Math.min(L - 1, Math.floor(targetProgress * (L - 1))),
+    );
+    const card = projectCardArray[cardIndex];
+    const nextHash = "#" + slugForCard(card);
+    if (nextHash === lastWrittenHash) return;
+    if (nextHash === window.location.hash) {
+      lastWrittenHash = nextHash;
+      return;
+    }
+    window.history.replaceState(null, "", nextHash);
+    lastWrittenHash = nextHash;
+  };
+
   const handleScroll = () => {
     calculateTargetProgress();
+    syncHashFromScroll();
   };
 
   function easeInQuint(x: number): number {
@@ -73,11 +155,14 @@
 
   $effect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("hashchange", resolveHashToScroll);
     animationFrameId = requestAnimationFrame(animate);
     handleScroll();
+    resolveHashToScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("hashchange", resolveHashToScroll);
       cancelAnimationFrame(animationFrameId);
     };
   });

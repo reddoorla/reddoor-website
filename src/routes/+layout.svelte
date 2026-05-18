@@ -71,6 +71,9 @@
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
     }
+    // Smooth-scroll CSS turns this into an animation that would fight any
+    // hash-target scroll the page sets in its own $effect.
+    if (typeof window !== "undefined" && window.location.hash) return;
     window.scrollTo(0, 0);
   }
 
@@ -80,6 +83,7 @@
 
   afterNavigate(() => {
     disableScrollHandling();
+    if (typeof window !== "undefined" && window.location.hash) return;
     setTimeout(() => {
       scrollTo({ top: 0, behavior: "instant" });
     }, 600);

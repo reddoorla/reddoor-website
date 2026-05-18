@@ -85,3 +85,45 @@ test("404 page renders the custom error component", async ({ page }) => {
   await expect(page.getByText("404", { exact: false }).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("/twenty-for-twenty supports anchor links to specific cards", async ({
+  page,
+}) => {
+  const errors = attachConsoleWatcher(page);
+
+  // Inbound: hash by number only should jump into the card stack.
+  await page.goto("/twenty-for-twenty#02", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("footer")).toBeVisible();
+  // Wait for the page's $effect to fire resolveHashToScroll on mount.
+  await page
+    .waitForFunction(() => window.scrollY > 100, { timeout: 5000 })
+    .catch(() => {});
+
+  const viewportHeight = page.viewportSize()?.height ?? 720;
+  const scrollY1 = await page.evaluate(() => window.scrollY);
+  expect(scrollY1, "card-2 hash should produce non-zero scroll").toBeGreaterThan(
+    100,
+  );
+
+  // Outbound: scroll 1 viewport further into the card stack — hash should
+  // advance to a card number higher than 2.
+  await page.evaluate((dy) => window.scrollBy(0, dy), viewportHeight);
+  // Give the scroll handler a moment to fire replaceState.
+  await page.waitForTimeout(200);
+  const hashAfter = await page.evaluate(() => location.hash);
+  const matchAfter = hashAfter.match(/^#(\d+)/);
+  expect(matchAfter, `hash "${hashAfter}" should match #NN…`).not.toBeNull();
+  expect(Number(matchAfter![1]), "hash should advance past card 2").toBeGreaterThan(2);
+
+  // Bogus hash should not throw and should not scroll to a card position.
+  // Navigate away first so the next goto is a full inbound navigation, then
+  // come back with the bogus hash.
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/twenty-for-twenty#99-nonexistent", {
+    waitUntil: "domcontentloaded",
+  });
+  const scrollY2 = await page.evaluate(() => window.scrollY);
+  expect(scrollY2, "bogus hash should leave page at top").toBeLessThan(50);
+
+  expect(errors, "console errors on /twenty-for-twenty").toEqual([]);
+});
