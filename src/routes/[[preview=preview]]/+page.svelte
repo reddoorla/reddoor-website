@@ -15,7 +15,7 @@
 <svelte:head>
   <title>Reddoor Creative | Home</title>
 </svelte:head>
-<OpeningAnimation />
+<OpeningAnimation slides={data.openingAnimation.data.slides} />
 
 <div class="relative w-screen bg-paper">
   <section class="w-screen py-32">

@@ -3,14 +3,12 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { fade, fly } from "svelte/transition";
   import { page } from "$app/state";
-  import stJames from "$lib/assets/images/openingBgs/stJamesBg.jpg?as=run";
-  import enzos from "$lib/assets/images/openingBgs/enzosBg.jpg?as=run";
-  import fyf from "$lib/assets/images/openingBgs/fyfBg.jpg?as=run";
-  import sonder from "$lib/assets/images/openingBgs/sonderBg.jpg?as=run";
+  import { PrismicImage, PrismicLink } from "@prismicio/svelte";
+  import { isFilled } from "@prismicio/client";
+  import type { OpeningAnimationDocumentDataSlidesItem } from "../../prismicio-types";
 
   import printedReddoorLogo from "$lib/assets/icons/logos/reddoor_logo.png";
   import { isInHero } from "$lib/stores/isInHero.svelte";
-  import Img from "$lib/components/Img.svelte";
   import drawnLogo from "$lib/assets/icons/logos/staticReddoor.png";
   import { untrack } from "svelte";
 
@@ -32,6 +30,9 @@
   const INTRO_FADE_MS = 400;
   const HEADLINE_INTRO = "Arm your brand with";
 
+  type Props = { slides: OpeningAnimationDocumentDataSlidesItem[] };
+  let { slides }: Props = $props();
+
   let isOverlayVisible = $state(false);
 
   let viewportHeight = $state(0);
@@ -47,37 +48,16 @@
 
   const isScrolledPastHero = $derived(percentageScrolled >= HERO_EXIT_PCT);
 
-  const backgrounds = [
-    {
-      name: "St James' School",
-      src: stJames,
-      media: "Branding, Print",
-      link: "/portfolio/st-james-episcopal-school",
-    },
-    {
-      name: "Enzo's Hand Wash",
-      src: enzos,
-      media: "Branding, Print, Digital",
-      link: "/portfolio/enzos",
-    },
-    {
-      name: "Freedom Youth Foundation",
-      src: fyf,
-      media: "Branding, Print",
-      link: "/portfolio/freedom-youth-foundation",
-    },
-    {
-      name: "Gallery Sonder",
-      src: sonder,
-      media: "Branding, Print, Digital",
-      link: "/portfolio/gallery-sonder",
-    },
-  ];
-
   let currentImageIndex = $state(0);
+  const safeIndex = $derived(
+    slides.length ? currentImageIndex % slides.length : 0,
+  );
   const changeBackgroundImage = () => {
-    currentImageIndex = (currentImageIndex + 1) % backgrounds.length;
+    if (slides.length === 0) return;
+    currentImageIndex = (currentImageIndex + 1) % slides.length;
   };
+
+  const currentSlide = $derived(slides[safeIndex]);
 
   const scrollThroughHero = () => {
     if (!openingSection) return;
@@ -164,7 +144,7 @@
 
   // Rotate background images only while visibly inside the hero and motion is allowed.
   $effect(() => {
-    if (reducedMotion || isScrolledPastHero) return;
+    if (reducedMotion || isScrolledPastHero || slides.length < 2) return;
     const id = setInterval(changeBackgroundImage, ROTATE_INTERVAL_MS);
     return () => clearInterval(id);
   });
@@ -271,14 +251,15 @@
         class="fixed top-0 left-0 w-lvw h-dvh z-20"
         style="clip-path: url(#mask-path);"
       >
-        {#each backgrounds as background, index (background.link)}
-          <Img
-            src={background.src}
-            alt={background.name}
+        {#each slides as slide, index (index)}
+          <PrismicImage
+            field={viewportWidth < MOBILE_BREAKPOINT_PX && slide.background_image_mobile_crop
+              ? slide.background_image_mobile_crop
+              : slide.background_image}
             loading={index === 0 ? "eager" : "lazy"}
             fetchpriority={index === 0 ? "high" : "auto"}
             class="absolute h-full w-full object-cover will-change-[opacity] transition-opacity duration-1000 ease-fast-slow {index ===
-            currentImageIndex
+            safeIndex
               ? 'opacity-100'
               : ' delay-1000 opacity-0'}"
           />
@@ -295,28 +276,37 @@
           aria-label="Scroll to continue"
         ></button>
 
-        {#key currentImageIndex}
-          <div
-            class="hidden lg:block h-dvh w-screen fixed top-0 left-0 pointer-events-none"
-            in:fade={{ delay: 400 }}
-            out:fade
-          >
-            <ContentWidth
-              class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16"
+        {#if currentSlide}
+          {#key safeIndex}
+            <div
+              class="hidden lg:block h-dvh w-screen fixed top-0 left-0 pointer-events-none"
+              in:fade={{ delay: 400 }}
+              out:fade
             >
-              <a
-                class="pointer-events-auto"
-                href={backgrounds[currentImageIndex].link}
-                ><p class="text-white text-left underline underline-offset-4">
-                  {backgrounds[currentImageIndex].name}
-                </p></a
+              <ContentWidth
+                class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16"
               >
-              <p class="text-white text-left">
-                {backgrounds[currentImageIndex].media}
-              </p>
-            </ContentWidth>
-          </div>
-        {/key}
+                {#if isFilled.link(currentSlide.project_link)}
+                  <PrismicLink
+                    field={currentSlide.project_link}
+                    class="pointer-events-auto"
+                  >
+                    <p class="text-white text-left underline underline-offset-4">
+                      {currentSlide.project_name}
+                    </p>
+                  </PrismicLink>
+                {:else if currentSlide.project_name}
+                  <p class="text-white text-left">
+                    {currentSlide.project_name}
+                  </p>
+                {/if}
+                <p class="text-white text-left">
+                  {currentSlide.services}
+                </p>
+              </ContentWidth>
+            </div>
+          {/key}
+        {/if}
 
         {#if isInHero.value}
           <ContentWidth
