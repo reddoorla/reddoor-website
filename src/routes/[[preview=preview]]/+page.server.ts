@@ -10,9 +10,12 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
 
   const logoSoup = await client.getSingle("logo_soup");
 
+  const openingAnimation = await client.getSingle("opening_animation");
+
   return {
     page,
     logoSoup,
+    openingAnimation,
     title: asText(page.data.title),
     meta_description: page.data.meta_description,
     meta_title: page.data.meta_title,
