@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm:vite:dev\" \"npm:slicemachine\" --prefix-colors blue,magenta",
+    "dev": "concurrently \"pnpm:vite:dev\" \"pnpm:slicemachine\" --prefix-colors blue,magenta",
     "vite:dev": "vite dev --host",
     "build": "vite build",
     "preview": "vite preview",
@@ -16,20 +16,15 @@
     "vite:devHost": "vite dev --host --port 8888"
   },
   "devDependencies": {
-    "@eslint/js": "^9",
     "@playwright/test": "^1.59.1",
     "@slicemachine/adapter-sveltekit": "^0.3.60",
     "@sveltejs/adapter-netlify": "^6.0.4",
     "@sveltejs/kit": "^2.57.1",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.2.4",
-    "@typescript-eslint/parser": "^8.59.0",
     "@zerodevx/svelte-img": "^2.1.2",
     "concurrently": "^8.2.2",
-    "eslint": "^9",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-svelte": "^3.17.1",
-    "globals": "^17.5.0",
+    "eslint": "^10.4.0",
     "postcss": "^8.4.35",
     "prettier": "^3.1.1",
     "prettier-plugin-svelte": "^3.1.2",
@@ -55,6 +50,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
+      "protobufjs",
       "sharp"
     ]
   }
