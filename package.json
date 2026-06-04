@@ -39,7 +39,10 @@
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
     "typescript-svelte-plugin": "^0.3.36",
-    "vite": "^8.0.9"
+    "vite": "^8.0.9",
+    "@reddoorla/maintenance": "^0.27.0",
+    "@lhci/cli": "^0.15.1",
+    "@axe-core/playwright": "^4.11.3"
   },
   "type": "module",
   "packageManager": "pnpm@10.33.1",
