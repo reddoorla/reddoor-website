@@ -20,9 +20,7 @@
     },
   );
   const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? false);
-  const padBottom = $derived(
-    padding.hasBottomPadding ?? padding.hasPadding ?? false,
-  );
+  const padBottom = $derived(padding.hasBottomPadding ?? padding.hasPadding ?? false);
 </script>
 
 {#if !slice.primary.hide}
@@ -33,9 +31,7 @@
   >
     {#if slice.primary.vimeoid}
       <PrismicImage
-        class="w-screen h-full object-cover absolute {padTop
-          ? 'top-12'
-          : 'top-0'} left-0 z-0"
+        class="w-screen h-full object-cover absolute {padTop ? 'top-12' : 'top-0'} left-0 z-0"
         field={slice.primary.image}
       />
 

@@ -47,21 +47,12 @@
     const y = window.pageYOffset || document.documentElement.scrollTop;
 
     targetMonoCarTranslation = 100 * (y / monoCarDivRect.bottom);
-    targetCarTranslation =
-      (100 * (carRect.top - carRect.height / 2)) / viewportHeight;
+    targetCarTranslation = (100 * (carRect.top - carRect.height / 2)) / viewportHeight;
   };
 
   const animate = () => {
-    carTranslationInVW = lerp(
-      carTranslationInVW,
-      targetCarTranslation,
-      LERP_FACTOR,
-    );
-    monoCarTranslationInVW = lerp(
-      monoCarTranslationInVW,
-      targetMonoCarTranslation,
-      LERP_FACTOR,
-    );
+    carTranslationInVW = lerp(carTranslationInVW, targetCarTranslation, LERP_FACTOR);
+    monoCarTranslationInVW = lerp(monoCarTranslationInVW, targetMonoCarTranslation, LERP_FACTOR);
     animationFrameId = requestAnimationFrame(animate);
   };
 
@@ -84,9 +75,7 @@
     showMobilePopup = true;
     mobilePopupTarget = target;
     setTimeout(() => {
-      const closeBtn = document.querySelector(
-        "[data-popup-close]",
-      ) as HTMLElement;
+      const closeBtn = document.querySelector("[data-popup-close]") as HTMLElement;
       closeBtn?.focus();
     }, 50);
   };
@@ -101,11 +90,7 @@
   };
 
   const handleClickOutside = (e: MouseEvent) => {
-    if (
-      showMobilePopup &&
-      mobilePopupTarget &&
-      !mobilePopupTarget.contains(e.target as Node)
-    ) {
+    if (showMobilePopup && mobilePopupTarget && !mobilePopupTarget.contains(e.target as Node)) {
       closeMobilePopup();
     }
   };
@@ -201,10 +186,7 @@
   <title>About | Reddoor Creative</title>
 </svelte:head>
 
-<svelte:window
-  bind:innerHeight={viewportHeight}
-  bind:innerWidth={viewportWidth}
-/>
+<svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
 
 {#snippet promiseLink(label: string, tooltip: string)}
   <button
@@ -212,8 +194,7 @@
     aria-label="{label} - more information"
     onmouseleave={() => !isMobile && (popupText = "")}
     onmouseenter={() => !isMobile && (popupText = tooltip)}
-    onclick={(e) =>
-      handleMobilePopupOpen(tooltip, e.currentTarget as HTMLElement)}
+    onclick={(e) => handleMobilePopupOpen(tooltip, e.currentTarget as HTMLElement)}
     onfocus={(e) => handleTooltipFocus(tooltip, e)}
     onblur={handleTooltipBlur}
     class="bg-transparent border-0 p-0 text-inherit font-inherit underline underline-offset-[25%] {isMobile
@@ -236,10 +217,7 @@
 
 <!-- Mobile Popup -->
 {#if showMobilePopup && isMobile}
-  <div
-    transition:fade
-    class="fixed inset-0 z-30 flex items-center justify-center p-4"
-  >
+  <div transition:fade class="fixed inset-0 z-30 flex items-center justify-center p-4">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black/20" aria-hidden="true"></div>
     <!-- Popup -->
@@ -265,15 +243,12 @@
 <div class="w-screen relative bg-paper">
   <ContentWidth class="h-full flex justify-center items-center py-48">
     <h5 class="w-full md:w-4/5 max-w-[800px] z-10 title">
-      We save you from drowning in an ocean of noise by arming you with a clear
-      story and compelling design.
+      We save you from drowning in an ocean of noise by arming you with a clear story and compelling
+      design.
     </h5>
   </ContentWidth>
 </div>
-<div
-  class="w-screen bg-paper pb-8 relative overflow-x-clip"
-  bind:this={monoCarDivRef}
->
+<div class="w-screen bg-paper pb-8 relative overflow-x-clip" bind:this={monoCarDivRef}>
   <ContentWidth class="flex ">
     <h3 class="text-primary z-10 relative">About</h3>
   </ContentWidth>
@@ -288,9 +263,7 @@
 <div class="w-screen bg-paper pb-12 md:pb-48">
   <ContentWidth class="flex relative border-primary border-b-1">
     <img src={key} alt="keys" class="lg:w-1/5 md:w-1/3 w-2/3" />
-    <h2 class="text-primary absolute left-0 bottom-2 md:bottom-8">
-      Our Promises
-    </h2>
+    <h2 class="text-primary absolute left-0 bottom-2 md:bottom-8">Our Promises</h2>
   </ContentWidth>
   <ContentWidth class="flex flex-row justify-end">
     <div class=" w-full md:w-3/5 h-72 relative">
@@ -303,10 +276,7 @@
           <p class="mt-8">01/03</p>
           <h5 class="text-primary">
             We will
-            {@render promiseLink(
-              "act on your behalf",
-              "by using our creative expertise to serve.",
-            )}
+            {@render promiseLink("act on your behalf", "by using our creative expertise to serve.")}
             <br /> by choosing to
             {@render promiseLink(
               "work hard and smart",
@@ -333,10 +303,7 @@
               "since we define ourselves as enemies of mediocrity.",
             )}
             <br /> by choosing to
-            {@render promiseLink(
-              "take risks",
-              "because exceptional work requires it.",
-            )}
+            {@render promiseLink("take risks", "because exceptional work requires it.")}
             <br /> so you can
             {@render promiseLink(
               "feel confident.",
@@ -353,20 +320,14 @@
           <p class="mt-8">03/03</p>
           <h5 class="text-primary">
             We will
-            {@render promiseLink(
-              "do meaningful work",
-              "so we may care deeply about it.",
-            )}
+            {@render promiseLink("do meaningful work", "so we may care deeply about it.")}
             <br /> by choosing to
             {@render promiseLink(
               "seek order",
               "because reducing noise and obstacles allows us to connect with purpose.",
             )}
             <br /> so you can
-            {@render promiseLink(
-              "feel energized.",
-              "by finding clarity and focus in what you do.",
-            )}
+            {@render promiseLink("feel energized.", "by finding clarity and focus in what you do.")}
           </h5>
         </div>
       {/if}
@@ -393,37 +354,16 @@
 </div>
 
 <div class="w-screen flex flex-col lg:flex-row relative bg-paper">
-  <div
-    use:anim
-    class="w-full md:w-1/3 aspect-square relative"
-  >
-    <Img
-      class="w-full h-full absolute z-0 object-cover"
-      src={beach}
-      alt="beach"
-    />
+  <div use:anim class="w-full md:w-1/3 aspect-square relative">
+    <Img class="w-full h-full absolute z-0 object-cover" src={beach} alt="beach" />
     <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">CA</h3>
   </div>
-  <div
-    use:anim
-    class="w-full md:w-1/3 aspect-square relative"
-  >
-    <Img
-      class="w-full h-full absolute z-0 object-cover"
-      src={hills}
-      alt="hills"
-    />
+  <div use:anim class="w-full md:w-1/3 aspect-square relative">
+    <Img class="w-full h-full absolute z-0 object-cover" src={hills} alt="hills" />
     <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">TX</h3>
   </div>
-  <div
-    use:anim
-    class="w-full md:w-1/3 aspect-square relative"
-  >
-    <Img
-      class="w-full h-full absolute z-0 object-cover"
-      src={lake}
-      alt="lake"
-    />
+  <div use:anim class="w-full md:w-1/3 aspect-square relative">
+    <Img class="w-full h-full absolute z-0 object-cover" src={lake} alt="lake" />
     <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">ID</h3>
   </div>
 </div>
@@ -436,31 +376,20 @@
   <ContentWidth class="flex flex-col items-end" animateIn>
     <div use:anim class="md:w-3/5">
       <p class="text-left md:w-2/3 mt-8">
-        We work with clients across the US and occasionally around the globe. We
-        have designers sprinkled across California, Texas and Idaho,
-        conveniently located near the Los Angeles, San Antonio, and Boise metro
-        areas. Regardless of your location, partnering with Reddoor Creative
-        will give you the confidence in your brand that you've been needing.
+        We work with clients across the US and occasionally around the globe. We have designers
+        sprinkled across California, Texas and Idaho, conveniently located near the Los Angeles, San
+        Antonio, and Boise metro areas. Regardless of your location, partnering with Reddoor
+        Creative will give you the confidence in your brand that you've been needing.
       </p>
     </div>
-    <div
-      class="md:w-3/5 flex flex-col items-center gap-6 md:gap-0 md:flex-row mt-16"
-    >
+    <div class="md:w-3/5 flex flex-col items-center gap-6 md:gap-0 md:flex-row mt-16">
       <div use:anim class="w-4/5 md:w-1/3 md:pr-4 flex flex-col">
-        <Img
-          src={tim}
-          alt="tim holmes"
-          class="w-full aspect-square"
-        />
+        <Img src={tim} alt="tim holmes" class="w-full aspect-square" />
         <div class="text-primary large-body font-thin mt-2">Tim Holmes</div>
         <p class="text-mid font-thin">CA+ID Creative Director</p>
       </div>
       <div use:anim class="w-4/5 md:w-1/3 md:pl-4 flex flex-col">
-        <Img
-          src={erik}
-          alt="Erik Svendsen"
-          class="w-full aspect-square"
-        />
+        <Img src={erik} alt="Erik Svendsen" class="w-full aspect-square" />
         <p class="text-primary large-body mt-2 large-body">Erik Svendsen</p>
         <div class="font-thin">TX Creative Director</div>
       </div>
@@ -476,18 +405,15 @@
   <ContentWidth class="flex flex-col justify-end items-end">
     <div use:anim class="md:w-3/5">
       <h5 class="md:w-2/3">
-        Because of unforeseen circumstances owner, Tim Holmes, found himself
-        stuck in LA with a white Toyota and a seemingly unfortunate red door.
+        Because of unforeseen circumstances owner, Tim Holmes, found himself stuck in LA with a
+        white Toyota and a seemingly unfortunate red door.
       </h5>
     </div>
   </ContentWidth>
 
   <!-- Car in separate container outside ContentWidth -->
   <div class="w-full mt-8 relative overflow-x-hidden">
-    <div
-      class="will-change-transform"
-      style="transform:translateX({carTranslationInVW}vw)"
-    >
+    <div class="will-change-transform" style="transform:translateX({carTranslationInVW}vw)">
       <img
         class="w-[150%] md:w-3/5"
         src={car}
@@ -501,20 +427,18 @@
     <div class="flex flex-col md:w-3/5 my-8 gap-8">
       <div use:anim class="md:w-2/3">
         <p>
-          The young designer soon realized that in city where "your wheels" are
-          a part of your identity he had two choices: be embarrassed or embrace
-          the moment. Choosing the latter he quickly told his friend how excited
-          he was to get a red door since he always wanted a red sports car and
-          thought he'd start with the driver's side door and just work his way
-          around replacing one piece at a time.
+          The young designer soon realized that in city where "your wheels" are a part of your
+          identity he had two choices: be embarrassed or embrace the moment. Choosing the latter he
+          quickly told his friend how excited he was to get a red door since he always wanted a red
+          sports car and thought he'd start with the driver's side door and just work his way around
+          replacing one piece at a time.
         </p>
       </div>
       <div use:anim class="md:w-2/3">
         <p>
-          The car soon became known as "reddoor" having its own personality
-          because of the one thing that most people would see as unfortunate.
-          With a proud owner it had no other reason than to be proud, too. What
-          once was headed for the trash heap was now a gem of a story.
+          The car soon became known as "reddoor" having its own personality because of the one thing
+          that most people would see as unfortunate. With a proud owner it had no other reason than
+          to be proud, too. What once was headed for the trash heap was now a gem of a story.
         </p>
       </div>
 
@@ -528,15 +452,13 @@
         <div use:anim class="flex flex-col w-2/3 md:w-1/3 pr-4">
           <p class="text-primary">01</p>
           <p class="mt-2">
-            Find the unique quality within a business and tell that story in a
-            compelling way.
+            Find the unique quality within a business and tell that story in a compelling way.
           </p>
         </div>
         <div use:anim class="flex flex-col w-2/3 md:w-1/3 mt-6 md:mt-0 pr-4">
           <p class="text-primary">02</p>
           <p class="mt-2">
-            Champion our clients and remember that we exist to serve them with
-            our talents.
+            Champion our clients and remember that we exist to serve them with our talents.
           </p>
         </div>
       </div>
@@ -551,8 +473,8 @@
     </div>
     <div use:anim class="md:w-3/5 text-white">
       <h5 class=" md:w-2/3">
-        "Time has taught me that true north is to not just focus on the work
-        itself but also the people I'm working with."
+        "Time has taught me that true north is to not just focus on the work itself but also the
+        people I'm working with."
       </h5>
       <div class="flex flex-row gap-5 mt-10">
         <Img src={tim} alt="tim holmes" class="w-20" />

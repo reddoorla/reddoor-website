@@ -93,7 +93,7 @@
 <svelte:window bind:scrollY />
 
 <svelte:head>
-  <title>{page.data.title}</title>
+  <title>{page.data.title ?? "Reddoor"}</title>
   {#if page.data.meta_description}
     <meta name="description" content={page.data.meta_description} />
   {/if}
@@ -104,11 +104,9 @@
     <meta name="og:image" content={page.data.meta_image.url} />
     <meta name="twitter:card" content="summary_large_image" />
   {/if}
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, user-scalable=no"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- JSON-LD assembled via concatenation so the Svelte ESLint parser doesn't see a literal </script> tag -->
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html "<" +
     'script type="application/ld+json">' +
     JSON.stringify(organizationJsonLd) +
@@ -128,11 +126,7 @@
         class="block w-30 md:w-37.75 mix-blend-multiply opacity-85"
         aria-label="Reddoor home"
       >
-        <img
-          src={scriptReddoor}
-          alt="Reddoor"
-          class="w-full h-auto block"
-        />
+        <img src={scriptReddoor} alt="Reddoor" class="w-full h-auto block" />
       </a>
       <button
         class="text-black opacity-95 hover:opacity-100 transition mt-3"
@@ -150,8 +144,7 @@
         {@const isActive =
           item.href === "/"
             ? page.url.pathname === "/"
-            : page.url.pathname === item.href ||
-              page.url.pathname.startsWith(item.href + "/")}
+            : page.url.pathname === item.href || page.url.pathname.startsWith(item.href + "/")}
         <a
           href={item.href}
           onclick={toggleOverlayOff}
@@ -178,17 +171,12 @@
         transition:fly={{ y: -64, delay: 200 }}
       >
         <ContentWidth class="flex flex-row justify-between items-center h-full">
-          <a
-            href="/"
-            class="hover:opacity-80 transition-all duration-500 bump label"
-          >
+          <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
             Reddoor Creative
           </a>
 
           <div class="flex flex-row">
-            <div
-              class="hidden lg:flex flex-row justify-between items-center gap-10"
-            >
+            <div class="hidden lg:flex flex-row justify-between items-center gap-10">
               {#each NAV_LINKS as item (item.href)}
                 <a
                   class="label hover:opacity-80 transition-opacity"
@@ -218,23 +206,16 @@
         transition:fly={{ y: -64, delay: 500 }}
       >
         <ContentWidth class="flex flex-row justify-between items-center h-full">
-          <a
-            href="/"
-            class="hover:opacity-80 transition-all duration-500 bump label"
-          >
+          <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
             Reddoor Creative
           </a>
 
           <div class="flex flex-row">
-            <div
-              class="hidden lg:flex flex-row justify-between items-center gap-10"
-            >
+            <div class="hidden lg:flex flex-row justify-between items-center gap-10">
               {#each NAV_LINKS as item, i (item.href)}
                 {#if i < NAV_LINKS.length - 1}
-                  <a
-                    class="label"
-                    href={item.href}
-                    onclick={() => (isOverlayVisible = false)}>{item.label}</a
+                  <a class="label" href={item.href} onclick={() => (isOverlayVisible = false)}
+                    >{item.label}</a
                   >
                 {:else}
                   <a
@@ -265,18 +246,11 @@
     <footer class="relative bg-paper">
       <div class="w-full h-full absolute top-0 left-0 bg-paper"></div>
 
-      <ContentWidth
-        class="pb-4 flex flex-row justify-end items-end z-20 relative"
-      >
-        <div
-          class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5"
-        >
+      <ContentWidth class="pb-4 flex flex-row justify-end items-end z-20 relative">
+        <div class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5">
           <div class="flex flex-col gap-1">
             <a href="/" class="translate-x-[-8%] w-3/5 md:w-full"
-              ><img
-                src={rotatingReddoor}
-                alt="reddoor drawn in multiple styles"
-              /></a
+              ><img src={rotatingReddoor} alt="reddoor drawn in multiple styles" /></a
             >
             <a href="/portfolio" class="text-primary underline">Portfolio</a>
             <a href="/about" class="text-primary underline">About</a>
@@ -285,18 +259,14 @@
               href="https://www.linkedin.com/company/reddoor-creative"
               class="text-primary underline">LinkedIn</a
             >
-            <a
-              href="https://www.instagram.com/reddoorla/"
-              class="text-primary underline">Instagram</a
+            <a href="https://www.instagram.com/reddoorla/" class="text-primary underline"
+              >Instagram</a
             >
           </div>
           <div class="flex flex-col">
             <div>CONTACT</div>
-            <a href="tel:3103413571" class="text-primary underline"
-              >+1 310-341-3571</a
-            >
-            <a href="mailto:info@reddoorla.com" class="text-primary underline"
-              >info@reddoorla.com</a
+            <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
+            <a href="mailto:info@reddoorla.com" class="text-primary underline">info@reddoorla.com</a
             >
           </div>
           <div class="flex flex-col">
@@ -305,9 +275,7 @@
             <div>Fair Oaks Ranch, TX 78015</div>
           </div>
           <div class="label text-nowrap">
-            {"© Reddoor Creative 2006-" +
-              new Date().getFullYear() +
-              ", All Rights Reserved"}
+            {"© Reddoor Creative 2006-" + new Date().getFullYear() + ", All Rights Reserved"}
           </div>
         </div>
       </ContentWidth>

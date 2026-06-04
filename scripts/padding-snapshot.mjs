@@ -9,10 +9,7 @@ const AFFECTED_TYPES = new Set([
 ]);
 
 const config = JSON.parse(
-  await readFile(
-    new URL("../slicemachine.config.json", import.meta.url),
-    "utf8",
-  ),
+  await readFile(new URL("../slicemachine.config.json", import.meta.url), "utf8"),
 );
 
 const client = prismic.createClient(config.repositoryName);
@@ -31,10 +28,7 @@ for (const doc of docs) {
       type: doc.type,
       sliceIndex,
       sliceType: slice.slice_type,
-      hasPadding:
-        typeof slice.primary?.hasPadding === "boolean"
-          ? slice.primary.hasPadding
-          : null,
+      hasPadding: typeof slice.primary?.hasPadding === "boolean" ? slice.primary.hasPadding : null,
     });
   });
 }

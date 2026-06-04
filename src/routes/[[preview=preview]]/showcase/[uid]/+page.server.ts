@@ -19,16 +19,10 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
   }
 
   let featuredProject;
-  if (
-    isFilled.contentRelationship(page.data.featuredproject) &&
-    page.data.featuredproject.uid
-  )
-    featuredProject = await client.getByUID(
-      "project",
-      page.data.featuredproject.uid,
-    );
+  if (isFilled.contentRelationship(page.data.featuredproject) && page.data.featuredproject.uid)
+    featuredProject = await client.getByUID("project", page.data.featuredproject.uid);
 
-  let projects: ProjectDocument[] = [];
+  const projects: ProjectDocument[] = [];
   for (const project of page.data.projects) {
     if (isFilled.contentRelationship(project.project) && project.project.uid)
       projects.push(await client.getByUID("project", project.project.uid));

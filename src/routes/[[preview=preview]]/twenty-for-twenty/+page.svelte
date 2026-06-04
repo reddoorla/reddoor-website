@@ -4,10 +4,7 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import type { ImageField } from "@prismicio/client";
   import { PrismicImage } from "@prismicio/svelte";
-  import {
-    slugForCard,
-    parseCardNumberFromHash,
-  } from "$lib/twenty-for-twenty/hash";
+  import { slugForCard, parseCardNumberFromHash } from "$lib/twenty-for-twenty/hash";
 
   type ProjectCard = {
     number: number;
@@ -37,16 +34,12 @@
     if (!cardsSection || typeof window === "undefined") return;
 
     const cardsRect = cardsSection.getBoundingClientRect();
-    const pageScrollTop =
-      window.pageYOffset || document.documentElement.scrollTop;
+    const pageScrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const sectionOffsetTop = cardsSection.offsetTop;
 
     const scrollStart = sectionOffsetTop;
     const scrollEnd =
-      sectionOffsetTop +
-      cardsRect.height -
-      viewportHeight -
-      (40 * viewportHeight) / 100;
+      sectionOffsetTop + cardsRect.height - viewportHeight - (40 * viewportHeight) / 100;
     const scrollRange = scrollEnd - scrollStart;
 
     const rawProgress = (pageScrollTop - scrollStart) / scrollRange;
@@ -73,10 +66,7 @@
     const sectionOffsetTop = cardsSection.offsetTop;
     const scrollStart = sectionOffsetTop;
     const scrollEnd =
-      sectionOffsetTop +
-      cardsRect.height -
-      viewportHeight -
-      (40 * viewportHeight) / 100;
+      sectionOffsetTop + cardsRect.height - viewportHeight - (40 * viewportHeight) / 100;
     const L = projectCardArray.length;
     if (L === 0) return null;
     const progress = L === 1 ? 0 : cardIndex / (L - 1);
@@ -113,10 +103,8 @@
     // Extend the upper bound past the animation-complete point so the trailing
     // grace at the bottom of the section belongs to the last card's hash,
     // rather than clearing the hash as soon as progress hits 1.
-    const scrollEnd =
-      sectionOffsetTop + cardsRect.height - viewportHeight;
-    const pageScrollTop =
-      window.pageYOffset || document.documentElement.scrollTop;
+    const scrollEnd = sectionOffsetTop + cardsRect.height - viewportHeight;
+    const pageScrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
     const inside = pageScrollTop >= scrollStart && pageScrollTop <= scrollEnd;
 
@@ -129,10 +117,7 @@
       return;
     }
 
-    const cardIndex = Math.max(
-      0,
-      Math.min(L - 1, Math.floor(targetProgress * (L - 1))),
-    );
+    const cardIndex = Math.max(0, Math.min(L - 1, Math.floor(targetProgress * (L - 1))));
     const card = projectCardArray[cardIndex];
     const nextHash = "#" + slugForCard(card);
     if (nextHash === lastWrittenHash) return;
@@ -176,17 +161,15 @@
       <h1 class="opacity-0 hidden md:block">20</h1>
       <h2 class="opacity-0 hidden md:block">for</h2>
       <p class="md:w-4/5 max-w-lg large-body">
-        As we step into our 20th year in business, our team has taken a moment
-        to look back — revisiting the clients and projects that have shaped who
-        we are today. From early partnerships to defining milestones, these 20
-        selections represent some of our favorite projects. The ones that
-        refined our craft, deepened our client relationships, and shaped our
+        As we step into our 20th year in business, our team has taken a moment to look back —
+        revisiting the clients and projects that have shaped who we are today. From early
+        partnerships to defining milestones, these 20 selections represent some of our favorite
+        projects. The ones that refined our craft, deepened our client relationships, and shaped our
         approach to design and branding.
       </p>
       <p class=" text-primary md:w-4/5 max-w-lg mt-8 large-body">
-        Through it all, one constant has remained: clear stories brought to life
-        through <span class="underline-offset-[25%] underline"
-          >compelling design.</span
+        Through it all, one constant has remained: clear stories brought to life through <span
+          class="underline-offset-[25%] underline">compelling design.</span
         >
       </p>
     </div>
@@ -215,17 +198,15 @@
     <ContentWidth class="flex flex-col md:flex-row py-12 md:py-24">
       <div class="md:w-2/5">
         <p class="w-full max-w-lg large-body">
-          We'll continue to build on this collection throughout the year,
-          leading up to our 20th anniversary on October 2, 2026. Thanks for
-          joining us on the journey!
+          We'll continue to build on this collection throughout the year, leading up to our 20th
+          anniversary on October 2, 2026. Thanks for joining us on the journey!
         </p>
         <div
           class="w-2/3 h-1.5 hidden md:block relative overflow-hidden rounded-full mt-8 bg-light"
         >
           <div
             class="progress-bar w-full h-full bg-primary absolute rounded-xl"
-            style="transform: translate3d({-100 +
-              100 * cardStackProgress}%, 0, 0);"
+            style="transform: translate3d({-100 + 100 * cardStackProgress}%, 0, 0);"
           ></div>
         </div>
       </div>
@@ -237,9 +218,10 @@
             <!-- Transform wrapper div -->
             <div
               class="card-transform-wrapper absolute top-0 sm:left-12 w-full h-full"
-              style="transform: translate3d({calcCardTranslationInVH(
-                i - 1,
-              )}vw, 0, 0) rotate({(((2 * (i % 2) - 1) * (i + 1)) /
+              style="transform: translate3d({calcCardTranslationInVH(i - 1)}vw, 0, 0) rotate({(((2 *
+                (i % 2) -
+                1) *
+                (i + 1)) /
                 projectCardArray.length) *
                 6 *
                 easeInQuint((100 - calcCardTranslationInVH(i - 1)) / 100)}deg);"
@@ -257,10 +239,7 @@
                       class="w-full h-full object-cover"
                     />
                   {:else}
-                    <PrismicImage
-                      field={card.image}
-                      class="w-full h-full object-cover"
-                    />
+                    <PrismicImage field={card.image} class="w-full h-full object-cover" />
                   {/if}
 
                   <h1
@@ -276,13 +255,9 @@
                     </p>
                   </div>
                 </div>
-                <div
-                  class="w-full h-full flex flex-col justify-between pt-4 xl:pt-6"
-                >
+                <div class="w-full h-full flex flex-col justify-between pt-4 xl:pt-6">
                   <h5 class="text-black">{card.name}</h5>
-                  <div
-                    class="flex flex-row lg:flex-col xl:flex-row justify-between flex-wrap"
-                  >
+                  <div class="flex flex-row lg:flex-col xl:flex-row justify-between flex-wrap">
                     <p class="text-primary uppercase card-label">
                       {card.mediums}
                     </p>
@@ -296,13 +271,10 @@
           {/each}
         </div>
       </div>
-      <div
-        class="w-full h-2 md:hidden relative overflow-hidden rounded-full mt-4 bg-mid"
-      >
+      <div class="w-full h-2 md:hidden relative overflow-hidden rounded-full mt-4 bg-mid">
         <div
           class="progress-bar w-full h-full bg-primary absolute rounded-xl"
-          style="transform: translate3d({-100 +
-            100 * cardStackProgress}%, 0, 0);"
+          style="transform: translate3d({-100 + 100 * cardStackProgress}%, 0, 0);"
         ></div>
       </div>
     </ContentWidth>

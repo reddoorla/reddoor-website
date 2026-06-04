@@ -19,16 +19,13 @@
     },
   );
   const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? true);
-  const padBottom = $derived(
-    padding.hasBottomPadding ?? padding.hasPadding ?? true,
-  );
+  const padBottom = $derived(padding.hasBottomPadding ?? padding.hasPadding ?? true);
 </script>
 
 {#if !slice.primary.hide}
   <section
-    class="w-full {padTop ? 'pt-12' : ''} {padBottom
-      ? 'pb-12'
-      : ''} text-{slice.primary.textColor} {backgroundColorString}"
+    class="w-full {padTop ? 'pt-12' : ''} {padBottom ? 'pb-12' : ''} text-{slice.primary
+      .textColor} {backgroundColorString}"
   >
     <ContentWidth
       class="flex flex-col

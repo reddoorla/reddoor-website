@@ -13,9 +13,7 @@
 <SliceZone slices={data.page.data.slices} {components} />
 
 <!-- footer -->
-<div
-  class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
->
+<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
     <h3 class="text-white md:w-3/5">
       Isn’t it time to arm your brand with a clear story and compelling design?

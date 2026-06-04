@@ -14,9 +14,7 @@
   let { data }: { data: PageData } = $props();
 
   const pageData = $derived(data.page.data);
-  const featuredProject = $derived<ProjectDocument | undefined>(
-    data.featuredProject,
-  );
+  const featuredProject = $derived<ProjectDocument | undefined>(data.featuredProject);
   const projects = $derived<ProjectDocument[]>(data.projects);
 </script>
 
@@ -58,9 +56,7 @@
         class="h-full w-full flex flex-col justify-end items-end relative"
       >
         <img
-          src={pageData.featuredImageOverride.url ||
-            featuredProject?.data.hero.url ||
-            ""}
+          src={pageData.featuredImageOverride.url || featuredProject?.data.hero.url || ""}
           alt={featuredProject?.data.title || "" + " Hero Image"}
           class="absolute w-full h-full object-cover"
         />
@@ -71,9 +67,7 @@
         <div class="w-full flex flex-row justify-between p-6 z-10">
           <div class="w-4/5">
             <p class="text-white uppercase">
-              {pageData.featuredTitleOverride ||
-                featuredProject?.data.title ||
-                ""}
+              {pageData.featuredTitleOverride || featuredProject?.data.title || ""}
             </p>
             <p class="text-light">
               {pageData.featuredSubtitleOverride ||
@@ -81,9 +75,7 @@
                 ""}
             </p>
           </div>
-          <div
-            class="brightness-200 hover:brightness-50 transition bump w-12 h-12"
-          >
+          <div class="brightness-200 hover:brightness-50 transition bump w-12 h-12">
             <img src={arrowButton} alt="" class="h-full" />
           </div>
         </div>
@@ -92,22 +84,16 @@
 
     <div class="w-full flex flex-col lg:flex-row mt-6 flex-wrap relative">
       {#each projects as project, i (project.uid)}
-        <div
-          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700"
-        >
+        <div class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700">
           <a
             href={isFilled.link(pageData.projects[i].linkOverride)
               ? asLink(pageData.projects[i].linkOverride)
               : "/portfolio/" + project.uid}
-            target={isFilled.link(pageData.projects[i].linkOverride)
-              ? "_blank"
-              : undefined}
+            target={isFilled.link(pageData.projects[i].linkOverride) ? "_blank" : undefined}
             class="h-full w-full flex flex-col justify-end relative"
           >
             <img
-              src={pageData.projects[i].imageOverride.url ||
-                project.data.hero.url ||
-                ""}
+              src={pageData.projects[i].imageOverride.url || project.data.hero.url || ""}
               alt={project.data.title + " Hero Image"}
               class="absolute w-full h-full object-cover"
               fetchpriority="low"
@@ -126,14 +112,10 @@
                   {pageData.projects[i].titleOverride || project.data.title}
                 </p>
                 <p class="text-light">
-                  {pageData.projects[i].subtitleOverride ||
-                    mediumString(project) ||
-                    ""}
+                  {pageData.projects[i].subtitleOverride || mediumString(project) || ""}
                 </p>
               </div>
-              <div
-                class="brightness-200 hover:brightness-50 transition bump w-12 h-12"
-              >
+              <div class="brightness-200 hover:brightness-50 transition bump w-12 h-12">
                 <img src={arrowButton} alt="" class="w-full" />
               </div>
             </div>
@@ -149,9 +131,7 @@
 <SliceZone slices={data.page.data.slices} {components} />
 
 <!-- footer -->
-<div
-  class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
->
+<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
     <h3 class="text-white md:w-3/5">
       Isn’t it time to arm your brand with a clear story and compelling design?

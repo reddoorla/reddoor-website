@@ -27,6 +27,7 @@ No file gets large; the page script script grows by ~40 lines and stays well und
 We TDD the feature through the smoke test. The pure helpers are simple enough to read and verify by eye; the real risk is the integration with the scroll machinery, which only an end-to-end test catches.
 
 **Files:**
+
 - Modify: `tests/smoke/pages.spec.ts` (append at end)
 
 - [ ] **Step 1: Add the failing test**
@@ -34,9 +35,7 @@ We TDD the feature through the smoke test. The pure helpers are simple enough to
 Append to `tests/smoke/pages.spec.ts`:
 
 ```typescript
-test("/twenty-for-twenty supports anchor links to specific cards", async ({
-  page,
-}) => {
+test("/twenty-for-twenty supports anchor links to specific cards", async ({ page }) => {
   const errors = attachConsoleWatcher(page);
 
   // Inbound: hash by number only should jump past the hero.
@@ -47,9 +46,7 @@ test("/twenty-for-twenty supports anchor links to specific cards", async ({
   // section. The hero section is ~100vh, so scrollY should be well past it.
   const viewportHeight = page.viewportSize()?.height ?? 720;
   const scrollY1 = await page.evaluate(() => window.scrollY);
-  expect(scrollY1, "card-4 hash should scroll past hero").toBeGreaterThan(
-    viewportHeight,
-  );
+  expect(scrollY1, "card-4 hash should scroll past hero").toBeGreaterThan(viewportHeight);
 
   // Outbound: after scrolling further down, hash should self-correct to a
   // higher card number (or include the canonical slug).
@@ -86,6 +83,7 @@ We commit after each subsequent task once the corresponding behavior turns the a
 ## Task 2: Pure helper module
 
 **Files:**
+
 - Create: `src/lib/twenty-for-twenty/hash.ts`
 
 - [ ] **Step 1: Create the helper file**
@@ -111,10 +109,7 @@ const SLUG_EDGE_HYPHENS = /^-+|-+$/g;
 export function slugForCard(card: CardLike): string {
   const num = card.number.toString().padStart(2, "0");
   if (!card.name) return num;
-  const slug = card.name
-    .toLowerCase()
-    .replace(SLUG_NON_ALNUM, "-")
-    .replace(SLUG_EDGE_HYPHENS, "");
+  const slug = card.name.toLowerCase().replace(SLUG_NON_ALNUM, "-").replace(SLUG_EDGE_HYPHENS, "");
   return slug ? `${num}-${slug}` : num;
 }
 
@@ -159,6 +154,7 @@ git add src/lib/twenty-for-twenty/hash.ts
 When the page mounts (and on `hashchange`), parse the hash, find the matching card, compute the target scroll position, and jump there.
 
 **Files:**
+
 - Modify: `src/routes/[[preview=preview]]/twenty-for-twenty/+page.svelte`
 
 - [ ] **Step 1: Add the import**
@@ -166,10 +162,7 @@ When the page mounts (and on `hashchange`), parse the hash, find the matching ca
 At the top of the `<script>` block in `+page.svelte`, after the existing imports, add:
 
 ```typescript
-import {
-  slugForCard,
-  parseCardNumberFromHash,
-} from "$lib/twenty-for-twenty/hash";
+import { slugForCard, parseCardNumberFromHash } from "$lib/twenty-for-twenty/hash";
 ```
 
 - [ ] **Step 2: Add the inbound resolution function**
@@ -183,10 +176,7 @@ const scrollRangeForCard = (cardIndex: number) => {
   const sectionOffsetTop = cardsSection.offsetTop;
   const scrollStart = sectionOffsetTop;
   const scrollEnd =
-    sectionOffsetTop +
-    cardsRect.height -
-    viewportHeight -
-    (40 * viewportHeight) / 100;
+    sectionOffsetTop + cardsRect.height - viewportHeight - (40 * viewportHeight) / 100;
   const L = projectCardArray.length;
   if (L === 0) return null;
   const progress = L === 1 ? 0 : cardIndex / (L - 1);
@@ -259,6 +249,7 @@ git add src/routes/[[preview=preview]]/twenty-for-twenty/+page.svelte
 As the visitor scrolls, replace the URL hash with the current card's canonical slug. Clear the hash when scrolled outside the cards section.
 
 **Files:**
+
 - Modify: `src/routes/[[preview=preview]]/twenty-for-twenty/+page.svelte`
 
 - [ ] **Step 1: Add the outbound sync function**
@@ -277,12 +268,8 @@ const syncHashFromScroll = () => {
   const sectionOffsetTop = cardsSection.offsetTop;
   const scrollStart = sectionOffsetTop;
   const scrollEnd =
-    sectionOffsetTop +
-    cardsRect.height -
-    viewportHeight -
-    (40 * viewportHeight) / 100;
-  const pageScrollTop =
-    window.pageYOffset || document.documentElement.scrollTop;
+    sectionOffsetTop + cardsRect.height - viewportHeight - (40 * viewportHeight) / 100;
+  const pageScrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
   const inside = pageScrollTop >= scrollStart && pageScrollTop <= scrollEnd;
 
@@ -296,10 +283,7 @@ const syncHashFromScroll = () => {
   }
 
   const L = projectCardArray.length;
-  const currentIndex = Math.max(
-    0,
-    Math.min(L - 1, Math.round(targetProgress * (L - 1))),
-  );
+  const currentIndex = Math.max(0, Math.min(L - 1, Math.round(targetProgress * (L - 1))));
   const card = projectCardArray[currentIndex];
   const nextHash = "#" + slugForCard(card);
   if (nextHash === lastWrittenHash) return;
@@ -330,6 +314,7 @@ Expected: PASS.
 
 Run: `pnpm dev` and visit `http://localhost:5173/twenty-for-twenty`.
 Expected:
+
 - Scroll down through the cards: URL hash updates as each new card centers.
 - Scroll past the closing CTA: URL hash clears.
 - Visit `/twenty-for-twenty#04-old-name`: hash self-corrects to `#04-<canonical-slug>` on the next scroll tick.
@@ -357,6 +342,7 @@ Smoke tests cover the basics; eyes on the actual experience catch the rest.
 - [ ] **Step 1: Inbound from cold**
 
 In a fresh browser tab (or incognito), open `/twenty-for-twenty#10-<any-slug-or-no-slug>`. Confirm:
+
 - The page lands with card 10 in view.
 - There is no visible scroll-down animation past the hero.
 - The hero is offscreen above; the CTA is offscreen below.
@@ -364,6 +350,7 @@ In a fresh browser tab (or incognito), open `/twenty-for-twenty#10-<any-slug-or-
 - [ ] **Step 2: Outbound during scroll**
 
 From the top of the page, scroll slowly through. Confirm:
+
 - The hash updates as each card centers.
 - The URL bar reflects `#NN-name-slug` consistently.
 - Scrolling fast doesn't leave the hash stuck on a stale card.
@@ -375,9 +362,11 @@ Scroll to the very top: hash clears. Scroll past the cards into the closing CTA:
 - [ ] **Step 4: Renamed-card resilience**
 
 In your browser console, run:
+
 ```javascript
 window.location.hash = "#04-some-old-name-that-doesnt-match";
 ```
+
 The page should scroll to card 4 (matching by number), and the hash should self-correct on the next scroll event.
 
 - [ ] **Step 5: Mobile sanity**

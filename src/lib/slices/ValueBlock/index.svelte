@@ -17,9 +17,7 @@
         <div class="w-full xl:w-1/5 h-full overflow-hidden pt-4">
           <h6 class="text-white">{slice.primary.eyebrow || ""}</h6>
         </div>
-        <div
-          class="w-full xl:w-2/5 text-white flex flex-col gap-2 p-4 rich-text"
-        >
+        <div class="w-full xl:w-2/5 text-white flex flex-col gap-2 p-4 rich-text">
           <h3 class="mb-4">{slice.primary.title || ""}</h3>
 
           <PrismicRichText field={slice.primary.body} />

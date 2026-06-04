@@ -33,24 +33,22 @@
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-6 pb-6">
           <h5 class="text-primary">Stand Out</h5>
           <p class="mt-2">
-            The best brands have a story worth telling. With compelling design,
-            you can stand out and succeed in this noisy world.
+            The best brands have a story worth telling. With compelling design, you can stand out
+            and succeed in this noisy world.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-6 pb-6">
           <h5 class="text-primary">Feel Confident</h5>
           <p class="mt-2">
-            When you have a brand that is clear and compelling, you can't help
-            but be confident in any situation. Your clients sense this and are
-            attracted to your offering.
+            When you have a brand that is clear and compelling, you can't help but be confident in
+            any situation. Your clients sense this and are attracted to your offering.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-6 pb-6">
           <h5 class="text-primary">Be Energized</h5>
           <p class="mt-2">
-            You have something great to offer and when your audience clearly
-            understands how you can solve their problem, it will help you close
-            more deals.
+            You have something great to offer and when your audience clearly understands how you can
+            solve their problem, it will help you close more deals.
           </p>
         </div>
       </div>
@@ -88,25 +86,22 @@
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-8 pb-8">
           <h5 class="text-primary">Call us, <br /> let’s talk.</h5>
           <p class="mt-2">
-            Everything we do starts and ends with you. Your problems, your
-            goals, your story. We begin with a conversation to see how we can
-            help you succeed.
+            Everything we do starts and ends with you. Your problems, your goals, your story. We
+            begin with a conversation to see how we can help you succeed.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-8 pb-8">
           <h5 class="text-primary">We help solve <br /> your problem.</h5>
           <p class="mt-2">
-            After establishing clear goals that solve your brand’s problem we
-            get to work on establishing a clear story and developing a
-            compelling design.
+            After establishing clear goals that solve your brand’s problem we get to work on
+            establishing a clear story and developing a compelling design.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-8 pb-8">
           <h5 class="text-primary">Stand out <br /> from the noise.</h5>
           <p class="mt-2">
-            You envisioned success and now you finally have confidence in your
-            brand. We’ve equipped you to increase sales the way you’ve always
-            hoped..
+            You envisioned success and now you finally have confidence in your brand. We’ve equipped
+            you to increase sales the way you’ve always hoped..
           </p>
         </div>
       </div>
@@ -118,8 +113,8 @@
   <ContentWidth class="z-20 h-0" animateIn>
     <div class="absolute top-32 w-72 z-20">
       <h6 class="text-white">
-        We pride ourselves in a hands-on approach to producing compelling design
-        that excites our clients.
+        We pride ourselves in a hands-on approach to producing compelling design that excites our
+        clients.
       </h6>
       <DefaultButton href="/about" class="mt-8">About Us</DefaultButton>
     </div>
@@ -133,9 +128,7 @@
 
 <section class="relative w-screen bg-paper py-16 md:py-32">
   <ContentWidth class="flex flex-col" animateIn>
-    <h2 class="text-primary md:w-3/5">
-      Feel confidence when you share your story with the world.
-    </h2>
+    <h2 class="text-primary md:w-3/5">Feel confidence when you share your story with the world.</h2>
     <div class="flex flex-row mt-16 gap-8">
       <DefaultButton red href="/contact">Meet with Us</DefaultButton>
       <DefaultButton red href="/portfolio">View Our Work</DefaultButton>

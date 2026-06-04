@@ -26,22 +26,17 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
     projectArrayQuery.map(async (q) => {
       let linkedProject;
       if (isFilled.contentRelationship(q.data.project)) {
-        linkedProject = (await client.getByID(
-          q.data.project.id,
-        )) as ProjectDocument<string>;
+        linkedProject = (await client.getByID(q.data.project.id)) as ProjectDocument<string>;
       }
 
       let imageField = linkedProject?.data.meta_image;
-      if (isFilled.image(linkedProject?.data.hero))
-        imageField = linkedProject?.data.hero;
+      if (isFilled.image(linkedProject?.data.hero)) imageField = linkedProject?.data.hero;
       if (isFilled.image(linkedProject?.data.featured_image))
         imageField = linkedProject?.data.featured_image;
-      if (isFilled.image(q.data.image_override))
-        imageField = q.data.image_override;
+      if (isFilled.image(q.data.image_override)) imageField = q.data.image_override;
 
       let projLink = linkedProject?.url;
-      if (isFilled.link(q.data.link_override))
-        projLink = q.data.link_override.url;
+      if (isFilled.link(q.data.link_override)) projLink = q.data.link_override.url;
 
       return {
         number: q.data.number || 0,

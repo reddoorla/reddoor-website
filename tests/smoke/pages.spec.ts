@@ -86,24 +86,18 @@ test("404 page renders the custom error component", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("/twenty-for-twenty supports anchor links to specific cards", async ({
-  page,
-}) => {
+test("/twenty-for-twenty supports anchor links to specific cards", async ({ page }) => {
   const errors = attachConsoleWatcher(page);
 
   // Inbound: hash by number only should jump into the card stack.
   await page.goto("/twenty-for-twenty#02", { waitUntil: "domcontentloaded" });
   await expect(page.locator("footer")).toBeVisible();
   // Wait for the page's $effect to fire resolveHashToScroll on mount.
-  await page
-    .waitForFunction(() => window.scrollY > 100, { timeout: 5000 })
-    .catch(() => {});
+  await page.waitForFunction(() => window.scrollY > 100, { timeout: 5000 }).catch(() => {});
 
   const viewportHeight = page.viewportSize()?.height ?? 720;
   const scrollY1 = await page.evaluate(() => window.scrollY);
-  expect(scrollY1, "card-2 hash should produce non-zero scroll").toBeGreaterThan(
-    100,
-  );
+  expect(scrollY1, "card-2 hash should produce non-zero scroll").toBeGreaterThan(100);
 
   // Outbound: scroll 1 viewport further into the card stack — hash should
   // advance to a card number higher than 2.

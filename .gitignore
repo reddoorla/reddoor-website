@@ -14,3 +14,13 @@ test-results
 playwright-report
 .playwright
 scripts/padding-snapshot.json
+
+# canonical entries from @reddoorla/maintenance sync-configs
+dist/
+coverage/
+.vitest-cache/
+.lighthouseci/
+.tsbuildinfo
+*.log
+.vercel/
+.reddoor-a11y/

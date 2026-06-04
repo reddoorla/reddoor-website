@@ -52,16 +52,13 @@
     transition:fade
     aria-label="Close thank-you message"
   >
-    <div
-      class="w-[68vw] h-[68vh] bg-paper-red flex items-center justify-center p-32 relative"
-    >
+    <div class="w-[68vw] h-[68vh] bg-paper-red flex items-center justify-center p-32 relative">
       <i
         class="fa-solid fa-thin fa-close fa-2xl text-white hover:text-light transition absolute top-8 right-5"
         aria-hidden="true"
       ></i>
       <h4 class="text-white">
-        Thanks for reaching out! <br /> <br />We'll get back to you as soon as
-        we can.
+        Thanks for reaching out! <br /> <br />We'll get back to you as soon as we can.
       </h4>
     </div>
   </button>
@@ -70,9 +67,7 @@
 <div class="w-screen h-[50vh] max-h-96 relative bg-paper">
   <ContentWidth class="h-full flex flex-col justify-evenly items-start">
     <div class="h-32"></div>
-    <h4 class="text-primary z-10 md:ml-[20%]">
-      We're excited to hear from you.
-    </h4>
+    <h4 class="text-primary z-10 md:ml-[20%]">We're excited to hear from you.</h4>
   </ContentWidth>
 </div>
 <div class="w-screen bg-white py-12">
@@ -185,14 +180,11 @@
 </div>
 
 <!-- footer -->
-<div
-  class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
->
+<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
     <div use:anim>
       <h3 class="text-white md:w-3/5">
-        Isn’t it time to arm your brand with a clear story and compelling
-        design?
+        Isn’t it time to arm your brand with a clear story and compelling design?
       </h3>
     </div>
   </ContentWidth>

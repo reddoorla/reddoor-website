@@ -12,10 +12,7 @@ type PickContentRelationshipFieldData<
     | prismic.CustomTypeModelFetchGroupLevel2,
   TData extends Record<
     string,
-    | prismic.AnyRegularField
-    | prismic.GroupField
-    | prismic.NestedGroupField
-    | prismic.SliceZone
+    prismic.AnyRegularField | prismic.GroupField | prismic.NestedGroupField | prismic.SliceZone
   >,
   TLang extends string,
 > =
@@ -28,25 +25,19 @@ type PickContentRelationshipFieldData<
       TSubRelationship["customtypes"],
       TLang
     >;
-  } & // Group
-  {
+  } & {
+    // Group
     [TGroup in Extract<
       TRelationship["fields"][number],
-      | prismic.CustomTypeModelFetchGroupLevel1
-      | prismic.CustomTypeModelFetchGroupLevel2
-    > as TGroup["id"]]: TData[TGroup["id"]] extends prismic.GroupField<
-      infer TGroupData
-    >
-      ? prismic.GroupField<
-          PickContentRelationshipFieldData<TGroup, TGroupData, TLang>
-        >
+      prismic.CustomTypeModelFetchGroupLevel1 | prismic.CustomTypeModelFetchGroupLevel2
+    > as TGroup["id"]]: TData[TGroup["id"]] extends prismic.GroupField<infer TGroupData>
+      ? prismic.GroupField<PickContentRelationshipFieldData<TGroup, TGroupData, TLang>>
       : never;
-  } & // Other fields
-  {
-    [TFieldKey in Extract<
-      TRelationship["fields"][number],
-      string
-    >]: TFieldKey extends keyof TData ? TData[TFieldKey] : never;
+  } & {
+    // Other fields
+    [TFieldKey in Extract<TRelationship["fields"][number], string>]: TFieldKey extends keyof TData
+      ? TData[TFieldKey]
+      : never;
   };
 
 type ContentRelationshipFieldWithData<
@@ -55,10 +46,7 @@ type ContentRelationshipFieldWithData<
     | readonly (prismic.CustomTypeModelFetchCustomTypeLevel2 | string)[],
   TLang extends string = string,
 > = {
-  [ID in Exclude<
-    TCustomType[number],
-    string
-  >["id"]]: prismic.ContentRelationshipField<
+  [ID in Exclude<TCustomType[number], string>["id"]]: prismic.ContentRelationshipField<
     ID,
     TLang,
     PickContentRelationshipFieldData<
@@ -141,13 +129,7 @@ export interface LogoSoupDocumentDataBrandsItem {
    * - **API ID Path**: logo_soup.brands[].project_link
    * - **Documentation**: https://prismic.io/docs/fields/link
    */
-  project_link: prismic.LinkField<
-    string,
-    string,
-    unknown,
-    prismic.FieldState,
-    never
-  >;
+  project_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
 
   /**
    * isFeatured field in *Logo Soup → brands*
@@ -186,12 +168,11 @@ interface LogoSoupDocumentData {
  *
  * @typeParam Lang - Language API ID of the document.
  */
-export type LogoSoupDocument<Lang extends string = string> =
-  prismic.PrismicDocumentWithoutUID<
-    Simplify<LogoSoupDocumentData>,
-    "logo_soup",
-    Lang
-  >;
+export type LogoSoupDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<
+  Simplify<LogoSoupDocumentData>,
+  "logo_soup",
+  Lang
+>;
 
 /**
  * Item in *Opening Animation → slides*
@@ -245,13 +226,7 @@ export interface OpeningAnimationDocumentDataSlidesItem {
    * - **API ID Path**: opening_animation.slides[].project_link
    * - **Documentation**: https://prismic.io/docs/fields/link
    */
-  project_link: prismic.LinkField<
-    string,
-    string,
-    unknown,
-    prismic.FieldState,
-    never
-  >;
+  project_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
 }
 
 /**
@@ -355,8 +330,11 @@ interface PageDocumentData {
  *
  * @typeParam Lang - Language API ID of the document.
  */
-export type PageDocument<Lang extends string = string> =
-  prismic.PrismicDocumentWithUID<Simplify<PageDocumentData>, "page", Lang>;
+export type PageDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<
+  Simplify<PageDocumentData>,
+  "page",
+  Lang
+>;
 
 type ProjectDocumentDataSlicesSlice =
   | ScreenWidthColumnsSlice
@@ -560,12 +538,11 @@ interface ProjectDocumentData {
  *
  * @typeParam Lang - Language API ID of the document.
  */
-export type ProjectDocument<Lang extends string = string> =
-  prismic.PrismicDocumentWithUID<
-    Simplify<ProjectDocumentData>,
-    "project",
-    Lang
-  >;
+export type ProjectDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<
+  Simplify<ProjectDocumentData>,
+  "project",
+  Lang
+>;
 
 /**
  * Item in *showcase → projects*
@@ -619,13 +596,7 @@ export interface ShowcaseDocumentDataProjectsItem {
    * - **API ID Path**: showcase.projects[].linkOverride
    * - **Documentation**: https://prismic.io/docs/fields/link
    */
-  linkOverride: prismic.LinkField<
-    string,
-    string,
-    unknown,
-    prismic.FieldState,
-    never
-  >;
+  linkOverride: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
 }
 
 type ShowcaseDocumentDataSlicesSlice =
@@ -804,12 +775,11 @@ interface ShowcaseDocumentData {
  *
  * @typeParam Lang - Language API ID of the document.
  */
-export type ShowcaseDocument<Lang extends string = string> =
-  prismic.PrismicDocumentWithUID<
-    Simplify<ShowcaseDocumentData>,
-    "showcase",
-    Lang
-  >;
+export type ShowcaseDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<
+  Simplify<ShowcaseDocumentData>,
+  "showcase",
+  Lang
+>;
 
 /**
  * Content for Twenty for Twenty documents
@@ -901,13 +871,7 @@ interface TwentyForTwentyDocumentData {
    * - **Tab**: Main
    * - **Documentation**: https://prismic.io/docs/fields/link
    */
-  link_override: prismic.LinkField<
-    string,
-    string,
-    unknown,
-    prismic.FieldState,
-    never
-  >;
+  link_override: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
 }
 
 /**
@@ -919,12 +883,11 @@ interface TwentyForTwentyDocumentData {
  *
  * @typeParam Lang - Language API ID of the document.
  */
-export type TwentyForTwentyDocument<Lang extends string = string> =
-  prismic.PrismicDocumentWithUID<
-    Simplify<TwentyForTwentyDocumentData>,
-    "twenty_for_twenty",
-    Lang
-  >;
+export type TwentyForTwentyDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<
+  Simplify<TwentyForTwentyDocumentData>,
+  "twenty_for_twenty",
+  Lang
+>;
 
 export type AllDocumentTypes =
   | LogoSoupDocument
@@ -998,10 +961,7 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
    * - **API ID Path**: content_width_image.default.primary.images[].aspect
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  aspect: prismic.SelectField<
-    "free" | "square" | "4/3" | "3/4" | "16/9" | "9/16",
-    "filled"
-  >;
+  aspect: prismic.SelectField<"free" | "square" | "4/3" | "3/4" | "16/9" | "9/16", "filled">;
 }
 
 /**
@@ -1048,10 +1008,7 @@ export interface ContentWidthImageSliceDefaultPrimary {
    * - **API ID Path**: content_width_image.default.primary.background
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  background: prismic.SelectField<
-    "white" | "gray" | "red" | "paper" | "paper-red",
-    "filled"
-  >;
+  background: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
 
   /**
    * desktopColumns field in *ContentWidthMedia → Default → Primary*
@@ -1116,9 +1073,7 @@ export interface ContentWidthImageSliceDefaultPrimary {
    * - **API ID Path**: content_width_image.default.primary.images[]
    * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
    */
-  images: prismic.GroupField<
-    Simplify<ContentWidthImageSliceDefaultPrimaryImagesItem>
-  >;
+  images: prismic.GroupField<Simplify<ContentWidthImageSliceDefaultPrimaryImagesItem>>;
 
   /**
    * hide field in *ContentWidthMedia → Default → Primary*
@@ -1196,10 +1151,7 @@ export interface RichTextSliceDefaultPrimary {
    * - **API ID Path**: rich_text.default.primary.backgroundcolor
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  backgroundcolor: prismic.SelectField<
-    "white" | "gray" | "red" | "paper" | "paper-red",
-    "filled"
-  >;
+  backgroundcolor: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
 
   /**
    * width field in *RichText → Default → Primary*
@@ -1292,10 +1244,7 @@ type RichTextSliceVariation = RichTextSliceDefault;
  * - **Description**: RichText
  * - **Documentation**: https://prismic.io/docs/slices
  */
-export type RichTextSlice = prismic.SharedSlice<
-  "rich_text",
-  RichTextSliceVariation
->;
+export type RichTextSlice = prismic.SharedSlice<"rich_text", RichTextSliceVariation>;
 
 /**
  * Item in *ScreenWidthColumns → Default → Primary → media*
@@ -1361,10 +1310,7 @@ export interface ScreenWidthColumnsSliceDefaultPrimaryMediaItem {
    * - **API ID Path**: screen_width_columns.default.primary.media[].aspect
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  aspect: prismic.SelectField<
-    "free" | "square" | "4/3" | "3/4" | "16/9" | "9/16",
-    "filled"
-  >;
+  aspect: prismic.SelectField<"free" | "square" | "4/3" | "3/4" | "16/9" | "9/16", "filled">;
 }
 
 /**
@@ -1380,10 +1326,7 @@ export interface ScreenWidthColumnsSliceDefaultPrimary {
    * - **API ID Path**: screen_width_columns.default.primary.background
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  background: prismic.SelectField<
-    "white" | "gray" | "red" | "paper" | "paper-red",
-    "filled"
-  >;
+  background: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
 
   /**
    * desktopColumns field in *ScreenWidthColumns → Default → Primary*
@@ -1448,9 +1391,7 @@ export interface ScreenWidthColumnsSliceDefaultPrimary {
    * - **API ID Path**: screen_width_columns.default.primary.media[]
    * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
    */
-  media: prismic.GroupField<
-    Simplify<ScreenWidthColumnsSliceDefaultPrimaryMediaItem>
-  >;
+  media: prismic.GroupField<Simplify<ScreenWidthColumnsSliceDefaultPrimaryMediaItem>>;
 
   /**
    * hide field in *ScreenWidthColumns → Default → Primary*
@@ -1560,10 +1501,7 @@ export interface ScreenWidthImageSliceDefaultPrimary {
    * - **API ID Path**: screen_width_image.default.primary.background
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  background: prismic.SelectField<
-    "white" | "gray" | "red" | "paper" | "paper-red",
-    "filled"
-  >;
+  background: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
 
   /**
    * hide field in *ScreenWidthMedia → Default → Primary*
@@ -1585,10 +1523,7 @@ export interface ScreenWidthImageSliceDefaultPrimary {
    * - **API ID Path**: screen_width_image.default.primary.aspect
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  aspect: prismic.SelectField<
-    "free" | "square" | "4/3" | "3/4" | "16/9" | "9/16",
-    "filled"
-  >;
+  aspect: prismic.SelectField<"free" | "square" | "4/3" | "3/4" | "16/9" | "9/16", "filled">;
 }
 
 /**
@@ -1679,10 +1614,7 @@ export interface SlideshowSliceDefaultPrimary {
    * - **API ID Path**: slideshow.default.primary.backgroundcolor
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
-  backgroundcolor: prismic.SelectField<
-    "white" | "gray" | "red" | "paper" | "paper-red",
-    "filled"
-  >;
+  backgroundcolor: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
 
   /**
    * width field in *Slideshow → Default → Primary*
@@ -1754,10 +1686,7 @@ type SlideshowSliceVariation = SlideshowSliceDefault;
  * - **Description**: Slideshow
  * - **Documentation**: https://prismic.io/docs/slices
  */
-export type SlideshowSlice = prismic.SharedSlice<
-  "slideshow",
-  SlideshowSliceVariation
->;
+export type SlideshowSlice = prismic.SharedSlice<"slideshow", SlideshowSliceVariation>;
 
 /**
  * Primary content in *ValueBlock → Default → Primary*
@@ -1840,10 +1769,7 @@ type ValueBlockSliceVariation = ValueBlockSliceDefault;
  * - **Description**: ValueBlock
  * - **Documentation**: https://prismic.io/docs/slices
  */
-export type ValueBlockSlice = prismic.SharedSlice<
-  "value_block",
-  ValueBlockSliceVariation
->;
+export type ValueBlockSlice = prismic.SharedSlice<"value_block", ValueBlockSliceVariation>;
 
 declare module "@prismicio/client" {
   interface CreateClient {

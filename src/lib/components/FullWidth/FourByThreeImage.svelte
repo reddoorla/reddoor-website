@@ -34,11 +34,7 @@
     {#if img}
       <Img src={img} {alt} class="z-10 w-full" />
     {:else}
-      <img
-        {src}
-        {alt}
-        class="z-10 {isPlaceholder ? 'w-16 bg-[#F2F5F7]' : 'w-full'}"
-      />
+      <img {src} {alt} class="z-10 {isPlaceholder ? 'w-16 bg-[#F2F5F7]' : 'w-full'}" />
     {/if}
     <div
       class="absolute bg-light h-[2px] {isPlaceholder ? '' : 'hidden'}"

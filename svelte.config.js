@@ -1,20 +1,10 @@
+import { createSvelteConfig } from "@reddoorla/maintenance/configs/svelte";
 import adapter from "@sveltejs/adapter-netlify";
-import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
-
-const silencedWarnings = new Set(["element_invalid_self_closing_tag"]);
 
 /** @type {import('@sveltejs/kit').Config} */
-const config = {
+export default createSvelteConfig({
   kit: {
-    adapter: adapter(),
-    prerender: {
-      handleHttpError: "warn",
-    },
+    adapter: adapter({ edge: false, split: false }),
+    prerender: { handleHttpError: "warn" },
   },
-  preprocess: vitePreprocess(),
-  compilerOptions: {
-    warningFilter: (warning) => !silencedWarnings.has(warning.code),
-  },
-};
-
-export default config;
+});

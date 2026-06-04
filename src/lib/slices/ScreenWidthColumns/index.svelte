@@ -21,9 +21,7 @@
     },
   );
   const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? true);
-  const padBottom = $derived(
-    padding.hasBottomPadding ?? padding.hasPadding ?? true,
-  );
+  const padBottom = $derived(padding.hasBottomPadding ?? padding.hasPadding ?? true);
 </script>
 
 {#if !slice.primary.hide}
@@ -32,9 +30,7 @@
     data-slice-variation={slice.variation}
     class="w-screen flex flex-row justify-center flex-wrap relative {padTop
       ? 'pt-12'
-      : ''} {padBottom
-      ? 'pb-12'
-      : ''} {backgroundColorString}"
+      : ''} {padBottom ? 'pb-12' : ''} {backgroundColorString}"
   >
     {#each slice.primary.media as item, i (i)}
       {#if isFilled.link(item.link)}
@@ -60,10 +56,7 @@
               ? 'lg:w-1/3'
               : ''}"
         >
-          <a
-            href={item.link.url}
-            class="relative w-full flex flex-col items-center justify-start"
-          >
+          <a href={item.link.url} class="relative w-full flex flex-col items-center justify-start">
             {#if item.label}
               <div class="w-full border-b-1 border-dark label mb-8">
                 {item.label}
@@ -89,9 +82,7 @@
               ></iframe>
             {:else}
               <PrismicImage
-                class="w-full {item.aspect !== 'free'
-                  ? 'h-full'
-                  : ''} object-cover"
+                class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
                 field={item.image}
               />
             {/if}
@@ -138,18 +129,14 @@
               class="object-cover {item.aspect !== 'free'
                 ? 'h-full'
                 : ''} w-full mx-auto z-10 relative
-              {!hiddenVideos.has(i)
-                ? 'opacity-100'
-                : 'opacity-0'} transition-opacity duration-200"
+              {!hiddenVideos.has(i) ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200"
               frameborder="0"
               allow="autoplay"
               onerror={() => hiddenVideos.add(i)}
             ></iframe>
           {:else}
             <PrismicImage
-              class="w-full {item.aspect !== 'free'
-                ? 'h-full'
-                : ''} object-cover"
+              class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
               field={item.image}
             />
           {/if}

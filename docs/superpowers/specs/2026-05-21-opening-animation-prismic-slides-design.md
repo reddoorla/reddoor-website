@@ -22,13 +22,13 @@ A new **single-type** document at `customtypes/opening_animation/index.json`, mo
 
 One group field `slides`. Each slide entry:
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `background_image` | Image | yes | Desktop background |
-| `background_image_mobile_crop` | Image | no | If present and viewport < 768px, used instead of `background_image` |
-| `project_name` | Text | yes | Shown bottom-left on desktop hover overlay |
-| `services` | Text | yes | E.g. "Branding, Print" |
-| `project_link` | Link | yes | `allowTargetBlank: true`, `allowText: false` |
+| Field                          | Type  | Required | Notes                                                               |
+| ------------------------------ | ----- | -------- | ------------------------------------------------------------------- |
+| `background_image`             | Image | yes      | Desktop background                                                  |
+| `background_image_mobile_crop` | Image | no       | If present and viewport < 768px, used instead of `background_image` |
+| `project_name`                 | Text  | yes      | Shown bottom-left on desktop hover overlay                          |
+| `services`                     | Text  | yes      | E.g. "Branding, Print"                                              |
+| `project_link`                 | Link  | yes      | `allowTargetBlank: true`, `allowText: false`                        |
 
 Field naming intentionally parallels `logo_soup.brands` (`active_background`, `active_background_mobile_crop`, `name`, `services`, `project_link`) so editors see a familiar shape.
 
@@ -107,5 +107,5 @@ This is the predictable rule: "if you delete content, content disappears." No co
 ## Risks
 
 - **Image-optimization regression.** Today's images go through Vite's `?as=run` build-time pipeline. Prismic images come as imgix URLs, served via `<PrismicImage>`. This is the same trade-off `LogoSoup` already accepts, so the precedent is established — flag rather than block.
-- **Seed-then-deploy ordering.** If code ships before the Prismic document is populated, the home page renders without backgrounds. Mitigated by seeding the document in Prismic *before* merging the code change.
+- **Seed-then-deploy ordering.** If code ships before the Prismic document is populated, the home page renders without backgrounds. Mitigated by seeding the document in Prismic _before_ merging the code change.
 - **Type generation.** The exact generated type name for the new custom type isn't known until codegen runs. Implementation step should regenerate types and reference the real name, not invent one.

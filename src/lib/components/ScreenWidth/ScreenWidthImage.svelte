@@ -42,10 +42,7 @@
   };
 </script>
 
-<svelte:window
-  bind:innerHeight={viewportHeight}
-  bind:innerWidth={viewportWidth}
-/>
+<svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
 
 <section
   class="h-screen w-screen overflow-clip {className}
@@ -53,9 +50,7 @@
 >
   <div
     class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 aspect-video
-    {viewportHeight * 16 > viewportWidth * 9
-      ? 'h-screen min-w-full'
-      : 'w-screen min-h-full'}"
+    {viewportHeight * 16 > viewportWidth * 9 ? 'h-screen min-w-full' : 'w-screen min-h-full'}"
   >
     <!-- Image fallback - always present -->
 
@@ -85,9 +80,7 @@
         class="aspect-video absolute {viewportHeight * 16 > viewportWidth * 9
           ? 'h-screen min-w-full'
           : 'w-screen min-h-full'} contrast-[1.15] -z-10
-        {showVideo
-          ? 'opacity-100'
-          : 'opacity-0'} transition-opacity duration-300"
+        {showVideo ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
         frameborder="0"
         allowfullscreen
         onerror={handleVideoError}
@@ -105,11 +98,7 @@
 
 <style>
   .bg-darken-gradient {
-    background: linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.45) 0%,
-      rgba(0, 0, 0, 0.45) 100%
-    );
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.45) 100%);
   }
 
   img:not([src]) {

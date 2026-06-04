@@ -49,9 +49,7 @@
   const isScrolledPastHero = $derived(percentageScrolled >= HERO_EXIT_PCT);
 
   let currentImageIndex = $state(0);
-  const safeIndex = $derived(
-    slides.length ? currentImageIndex % slides.length : 0,
-  );
+  const safeIndex = $derived(slides.length ? currentImageIndex % slides.length : 0);
   const changeBackgroundImage = () => {
     if (slides.length === 0) return;
     currentImageIndex = (currentImageIndex + 1) % slides.length;
@@ -61,8 +59,7 @@
 
   const scrollThroughHero = () => {
     if (!openingSection) return;
-    const targetY =
-      openingSection.offsetTop + openingSection.offsetHeight - viewportHeight;
+    const targetY = openingSection.offsetTop + openingSection.offsetHeight - viewportHeight;
     window.scrollTo({ top: targetY });
   };
 
@@ -73,13 +70,7 @@
     const pct =
       scrollable <= 0
         ? 100
-        : Math.min(
-            Math.max(
-              100 - ((rect.bottom - viewportHeight) / scrollable) * 100,
-              0,
-            ),
-            100,
-          );
+        : Math.min(Math.max(100 - ((rect.bottom - viewportHeight) / scrollable) * 100, 0), 100);
 
     percentageScrolled = pct;
     isInHero.value = pct < HERO_EXIT_PCT;
@@ -88,9 +79,7 @@
 
     maskScale = MASK_BASE + (pct / 100) * MASK_GROWTH;
     const threshold =
-      viewportWidth < MOBILE_BREAKPOINT_PX
-        ? COMPELLING_MOBILE_PCT
-        : COMPELLING_DESKTOP_PCT;
+      viewportWidth < MOBILE_BREAKPOINT_PX ? COMPELLING_MOBILE_PCT : COMPELLING_DESKTOP_PCT;
     if (pct > threshold) {
       showCompelling = true;
       showButtons = true;
@@ -118,10 +107,7 @@
     // on viewport state changes and tear down the listener it just registered.
     untrack(() => updateScroll());
 
-    const transitionTimer = setTimeout(
-      () => (transitioning = false),
-      INTRO_FADE_MS,
-    );
+    const transitionTimer = setTimeout(() => (transitioning = false), INTRO_FADE_MS);
 
     return () => {
       // Reset the global flag so the layout nav reappears on the next page —
@@ -150,16 +136,10 @@
   });
 </script>
 
-<svelte:window
-  bind:innerWidth={viewportWidth}
-  bind:innerHeight={viewportHeight}
-/>
+<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
 {#if transitioning}
-  <div
-    class="bg-white w-screen h-dvh fixed top-0 left-0 z-50"
-    transition:fade
-  ></div>
+  <div class="bg-white w-screen h-dvh fixed top-0 left-0 z-50" transition:fade></div>
 {/if}
 
 {#if isOverlayVisible}
@@ -174,11 +154,7 @@
         class="block w-30 md:w-37.75 mix-blend-multiply opacity-85"
         aria-label="Reddoor home"
       >
-        <img
-          src={drawnLogo}
-          alt="Reddoor"
-          class="w-full h-auto block"
-        />
+        <img src={drawnLogo} alt="Reddoor" class="w-full h-auto block" />
       </a>
       <button
         class="text-black opacity-95 hover:opacity-100 transition mt-3"
@@ -196,8 +172,7 @@
         {@const isActive =
           item.href === "/"
             ? page.url.pathname === "/"
-            : page.url.pathname === item.href ||
-              page.url.pathname.startsWith(item.href + "/")}
+            : page.url.pathname === item.href || page.url.pathname.startsWith(item.href + "/")}
         <a
           href={item.href}
           onclick={() => (isOverlayVisible = false)}
@@ -215,14 +190,11 @@
 <div class="w-screen" bind:this={openingSection} style:--mask-scale={maskScale}>
   <div class="h-dvh w-screen fixed bottom-0 left-0 bg-paper-red">
     <ContentWidth
-      class="flex flex-col justify-center items-center h-full z-10 relative {percentageScrolled >
-      30
+      class="flex flex-col justify-center items-center h-full z-10 relative {percentageScrolled > 30
         ? 'opacity-0 '
         : 'opacity-100'}"
     >
-      <div
-        class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full"
-      >
+      <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
         <h1 class="text-white text-left w-fit opacity-0" role="presentation">
           {HEADLINE_INTRO}
         </h1>
@@ -247,10 +219,7 @@
           <i class="fa-sharp fa-bars fa-xl text-white"></i>
         </button>
       </ContentWidth>
-      <div
-        class="fixed top-0 left-0 w-lvw h-dvh z-20"
-        style="clip-path: url(#mask-path);"
-      >
+      <div class="fixed top-0 left-0 w-lvw h-dvh z-20" style="clip-path: url(#mask-path);">
         {#each slides as slide, index (index)}
           <PrismicImage
             field={viewportWidth < MOBILE_BREAKPOINT_PX && slide.background_image_mobile_crop
@@ -265,9 +234,7 @@
           />
         {/each}
 
-        <div
-          class="w-screen h-dvh bg-black opacity-25 fixed pointer-events-none"
-        ></div>
+        <div class="w-screen h-dvh bg-black opacity-25 fixed pointer-events-none"></div>
 
         <button
           type="button"
@@ -283,15 +250,10 @@
               in:fade={{ delay: 400 }}
               out:fade
             >
-              <ContentWidth
-                class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16"
-              >
+              <ContentWidth class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16">
                 {#if currentSlide.project_name}
                   {#if isFilled.link(currentSlide.project_link)}
-                    <PrismicLink
-                      field={currentSlide.project_link}
-                      class="pointer-events-auto"
-                    >
+                    <PrismicLink field={currentSlide.project_link} class="pointer-events-auto">
                       <p class="text-white text-left underline underline-offset-4">
                         {currentSlide.project_name}
                       </p>
@@ -368,12 +330,8 @@
   </div>
 
   <div class="h-dvh w-screen fixed bottom-0 left-0 pointer-events-none">
-    <ContentWidth
-      class="flex flex-col justify-center items-center h-full relative"
-    >
-      <div
-        class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full"
-      >
+    <ContentWidth class="flex flex-col justify-center items-center h-full relative">
+      <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
         <h1 class="text-white text-left w-fit">{HEADLINE_INTRO}</h1>
       </div>
       <i

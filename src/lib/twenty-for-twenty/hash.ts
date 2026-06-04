@@ -16,10 +16,7 @@ const SLUG_EDGE_HYPHENS = /^-+|-+$/g;
 export function slugForCard(card: CardLike): string {
   const num = card.number.toString().padStart(2, "0");
   if (!card.name) return num;
-  const slug = card.name
-    .toLowerCase()
-    .replace(SLUG_NON_ALNUM, "-")
-    .replace(SLUG_EDGE_HYPHENS, "");
+  const slug = card.name.toLowerCase().replace(SLUG_NON_ALNUM, "-").replace(SLUG_EDGE_HYPHENS, "");
   return slug ? `${num}-${slug}` : num;
 }
 

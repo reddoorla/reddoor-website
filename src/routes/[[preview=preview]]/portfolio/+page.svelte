@@ -32,9 +32,7 @@
   let viewportHeight = $state(0);
   let showAllProjectsButton = $state(true);
 
-  const ceoHero = $derived(
-    viewportWidth < 768 ? ceoHeroMobile : ceoHeroDesktop,
-  );
+  const ceoHero = $derived(viewportWidth < 768 ? ceoHeroMobile : ceoHeroDesktop);
 
   let showBrand = $state(false);
   let showDigital = $state(false);
@@ -66,41 +64,41 @@
   let isOrderSelectOpen = $state(false);
 
   $effect(() => {
-    // close the order dropdown whenever filters or order change
-    showBrand;
-    showDigital;
-    showEnvironmental;
-    showProduct;
-    showPrint;
-    showWeb;
-    showPackaging;
-    orderString;
+    // read filters/order so the dropdown closes whenever any of them change
+    const _deps = [
+      showBrand,
+      showDigital,
+      showEnvironmental,
+      showProduct,
+      showPrint,
+      showWeb,
+      showPackaging,
+      orderString,
+    ];
     isOrderSelectOpen = false;
   });
 
   const sortedProjects = $derived(
-    [...data.allProjects].sort(
-      (a: ProjectDocument<string>, b: ProjectDocument<string>) => {
-        switch (orderString) {
-          case "A-Z":
-            return (a.data.title || "").localeCompare(b.data.title || "");
-          case "Z-A":
-            return (b.data.title || "").localeCompare(a.data.title || "");
-          case "Latest-Earliest":
-            return (
-              new Date(b.first_publication_date).getTime() -
-              new Date(a.first_publication_date).getTime()
-            );
-          case "Earliest-Latest":
-            return (
-              new Date(a.first_publication_date).getTime() -
-              new Date(b.first_publication_date).getTime()
-            );
-          default:
-            return 0;
-        }
-      },
-    ),
+    [...data.allProjects].sort((a: ProjectDocument<string>, b: ProjectDocument<string>) => {
+      switch (orderString) {
+        case "A-Z":
+          return (a.data.title || "").localeCompare(b.data.title || "");
+        case "Z-A":
+          return (b.data.title || "").localeCompare(a.data.title || "");
+        case "Latest-Earliest":
+          return (
+            new Date(b.first_publication_date).getTime() -
+            new Date(a.first_publication_date).getTime()
+          );
+        case "Earliest-Latest":
+          return (
+            new Date(a.first_publication_date).getTime() -
+            new Date(b.first_publication_date).getTime()
+          );
+        default:
+          return 0;
+      }
+    }),
   );
 
   $effect(() => {
@@ -121,10 +119,7 @@
   });
 </script>
 
-<svelte:window
-  bind:innerWidth={viewportWidth}
-  bind:innerHeight={viewportHeight}
-/>
+<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
 <svelte:head>
   <title>Portfolio | Reddoor Creative</title>
@@ -151,8 +146,8 @@
   <div></div>
   <ContentWidth>
     <h5 class="w-4/5 max-w-(--breakpoint-lg) mr-0 ml-auto">
-      We are honored to work with these amazing clients. Take a look and
-      consider taking your place among them.
+      We are honored to work with these amazing clients. Take a look and consider taking your place
+      among them.
     </h5>
   </ContentWidth>
   <ContentWidth>
@@ -161,8 +156,7 @@
 </section>
 <section class="max-w-screen overflow-x-clip">
   <div
-    class="right-0 max-h-screen aspect-video relative {viewportHeight * 16 >
-    viewportWidth * 9
+    class="right-0 max-h-screen aspect-video relative {viewportHeight * 16 > viewportWidth * 9
       ? 'h-screen min-w-full'
       : 'w-screen min-h-full'}"
   >
@@ -180,8 +174,7 @@
     <div class="w-full max-w-[100vw] h-full max-h-screen relative">
       <ContentWidth class="h-full z-10 relative">
         <h4 class="md:w-3/5 absolute left-0 top-20 text-white">
-          The "buck stops here" with a branding system overhaul of LA County's
-          CEO
+          The "buck stops here" with a branding system overhaul of LA County's CEO
         </h4>
 
         <div class="absolute bottom-20 flex justify-between w-full md:w-2/5">
@@ -205,11 +198,7 @@
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col">
       <div use:anim>
-        <Img
-          class="w-full aspect-4/3"
-          src={bed}
-          alt="a beautiful bed"
-        />
+        <Img class="w-full aspect-4/3" src={bed} alt="a beautiful bed" />
       </div>
       <div class="w-full flex flex-col-reverse lg:flex-row">
         <div
@@ -233,10 +222,7 @@
             </a>
           </div>
         </div>
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="w-full lg:w-1/2 aspect-square overflow-hidden"
-        >
+        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
           <Img
             class="h-full w-auto top-0 left-0 object-cover object-left"
             src={catalogs}
@@ -305,15 +291,8 @@
         </a>
       </div>
     </div>
-    <div
-      use:anim={{ delayMax: 0 }}
-      class="w-full lg:w-1/2 aspect-square overflow-hidden"
-    >
-      <Img
-        class="h-full object-cover"
-        src={roadmap}
-        alt="roadmap mockup on iphone"
-      />
+    <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+      <Img class="h-full object-cover" src={roadmap} alt="roadmap mockup on iphone" />
     </div>
   </div>
 </ContentWidth>
@@ -343,15 +322,8 @@
             </a>
           </div>
         </div>
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="w-full lg:w-1/2 aspect-square overflow-hidden"
-        >
-          <Img
-            class="h-full object-cover"
-            src={report}
-            alt="annual reports"
-          />
+        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+          <Img class="h-full object-cover" src={report} alt="annual reports" />
         </div>
       </div>
     </div>
@@ -368,8 +340,7 @@
     <div class="w-full md:w-4/5 md:ml-[20%]">
       <div use:anim>
         <h4 class=" mb-20">
-          A dental referral service bridging the gap between patients and
-          providers.
+          A dental referral service bridging the gap between patients and providers.
         </h4>
       </div>
       <div use:anim class="w-full md:w-1/2 flex flex-row justify-between">
@@ -389,14 +360,11 @@
   </ContentWidth>
 </section>
 <section>
-  <div
-    class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
-  >
+  <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
     <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
       <div use:anim>
         <h3 class="text-white md:w-3/5">
-          Isn't it time to arm your brand with a clear story and compelling
-          design?
+          Isn't it time to arm your brand with a clear story and compelling design?
         </h3>
       </div>
       <div use:anim>
@@ -415,9 +383,7 @@
 <div class="py-24 bg-paper" bind:this={projectsDiv} id="projectsDiv">
   <ContentWidth>
     <div use:anim class="w-full">
-      <div class="archive-title text-primary w-full text-left mb-12">
-        But wait, there's more!
-      </div>
+      <div class="archive-title text-primary w-full text-left mb-12">But wait, there's more!</div>
     </div>
     <div class="flex flex-row justify-between w-full">
       <div use:anim class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
@@ -437,8 +403,7 @@
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showEnvironmental
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showEnvironmental = !showEnvironmental)}
-          >ENVIRONMENTAL</button
+          onclick={() => (showEnvironmental = !showEnvironmental)}>ENVIRONMENTAL</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showProduct
@@ -475,16 +440,14 @@
               ? 'border-primary bg-primary  hover:text-light text-white'
               : 'border-light text-light  bg-white hover:text-primary'}"
             transition:slide
-            onclick={() => (orderString = "Latest-Earliest")}
-            >Latest-Earliest</button
+            onclick={() => (orderString = "Latest-Earliest")}>Latest-Earliest</button
           >
           <button
             class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[400%] {isChronologicalAscending
               ? 'border-primary bg-primary  hover:text-light text-white'
               : 'border-light text-light  bg-white hover:text-primary'}"
             transition:slide
-            onclick={() => (orderString = "Earliest-Latest")}
-            >Earliest-Latest</button
+            onclick={() => (orderString = "Earliest-Latest")}>Earliest-Latest</button
           >
         {/if}
         <button
@@ -540,18 +503,12 @@
               style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
             ></div>
 
-            <div
-              use:anim={{ delayMax: 800 }}
-              class="w-full flex flex-row justify-between p-6 z-10"
-            >
+            <div use:anim={{ delayMax: 800 }} class="w-full flex flex-row justify-between p-6 z-10">
               <div>
                 <p class="text-white uppercase">{project.data.title}</p>
                 <p class="text-light">{mediumString(project) || ""}</p>
               </div>
-              <span
-                class="brightness-200 hover:brightness-50 transition bump"
-                aria-hidden="true"
-              >
+              <span class="brightness-200 hover:brightness-50 transition bump" aria-hidden="true">
                 <img src={arrowButton} alt="" class="h-full" />
               </span>
             </div>
@@ -563,9 +520,7 @@
 </div>
 
 <!-- footer -->
-<div
-  class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
->
+<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
     <div use:anim>
       <h3 class="text-white md:w-3/5">

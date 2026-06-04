@@ -35,23 +35,13 @@
         <div class="font-extralight">{services}</div>
         <div class="h-6 w-20 flex flex-row justify-between text-white">
           {#if data.prevProject}
-            <a
-              href={"/portfolio/" + data.prevProject.uid}
-              aria-label="Previous project"
-            >
-              <i
-                class="fa-thin fa-sharp fa-chevron-left fa-2xl bump hover:text-light"
-              ></i></a
+            <a href={"/portfolio/" + data.prevProject.uid} aria-label="Previous project">
+              <i class="fa-thin fa-sharp fa-chevron-left fa-2xl bump hover:text-light"></i></a
             >
           {/if}
           {#if data.nextProject}
-            <a
-              href={"/portfolio/" + data.nextProject.uid}
-              aria-label="Next project"
-            >
-              <i
-                class="fa-thin fa-sharp fa-chevron-right fa-2xl bump hover:text-light"
-              ></i></a
+            <a href={"/portfolio/" + data.nextProject.uid} aria-label="Next project">
+              <i class="fa-thin fa-sharp fa-chevron-right fa-2xl bump hover:text-light"></i></a
             >
           {/if}
         </div>
@@ -64,13 +54,8 @@
 <SliceZone slices={data.page.data.slices} {components} />
 
 <!-- footer -->
-<div
-  class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center"
->
-  <ContentWidth
-    class="flex flex-col md:flex-row items-start justify-between"
-    animateIn
-  >
+<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
+  <ContentWidth class="flex flex-col md:flex-row items-start justify-between" animateIn>
     <h3 class="text-white md:w-3/5">
       Isn’t it time to arm your brand with a clear story and compelling design?
     </h3>

@@ -19,17 +19,11 @@ if (!writeToken) {
 }
 
 const config = JSON.parse(
-  await readFile(
-    new URL("../slicemachine.config.json", import.meta.url),
-    "utf8",
-  ),
+  await readFile(new URL("../slicemachine.config.json", import.meta.url), "utf8"),
 );
 
 const snapshot = JSON.parse(
-  await readFile(
-    new URL("./padding-snapshot.json", import.meta.url),
-    "utf8",
-  ),
+  await readFile(new URL("./padding-snapshot.json", import.meta.url), "utf8"),
 );
 
 const readClient = prismic.createClient(config.repositoryName);
@@ -71,11 +65,8 @@ for (const [key, entries] of byDoc) {
     // Strip the now-removed hasPadding so the write doesn't fail validation.
     const { hasPadding: oldValue, ...primaryRest } = slice.primary ?? {};
 
-    const entry = entries.find(
-      (e) => e.sliceIndex === idx && e.sliceType === slice.slice_type,
-    );
-    const snapshotValue =
-      typeof entry?.hasPadding === "boolean" ? entry.hasPadding : null;
+    const entry = entries.find((e) => e.sliceIndex === idx && e.sliceType === slice.slice_type);
+    const snapshotValue = typeof entry?.hasPadding === "boolean" ? entry.hasPadding : null;
     const value =
       snapshotValue ??
       (typeof oldValue === "boolean" ? oldValue : null) ??
@@ -93,10 +84,7 @@ for (const [key, entries] of byDoc) {
     };
   });
 
-  migration.updateDocument(
-    { ...doc, data: { ...doc.data, slices: newSlices } },
-    doc.uid ?? doc.id,
-  );
+  migration.updateDocument({ ...doc, data: { ...doc.data, slices: newSlices } }, doc.uid ?? doc.id);
   touchedDocs++;
 }
 

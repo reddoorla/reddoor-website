@@ -26,9 +26,7 @@
     },
   );
   const padTop = $derived(padding.hasTopPadding ?? padding.hasPadding ?? true);
-  const padBottom = $derived(
-    padding.hasBottomPadding ?? padding.hasPadding ?? true,
-  );
+  const padBottom = $derived(padding.hasBottomPadding ?? padding.hasPadding ?? true);
 </script>
 
 {#if !slice.primary.hide}
@@ -40,11 +38,7 @@
       : ''} {backgroundColorString}"
   >
     <ContentWidth>
-      <div
-        class="w-full flex flex-col {slice.primary.isFullContentWidth
-          ? ''
-          : 'md:flex-row'}"
-      >
+      <div class="w-full flex flex-col {slice.primary.isFullContentWidth ? '' : 'md:flex-row'}">
         <div
           use:anim={{ enabled: animationEnabled }}
           class="{slice.primary.isFullContentWidth
@@ -72,9 +66,7 @@
                   : ''} relative w-full flex flex-col items-center justify-start cursor-pointer {slice
                   .primary.desktopcolumns === '2'
                   ? 'lg:w-1/2'
-                  : ''} {slice.primary.desktopcolumns === '3'
-                  ? 'lg:w-1/3'
-                  : ' '}
+                  : ''} {slice.primary.desktopcolumns === '3' ? 'lg:w-1/3' : ' '}
                   {item.aspect === 'square'
                   ? 'aspect-square'
                   : item.aspect === '4/3'
@@ -93,9 +85,7 @@
                   class="relative w-full flex flex-col items-center justify-start"
                 >
                   {#if item.label}
-                    <div
-                      class="w-full border-b-1 border-dark label mb-8 cursor-pointer"
-                    >
+                    <div class="w-full border-b-1 border-dark label mb-8 cursor-pointer">
                       {item.label}
                     </div>
                   {/if}
@@ -134,9 +124,10 @@
                 class="{slice.primary.hasGap
                   ? 'pr-6 pb-6'
                   : ''} relative w-full flex flex-col items-center justify-start
-                      {slice.primary.desktopcolumns === '2'
-                  ? 'lg:w-1/2'
-                  : ''} {slice.primary.desktopcolumns === '3' ? 'lg:w-1/3' : ''}
+                      {slice.primary.desktopcolumns === '2' ? 'lg:w-1/2' : ''} {slice.primary
+                  .desktopcolumns === '3'
+                  ? 'lg:w-1/3'
+                  : ''}
                   {item.aspect === 'square'
                   ? 'aspect-square'
                   : item.aspect === '4/3'
@@ -156,9 +147,7 @@
                 {/if}
 
                 <PrismicImage
-                  class="w-full {item.aspect !== 'free'
-                    ? 'h-full'
-                    : ''} object-cover"
+                  class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
                   field={item.image}
                 />
 

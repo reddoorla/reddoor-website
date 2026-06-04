@@ -37,10 +37,7 @@ const routes: prismic.ClientConfig["routes"] = [
  * Creates a Prismic client for the project's repository. The client is used to
  * query content from the Prismic API.
  */
-export const createClient = ({
-  cookies,
-  ...config
-}: CreateClientConfig = {}) => {
+export const createClient = ({ cookies, ...config }: CreateClientConfig = {}) => {
   const client = prismic.createClient(repositoryName, {
     routes,
     ...config,

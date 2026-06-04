@@ -3,13 +3,7 @@ import { createClient } from "$lib/prismicio";
 
 const SITE_URL = "https://www.reddoorla.com";
 
-const STATIC_ROUTES = [
-  "/",
-  "/portfolio",
-  "/about",
-  "/contact",
-  "/twenty-for-twenty",
-];
+const STATIC_ROUTES = ["/", "/portfolio", "/about", "/contact", "/twenty-for-twenty"];
 
 export const prerender = true;
 

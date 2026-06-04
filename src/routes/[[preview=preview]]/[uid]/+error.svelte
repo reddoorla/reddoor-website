@@ -8,10 +8,7 @@
   import type { ProjectDocument } from "../../../prismicio-types";
   import { mediumString } from "$lib/utils/projectServices";
 
-  let {
-    data,
-  }: { data: { latestFourProjects: { results: ProjectDocument[] } } } =
-    $props();
+  let { data }: { data: { latestFourProjects: { results: ProjectDocument[] } } } = $props();
 
   const projects = $derived(data.latestFourProjects.results);
 </script>
@@ -30,9 +27,7 @@
       Nothing to see here...<br />Let’s get you back on track.
     </h4>
 
-    <h6 class="text-primary w-full md:w-4/5 mt-24 md:mt-48">
-      Enjoy our most recent work
-    </h6>
+    <h6 class="text-primary w-full md:w-4/5 mt-24 md:mt-48">Enjoy our most recent work</h6>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap mt-12">
       {#each projects as project (project.uid)}
         <div
@@ -53,18 +48,12 @@
               style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
             ></div>
 
-            <div
-              use:anim={{ delayMax: 800 }}
-              class="w-full flex flex-row justify-between p-6 z-10"
-            >
+            <div use:anim={{ delayMax: 800 }} class="w-full flex flex-row justify-between p-6 z-10">
               <div>
                 <p class="text-white uppercase">{project.data.title}</p>
                 <p class="text-light">{mediumString(project) || ""}</p>
               </div>
-              <span
-                class="brightness-200 hover:brightness-50 transition bump"
-                aria-hidden="true"
-              >
+              <span class="brightness-200 hover:brightness-50 transition bump" aria-hidden="true">
                 <img src={arrowButton} alt="" class="h-full" />
               </span>
             </div>

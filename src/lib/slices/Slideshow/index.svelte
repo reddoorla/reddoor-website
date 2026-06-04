@@ -96,8 +96,7 @@
   const backgroundColorString = $derived(`bg-${slice.primary.backgroundcolor}`);
   const translateX = $derived(getTranslateX(currentIndex));
   const displayIndex = $derived(
-    ((currentIndex % mediaArray.length) + mediaArray.length) %
-      mediaArray.length,
+    ((currentIndex % mediaArray.length) + mediaArray.length) % mediaArray.length,
   );
 </script>
 
@@ -124,27 +123,19 @@
             ? 'w-full'
             : 'w-full md:w-4/5'} flex flex-row flex-wrap"
         >
-          <div
-            use:swipe
-            class="w-full h-full relative overflow-hidden aspect-video"
-          >
+          <div use:swipe class="w-full h-full relative overflow-hidden aspect-video">
             <!-- Slides Container -->
             <div
               class="flex flex-row flex-nowrap transition-transform ease-[cubic-bezier(0.25,0.1,0.25,1)]"
               style="
               width: {tripledArray.length * 100}%;
               transform: translateX({translateX}%);
-              transition-duration: {isTransitioning
-                ? TRANSITION_DURATION_MS
-                : 0}ms;
+              transition-duration: {isTransitioning ? TRANSITION_DURATION_MS : 0}ms;
             "
             >
               {#each tripledArray as media, i (i)}
                 <div class="h-full z-0" style="width: {slideWidth}%;">
-                  <PrismicImage
-                    field={media.image}
-                    class="h-full w-full object-contain"
-                  />
+                  <PrismicImage field={media.image} class="h-full w-full object-contain" />
                 </div>
               {/each}
             </div>
@@ -183,12 +174,9 @@
               aria-label={isPlaying ? "Pause slideshow" : "Play slideshow"}
             >
               {#if isPlaying}
-                <i
-                  class="translate-y-[-1.5px] fa-solid fa-sharp fa-pause scale-90"
-                ></i>
+                <i class="translate-y-[-1.5px] fa-solid fa-sharp fa-pause scale-90"></i>
               {:else}
-                <i
-                  class="translate-y-[-1.5px] translate-x-px fa-solid fa-sharp fa-play scale-75"
+                <i class="translate-y-[-1.5px] translate-x-px fa-solid fa-sharp fa-play scale-75"
                 ></i>
               {/if}
             </button>
