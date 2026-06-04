@@ -104,7 +104,7 @@
     <meta name="og:image" content={page.data.meta_image.url} />
     <meta name="twitter:card" content="summary_large_image" />
   {/if}
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- JSON-LD assembled via concatenation so the Svelte ESLint parser doesn't see a literal </script> tag -->
   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html "<" +
