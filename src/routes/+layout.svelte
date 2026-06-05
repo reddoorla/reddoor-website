@@ -67,6 +67,14 @@
     page.status === 404 || scrollY > 300 || page.url.pathname.includes("about"),
   );
 
+  // Every load resolves meta_image to a URL string (Prismic URLs are absolute;
+  // imported-asset paths are root-relative). OG/Twitter need an absolute URL.
+  const metaImageUrl = $derived.by(() => {
+    const img = page.data.meta_image;
+    if (typeof img !== "string" || !img) return undefined;
+    return img.startsWith("http") ? img : new URL(img, page.url.origin).href;
+  });
+
   function disableScrollRestoration() {
     if ("scrollRestoration" in history) {
       history.scrollRestoration = "manual";
@@ -100,8 +108,8 @@
   {#if page.data.meta_title}
     <meta name="og:title" content={page.data.meta_title} />
   {/if}
-  {#if page.data.meta_image}
-    <meta name="og:image" content={page.data.meta_image.url} />
+  {#if metaImageUrl}
+    <meta name="og:image" content={metaImageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
   {/if}
   <meta name="viewport" content="width=device-width, initial-scale=1" />

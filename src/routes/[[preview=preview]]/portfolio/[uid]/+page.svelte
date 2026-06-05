@@ -76,66 +76,70 @@
     <h4 class="text-primary text-left w-full">Related Projects</h4>
     <div class="w-full mt-12 flex flex-col md:flex-row gap-12 md:gap-0">
       <div class="w-1/5"></div>
-      <div class="w-full md:w-2/5 md:pr-2 aspect-4/3 relative">
-        <a
-          href={"/portfolio/" + (data.relatedProjectOne.uid || "")}
-          class="h-full w-full flex flex-col justify-end relative"
-        >
-          <img
-            src={data.relatedProjectOne.data.hero.url || ""}
-            alt={(data.relatedProjectOne.data.title || "") + " Hero Image"}
-            class="absolute w-full h-full object-cover"
-            fetchpriority="low"
-          />
-          <div
-            class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
-            style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
-          ></div>
-          <div class="w-full flex flex-row justify-between p-6 z-10">
-            <div>
-              <p class="text-white uppercase">
-                {data.relatedProjectOne.data.title || ""}
-              </p>
-              <p class="text-light">
-                {mediumString(data.relatedProjectOne) || ""}
-              </p>
+      {#if data.relatedProjectOne}
+        <div class="w-full md:w-2/5 md:pr-2 aspect-4/3 relative">
+          <a
+            href={"/portfolio/" + (data.relatedProjectOne.uid || "")}
+            class="h-full w-full flex flex-col justify-end relative"
+          >
+            <img
+              src={data.relatedProjectOne.data.hero.url || ""}
+              alt={(data.relatedProjectOne.data.title || "") + " Hero Image"}
+              class="absolute w-full h-full object-cover"
+              fetchpriority="low"
+            />
+            <div
+              class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
+              style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
+            ></div>
+            <div class="w-full flex flex-row justify-between p-6 z-10">
+              <div>
+                <p class="text-white uppercase">
+                  {data.relatedProjectOne.data.title || ""}
+                </p>
+                <p class="text-light">
+                  {mediumString(data.relatedProjectOne) || ""}
+                </p>
+              </div>
+              <div class="brightness-200 hover:brightness-50 transition bump">
+                <img src={arrowButton} alt="" class="h-full" />
+              </div>
             </div>
-            <div class="brightness-200 hover:brightness-50 transition bump">
-              <img src={arrowButton} alt="" class="h-full" />
+          </a>
+        </div>
+      {/if}
+      {#if data.relatedProjectTwo}
+        <div class="w-full md:w-2/5 md:pl-2 aspect-4/3 relative">
+          <a
+            href={"/portfolio/" + data.relatedProjectTwo.uid}
+            class="h-full w-full flex flex-col justify-end relative"
+          >
+            <img
+              src={data.relatedProjectTwo.data.hero.url || ""}
+              alt={(data.relatedProjectTwo.data.title || "") + " Hero Image"}
+              class="absolute w-full h-full object-cover"
+              fetchpriority="low"
+            />
+            <div
+              class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
+              style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
+            ></div>
+            <div class="w-full flex flex-row justify-between p-6 z-10">
+              <div>
+                <p class="text-white uppercase">
+                  {data.relatedProjectTwo.data.title || ""}
+                </p>
+                <p class="text-light">
+                  {mediumString(data.relatedProjectTwo) || ""}
+                </p>
+              </div>
+              <div class="brightness-200 hover:brightness-50 transition bump">
+                <img src={arrowButton} alt="" class="h-full" />
+              </div>
             </div>
-          </div>
-        </a>
-      </div>
-      <div class="w-full md:w-2/5 md:pl-2 aspect-4/3 relative">
-        <a
-          href={"/portfolio/" + data.relatedProjectTwo.uid}
-          class="h-full w-full flex flex-col justify-end relative"
-        >
-          <img
-            src={data.relatedProjectTwo.data.hero.url || ""}
-            alt={(data.relatedProjectTwo.data.title || "") + " Hero Image"}
-            class="absolute w-full h-full object-cover"
-            fetchpriority="low"
-          />
-          <div
-            class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
-            style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
-          ></div>
-          <div class="w-full flex flex-row justify-between p-6 z-10">
-            <div>
-              <p class="text-white uppercase">
-                {data.relatedProjectTwo.data.title || ""}
-              </p>
-              <p class="text-light">
-                {mediumString(data.relatedProjectTwo) || ""}
-              </p>
-            </div>
-            <div class="brightness-200 hover:brightness-50 transition bump">
-              <img src={arrowButton} alt="" class="h-full" />
-            </div>
-          </div>
-        </a>
-      </div>
+          </a>
+        </div>
+      {/if}
     </div>
   </ContentWidth>
 </div>

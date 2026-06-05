@@ -1,7 +1,6 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
-  import { Turnstile } from "svelte-turnstile";
   import { fade } from "svelte/transition";
 
   let submitted = $state(false);
@@ -107,8 +106,6 @@
         data-netlify="true"
         data-netlify-honeypot="bot-field"
       >
-        <Turnstile siteKey="0x4AAAAAAAh2fGW6xIcdsqNr" />
-
         <input type="hidden" name="form-name" value="contact" />
         <div use:anim class="w-full">
           <p>Name</p>

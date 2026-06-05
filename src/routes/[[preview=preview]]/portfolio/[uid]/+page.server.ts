@@ -35,27 +35,30 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
   let isTwoSet = false;
 
   if (isFilled.contentRelationship(page.data.relatedprojectoverride1)) {
-    relatedProjectOne =
-      allProjects[
-        allProjects.findIndex(
-          (project) =>
-            // @ts-expect-error prismic types don't narrow .uid through isFilled
-            project.uid === page.data.relatedprojectoverride1.uid,
-        )
-      ];
-    isOneSet = true;
+    const overrideIndex = allProjects.findIndex(
+      (project) =>
+        // @ts-expect-error prismic types don't narrow .uid through isFilled
+        project.uid === page.data.relatedprojectoverride1.uid,
+    );
+    // Only honor the override if the target is actually a visible project.
+    // A hidden/deleted override yields findIndex === -1 (allProjects[-1] is
+    // undefined) — leave isOneSet false so the tag-based fallback fills it.
+    if (overrideIndex !== -1) {
+      relatedProjectOne = allProjects[overrideIndex];
+      isOneSet = true;
+    }
   }
 
   if (isFilled.contentRelationship(page.data.relatedprojectoverride2)) {
-    relatedProjectTwo =
-      allProjects[
-        allProjects.findIndex(
-          (project) =>
-            // @ts-expect-error prismic types don't narrow .uid through isFilled
-            project.uid === page.data.relatedprojectoverride2.uid,
-        )
-      ];
-    isTwoSet = true;
+    const overrideIndex = allProjects.findIndex(
+      (project) =>
+        // @ts-expect-error prismic types don't narrow .uid through isFilled
+        project.uid === page.data.relatedprojectoverride2.uid,
+    );
+    if (overrideIndex !== -1) {
+      relatedProjectTwo = allProjects[overrideIndex];
+      isTwoSet = true;
+    }
   }
 
   if (!isTwoSet) {

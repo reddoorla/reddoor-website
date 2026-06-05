@@ -16,10 +16,13 @@
     "vite:devHost": "vite dev --host --port 8888"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.59.1",
+    "@reddoorla/maintenance": "^0.27.0",
     "@slicemachine/adapter-sveltekit": "^0.3.60",
     "@sveltejs/adapter-netlify": "^6.0.4",
-    "@sveltejs/kit": "^2.57.1",
+    "@sveltejs/kit": "^2.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.2.4",
     "@zerodevx/svelte-img": "^2.1.2",
@@ -29,23 +32,19 @@
     "prettier": "^3.1.1",
     "prettier-plugin-svelte": "^3.1.2",
     "slice-machine-ui": "^2.4.1",
-    "svelte": "^5",
+    "svelte": "^5.56.2",
     "svelte-check": "^4.4.6",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
     "typescript-svelte-plugin": "^0.3.36",
-    "vite": "^8.0.9",
-    "@reddoorla/maintenance": "^0.27.0",
-    "@lhci/cli": "^0.15.1",
-    "@axe-core/playwright": "^4.11.3"
+    "vite": "^8.0.9"
   },
   "type": "module",
   "packageManager": "pnpm@10.33.1",
   "dependencies": {
     "@prismicio/client": "^7.21.8",
     "@prismicio/svelte": "^2.2.1",
-    "svelte-gestures": "^5.2.2",
-    "svelte-turnstile": "^0.11.0"
+    "svelte-gestures": "^5.2.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
