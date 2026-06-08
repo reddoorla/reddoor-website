@@ -5,6 +5,7 @@
   import type { ImageField } from "@prismicio/client";
   import { PrismicImage } from "@prismicio/svelte";
   import { slugForCard, parseCardNumberFromHash } from "$lib/twenty-for-twenty/hash";
+  import twentySketchFallback from "$lib/assets/images/twenty-sketch-fallback.jpg";
 
   type ProjectCard = {
     number: number;
@@ -25,6 +26,13 @@
   let cardsSection: HTMLElement;
   let viewportHeight = $state(0);
   let animationFrameId = 0;
+
+  // Background Vimeo sketch: shown only once the player confirms playback via its
+  // postMessage API. Until then (and forever, if autoplay is blocked — e.g. iPad
+  // Low Power Mode, or a cross-origin autoplay denial) the static fallback frame
+  // stays visible, so the box is never blank.
+  let vimeoIframe: HTMLIFrameElement | undefined = $state();
+  let videoPlaying = $state(false);
 
   const lerp = (start: number, end: number, factor: number) => {
     return start + (end - start) * factor;
@@ -151,6 +159,49 @@
       cancelAnimationFrame(animationFrameId);
     };
   });
+
+  // Reveal the Vimeo iframe only when the player reports it is actually playing.
+  // We talk to the player over its postMessage API (no SDK dependency): subscribe
+  // to play events, and flip videoPlaying on the first one. If autoplay never
+  // starts, no event arrives and the static fallback simply remains.
+  $effect(() => {
+    const iframe = vimeoIframe;
+    if (!iframe) return;
+
+    const post = (method: string, value?: string) =>
+      iframe.contentWindow?.postMessage(JSON.stringify({ method, value }), "*");
+
+    const subscribe = () => {
+      post("addEventListener", "play");
+      post("addEventListener", "playing");
+      post("addEventListener", "bufferend");
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== iframe.contentWindow) return;
+      let data: { event?: string };
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      // Vimeo emits "ready" once the player is live — (re)subscribe then, since
+      // listeners registered before ready can be dropped.
+      if (data?.event === "ready") subscribe();
+      if (data?.event === "play" || data?.event === "playing" || data?.event === "bufferend") {
+        videoPlaying = true;
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    iframe.addEventListener("load", subscribe);
+    subscribe(); // in case the iframe already loaded before this effect ran
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      iframe.removeEventListener("load", subscribe);
+    };
+  });
 </script>
 
 <svelte:window bind:innerHeight={viewportHeight} />
@@ -177,13 +228,33 @@
       <div class="flex flex-col text-primary items-center relative">
         <h1>20</h1>
         <h2 class="-mt-8">for</h2>
-        <iframe
-          title="background video"
-          src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1"
-          class="aspect-square w-full mix-blend-multiply opacity-90 scale-110 -mt-12"
-          frameborder="0"
-          allowfullscreen
-        ></iframe>
+        <!-- No transform/opacity on this wrapper: those would form an isolated
+             blending group and stop the children's mix-blend-multiply from
+             reaching the paper background (white box). The scale lives on each
+             child instead, exactly as the original single-iframe markup did. -->
+        <div class="relative aspect-square w-full -mt-12">
+          <!-- Static fallback: the finished "20" sketch frame. Shown until the
+               player confirms playback, and left in place if autoplay is blocked. -->
+          <img
+            src={twentySketchFallback}
+            alt="Hand-drawn sketch of the number 20"
+            class="absolute inset-0 h-full w-full scale-110 object-cover mix-blend-multiply transition-opacity duration-700 {videoPlaying
+              ? 'opacity-0'
+              : 'opacity-90'}"
+          />
+          <iframe
+            bind:this={vimeoIframe}
+            title="20 for 20 animated sketch"
+            src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1"
+            class="absolute inset-0 h-full w-full scale-110 mix-blend-multiply transition-opacity duration-700 {videoPlaying
+              ? 'opacity-90'
+              : 'opacity-0'}"
+            frameborder="0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+          ></iframe>
+        </div>
       </div>
     </div>
   </ContentWidth>
