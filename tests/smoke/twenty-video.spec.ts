@@ -8,6 +8,19 @@ import { test, expect } from "@playwright/test";
 const FALLBACK = "img[alt='Hand-drawn sketch of the number 20']";
 const IFRAME = "iframe[title='20 for 20 animated sketch']";
 
+test("Reduce Motion: video is never embedded, only the static sketch shows", async ({
+  browser,
+}) => {
+  const page = await browser.newPage({ reducedMotion: "reduce" });
+  await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
+
+  // The iframe must not be in the DOM at all (no embed, no autoplay)…
+  await expect(page.locator(IFRAME)).toHaveCount(0);
+  // …and the static fallback is shown.
+  await expect(page.locator(FALLBACK)).toHaveCSS("opacity", "0.9");
+  await page.close();
+});
+
 test("Vimeo iframe is granted autoplay permission", async ({ page }) => {
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
   const iframe = page.locator(IFRAME);

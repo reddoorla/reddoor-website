@@ -34,6 +34,11 @@
   let vimeoIframe: HTMLIFrameElement | undefined = $state();
   let videoPlaying = $state(false);
 
+  // Honor Reduce Motion: motion-sensitive users get the static sketch and the
+  // video is never embedded or played (WCAG 2.3.3 / 2.2.2). This is independent
+  // of iOS Low Power Mode — that's a separate setting iOS does not surface to JS.
+  let prefersReducedMotion = $state(false);
+
   const lerp = (start: number, end: number, factor: number) => {
     return start + (end - start) * factor;
   };
@@ -160,6 +165,15 @@
     };
   });
 
+  // Track Reduce Motion and keep it live (users can toggle it without reloading).
+  $effect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    prefersReducedMotion = mq.matches;
+    const onChange = (e: MediaQueryListEvent) => (prefersReducedMotion = e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  });
+
   // Reveal the Vimeo iframe only while playback is *continuously* confirmed via
   // the player's postMessage API (no SDK dependency). iOS/iPadOS frequently
   // fires an initial play event and then silently suspends a muted background
@@ -170,7 +184,12 @@
   // plays never hides the fallback at all — so the box is never blank.
   $effect(() => {
     const iframe = vimeoIframe;
-    if (!iframe) return;
+    // No iframe (also the Reduce Motion case — it isn't rendered): reset to the
+    // static sketch and don't wire anything up.
+    if (!iframe) {
+      videoPlaying = false;
+      return;
+    }
 
     // Longer than the ~250–330ms timeupdate cadence, so a couple of dropped
     // ticks don't flicker the fallback, but short enough to recover quickly
@@ -273,18 +292,20 @@
               ? 'opacity-0'
               : 'opacity-90'}"
           />
-          <iframe
-            bind:this={vimeoIframe}
-            title="20 for 20 animated sketch"
-            src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1"
-            class="absolute inset-0 h-full w-full scale-110 mix-blend-multiply transition-opacity duration-700 {videoPlaying
-              ? 'opacity-90'
-              : 'opacity-0'}"
-            frameborder="0"
-            allow="autoplay; fullscreen; picture-in-picture"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen
-          ></iframe>
+          {#if !prefersReducedMotion}
+            <iframe
+              bind:this={vimeoIframe}
+              title="20 for 20 animated sketch"
+              src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1"
+              class="absolute inset-0 h-full w-full scale-110 mix-blend-multiply transition-opacity duration-700 {videoPlaying
+                ? 'opacity-90'
+                : 'opacity-0'}"
+              frameborder="0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            ></iframe>
+          {/if}
         </div>
       </div>
     </div>
