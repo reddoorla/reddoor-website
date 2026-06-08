@@ -28,8 +28,8 @@ importers:
         specifier: ^1.59.1
         version: 1.59.1
       '@reddoorla/maintenance':
-        specifier: ^0.27.0
-        version: 0.27.1(jiti@2.6.1)(playwright-core@1.59.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)
+        specifier: ^0.28.0
+        version: 0.28.0(jiti@2.6.1)(playwright-core@1.59.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)
       '@slicemachine/adapter-sveltekit':
         specifier: ^0.3.60
         version: 0.3.95(@sveltejs/kit@2.63.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.56.2(@typescript-eslint/types@8.60.1))(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1)))(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1))
@@ -845,8 +845,8 @@ packages:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
       react-dom: ^18.0 || ^19.0 || ^19.0.0-rc
 
-  '@reddoorla/maintenance@0.27.1':
-    resolution: {integrity: sha512-V58NK6Jr9vnwckaqO/L3bxomQsP2mDWgSaAM3l0pedkR5Z27o+0Gfde40P35nko00SWQ7AmEfQrwrmnxOZVC5w==}
+  '@reddoorla/maintenance@0.28.0':
+    resolution: {integrity: sha512-Lc4qWBWKG5ZLVWrNGH6oSBIYNtEcPaH54k9kXWa3SkTbMpdcm0JjZnFnw3G3FNA9rgllk2cpNcSHm+SosVAcwA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4821,7 +4821,7 @@ snapshots:
       react-dom: 19.2.7(react@19.2.7)
       react-promise-suspense: 0.3.4
 
-  '@reddoorla/maintenance@0.27.1(jiti@2.6.1)(playwright-core@1.59.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)':
+  '@reddoorla/maintenance@0.28.0(jiti@2.6.1)(playwright-core@1.59.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)':
     dependencies:
       '@axe-core/playwright': 4.11.3(playwright-core@1.59.1)
       '@eslint/js': 10.0.1(eslint@10.4.1(jiti@2.6.1))

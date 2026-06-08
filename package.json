@@ -19,7 +19,7 @@
     "@axe-core/playwright": "^4.11.3",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.59.1",
-    "@reddoorla/maintenance": "^0.27.0",
+    "@reddoorla/maintenance": "^0.28.0",
     "@slicemachine/adapter-sveltekit": "^0.3.60",
     "@sveltejs/adapter-netlify": "^6.0.4",
     "@sveltejs/kit": "^2.63.0",
