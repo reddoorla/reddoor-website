@@ -48,7 +48,9 @@
     <div class="w-full md:w-4/5 flex flex-col gap-8">
       <h5>Complete this form and we'll get back to you.</h5>
       {#if form?.success}
-        <p class="text-primary mt-2">Thanks — your message is on its way. We'll be in touch shortly.</p>
+        <p class="text-primary mt-2">
+          Thanks — your message is on its way. We'll be in touch shortly.
+        </p>
       {:else}
         <form
           class="h-full w-full mt-8 md:mt-0 md:w-2/3 flex flex-col gap-2 items-start md:pr-24"
@@ -63,7 +65,13 @@
         >
           <input type="hidden" name="ts" value={data.formTs} />
           <p class="hidden" aria-hidden="true">
-            <label>Don't fill this out if you're human: <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+            <label
+              >Don't fill this out if you're human: <input
+                name="bot-field"
+                tabindex="-1"
+                autocomplete="off"
+              /></label
+            >
           </p>
           <div use:anim class="w-full">
             <p>Name</p>

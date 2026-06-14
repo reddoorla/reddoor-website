@@ -58,7 +58,8 @@ export const actions: Actions = {
     if (!result.ok) {
       console.error(`[contact] ingest failed (${result.status}): ${result.error}`);
       return fail(502, {
-        error: "Something went wrong sending your message. Please try again or email info@reddoorla.com.",
+        error:
+          "Something went wrong sending your message. Please try again or email info@reddoorla.com.",
       });
     }
     return { success: true };
