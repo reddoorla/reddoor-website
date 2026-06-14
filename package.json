@@ -19,7 +19,6 @@
     "@axe-core/playwright": "^4.11.3",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.59.1",
-    "@reddoorla/maintenance": "^0.28.0",
     "@slicemachine/adapter-sveltekit": "^0.3.60",
     "@sveltejs/adapter-netlify": "^6.0.4",
     "@sveltejs/kit": "^2.63.0",
@@ -44,6 +43,7 @@
   "dependencies": {
     "@prismicio/client": "^7.21.8",
     "@prismicio/svelte": "^2.2.1",
+    "@reddoorla/maintenance": "^0.34.0",
     "svelte-gestures": "^5.2.2"
   },
   "pnpm": {
