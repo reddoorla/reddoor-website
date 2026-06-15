@@ -48,7 +48,7 @@
   let scrollFrame = 0;
 
   const isScrolledPastHero = $derived(percentageScrolled >= HERO_EXIT_PCT);
-  const isHeroBgBlurred = $derived(percentageScrolled<HERO_BLUR_THRESHOLD) 
+  const isHeroBgBlurred = $derived(percentageScrolled < HERO_BLUR_THRESHOLD);
 
   let currentImageIndex = $state(0);
   const safeIndex = $derived(slides.length ? currentImageIndex % slides.length : 0);
@@ -233,7 +233,7 @@
             safeIndex
               ? 'opacity-100'
               : ' delay-1000 opacity-0'} 
-              {isHeroBgBlurred?"blur":""}"
+              {isHeroBgBlurred ? 'blur' : ''}"
           />
         {/each}
 
