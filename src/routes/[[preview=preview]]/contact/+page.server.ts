@@ -4,6 +4,11 @@ import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
 import type { Actions, PageServerLoad } from "./$types";
 
+// The root layout sets `prerender = "auto"`; this page now has a form `action`,
+// and a prerendered/static page can't run a server action ("Cannot prerender
+// pages with actions"). Opt this route out — it is genuinely dynamic now.
+export const prerender = false;
+
 export const load: PageServerLoad = async () => {
   return {
     title: "Contact | Reddoor Creative",
