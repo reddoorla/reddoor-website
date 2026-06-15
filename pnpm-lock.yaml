@@ -32,7 +32,7 @@ importers:
         version: 1.59.1
       '@slicemachine/adapter-sveltekit':
         specifier: ^0.3.60
-        version: 0.3.95(@sveltejs/kit@2.63.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.56.2(@typescript-eslint/types@8.60.1))(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1)))(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1))
+        version: 0.3.96(@sveltejs/kit@2.63.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.56.2(@typescript-eslint/types@8.60.1))(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1)))(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1))
       '@sveltejs/adapter-netlify':
         specifier: ^6.0.4
         version: 6.0.4(@sveltejs/kit@2.63.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.56.2(@typescript-eslint/types@8.60.1))(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))
@@ -102,20 +102,20 @@ packages:
     peerDependencies:
       playwright-core: '>= 1.0.0'
 
-  '@babel/code-frame@7.29.0':
-    resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
+  '@babel/code-frame@7.29.7':
+    resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-string-parser@7.27.1':
-    resolution: {integrity: sha512-qMlSxKbpRlAridDExk92nSobyDdpPijUq2DW6oDnUqd0iOGxmQjyqhMIihI9+zv4LPyZdRje2cavWPbCbWm3eA==}
+  '@babel/helper-string-parser@7.29.7':
+    resolution: {integrity: sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-validator-identifier@7.28.5':
-    resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
+  '@babel/helper-validator-identifier@7.29.7':
+    resolution: {integrity: sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/parser@7.29.2':
-    resolution: {integrity: sha512-4GgRzy/+fsBa72/RZVJmGKPmZu9Byn8o4MoLpmNe1m8ZfYnz5emHLQz3U4gLud6Zwl0RZIcgiLD7Uq7ySFuDLA==}
+  '@babel/parser@7.29.7':
+    resolution: {integrity: sha512-hnORnjP/1P/zFEndoeX+n+t1RwWRJiJpM/jO7FW32Kn9r5+sJB2JWOdYo4L6k78j15eCwY3Gm/7364B1EMwtNg==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -123,8 +123,8 @@ packages:
     resolution: {integrity: sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/types@7.29.0':
-    resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
+  '@babel/types@7.29.7':
+    resolution: {integrity: sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==}
     engines: {node: '>=6.9.0'}
 
   '@emnapi/core@1.9.2':
@@ -1006,8 +1006,8 @@ packages:
   '@sideway/pinpoint@2.0.0':
     resolution: {integrity: sha512-RNiOoTPkptFtSVzQevY/yWtZwf/RxyVnPy/OcA9HBM3MlGDnBEYL5B41H0MTn0Uec8Hi+2qUtTfG2WWZBmMejQ==}
 
-  '@slicemachine/adapter-sveltekit@0.3.95':
-    resolution: {integrity: sha512-rVQiVouvI/Gl1vpXHIGyNEjvSDMD9aablx0dEZ1jz7OkJtd+o8tHCRnenqkAXqL7AxrP17COWak6IQ8R+1WL/w==}
+  '@slicemachine/adapter-sveltekit@0.3.96':
+    resolution: {integrity: sha512-iEGn1GtV4DCYjkYZDKO0PLFfhg6+wE0UnWf3jn5Qve1fFsal2GqBPvZmdvDTI8/aUx1BBcKAgSNKfA+iFGf1zA==}
     engines: {node: '>=14.15.0'}
     peerDependencies:
       '@sveltejs/kit': ^1 || ^2
@@ -1029,12 +1029,12 @@ packages:
       msw:
         optional: true
 
-  '@slicemachine/plugin-kit@0.4.93':
-    resolution: {integrity: sha512-9LCFHouGbedmsQRUvcD6JU6/GxNxp0QUnoUHbgYFmKQSWTApXDWqPIRr1ejTRYDqLc4hg7FURiHT3tx7bDK+XA==}
-    engines: {node: '>=14.15.0'}
-
   '@slicemachine/plugin-kit@0.4.94':
     resolution: {integrity: sha512-u41UpWrzkLfa/dYzpaKlCJn8mru9mh3k+2PxnPagTOceQMMMZP/mA7NVUc4ee5uzAgt1z6m8759XcjKh7QFBKg==}
+    engines: {node: '>=14.15.0'}
+
+  '@slicemachine/plugin-kit@0.4.95':
+    resolution: {integrity: sha512-cnoHJCVkGHksG5I+3huD0Dad/TVZE5dgXAmF1H2dvDLCgzwU4uNY0iURo8+O9Q94t0xOA7S5r0y/DF69RKgRwg==}
     engines: {node: '>=14.15.0'}
 
   '@stablelib/base64@1.0.1':
@@ -2312,6 +2312,10 @@ packages:
     resolution: {integrity: sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==}
     engines: {node: '>= 0.4'}
 
+  hasown@2.0.4:
+    resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
+    engines: {node: '>= 0.4'}
+
   he@1.2.0:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
@@ -2473,8 +2477,8 @@ packages:
     resolution: {integrity: sha512-ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw==}
     engines: {node: '>=8'}
 
-  is-core-module@2.16.1:
-    resolution: {integrity: sha512-UfoeMA6fIJ8wTYFEUjelnaGI67v6+N7qXJEvQuIGa99l4xsCruSYOVSQ0uPANn4dAzm8lkYPaKLrrijLq7x23w==}
+  is-core-module@2.16.2:
+    resolution: {integrity: sha512-evOr8xfXKxE6qSR0hSXL2r3sd7ALj8+7jQEUvPYcm5sgZFdJ+AYzT6yNmJenvIYQBgIGwfwz08sL8zoL7yq2BA==}
     engines: {node: '>= 0.4'}
 
   is-docker@2.2.1:
@@ -2549,8 +2553,8 @@ packages:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
 
-  joi@17.13.3:
-    resolution: {integrity: sha512-otDA4ldcIx+ZXsKHWmp0YizCweVRZG96J10b0FevjfuncLO1oX59THoAmHkNubYJ+9gWsYsp5k8v4ib6oDv1fA==}
+  joi@17.13.4:
+    resolution: {integrity: sha512-1RuuER6kmt8K8I3nIWvPZKi5RQCb568ZPyY4Pwjlua+yo+63ZTmIwxLZH0heBmiKN4uxjvCiarDrjaeH84xicQ==}
 
   jose@5.10.0:
     resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
@@ -3558,6 +3562,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.8.4:
+    resolution: {integrity: sha512-rUCObTnP32Q08R2uuIrt7r9PlEonuTmtuXYcW6s5kjdlj3xbnwe+21yXptAUYcMAABLkYYTtnmzb3w3EDZfueA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   send@0.19.2:
     resolution: {integrity: sha512-VMbMxbDeehAxpOtWJXlcUS5E8iXh6QmN+BkRX1GARS3wRaXEEgzCcB10gTQazO42tpNIya8xIyNx8fll1OFPrg==}
     engines: {node: '>= 0.8.0'}
@@ -3975,6 +3984,7 @@ packages:
 
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   valid-data-url@3.0.1:
@@ -4199,26 +4209,26 @@ snapshots:
       axe-core: 4.11.4
       playwright-core: 1.59.1
 
-  '@babel/code-frame@7.29.0':
+  '@babel/code-frame@7.29.7':
     dependencies:
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-validator-identifier': 7.29.7
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
-  '@babel/helper-string-parser@7.27.1': {}
+  '@babel/helper-string-parser@7.29.7': {}
 
-  '@babel/helper-validator-identifier@7.28.5': {}
+  '@babel/helper-validator-identifier@7.29.7': {}
 
-  '@babel/parser@7.29.2':
+  '@babel/parser@7.29.7':
     dependencies:
-      '@babel/types': 7.29.0
+      '@babel/types': 7.29.7
 
   '@babel/runtime@7.29.2': {}
 
-  '@babel/types@7.29.0':
+  '@babel/types@7.29.7':
     dependencies:
-      '@babel/helper-string-parser': 7.27.1
-      '@babel/helper-validator-identifier': 7.28.5
+      '@babel/helper-string-parser': 7.29.7
+      '@babel/helper-validator-identifier': 7.29.7
 
   '@emnapi/core@1.9.2':
     dependencies:
@@ -4987,11 +4997,11 @@ snapshots:
 
   '@sideway/pinpoint@2.0.0': {}
 
-  '@slicemachine/adapter-sveltekit@0.3.95(@sveltejs/kit@2.63.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.56.2(@typescript-eslint/types@8.60.1))(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1)))(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1))':
+  '@slicemachine/adapter-sveltekit@0.3.96(@sveltejs/kit@2.63.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.56.2(@typescript-eslint/types@8.60.1))(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1)))(prettier@3.8.3)(svelte@5.56.2(@typescript-eslint/types@8.60.1))':
     dependencies:
       '@prismicio/simulator': 0.1.4
       '@prismicio/types-internal': 3.11.2(fp-ts@2.16.11)(io-ts-types@0.5.19(fp-ts@2.16.11)(io-ts@2.2.22(fp-ts@2.16.11))(monocle-ts@2.3.13(fp-ts@2.16.11))(newtype-ts@0.3.5(fp-ts@2.16.11)(monocle-ts@2.3.13(fp-ts@2.16.11))))(io-ts@2.2.22(fp-ts@2.16.11))
-      '@slicemachine/plugin-kit': 0.4.93
+      '@slicemachine/plugin-kit': 0.4.95
       '@sveltejs/kit': 2.63.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.56.2(@typescript-eslint/types@8.60.1))(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1)))(svelte@5.56.2(@typescript-eslint/types@8.60.1))(typescript@6.0.3)(vite@8.0.9(@types/node@25.6.0)(jiti@2.6.1))
       common-tags: 1.8.2
       fp-ts: 2.16.11
@@ -5042,7 +5052,7 @@ snapshots:
       - encoding
       - zod
 
-  '@slicemachine/plugin-kit@0.4.93':
+  '@slicemachine/plugin-kit@0.4.94':
     dependencies:
       '@prismicio/client': 7.17.0
       common-tags: 1.8.2
@@ -5058,7 +5068,7 @@ snapshots:
     transitivePeerDependencies:
       - '@prismicio/types'
 
-  '@slicemachine/plugin-kit@0.4.94':
+  '@slicemachine/plugin-kit@0.4.95':
     dependencies:
       '@prismicio/client': 7.17.0
       common-tags: 1.8.2
@@ -6449,6 +6459,10 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
+  hasown@2.0.4:
+    dependencies:
+      function-bind: 1.1.2
+
   he@1.2.0: {}
 
   hosted-git-info@4.1.0:
@@ -6631,9 +6645,9 @@ snapshots:
     dependencies:
       binary-extensions: 2.3.0
 
-  is-core-module@2.16.1:
+  is-core-module@2.16.2:
     dependencies:
-      hasown: 2.0.3
+      hasown: 2.0.4
 
   is-docker@2.2.1: {}
 
@@ -6690,7 +6704,7 @@ snapshots:
 
   jiti@2.6.1: {}
 
-  joi@17.13.3:
+  joi@17.13.4:
     dependencies:
       '@hapi/hoek': 9.3.0
       '@hapi/topo': 5.1.0
@@ -6958,8 +6972,8 @@ snapshots:
 
   magicast@0.3.5:
     dependencies:
-      '@babel/parser': 7.29.2
-      '@babel/types': 7.29.0
+      '@babel/parser': 7.29.7
+      '@babel/types': 7.29.7
       source-map-js: 1.2.1
 
   make-dir@3.1.0:
@@ -7406,15 +7420,15 @@ snapshots:
   normalize-package-data@3.0.3:
     dependencies:
       hosted-git-info: 4.1.0
-      is-core-module: 2.16.1
-      semver: 7.7.4
+      is-core-module: 2.16.2
+      semver: 7.8.4
       validate-npm-package-license: 3.0.4
 
   normalize-package-data@5.0.0:
     dependencies:
       hosted-git-info: 6.1.3
-      is-core-module: 2.16.1
-      semver: 7.7.4
+      is-core-module: 2.16.2
+      semver: 7.8.4
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -7533,7 +7547,7 @@ snapshots:
 
   parse-json@5.2.0:
     dependencies:
-      '@babel/code-frame': 7.29.0
+      '@babel/code-frame': 7.29.7
       error-ex: 1.3.4
       json-parse-even-better-errors: 2.3.1
       lines-and-columns: 1.2.4
@@ -7637,7 +7651,7 @@ snapshots:
       common-tags: 1.8.2
       fast-glob: 3.3.3
       jiti: 1.21.7
-      joi: 17.13.3
+      joi: 17.13.4
       meow: 12.0.1
       node-fetch: 3.3.2
       pascal-case: 3.1.2
@@ -7901,6 +7915,8 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.7.4: {}
+
+  semver@7.8.4: {}
 
   send@0.19.2:
     dependencies:
