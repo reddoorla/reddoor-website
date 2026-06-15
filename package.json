@@ -25,11 +25,11 @@
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.2.4",
     "@zerodevx/svelte-img": "^2.1.2",
-    "concurrently": "^8.2.2",
+    "concurrently": "^10.0.0",
     "eslint": "^10.4.0",
     "postcss": "^8.4.35",
     "prettier": "^3.1.1",
-    "prettier-plugin-svelte": "^3.1.2",
+    "prettier-plugin-svelte": "^4.0.0",
     "slice-machine-ui": "^2.4.1",
     "svelte": "^5.56.2",
     "svelte-check": "^4.4.6",
@@ -39,18 +39,11 @@
     "vite": "^8.0.9"
   },
   "type": "module",
-  "packageManager": "pnpm@10.34.3",
+  "packageManager": "pnpm@11.7.0",
   "dependencies": {
     "@prismicio/client": "^7.21.8",
     "@prismicio/svelte": "^2.2.1",
     "@reddoorla/maintenance": "^0.34.0",
     "svelte-gestures": "^5.2.2"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "protobufjs",
-      "sharp"
-    ]
   }
 }
