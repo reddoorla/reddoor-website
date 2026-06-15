@@ -1,0 +1,18 @@
+# pnpm 11 reads project settings from here (the package.json "pnpm" field is no longer read).
+# allowBuilds replaces the removed onlyBuiltDependencies; strictDepBuilds defaults to true in v11,
+# so any package with build scripts that isn't listed here fails with ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  "@scarf/scarf": false
+  esbuild: true
+  protobufjs: true
+  sharp: true
+
+# pnpm 11 enables a 24h supply-chain release-age cooldown BY DEFAULT (pnpm 10 had none). With our
+# Renovate automation that breaks CI on every same-day bump and holds us ~24h behind latest, so we
+# disable it to preserve pnpm 10 behavior (no security regression vs. what we ran before).
+#
+# To opt into the cooldown later: set minimumReleaseAge to e.g. 1440 (minutes), add
+#   minimumReleaseAgeExclude: ['@reddoorla/*']
+# so our own freshly-published packages install immediately, and set Renovate's minimumReleaseAge
+# to >= the cooldown in the org preset so it never proposes deps younger than the window.
+minimumReleaseAge: 0
