@@ -23,6 +23,7 @@
   const MASK_GROWTH = 14;
   const MASK_MAX = MASK_BASE + MASK_GROWTH;
   const HERO_EXIT_PCT = 99;
+  const HERO_BLUR_THRESHOLD = 3;
   const COMPELLING_DESKTOP_PCT = 30;
   const COMPELLING_MOBILE_PCT = 10;
   const MOBILE_BREAKPOINT_PX = 768;
@@ -47,6 +48,7 @@
   let scrollFrame = 0;
 
   const isScrolledPastHero = $derived(percentageScrolled >= HERO_EXIT_PCT);
+  const isHeroBgBlurred = $derived(percentageScrolled<HERO_BLUR_THRESHOLD) 
 
   let currentImageIndex = $state(0);
   const safeIndex = $derived(slides.length ? currentImageIndex % slides.length : 0);
@@ -227,10 +229,11 @@
               : slide.background_image}
             loading={index === 0 ? "eager" : "lazy"}
             fetchpriority={index === 0 ? "high" : "auto"}
-            class="absolute h-full w-full object-cover will-change-[opacity] transition-opacity duration-1000 ease-fast-slow {index ===
+            class="absolute h-full w-full object-cover will-change-[opacity,filter] transition-all duration-1200 ease-fast-slow {index ===
             safeIndex
               ? 'opacity-100'
-              : ' delay-1000 opacity-0'}"
+              : ' delay-1000 opacity-0'} 
+              {isHeroBgBlurred?"blur":""}"
           />
         {/each}
 
