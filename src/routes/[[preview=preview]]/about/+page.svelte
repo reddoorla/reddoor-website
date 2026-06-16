@@ -385,13 +385,13 @@
     <div class="md:w-3/5 flex flex-col items-center gap-6 md:gap-0 md:flex-row mt-16">
       <div use:anim class="w-4/5 md:w-1/3 md:pr-4 flex flex-col">
         <Img src={tim} alt="tim holmes" class="w-full aspect-square" />
-        <div class="text-primary large-body font-thin mt-2">Tim Holmes</div>
-        <p class="text-mid font-thin">CA+ID Creative Director</p>
+        <div class="text-primary large-body font-extralight mt-2">Tim Holmes</div>
+        <p class="text-mid font-extralight">CA+ID Creative Director</p>
       </div>
       <div use:anim class="w-4/5 md:w-1/3 md:pl-4 flex flex-col">
         <Img src={erik} alt="Erik Svendsen" class="w-full aspect-square" />
         <p class="text-primary large-body mt-2 large-body">Erik Svendsen</p>
-        <div class="font-thin">TX Creative Director</div>
+        <div class="font-extralight">TX Creative Director</div>
       </div>
     </div>
   </ContentWidth>
@@ -508,7 +508,7 @@
     font-family: Pragmatica;
     font-size: 50px;
     font-style: normal;
-    font-weight: 250;
+    font-weight: 200;
     line-height: 140%; /* 70px */
   }
 
