@@ -104,6 +104,7 @@
             field={isMobile && brand.active_background_mobile_crop
               ? brand.active_background_mobile_crop
               : brand.active_background}
+            alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
         {showImage && brandIndex === i ? '' : 'opacity-0'}"
           />
@@ -144,9 +145,10 @@
                 }}
                 aria-label="Preview {brand.name}"
               >
-                <PrismicLink field={brand.project_link}>
+                <PrismicLink field={brand.project_link} aria-label={brand.name || "View project"}>
                   <PrismicImage
                     field={brand.logo_negative}
+                    alt=""
                     class="h-full absolute transition-opacity duration-300 ease-fast-slow {showImage &&
                     brandIndex === i
                       ? ''
@@ -155,6 +157,7 @@
                   />
                   <PrismicImage
                     field={brand.logo_color}
+                    alt=""
                     class="h-full transition-opacity duration-300 ease-fast-slow {showImage &&
                     brandIndex > -1
                       ? 'opacity-0'
@@ -238,6 +241,7 @@
         {#each brands as brand, i (brand.name || i)}
           <PrismicImage
             field={brand.active_background}
+            alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
             {mobileScrollActive && brandIndex === i ? '' : 'opacity-0'}"
           />
@@ -258,9 +262,10 @@
         <div class="relative h-24 w-full flex justify-center items-center mb-16">
           {#each brands as brand, i (brand.name || i)}
             <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <PrismicLink field={brand.project_link}>
+              <PrismicLink field={brand.project_link} aria-label={brand.name || "View project"}>
                 <PrismicImage
                   field={brand.logo_negative}
+                  alt=""
                   class="h-24 w-auto transition-opacity duration-300 ease-fast-slow object-contain {mobileScrollActive &&
                   brandIndex === i
                     ? ''
@@ -307,9 +312,13 @@
               <button
                 onclick={() => navigateToBrand(i + 1)}
                 aria-label="Jump to {brand.name}"
-                class="w-1.5 h-1.5 rounded-full transition-all duration-300 z-20
-                {i === brandIndex ? 'bg-white scale-125' : 'bg-white/50 scale-100'}"
+                class="grid place-items-center min-w-6 min-h-6 z-20"
               >
+                <span
+                  aria-hidden="true"
+                  class="w-1.5 h-1.5 rounded-full transition-all duration-300
+                  {i === brandIndex ? 'bg-white scale-125' : 'bg-white/50 scale-100'}"
+                ></span>
               </button>
             {/each}
           </div>

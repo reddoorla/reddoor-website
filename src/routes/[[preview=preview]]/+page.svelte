@@ -3,9 +3,10 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import OpeningAnimation from "$lib/components/OpeningAnimation.svelte";
-  import megaphone from "$lib/assets/icons/megaphone.png";
+  import Img from "$lib/components/Img.svelte";
+  import megaphone from "$lib/assets/icons/megaphone.png?as=run";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
-  import pencil from "$lib/assets/icons/RD_TakeAction-02.png";
+  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import type { PageData } from "./$types";
 
@@ -20,7 +21,7 @@
 <div class="relative w-screen bg-paper">
   <section class="w-screen py-32">
     <ContentWidth class="flex flex-col relative">
-      <img
+      <Img
         src={megaphone}
         alt="megaphone"
         class="w-4/5 md:w-1/4 lg:w-1/5 mix-blend-multiply opacity-50"
@@ -31,21 +32,21 @@
       <div use:anim class="h-px bg-primary w-full my-8"></div>
       <div class="w-full flex flex-col md:flex-row justify-end">
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-6 pb-6">
-          <h5 class="text-primary">Stand Out</h5>
+          <h3 class="text-primary heading-sub">Stand Out</h3>
           <p class="mt-2">
             The best brands have a story worth telling. With compelling design, you can stand out
             and succeed in this noisy world.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-6 pb-6">
-          <h5 class="text-primary">Feel Confident</h5>
+          <h3 class="text-primary heading-sub">Feel Confident</h3>
           <p class="mt-2">
             When you have a brand that is clear and compelling, you can't help but be confident in
             any situation. Your clients sense this and are attracted to your offering.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-6 pb-6">
-          <h5 class="text-primary">Be Energized</h5>
+          <h3 class="text-primary heading-sub">Be Energized</h3>
           <p class="mt-2">
             You have something great to offer and when your audience clearly understands how you can
             solve their problem, it will help you close more deals.
@@ -59,7 +60,7 @@
 
   <section class="w-screen pb-32">
     <ContentWidth class="flex flex-col relative">
-      <img
+      <Img
         src={pencil}
         alt="pencil"
         class="w-3/5 md:w-1/4 lg:w-1/5 mix-blend-multiply opacity-50"
@@ -84,21 +85,21 @@
       <div use:anim class="h-px bg-primary w-full my-8"></div>
       <div class="w-full flex flex-col md:flex-row justify-end">
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-8 pb-8">
-          <h5 class="text-primary">Call us, <br /> let’s talk.</h5>
+          <h3 class="text-primary heading-sub">Call us, <br /> let’s talk.</h3>
           <p class="mt-2">
             Everything we do starts and ends with you. Your problems, your goals, your story. We
             begin with a conversation to see how we can help you succeed.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-8 pb-8">
-          <h5 class="text-primary">We help solve <br /> your problem.</h5>
+          <h3 class="text-primary heading-sub">We help solve <br /> your problem.</h3>
           <p class="mt-2">
             After establishing clear goals that solve your brand’s problem we get to work on
             establishing a clear story and developing a compelling design.
           </p>
         </div>
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-8 pb-8">
-          <h5 class="text-primary">Stand out <br /> from the noise.</h5>
+          <h3 class="text-primary heading-sub">Stand out <br /> from the noise.</h3>
           <p class="mt-2">
             You envisioned success and now you finally have confidence in your brand. We’ve equipped
             you to increase sales the way you’ve always hoped..
@@ -135,3 +136,31 @@
     </div>
   </ContentWidth>
 </section>
+
+<style>
+  /*
+    These headings are semantically <h3> for correct heading order, but must
+    visually match the previous <h5>. Replicate the exact h5 typography from
+    app.css across every breakpoint so the rendered size is identical.
+  */
+  h3.heading-sub {
+    font-size: 30px;
+    font-style: normal;
+    font-weight: 200;
+    line-height: 46px;
+  }
+
+  @media only screen and (max-width: 1024px) {
+    h3.heading-sub {
+      font-size: 22px;
+      line-height: 32px;
+    }
+  }
+
+  @media only screen and (max-width: 480px) {
+    h3.heading-sub {
+      font-size: 22px;
+      line-height: 32px;
+    }
+  }
+</style>

@@ -227,6 +227,7 @@
             field={viewportWidth < MOBILE_BREAKPOINT_PX && slide.background_image_mobile_crop
               ? slide.background_image_mobile_crop
               : slide.background_image}
+            alt={(slide.project_name ? slide.project_name + " — project background" : "") as ""}
             loading={index === 0 ? "eager" : "lazy"}
             fetchpriority={index === 0 ? "high" : "auto"}
             class="absolute h-full w-full object-cover will-change-[opacity,filter] transition-all duration-1200 ease-fast-slow {index ===
