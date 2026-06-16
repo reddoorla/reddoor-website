@@ -4,6 +4,7 @@
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
+  import { ChevronLeft, ChevronRight, Pause, Play } from "@lucide/svelte";
 
   let { slice }: { slice: SlideshowSlice } = $props();
 
@@ -150,9 +151,10 @@
                 class="h-6 w-6 rounded-full border-mid border-2 p-1 flex align-middle justify-center cursor-pointer transition-all duration-300 active:-translate-y-1 hover:bg-primary hover:border-primary hover:text-white disabled:opacity-50 disabled:cursor-default"
                 aria-label="Previous slide"
               >
-                <i
-                  class="translate-y-[-1.75px] translate-x-[-0.75px] fa-solid fa-sharp fa-chevron-left scale-90"
-                ></i>
+                <ChevronLeft
+                  class="size-[1em] translate-y-[-1.75px] translate-x-[-0.75px] scale-90"
+                  strokeWidth={2}
+                />
               </button>
 
               <button
@@ -161,9 +163,10 @@
                 class="h-6 w-6 rounded-full border-mid border-2 p-1 flex align-middle cursor-pointer transition-all duration-300 active:-translate-y-1 justify-center hover:bg-primary hover:border-primary hover:text-white disabled:opacity-50 disabled:cursor-default"
                 aria-label="Next slide"
               >
-                <i
-                  class="translate-y-[-1.75px] translate-x-[0.75px] fa-solid fa-sharp fa-chevron-right scale-90"
-                ></i>
+                <ChevronRight
+                  class="size-[1em] translate-y-[-1.75px] translate-x-[0.75px] scale-90"
+                  strokeWidth={2}
+                />
               </button>
             </div>
 
@@ -174,10 +177,12 @@
               aria-label={isPlaying ? "Pause slideshow" : "Play slideshow"}
             >
               {#if isPlaying}
-                <i class="translate-y-[-1.5px] fa-solid fa-sharp fa-pause scale-90"></i>
+                <Pause class="size-[1em] translate-y-[-1.5px] scale-90" strokeWidth={2} />
               {:else}
-                <i class="translate-y-[-1.5px] translate-x-px fa-solid fa-sharp fa-play scale-75"
-                ></i>
+                <Play
+                  class="size-[1em] translate-y-[-1.5px] translate-x-px scale-75"
+                  strokeWidth={2}
+                />
               {/if}
             </button>
 

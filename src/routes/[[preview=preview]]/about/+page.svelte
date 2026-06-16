@@ -15,6 +15,7 @@
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
   import { fade } from "svelte/transition";
+  import { ArrowLeft, ArrowRight, X } from "@lucide/svelte";
   import { browser } from "$app/environment";
   import { untrack } from "svelte";
   import type { PageData } from "./$types";
@@ -233,7 +234,7 @@
         class="absolute top-3 right-3 text-primary hover:text-primary-dark transition-colors"
         aria-label="Close popup"
       >
-        <i class="fa-solid fa-sharp fa-xmark fa-lg"></i>
+        <X class="size-[1.25em]" strokeWidth={2} />
       </button>
       <p class="text-primary pr-8">{popupText}</p>
     </div>
@@ -336,17 +337,19 @@
           onclick={decrementValues}
           aria-label="Previous promise"
           class={isValuesTransitioning ? "cursor-default" : ""}
-          ><i
-            class="fa-solid fa-light fa-arrow-left fa-xl hover:text-primary-dark transition-colors duration-300"
-          ></i></button
+          ><ArrowLeft
+            class="size-[1.5em] hover:text-primary-dark transition-colors duration-300"
+            strokeWidth={1.5}
+          /></button
         >
         <button
           onclick={incrementValues}
           aria-label="Next promise"
           class={isValuesTransitioning ? "cursor-default" : ""}
-          ><i
-            class="fa-solid fa-light fa-arrow-right fa-xl hover:text-primary-dark transition-colors duration-300"
-          ></i></button
+          ><ArrowRight
+            class="size-[1.5em] hover:text-primary-dark transition-colors duration-300"
+            strokeWidth={1.5}
+          /></button
         >
       </div>
     </div>
