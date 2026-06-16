@@ -4,8 +4,20 @@ import type { LayoutServerLoad } from "./$types";
 
 export const prerender = "auto";
 
-export const load: LayoutServerLoad = async ({ url, fetch, cookies }) => {
+export const load: LayoutServerLoad = async ({ url, fetch, cookies, setHeaders }) => {
   const { pathname } = url;
+
+  // ISR-style edge caching: these pages can't prerender (every load reads the
+  // Prismic preview cookie), so they SSR per request. Cache the rendered HTML
+  // on Netlify's durable CDN and revalidate in the background — repeat hits are
+  // served from the edge (fast TTFB) instead of re-running the function.
+  // Prismic preview sessions bypass the cache so editors always see live drafts.
+  if (!cookies.get("io.prismic.preview")) {
+    setHeaders({
+      "Netlify-CDN-Cache-Control": "public, durable, s-maxage=300, stale-while-revalidate=86400",
+    });
+  }
+
   const client = createClient({ fetch, cookies });
   const latestFourProjects = await client.getByType("project", {
     orderings: {
