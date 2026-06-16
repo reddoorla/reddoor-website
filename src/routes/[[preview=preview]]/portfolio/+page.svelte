@@ -544,7 +544,7 @@
     font-family: Pragmatica;
     font-size: 60px;
     font-style: normal;
-    font-weight: 250;
+    font-weight: 200;
     line-height: 125%; /* 75px */
   }
 
@@ -552,7 +552,7 @@
     font-family: Pragmatica;
     font-size: 50px;
     font-style: normal;
-    font-weight: 250;
+    font-weight: 200;
     line-height: 140%; /* 70px */
   }
 
