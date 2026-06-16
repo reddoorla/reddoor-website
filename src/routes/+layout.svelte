@@ -13,7 +13,7 @@
   import { isInHero } from "$lib/stores/isInHero.svelte";
   import LandscapeModal from "$lib/components/LandscapeModal.svelte";
 
-  import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.gif";
+  import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.webp";
   import scriptReddoor from "$lib/assets/icons/logos/staticReddoor.png";
   import type { Snippet } from "svelte";
 
