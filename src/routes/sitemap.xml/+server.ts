@@ -1,7 +1,7 @@
 import type { RequestHandler } from "./$types";
 import { createClient } from "$lib/prismicio";
 
-const SITE_URL = "https://www.reddoorla.com";
+const SITE_URL = "https://reddoorla.com";
 
 const STATIC_ROUTES = ["/", "/portfolio", "/about", "/contact", "/twenty-for-twenty"];
 

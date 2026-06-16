@@ -112,13 +112,14 @@
       </div>
       <ContentWidth class="h-full py-32 flex flex-row justify-end relative">
         <div use:anim class="absolute left-0 top-40">
-          <h6
-            class="transition duration-300 ease-fast-slow {showImage && brandIndex > -1
+          <h4
+            class="text-lg font-bold leading-7.5 transition duration-300 ease-fast-slow {showImage &&
+            brandIndex > -1
               ? 'text-white'
               : 'text-red'}"
           >
             Join these brands <br /> in fighting mediocrity.
-          </h6>
+          </h4>
         </div>
 
         <div class="w-3/5 h-full flex flex-row justify-between items-center flex-wrap gap-12">
@@ -250,13 +251,13 @@
 
       <div class="absolute bottom-0 left-0 w-screen h-lvh bg-black opacity-25"></div>
       <div class="h-lvh w-screen flex flex-col items-center justify-evenly absolute top-0 left-0">
-        <h6
-          class="text-center mb-12 transition duration-300 ease-fast-slow {mobileScrollActive
+        <h4
+          class="text-lg font-bold leading-7.5 text-center mb-12 transition duration-300 ease-fast-slow {mobileScrollActive
             ? 'text-white'
             : 'text-red'}"
         >
           Join these brands <br /> in fighting mediocrity.
-        </h6>
+        </h4>
 
         <!-- Mobile logo display -->
         <div class="relative h-24 w-full flex justify-center items-center mb-16">

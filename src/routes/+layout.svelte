@@ -41,7 +41,7 @@
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Reddoor Creative",
-    url: "https://www.reddoorla.com",
+    url: "https://reddoorla.com",
     sameAs: [
       "https://www.linkedin.com/company/reddoor-creative",
       "https://www.instagram.com/reddoorla/",
