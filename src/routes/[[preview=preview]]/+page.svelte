@@ -115,10 +115,10 @@
 <section class="w-screen bg-paper-red relative">
   <ContentWidth class="z-20 h-0" animateIn>
     <div class="absolute top-32 w-72 z-20">
-      <h6 class="text-white">
+      <p class="text-lg font-bold leading-7.5 text-white">
         We pride ourselves in a hands-on approach to producing compelling design that excites our
         clients.
-      </h6>
+      </p>
       <DefaultButton href="/about" class="mt-8">About Us</DefaultButton>
     </div>
   </ContentWidth>
