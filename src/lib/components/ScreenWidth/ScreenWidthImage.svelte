@@ -16,6 +16,7 @@
     backdrop?: boolean;
     alt?: string;
     class?: string;
+    lazy?: boolean;
     children?: Snippet;
   }
 
@@ -30,12 +31,35 @@
     backdrop = false,
     alt = "",
     class: className = "",
+    lazy = false,
     children,
   }: Props = $props();
 
   let viewportHeight = $state(1024);
   let viewportWidth = $state(768);
   let showVideo = $state(true);
+
+  // When lazy, defer mounting the Vimeo iframe until the section nears the
+  // viewport, so the player + video don't load during initial paint.
+  let sectionEl: HTMLElement | undefined = $state();
+  let inView = $state(false);
+
+  $effect(() => {
+    if (!lazy) return;
+    const el = sectionEl;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          inView = true;
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  });
 
   const handleVideoError = () => {
     showVideo = false;
@@ -45,6 +69,7 @@
 <svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
 
 <section
+  bind:this={sectionEl}
   class="h-screen w-screen overflow-clip {className}
   {backdrop ? 'fixed -z-10 top-0 left-0' : 'relative'}"
 >
@@ -72,11 +97,13 @@
       <PrismicImage {field} class="absolute h-full w-full object-cover -z-10" />
     {/if}
 
-    <!-- Video - only show if vimeoId exists and hasn't failed -->
-    {#if vimeoId}
+    <!-- Video - only show if vimeoId exists and hasn't failed. When lazy, the
+         iframe is withheld until the section nears the viewport (see effect). -->
+    {#if vimeoId && (!lazy || inView)}
       <iframe
         title="background video"
         src={`https://player.vimeo.com/video/${vimeoId}?background=1&muted=1&loop=1&autoplay=1`}
+        loading="lazy"
         class="aspect-video absolute {viewportHeight * 16 > viewportWidth * 9
           ? 'h-screen min-w-full'
           : 'w-screen min-h-full'} contrast-[1.15] -z-10

@@ -125,6 +125,7 @@
   <ScreenWidthImage
     vimeoId="1082293395"
     altText="sonder brand drawing"
+    lazy
     class="mix-blend-multiply opacity-60 pointer-events-none"
   ></ScreenWidthImage>
 </section>

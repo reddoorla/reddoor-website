@@ -3,13 +3,36 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
-    <link rel="stylesheet" href="https://use.typekit.net/noj4tji.css" />
+
+    <!--
+      Fonts load async so they don't block first paint (LCP). The media="print"
+      → onload="this.media='all'" trick fetches the stylesheet without render-
+      blocking, then applies it once loaded; <noscript> covers JS-disabled.
+      Besley is requested upright-only (no italics are used) to trim the payload.
+    -->
+    <link rel="preconnect" href="https://use.typekit.net" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://use.typekit.net/noj4tji.css" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Besley:ital,wght@0,400..900;1,400..900&display=swap"
       rel="stylesheet"
+      href="https://use.typekit.net/noj4tji.css"
+      media="print"
+      onload="this.media = 'all'"
     />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Besley:wght@400..900&display=swap"
+      media="print"
+      onload="this.media = 'all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://use.typekit.net/noj4tji.css" />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Besley:wght@400..900&display=swap"
+      />
+    </noscript>
     <meta name="viewport" content="width=device-width" />
     <script src="https://kit.fontawesome.com/78a9146bce.js" crossorigin="anonymous" async></script>
     %sveltekit.head%
