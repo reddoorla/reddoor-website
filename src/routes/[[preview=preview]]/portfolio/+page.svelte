@@ -23,6 +23,7 @@
   import { expoOut } from "svelte/easing";
   import type { PageData } from "./$types";
   import { mediumString } from "$lib/utils/projectServices";
+  import { ArrowDown, ChevronDown, Minus } from "@lucide/svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -135,7 +136,7 @@
     <div
       class="w-12 h-12 rounded-full border-2 transition-colors duration-300 flex items-center justify-center"
     >
-      <i class="fa-solid fa-light fa-arrow-down fa-2xl" aria-hidden="true"></i>
+      <ArrowDown class="size-[2em]" strokeWidth={1.5} aria-hidden="true" />
     </div>
   </a>
 {/if}
@@ -459,16 +460,20 @@
           <div>{orderString}</div>
           <div class="h-12 w-12 relative">
             {#if !isOrderSelectOpen}
-              <i
-                class="fa-solid fa-sharp fa-chevron-down absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              <span
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                 transition:scale={{ duration: 300 }}
-              ></i>
+              >
+                <ChevronDown class="size-[1em]" strokeWidth={2} />
+              </span>
             {/if}
             {#if isOrderSelectOpen}
-              <i
-                class="fa-solid fa-sharp fa-dash absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              <span
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                 transition:scale={{ duration: 300 }}
-              ></i>
+              >
+                <Minus class="size-[1em]" strokeWidth={2} />
+              </span>
             {/if}
           </div>
         </button>

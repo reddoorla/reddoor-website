@@ -11,6 +11,7 @@
   import { isInHero } from "$lib/stores/isInHero.svelte";
   import drawnLogo from "$lib/assets/icons/logos/staticReddoor.png";
   import { untrack } from "svelte";
+  import { ArrowDown, Menu, X } from "@lucide/svelte";
 
   const NAV_LINKS = [
     { label: "Portfolio", href: "/portfolio" },
@@ -163,7 +164,7 @@
         onclick={() => (isOverlayVisible = false)}
         aria-label="Close menu"
       >
-        <i class="fa-sharp fa-thin fa-xmark fa-2xl"></i>
+        <X class="size-[2em]" strokeWidth={1} />
       </button>
     </div>
 
@@ -202,10 +203,11 @@
         </h1>
         <h1 class="text-white text-left w-fit">a clear story...</h1>
       </div>
-      <i
-        class="fa-light fa-arrow-down fa-2xl opacity-50 absolute bottom-12 text-white bob-always"
+      <ArrowDown
+        class="size-[2em] opacity-50 absolute bottom-12 text-white bob-always"
+        strokeWidth={1.5}
         aria-hidden="true"
-      ></i>
+      />
     </ContentWidth>
 
     <div class="fixed top-0 left-0 w-screen h-dvh overflow-hidden z-20">
@@ -218,7 +220,7 @@
           out:fade
           aria-label="Open menu"
         >
-          <i class="fa-sharp fa-bars fa-xl text-white"></i>
+          <Menu class="size-[1.5em] text-white" strokeWidth={2} />
         </button>
       </ContentWidth>
       <div class="fixed top-0 left-0 w-lvw h-dvh z-20" style="clip-path: url(#mask-path);">
@@ -338,10 +340,11 @@
       <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
         <h1 class="text-white text-left w-fit">{HEADLINE_INTRO}</h1>
       </div>
-      <i
-        class="fa-light fa-arrow-down fa-2xl opacity-50 absolute bottom-12 text-white bob-always"
+      <ArrowDown
+        class="size-[2em] opacity-50 absolute bottom-12 text-white bob-always"
+        strokeWidth={1.5}
         aria-hidden="true"
-      ></i>
+      />
     </ContentWidth>
   </div>
 

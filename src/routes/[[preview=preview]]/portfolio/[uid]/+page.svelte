@@ -1,5 +1,6 @@
 <script lang="ts">
   import { PrismicImage, SliceZone } from "@prismicio/svelte";
+  import { ChevronLeft, ChevronRight } from "@lucide/svelte";
 
   import { components } from "$lib/slices";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
@@ -36,12 +37,12 @@
         <div class="h-6 w-20 flex flex-row justify-between text-white">
           {#if data.prevProject}
             <a href={"/portfolio/" + data.prevProject.uid} aria-label="Previous project">
-              <i class="fa-thin fa-sharp fa-chevron-left fa-2xl bump hover:text-light"></i></a
+              <ChevronLeft class="size-[2em] bump hover:text-light" strokeWidth={1} /></a
             >
           {/if}
           {#if data.nextProject}
             <a href={"/portfolio/" + data.nextProject.uid} aria-label="Next project">
-              <i class="fa-thin fa-sharp fa-chevron-right fa-2xl bump hover:text-light"></i></a
+              <ChevronRight class="size-[2em] bump hover:text-light" strokeWidth={1} /></a
             >
           {/if}
         </div>

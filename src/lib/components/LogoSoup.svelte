@@ -4,6 +4,7 @@
   import ContentWidth from "./ContentWidth/ContentWidth.svelte";
   import { fade } from "svelte/transition";
   import { animateIn as anim } from "$lib/actions/animateIn";
+  import { ArrowLeft, ArrowRight } from "@lucide/svelte";
 
   interface Props {
     data: { logoSoup: { data: LogoSoupDocumentData } };
@@ -215,7 +216,7 @@
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
               >
-                <i class="fa-sharp fa-regular fa-arrow-left fa-2xl"></i>
+                <ArrowLeft class="size-[2em]" strokeWidth={1.75} />
               </button>
               <button
                 onclick={nextBrand}
@@ -224,7 +225,7 @@
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
               >
-                <i class="fa-sharp fa-regular fa-arrow-right fa-2xl"></i>
+                <ArrowRight class="size-[2em]" strokeWidth={1.75} />
               </button>
             </div>
           </div>

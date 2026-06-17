@@ -1,5 +1,6 @@
 <script lang="ts">
   import { PrismicPreview } from "@prismicio/svelte/kit";
+  import { Menu, X } from "@lucide/svelte";
   import { page } from "$app/state";
   import { repositoryName } from "$lib/prismicio";
 
@@ -141,7 +142,7 @@
         onclick={toggleOverlayOff}
         aria-label="Close menu"
       >
-        <i class="fa-sharp fa-thin fa-xmark fa-2xl"></i>
+        <X class="size-[2em]" strokeWidth={1} />
       </button>
     </div>
 
@@ -200,7 +201,7 @@
               aria-label="Open menu"
             >
               {#if !isOverlayVisible}
-                <i class="fa-sharp fa-thi fa-bars fa-2xl"></i>
+                <Menu class="size-[2em]" strokeWidth={1} />
               {/if}
             </button>
           </div>
@@ -241,7 +242,7 @@
               aria-label="Open menu"
             >
               {#if !isOverlayVisible}
-                <i class="fa-sharp fa-bars fa-2xl"></i>
+                <Menu class="size-[2em]" strokeWidth={2} />
               {/if}
             </button>
           </div>
