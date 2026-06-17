@@ -6,10 +6,12 @@
   import Img from "$lib/components/Img.svelte";
   import megaphone from "$lib/assets/icons/megaphone.png?as=run";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
-  // Higher quality than the ?as=run default (sharp's avif q50): the pencil is
-  // fine line art and the default hardens its strokes. The painterly megaphone
-  // is fine at the default, so this override is per-image.
-  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run&quality=85";
+  // Pencil is fine grayscale line art that lossy avif/webp visibly hardens.
+  // Serve LOSSLESS webp (pixel-identical to the source, ~half the PNG size)
+  // with a png fallback, dropping avif for this one image (avif-lossless is
+  // larger than the png). Still a next-gen format, so Lighthouse is happy.
+  // The painterly megaphone keeps the default lossy ?as=run pipeline.
+  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run&format=webp;png&lossless=true";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import type { PageData } from "./$types";
 
