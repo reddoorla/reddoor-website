@@ -70,7 +70,7 @@
 
               <iframe
                 title="background video"
-                src={`https://player.vimeo.com/video/${item.vimeoId}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
+                src={`https://player.vimeo.com/video/${item.vimeoId}?title=0&dnt=1${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
                 class="object-cover {item.aspect !== 'free'
                   ? 'h-full'
                   : ''} relative w-full mx-auto z-10 {!hiddenVideos.has(i)
@@ -125,7 +125,7 @@
 
             <iframe
               title="background video"
-              src={`https://player.vimeo.com/video/${item.vimeoId}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
+              src={`https://player.vimeo.com/video/${item.vimeoId}?title=0&dnt=1${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
               class="object-cover {item.aspect !== 'free'
                 ? 'h-full'
                 : ''} w-full mx-auto z-10 relative
