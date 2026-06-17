@@ -6,7 +6,10 @@
   import Img from "$lib/components/Img.svelte";
   import megaphone from "$lib/assets/icons/megaphone.png?as=run";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
-  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run";
+  // Higher quality than the ?as=run default (sharp's avif q50): the pencil is
+  // fine line art and the default hardens its strokes. The painterly megaphone
+  // is fine at the default, so this override is per-image.
+  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run&quality=85";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import type { PageData } from "./$types";
 
