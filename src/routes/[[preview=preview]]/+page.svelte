@@ -4,9 +4,18 @@
   import { animateIn as anim } from "$lib/actions/animateIn";
   import OpeningAnimation from "$lib/components/OpeningAnimation.svelte";
   import Img from "$lib/components/Img.svelte";
-  import megaphone from "$lib/assets/icons/megaphone.png?as=run";
+  // as=run:0 disables svelte-img's LQIP placeholder. These icons are
+  // transparent PNGs shown over the bg-paper texture with mix-blend-multiply;
+  // the placeholder paints a blurred rectangle that shows through the
+  // transparent areas and breaks the paper texture (a visible box). No
+  // placeholder = clean blend, same as a plain <img>.
+  import megaphone from "$lib/assets/icons/megaphone.png?as=run:0";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
-  import pencil from "$lib/assets/icons/RD_TakeAction-02.png";
+  // Pencil is fine grayscale line art: serve LOSSLESS webp (pixel-identical to
+  // the source PNG, ~half its size) + png fallback, dropping avif (avif-lossless
+  // is larger than the png). as=run:0 disables the LQIP placeholder box (see
+  // megaphone note). Still next-gen, so Lighthouse modern-formats stays green.
+  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run:0&format=webp;png&lossless=true";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import type { PageData } from "./$types";
 
@@ -24,6 +33,7 @@
       <Img
         src={megaphone}
         alt="megaphone"
+        sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, 80vw"
         class="w-4/5 md:w-1/4 lg:w-1/5 mix-blend-multiply opacity-50"
       />
       <div use:anim class="-mt-24 w-4/5 md:w-2/5 text-primary">
@@ -60,11 +70,10 @@
 
   <section class="w-screen pb-32">
     <ContentWidth class="flex flex-col relative">
-      <img
+      <Img
         src={pencil}
         alt="pencil"
-        width="480"
-        height="480"
+        sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, 60vw"
         class="w-3/5 md:w-1/4 lg:w-1/5 mix-blend-multiply opacity-50"
       />
 

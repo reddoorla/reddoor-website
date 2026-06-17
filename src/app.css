@@ -50,13 +50,25 @@ body::-webkit-scrollbar {
 }
 
 .bg-paper {
+  /* url() fallback first; browsers that support image-set() use the next-gen
+     formats and ignore this line. */
   background-image: url("/waterColorBg.jpg");
+  background-image: image-set(
+    url("/waterColorBg.avif") type("image/avif"),
+    url("/waterColorBg.webp") type("image/webp"),
+    url("/waterColorBg.jpg") type("image/jpeg")
+  );
   background-size: 300px;
   background-position: center;
 }
 
 .bg-paper-red {
   background-image: url("/waterColorBgRed.jpg");
+  background-image: image-set(
+    url("/waterColorBgRed.avif") type("image/avif"),
+    url("/waterColorBgRed.webp") type("image/webp"),
+    url("/waterColorBgRed.jpg") type("image/jpeg")
+  );
   background-size: 300px;
   background-position: center;
 }

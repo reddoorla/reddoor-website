@@ -102,7 +102,7 @@
     {#if vimeoId && (!lazy || inView)}
       <iframe
         title="background video"
-        src={`https://player.vimeo.com/video/${vimeoId}?background=1&muted=1&loop=1&autoplay=1`}
+        src={`https://player.vimeo.com/video/${vimeoId}?background=1&muted=1&loop=1&autoplay=1&dnt=1`}
         loading="lazy"
         class="aspect-video absolute {viewportHeight * 16 > viewportWidth * 9
           ? 'h-screen min-w-full'
