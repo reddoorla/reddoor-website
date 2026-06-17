@@ -232,6 +232,9 @@
             alt={(slide.project_name ? slide.project_name + " — project background" : "") as ""}
             loading={index === 0 ? "eager" : "lazy"}
             fetchpriority={index === 0 ? "high" : "auto"}
+            sizes="100vw"
+            widths={[640, 828, 1080, 1280, 1920, 2560]}
+            imgixParams={{ auto: ["format", "compress"] }}
             class="absolute h-full w-full object-cover will-change-[opacity,filter] transition-all duration-1200 ease-fast-slow {index ===
             safeIndex
               ? 'opacity-100'

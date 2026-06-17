@@ -6,7 +6,7 @@
   import Img from "$lib/components/Img.svelte";
   import megaphone from "$lib/assets/icons/megaphone.png?as=run";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
-  import pencil from "$lib/assets/icons/RD_TakeAction-02.png";
+  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import type { PageData } from "./$types";
 
@@ -24,6 +24,7 @@
       <Img
         src={megaphone}
         alt="megaphone"
+        sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, 80vw"
         class="w-4/5 md:w-1/4 lg:w-1/5 mix-blend-multiply opacity-50"
       />
       <div use:anim class="-mt-24 w-4/5 md:w-2/5 text-primary">
@@ -60,11 +61,10 @@
 
   <section class="w-screen pb-32">
     <ContentWidth class="flex flex-col relative">
-      <img
+      <Img
         src={pencil}
         alt="pencil"
-        width="480"
-        height="480"
+        sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, 60vw"
         class="w-3/5 md:w-1/4 lg:w-1/5 mix-blend-multiply opacity-50"
       />
 
