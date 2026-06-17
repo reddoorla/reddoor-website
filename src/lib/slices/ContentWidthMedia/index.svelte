@@ -97,7 +97,7 @@
                     />
                     <iframe
                       title="background video"
-                      src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
+                      src={`https://player.vimeo.com/video/${item.vimeoid}?title=0&dnt=1${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
                       class="object-cover w-full {item.aspect !== 'free'
                         ? 'h-full'
                         : ''} mx-auto z-10
@@ -158,7 +158,7 @@
                   />
                   <iframe
                     title="background video"
-                    src={`https://player.vimeo.com/video/${item.vimeoid}?title=0${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
+                    src={`https://player.vimeo.com/video/${item.vimeoid}?title=0&dnt=1${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
                     class="object-cover w-full {item.aspect !== 'free'
                       ? 'h-full'
                       : ''} z-10 {!hiddenVideos.has(i)

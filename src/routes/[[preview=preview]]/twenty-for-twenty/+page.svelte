@@ -179,7 +179,7 @@
         <h2 class="-mt-8">for</h2>
         <iframe
           title="background video"
-          src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1"
+          src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1&dnt=1"
           class="aspect-square w-full mix-blend-multiply opacity-90 scale-110 -mt-12"
           frameborder="0"
           allowfullscreen
