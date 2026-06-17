@@ -4,14 +4,18 @@
   import { animateIn as anim } from "$lib/actions/animateIn";
   import OpeningAnimation from "$lib/components/OpeningAnimation.svelte";
   import Img from "$lib/components/Img.svelte";
-  import megaphone from "$lib/assets/icons/megaphone.png?as=run";
+  // as=run:0 disables svelte-img's LQIP placeholder. These icons are
+  // transparent PNGs shown over the bg-paper texture with mix-blend-multiply;
+  // the placeholder paints a blurred rectangle that shows through the
+  // transparent areas and breaks the paper texture (a visible box). No
+  // placeholder = clean blend, same as a plain <img>.
+  import megaphone from "$lib/assets/icons/megaphone.png?as=run:0";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
-  // Pencil is fine grayscale line art that lossy avif/webp visibly hardens.
-  // Serve LOSSLESS webp (pixel-identical to the source, ~half the PNG size)
-  // with a png fallback, dropping avif for this one image (avif-lossless is
-  // larger than the png). Still a next-gen format, so Lighthouse is happy.
-  // The painterly megaphone keeps the default lossy ?as=run pipeline.
-  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run&format=webp;png&lossless=true";
+  // Pencil is fine grayscale line art: serve LOSSLESS webp (pixel-identical to
+  // the source PNG, ~half its size) + png fallback, dropping avif (avif-lossless
+  // is larger than the png). as=run:0 disables the LQIP placeholder box (see
+  // megaphone note). Still next-gen, so Lighthouse modern-formats stays green.
+  import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run:0&format=webp;png&lossless=true";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import type { PageData } from "./$types";
 
