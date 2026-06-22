@@ -118,7 +118,7 @@
         { name: "tagline", weight: 1.5 },
         { name: "body", weight: 1 },
       ],
-      threshold: 0.4,
+      threshold: 0.2,
       ignoreLocation: true,
       minMatchCharLength: MIN_QUERY,
     }),
@@ -141,11 +141,24 @@
     return () => clearTimeout(id);
   });
 
-  // null === "no query, everything matches".
-  const matchedUids = $derived.by<Set<string> | null>(() => {
+  // Fuse results ordered best-match-first; null === "no query, everything matches".
+  const rankedUids = $derived.by<string[] | null>(() => {
     const q = debouncedQuery.trim();
     if (q.length < MIN_QUERY) return null;
-    return new Set(fuse.search(q).map((r) => r.item.uid));
+    return fuse.search(q).map((r) => r.item.uid);
+  });
+  const matchedUids = $derived(rankedUids === null ? null : new Set(rankedUids));
+
+  // While searching, lead with the best matches (Fuse score order); otherwise the
+  // sort dropdown controls order. Unmatched cards keep their relative order at the
+  // back, where isVisible CSS-hides them anyway.
+  const displayProjects = $derived.by(() => {
+    if (rankedUids === null) return sortedProjects;
+    const rank = new Map(rankedUids.map((uid, i) => [uid, i]));
+    // Unmatched cards get a finite sentinel (not Infinity) so unmatched-vs-unmatched
+    // compares to 0 — a stable sort then preserves their sortedProjects order.
+    const rankOf = (uid: string) => rank.get(uid) ?? Number.MAX_SAFE_INTEGER;
+    return [...sortedProjects].sort((a, b) => rankOf(a.uid ?? "") - rankOf(b.uid ?? ""));
   });
 
   function isVisible(project: ProjectDocument<string>): boolean {
@@ -574,9 +587,12 @@
       {/if}
     </div>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
-      {#each sortedProjects as project (project.uid)}
+      {#each displayProjects as project (project.uid)}
         <div
-          animate:flip={{ duration: 4500, easing: expoOut }}
+          animate:flip={{
+            duration: debouncedQuery.trim().length >= MIN_QUERY ? 500 : 4500,
+            easing: expoOut,
+          }}
           class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700 {isVisible(
             project,
           )

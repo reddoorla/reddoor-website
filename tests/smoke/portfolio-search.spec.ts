@@ -19,6 +19,17 @@ async function firstProjectTitle(page: Page): Promise<string> {
   return title!;
 }
 
+// Titles of the currently-shown archive cards, in display order (excludes
+// CSS-hidden cards). Index 0 is the first card in the rendered order.
+async function visibleTitlesInOrder(page: Page): Promise<string[]> {
+  return page.locator(ARCHIVE_LINKS).evaluateAll((els) =>
+    els
+      .filter((el) => !(el as HTMLElement).closest('[class*="opacity-0"]'))
+      .map((el) => el.querySelector("p")?.textContent?.trim() ?? "")
+      .filter(Boolean),
+  );
+}
+
 test.describe("portfolio archive search", () => {
   test("filters the grid by title and clears", async ({ page }) => {
     // networkidle ensures Svelte has fully hydrated and bind:value is wired up.
@@ -67,5 +78,24 @@ test.describe("portfolio archive search", () => {
     await search.fill("zzqqxhjklvwxyz");
     await page.waitForTimeout(400);
     await expect(page.getByTestId("portfolio-search-empty")).toBeVisible();
+  });
+
+  test("ranks the best match first while searching", async ({ page }) => {
+    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await expect(page.getByTestId("portfolio-search")).toBeVisible();
+
+    const titles = await visibleTitlesInOrder(page);
+    expect(titles.length, "need multiple projects to test ordering").toBeGreaterThan(1);
+
+    // Pick a project that is NOT currently first, so relevance ordering has to
+    // move it to the front. Its exact title is its own best match.
+    const target = titles[titles.length - 1];
+    expect(target, "target differs from the current first card").not.toBe(titles[0]);
+
+    await page.getByTestId("portfolio-search").fill(target);
+    await page.waitForTimeout(400);
+
+    const ordered = await visibleTitlesInOrder(page);
+    expect(ordered[0], "exact-title match is ranked first").toBe(target);
   });
 });

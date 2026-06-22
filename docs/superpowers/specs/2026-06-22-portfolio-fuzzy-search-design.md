@@ -4,6 +4,14 @@
 **Status:** Approved (pending spec review)
 **Scope:** Add a fuzzy, debounced text search to the portfolio archive grid.
 
+> **Revision (2026-06-22, post-implementation):** After trying the first cut, the search
+> felt too loose and unranked. Two decisions changed: (1) **match strictness** tightened from
+> `threshold: 0.4` to `0.2`; (2) **result order** now ranks by Fuse relevance while a query is
+> active (the sort dropdown is overridden and resumes when the query is cleared) — this was
+> previously out of scope. A `displayProjects` derived re-sorts matched cards to the front in
+> score order; unmatched cards stay in their relative order at the back (CSS-hidden). The card
+> `flip` animation is shortened to ~500ms while searching (kept at 4500ms for sort changes).
+
 ## Goal
 
 Let visitors filter the portfolio archive grid ("But wait, there's more!" section at the
@@ -17,15 +25,16 @@ markup, not driven by the project list, and stays untouched.
 
 ## Decisions
 
-| Decision                      | Choice                                                                                                                                                     |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Where matching runs           | **Client-side** (Approach A). The loader already ships full project data to the browser; no server changes, no added payload.                              |
-| Search scope                  | **Archive grid only** — the `{#each sortedProjects}` grid in the "But wait, there's more!" section.                                                        |
-| Fields matched                | **title + services + tagline + first body paragraph**                                                                                                      |
-| Fuzzy engine                  | **Fuse.js** (new dependency)                                                                                                                               |
-| Debounce                      | **~250ms**, fires after typing stops                                                                                                                       |
-| Result order                  | **Sort dropdown stays authoritative.** Fuse decides membership (match / no-match); the existing A-Z / Latest sort controls order. No relevance reordering. |
-| Combine with category buttons | **AND** — search narrows within whatever categories are selected.                                                                                          |
+| Decision                      | Choice                                                                                                                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Where matching runs           | **Client-side** (Approach A). The loader already ships full project data to the browser; no server changes, no added payload.                                                                                                   |
+| Search scope                  | **Archive grid only** — the `{#each sortedProjects}` grid in the "But wait, there's more!" section.                                                                                                                             |
+| Fields matched                | **title + services + tagline + first body paragraph**                                                                                                                                                                           |
+| Fuzzy engine                  | **Fuse.js** (new dependency)                                                                                                                                                                                                    |
+| Match strictness              | **Fuse `threshold: 0.2`** (notably strict) — close matches only, still tolerant of a one-character typo. _(Revised from 0.4; see Revision below.)_                                                                              |
+| Debounce                      | **~250ms**, fires after typing stops                                                                                                                                                                                            |
+| Result order                  | **Relevance while searching.** While a query is active, cards are ordered best-match-first by Fuse score (the sort dropdown is overridden); clearing the query restores the A-Z / Latest sort. _(Revised; see Revision below.)_ |
+| Combine with category buttons | **AND** — search narrows within whatever categories are selected.                                                                                                                                                               |
 
 ## Data model (already available client-side)
 
@@ -93,7 +102,7 @@ const fuse = $derived(
       { name: "tagline", weight: 1.5 },
       { name: "body", weight: 1 },
     ],
-    threshold: 0.4, // forgiving / typo-tolerant
+    threshold: 0.2, // notably strict — close matches only (revised from 0.4)
     ignoreLocation: true, // match anywhere in the field
     minMatchCharLength: 2,
   }),
@@ -203,7 +212,7 @@ sort dropdown   → sortedProjects ─────────┤
 
 ## Out of scope (YAGNI)
 
-- Relevance-ranked ordering (sort dropdown stays authoritative).
+- (Relevance-ranked ordering was originally out of scope but is now implemented — see Revision.)
 - Searching the curated top showcase.
 - Server-side / Prismic `fulltext` querying.
 - Search across full body copy beyond the first paragraph.
@@ -214,8 +223,10 @@ sort dropdown   → sortedProjects ─────────┤
 
 - **Util:** `toSearchRecord` returns title/services/tagline and the first body paragraph;
   empty/missing fields degrade to `""`.
-- **Matching:** exact substring matches; a one-character typo / transposition still matches
-  (e.g. "lihgting" → a "Lighting" project) within `threshold: 0.4`.
+- **Matching:** exact substring matches; a one-character deletion typo still matches
+  (e.g. "lonehllow" → "Lonehollow Ranch") within `threshold: 0.2`.
+- **Relevance:** while a query is active, the best match is ordered first; clearing restores
+  the sort-dropdown order.
 - **Combine:** search + an active category button shows only projects matching both.
 - **Debounce:** filtering does not change on every keystroke, only after the pause.
 - **No-results:** an unmatched term shows the message; Clear restores the full grid.
