@@ -17,10 +17,9 @@
   import dentist from "$lib/assets/images/1800dentist.png?as=run";
   import Img from "$lib/components/Img.svelte";
   import type { ProjectDocument } from "../../../prismicio-types.js";
-  import { flip } from "svelte/animate";
+  import { tick } from "svelte";
   import { fade, scale, slide } from "svelte/transition";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
-  import { expoOut } from "svelte/easing";
   import type { PageData } from "./$types";
   import { mediumString, toSearchRecord } from "$lib/utils/projectServices";
   import { ArrowDown, ChevronDown, Minus, Search, X } from "@lucide/svelte";
@@ -132,49 +131,68 @@
     searchInput?.focus();
   }
 
+  // Wrap a list-changing state update in a View Transition so the grid animates
+  // moves / enters / leaves natively (the browser snapshots before & after and
+  // tweens between them). `await tick()` lets Svelte flush the DOM inside the
+  // snapshot. Falls back to an instant update when the API is unavailable or the
+  // user prefers reduced motion.
+  function withViewTransition(update: () => void) {
+    if (
+      typeof document === "undefined" ||
+      !document.startViewTransition ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      update();
+      return;
+    }
+    document.startViewTransition(async () => {
+      update();
+      await tick();
+    });
+  }
+
   // ~250ms debounce. This writes a DIFFERENT state var (debouncedQuery) than the
   // one it reads (searchQuery). Do NOT change it to read+write the same state var
   // inside the effect — that trips a Svelte 5 $effect self-write scheduler bug.
   $effect(() => {
     const q = searchQuery;
-    const id = setTimeout(() => (debouncedQuery = q), 250);
+    const id = setTimeout(() => withViewTransition(() => (debouncedQuery = q)), 250);
     return () => clearTimeout(id);
   });
 
-  // Fuse results ordered best-match-first; null === "no query, everything matches".
+  // Fuse results ordered best-match-first; null === "no active query".
   const rankedUids = $derived.by<string[] | null>(() => {
     const q = debouncedQuery.trim();
     if (q.length < MIN_QUERY) return null;
     return fuse.search(q).map((r) => r.item.uid);
   });
-  const matchedUids = $derived(rankedUids === null ? null : new Set(rankedUids));
 
-  // While searching, lead with the best matches (Fuse score order); otherwise the
-  // sort dropdown controls order. Unmatched cards keep their relative order at the
-  // back, where isVisible CSS-hides them anyway.
-  const displayProjects = $derived.by(() => {
-    if (rankedUids === null) return sortedProjects;
-    const rank = new Map(rankedUids.map((uid, i) => [uid, i]));
-    // Unmatched cards get a finite sentinel (not Infinity) so unmatched-vs-unmatched
-    // compares to 0 — a stable sort then preserves their sortedProjects order.
-    const rankOf = (uid: string) => rank.get(uid) ?? Number.MAX_SAFE_INTEGER;
-    return [...sortedProjects].sort((a, b) => rankOf(a.uid ?? "") - rankOf(b.uid ?? ""));
-  });
-
-  function isVisible(project: ProjectDocument<string>): boolean {
-    const categoryMatch =
+  function categoryMatch(project: ProjectDocument<string>): boolean {
+    return Boolean(
       showAll ||
       (project.data.branding && showBrand) ||
       (project.data.digital && showDigital) ||
       (project.data.environmental && showEnvironmental) ||
       (project.data.print && showPrint) ||
       (project.data.product && showProduct) ||
-      (project.data.packaging && showPackaging);
-    const searchMatch = matchedUids === null || matchedUids.has(project.uid ?? "");
-    return Boolean(categoryMatch) && searchMatch;
+      (project.data.packaging && showPackaging),
+    );
   }
 
-  const visibleCount = $derived(sortedProjects.filter(isVisible).length);
+  // The cards actually rendered: category-filtered, then — while searching —
+  // reduced to Fuse matches and ordered best-match-first; otherwise left in the
+  // sort-dropdown order. Only visible cards are in the DOM; the View Transition
+  // animates the difference when this list changes.
+  const visibleProjects = $derived.by(() => {
+    const inCategory = sortedProjects.filter(categoryMatch);
+    if (rankedUids === null) return inCategory;
+    const rank = new Map(rankedUids.map((uid, i) => [uid, i]));
+    return inCategory
+      .filter((p) => rank.has(p.uid ?? ""))
+      .sort((a, b) => (rank.get(a.uid ?? "") ?? 0) - (rank.get(b.uid ?? "") ?? 0));
+  });
+
+  const visibleCount = $derived(visibleProjects.length);
 
   $effect(() => {
     const handleScroll = () => {
@@ -494,31 +512,32 @@
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showBrand
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showBrand = !showBrand)}>BRAND</button
+          onclick={() => withViewTransition(() => (showBrand = !showBrand))}>BRAND</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showPrint
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showPrint = !showPrint)}>PRINT</button
+          onclick={() => withViewTransition(() => (showPrint = !showPrint))}>PRINT</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showEnvironmental
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showEnvironmental = !showEnvironmental)}>ENVIRONMENTAL</button
+          onclick={() => withViewTransition(() => (showEnvironmental = !showEnvironmental))}
+          >ENVIRONMENTAL</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showProduct
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showProduct = !showProduct)}>PRODUCT</button
+          onclick={() => withViewTransition(() => (showProduct = !showProduct))}>PRODUCT</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showDigital
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showDigital = !showDigital)}>DIGITAL</button
+          onclick={() => withViewTransition(() => (showDigital = !showDigital))}>DIGITAL</button
         >
       </div>
       <div use:anim class="relative z-10">
@@ -529,28 +548,30 @@
               ? 'border-primary bg-primary  hover:text-light text-white'
               : 'border-light text-light  bg-white hover:text-primary'}"
             transition:slide
-            onclick={() => (orderString = "A-Z")}>A-Z</button
+            onclick={() => withViewTransition(() => (orderString = "A-Z"))}>A-Z</button
           >
           <button
             class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[200%] {isAlphabeticalAscending
               ? 'border-primary bg-primary  hover:text-light text-white'
               : 'border-light text-light  bg-white hover:text-primary'}"
             transition:slide
-            onclick={() => (orderString = "Z-A")}>Z-A</button
+            onclick={() => withViewTransition(() => (orderString = "Z-A"))}>Z-A</button
           >
           <button
             class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[300%] {isChronologicalDescending
               ? 'border-primary bg-primary  hover:text-light text-white'
               : 'border-light text-light  bg-white hover:text-primary'}"
             transition:slide
-            onclick={() => (orderString = "Latest-Earliest")}>Latest-Earliest</button
+            onclick={() => withViewTransition(() => (orderString = "Latest-Earliest"))}
+            >Latest-Earliest</button
           >
           <button
             class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[400%] {isChronologicalAscending
               ? 'border-primary bg-primary  hover:text-light text-white'
               : 'border-light text-light  bg-white hover:text-primary'}"
             transition:slide
-            onclick={() => (orderString = "Earliest-Latest")}>Earliest-Latest</button
+            onclick={() => withViewTransition(() => (orderString = "Earliest-Latest"))}
+            >Earliest-Latest</button
           >
         {/if}
         <button
@@ -587,17 +608,10 @@
       {/if}
     </div>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
-      {#each displayProjects as project (project.uid)}
+      {#each visibleProjects as project (project.uid)}
         <div
-          animate:flip={{
-            duration: debouncedQuery.trim().length >= MIN_QUERY ? 500 : 4500,
-            easing: expoOut,
-          }}
-          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700 {isVisible(
-            project,
-          )
-            ? 'relative'
-            : 'absolute top-1/2 left-1/2 opacity-0 pointer-events-none'}"
+          style="view-transition-name: vt-{project.uid}"
+          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 relative"
         >
           <a
             href={"/portfolio/" + project.uid}
@@ -614,7 +628,7 @@
               style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
             ></div>
 
-            <div use:anim={{ delayMax: 800 }} class="w-full flex flex-row justify-between p-6 z-10">
+            <div class="w-full flex flex-row justify-between p-6 z-10">
               <div>
                 <p class="text-white uppercase">{project.data.title}</p>
                 <p class="text-light">{mediumString(project) || ""}</p>
@@ -695,6 +709,24 @@
     }
     h5 {
       font-size: 28px;
+    }
+  }
+
+  /* Archive grid filter / search / sort animation, driven by the View Transitions
+     API (see withViewTransition). :global because ::view-transition-* are
+     document-level pseudo-elements, not scoped to component markup. */
+  :global(::view-transition-group(*)),
+  :global(::view-transition-old(*)),
+  :global(::view-transition-new(*)) {
+    animation-duration: 650ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(::view-transition-group(*)),
+    :global(::view-transition-old(*)),
+    :global(::view-transition-new(*)) {
+      animation: none !important;
     }
   }
 </style>

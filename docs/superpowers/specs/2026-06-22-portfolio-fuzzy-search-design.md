@@ -12,6 +12,19 @@
 > score order; unmatched cards stay in their relative order at the back (CSS-hidden). The card
 > `flip` animation is shortened to ~500ms while searching (kept at 4500ms for sort changes).
 
+> **Revision 2 (2026-06-22, animation rework):** `animate:flip` proved the wrong tool — it has
+> documented glitches when items enter/leave/reorder at once (Svelte #10251: concurrent
+> transitions stutter; siblings outro-collapse to one position) and is awkward on `flex-wrap`.
+> Replaced the whole keep-everything-mounted + CSS-hide + `flip` approach with the native
+> **View Transitions API**. We now render only `visibleProjects` (category ∧ search, ordered),
+> and wrap every list-changing state update (category buttons, sort options, the debounced
+> search) in a `withViewTransition(fn)` helper (`document.startViewTransition` + `await tick()`,
+> with a reduced-motion / unsupported-browser fallback to an instant update). Each card gets a
+> unique `view-transition-name: vt-{uid}`, and `::view-transition-*` CSS gives a uniform ~650ms
+> smooth glide. This makes category-filter, search, and sort animate identically. Dropped the
+> per-card `use:anim` scroll-reveal on archive cards (it double-fired with VT on re-entry).
+> GSAP Flip remains the fallback at the `withViewTransition` seam if the native feel falls short.
+
 ## Goal
 
 Let visitors filter the portfolio archive grid ("But wait, there's more!" section at the
