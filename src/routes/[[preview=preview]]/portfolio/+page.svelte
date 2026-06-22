@@ -22,8 +22,9 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { expoOut } from "svelte/easing";
   import type { PageData } from "./$types";
-  import { mediumString } from "$lib/utils/projectServices";
-  import { ArrowDown, ChevronDown, Minus } from "@lucide/svelte";
+  import { mediumString, toSearchRecord } from "$lib/utils/projectServices";
+  import { ArrowDown, ChevronDown, Minus, Search, X } from "@lucide/svelte";
+  import Fuse from "fuse.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -42,6 +43,8 @@
   let showPackaging = $state(false);
   let showPrint = $state(false);
   let showWeb = $state(false);
+
+  let searchQuery = $state("");
 
   const showAll = $derived(
     !(
@@ -75,6 +78,7 @@
       showWeb,
       showPackaging,
       orderString,
+      searchQuery,
     ];
     isOrderSelectOpen = false;
   });
@@ -101,6 +105,59 @@
       }
     }),
   );
+
+  const fuse = $derived(
+    new Fuse(data.allProjects.map(toSearchRecord), {
+      keys: [
+        { name: "title", weight: 3 },
+        { name: "services", weight: 2 },
+        { name: "tagline", weight: 1.5 },
+        { name: "body", weight: 1 },
+      ],
+      threshold: 0.4,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+    }),
+  );
+
+  let debouncedQuery = $state("");
+  let searchInput: HTMLInputElement | undefined = $state();
+
+  function clearSearch() {
+    searchQuery = "";
+    searchInput?.focus();
+  }
+
+  // ~250ms debounce. This writes a DIFFERENT state var (debouncedQuery) than the
+  // one it reads (searchQuery). Do NOT change it to read+write the same state var
+  // inside the effect — that trips a Svelte 5 $effect self-write scheduler bug.
+  $effect(() => {
+    const q = searchQuery;
+    const id = setTimeout(() => (debouncedQuery = q), 250);
+    return () => clearTimeout(id);
+  });
+
+  // null === "no query, everything matches".
+  const matchedUids = $derived.by<Set<string> | null>(() => {
+    const q = debouncedQuery.trim();
+    if (q.length < 2) return null;
+    return new Set(fuse.search(q).map((r) => r.item.uid));
+  });
+
+  function isVisible(project: ProjectDocument<string>): boolean {
+    const categoryMatch =
+      showAll ||
+      (project.data.branding && showBrand) ||
+      (project.data.digital && showDigital) ||
+      (project.data.environmental && showEnvironmental) ||
+      (project.data.print && showPrint) ||
+      (project.data.product && showProduct) ||
+      (project.data.packaging && showPackaging);
+    const searchMatch = matchedUids === null || matchedUids.has(project.uid ?? "");
+    return Boolean(categoryMatch) && searchMatch;
+  }
+
+  const visibleCount = $derived(sortedProjects.filter(isVisible).length);
 
   $effect(() => {
     const handleScroll = () => {
@@ -388,6 +445,34 @@
     </div>
     <div class="flex flex-row justify-between w-full">
       <div use:anim class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
+        <div class="relative flex items-center">
+          <Search
+            class="absolute left-3 size-4 text-light pointer-events-none"
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
+          <label for="portfolio-search" class="sr-only">Search projects</label>
+          <input
+            id="portfolio-search"
+            type="search"
+            data-testid="portfolio-search"
+            placeholder="Search projects…"
+            bind:this={searchInput}
+            bind:value={searchQuery}
+            class="h-[44px] w-56 max-w-full border-1 border-light pl-9 pr-9 text-light placeholder:text-light/60 focus:border-primary focus:text-primary focus:outline-none transition-colors duration-500"
+          />
+          {#if searchQuery}
+            <button
+              type="button"
+              aria-label="Clear search"
+              data-testid="portfolio-search-clear"
+              onclick={clearSearch}
+              class="absolute right-2 text-light hover:text-primary transition-colors duration-300"
+            >
+              <X class="size-4" strokeWidth={1.5} />
+            </button>
+          {/if}
+        </div>
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showBrand
             ? 'border-primary bg-primary  hover:text-light text-white'
@@ -479,17 +564,18 @@
         </button>
       </div>
     </div>
+    <div aria-live="polite" class="sr-only">
+      {#if debouncedQuery.trim().length >= 2}
+        {visibleCount} project{visibleCount === 1 ? "" : "s"} match "{debouncedQuery}"
+      {/if}
+    </div>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
       {#each sortedProjects as project (project.uid)}
         <div
           animate:flip={{ duration: 4500, easing: expoOut }}
-          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700 {showAll ||
-          (project.data.branding && showBrand) ||
-          (project.data.digital && showDigital) ||
-          (project.data.environmental && showEnvironmental) ||
-          (project.data.print && showPrint) ||
-          (project.data.product && showProduct) ||
-          (project.data.packaging && showPackaging)
+          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700 {isVisible(
+            project,
+          )
             ? 'relative'
             : 'absolute top-1/2 left-1/2 opacity-0 pointer-events-none'}"
         >
@@ -521,6 +607,21 @@
         </div>
       {/each}
     </div>
+    {#if visibleCount === 0}
+      <div
+        class="w-full md:ml-[20%] md:w-4/5 py-16 text-center"
+        data-testid="portfolio-search-empty"
+      >
+        <p class="text-light">No projects match "{debouncedQuery}"</p>
+        <button
+          type="button"
+          onclick={clearSearch}
+          class="mt-4 px-5 py-[10px] border-1 border-light text-light hover:border-primary hover:text-primary transition-colors duration-500"
+        >
+          Clear search
+        </button>
+      </div>
+    {/if}
   </ContentWidth>
 </div>
 
