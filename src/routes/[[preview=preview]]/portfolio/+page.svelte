@@ -482,7 +482,7 @@
       <div use:anim class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
         <div class="relative flex items-center">
           <Search
-            class="absolute left-3 size-4 text-light pointer-events-none"
+            class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-light pointer-events-none"
             strokeWidth={1.5}
             aria-hidden="true"
           />
@@ -494,7 +494,7 @@
             placeholder="Search projects…"
             bind:this={searchInput}
             bind:value={searchQuery}
-            class="h-[44px] w-56 max-w-full border-1 border-light pl-9 pr-9 text-light placeholder:text-light/60 focus:border-primary focus:text-primary focus:outline-none transition-colors duration-500"
+            class="w-56 max-w-full border-1 border-light py-[10px] pl-9 pr-9 text-light placeholder:text-light/60 focus:border-primary focus:text-primary focus:outline-none transition-colors duration-500"
           />
           {#if searchQuery}
             <button
@@ -502,7 +502,7 @@
               aria-label="Clear search"
               data-testid="portfolio-search-clear"
               onclick={clearSearch}
-              class="absolute right-2 text-light hover:text-primary transition-colors duration-300"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-light hover:text-primary transition-colors duration-300"
             >
               <X class="size-4" strokeWidth={1.5} />
             </button>
@@ -720,6 +720,15 @@
   :global(::view-transition-new(*)) {
     animation-duration: 650ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* The page-level "root" snapshot can only cross-fade, so on filter/search —
+     where the grid collapses and everything below shifts — it flashed. Skip it
+     so ONLY the named cards animate; the background/footer settle instantly. */
+  :global(::view-transition-group(root)),
+  :global(::view-transition-old(root)),
+  :global(::view-transition-new(root)) {
+    animation: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
