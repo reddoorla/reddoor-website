@@ -37,7 +37,7 @@
 
       <iframe
         title="background video"
-        src={`https://player.vimeo.com/video/${slice.primary.vimeoid}?title=0${slice.primary.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
+        src={`https://player.vimeo.com/video/${slice.primary.vimeoid}?title=0&dnt=1${slice.primary.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
         class="object-cover {slice.primary.aspect === 'square'
           ? 'aspect-square'
           : slice.primary.aspect === '4/3'
