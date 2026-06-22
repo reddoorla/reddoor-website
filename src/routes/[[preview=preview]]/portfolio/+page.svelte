@@ -106,6 +106,10 @@
     }),
   );
 
+  // Minimum query length before search runs; single source of truth shared by
+  // Fuse's minMatchCharLength, the matchedUids guard, and the no-results gate.
+  const MIN_QUERY = 2;
+
   const fuse = $derived(
     new Fuse(data.allProjects.map(toSearchRecord), {
       keys: [
@@ -116,7 +120,7 @@
       ],
       threshold: 0.4,
       ignoreLocation: true,
-      minMatchCharLength: 2,
+      minMatchCharLength: MIN_QUERY,
     }),
   );
 
@@ -140,7 +144,7 @@
   // null === "no query, everything matches".
   const matchedUids = $derived.by<Set<string> | null>(() => {
     const q = debouncedQuery.trim();
-    if (q.length < 2) return null;
+    if (q.length < MIN_QUERY) return null;
     return new Set(fuse.search(q).map((r) => r.item.uid));
   });
 
@@ -565,7 +569,7 @@
       </div>
     </div>
     <div aria-live="polite" class="sr-only">
-      {#if debouncedQuery.trim().length >= 2}
+      {#if debouncedQuery.trim().length >= MIN_QUERY}
         {visibleCount} project{visibleCount === 1 ? "" : "s"} match "{debouncedQuery}"
       {/if}
     </div>
@@ -607,7 +611,7 @@
         </div>
       {/each}
     </div>
-    {#if visibleCount === 0}
+    {#if debouncedQuery.trim().length >= MIN_QUERY && visibleCount === 0}
       <div
         class="w-full md:ml-[20%] md:w-4/5 py-16 text-center"
         data-testid="portfolio-search-empty"
