@@ -11,12 +11,6 @@ const ALLOWED_CONSOLE_PATTERNS: RegExp[] = [
   /vimeo/i,
   // Turnstile (Cloudflare) telemetry occasionally surfaces in console.
   /turnstile|challenges\.cloudflare/i,
-  // Font Awesome kit script injects icon SVGs at runtime; nothing we ship.
-  /fontawesome/i,
-  // Font Awesome's injected SVGs sometimes carry an invalid preserveAspectRatio
-  // value ("xMinYMin none") — Chromium logs a parser error attributed to the
-  // page itself (no URL), so this has to be matched on text.
-  /<svg> attribute preserveAspectRatio: Trailing garbage/,
 ];
 
 function attachConsoleWatcher(page: Page, extraAllowed: RegExp[] = []) {
