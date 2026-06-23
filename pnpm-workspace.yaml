@@ -16,3 +16,12 @@ allowBuilds:
 # so our own freshly-published packages install immediately, and set Renovate's minimumReleaseAge
 # to >= the cooldown in the org preset so it never proposes deps younger than the window.
 minimumReleaseAge: 0
+
+# Two sharp majors were being installed: 0.34.5 (via @reddoorla/maintenance, runtime)
+# and 0.33.5 (via @zerodevx/svelte-img → vite-imagetools → imagetools-core ^0.33.1,
+# build-time). The disjoint caret ranges can't dedupe, so both native libvips dylibs
+# land on disk (and macOS logs a "GNotificationCenterDelegate implemented in both …"
+# duplicate-class warning on every run). Force a single sharp; imagetools-core 6.x
+# transforms fine on 0.34.
+overrides:
+  sharp: "0.34.5"
