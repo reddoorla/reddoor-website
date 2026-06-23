@@ -41,20 +41,11 @@
   let showProduct = $state(false);
   let showPackaging = $state(false);
   let showPrint = $state(false);
-  let showWeb = $state(false);
 
   let searchQuery = $state("");
 
   const showAll = $derived(
-    !(
-      showBrand ||
-      showDigital ||
-      showEnvironmental ||
-      showProduct ||
-      showPrint ||
-      showWeb ||
-      showPackaging
-    ),
+    !(showBrand || showDigital || showEnvironmental || showProduct || showPrint || showPackaging),
   );
 
   // While a search is active, results rank by relevance unless the visitor picks a
@@ -74,7 +65,6 @@
       showEnvironmental,
       showProduct,
       showPrint,
-      showWeb,
       showPackaging,
       orderString,
       searchQuery,
@@ -679,6 +669,13 @@
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
           onclick={() => withViewTransition(() => (showDigital = !showDigital))}>DIGITAL</button
+        >
+        <button
+          class="px-5 py-[10px] transition-colors duration-500 border-1 {showPackaging
+            ? 'border-primary bg-primary  hover:text-light text-white'
+            : 'border-light text-light hover:border-primary hover:text-primary'}"
+          onclick={() => withViewTransition(() => (showPackaging = !showPackaging))}
+          >PACKAGING</button
         >
       </div>
       <div use:anim class="relative z-10">
