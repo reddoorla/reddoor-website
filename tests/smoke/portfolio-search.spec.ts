@@ -89,4 +89,47 @@ test.describe("portfolio archive search", () => {
     const ordered = await archiveTitles(page);
     expect(ordered[0], "exact-title match is ranked first").toBe(target);
   });
+
+  test("offers a Relevance sort only while searching, and restores the sort on clear", async ({
+    page,
+  }) => {
+    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    const sort = page.getByTestId("portfolio-sort");
+    const relevanceOption = () => page.getByTestId("sort-option").filter({ hasText: "Relevance" });
+
+    // No active search → the dropdown has the four real sorts, no Relevance.
+    await expect(sort).toContainText("Latest-Earliest");
+    await sort.click();
+    await expect(page.getByTestId("sort-option")).toHaveCount(4);
+    await expect(relevanceOption()).toHaveCount(0);
+    await sort.click(); // close
+
+    // Searching defaults the active sort to Relevance and adds it as an option.
+    const search = page.getByTestId("portfolio-search");
+    const title = (await archiveTitles(page))[0];
+    await search.fill(title);
+    await page.waitForTimeout(SETTLE);
+    await expect(sort).toContainText("Relevance");
+    await sort.click();
+    await expect(page.getByTestId("sort-option")).toHaveCount(5);
+    await expect(relevanceOption()).toHaveCount(1);
+
+    // You can switch to a real sort while the query is active…
+    await page.getByTestId("sort-option").filter({ hasText: "A-Z" }).click();
+    await page.waitForTimeout(SETTLE);
+    await expect(sort).toContainText("A-Z");
+
+    // …and back to Relevance, which is still offered while searching.
+    await sort.click();
+    await relevanceOption().click();
+    await page.waitForTimeout(SETTLE);
+    await expect(sort).toContainText("Relevance");
+
+    // Clearing the query removes Relevance and restores the default sort.
+    await page.getByTestId("portfolio-search-clear").click();
+    await page.waitForTimeout(SETTLE);
+    await expect(sort).toContainText("Latest-Earliest");
+    await sort.click();
+    await expect(relevanceOption()).toHaveCount(0);
+  });
 });
