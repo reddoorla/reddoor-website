@@ -90,6 +90,29 @@ test.describe("portfolio archive search", () => {
     expect(ordered[0], "exact-title match is ranked first").toBe(target);
   });
 
+  test("exposes a filter button for every category, including Packaging", async ({ page }) => {
+    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await expect(page.locator("footer")).toBeVisible();
+
+    // Every CMS category boolean must have a matching button (state ↔ button 1:1).
+    // Packaging was previously wired into the filter logic but had no button, so
+    // packaging-tagged projects could never be isolated — this guards that gap.
+    for (const label of ["BRAND", "PRINT", "ENVIRONMENTAL", "PRODUCT", "DIGITAL", "PACKAGING"]) {
+      await expect(
+        page.getByRole("button", { name: label, exact: true }),
+        `${label} filter button is present`,
+      ).toBeVisible();
+    }
+
+    // Activating Packaging narrows the grid to packaging-tagged projects.
+    const full = await archiveCount(page);
+    await page.getByRole("button", { name: "PACKAGING", exact: true }).click();
+    await page.waitForTimeout(SETTLE);
+    const narrowed = await archiveCount(page);
+    expect(narrowed, "Packaging filter shows at least one project").toBeGreaterThan(0);
+    expect(narrowed, "Packaging filter narrows the grid").toBeLessThan(full);
+  });
+
   test("offers a Relevance sort only while searching, and restores the sort on clear", async ({
     page,
   }) => {
