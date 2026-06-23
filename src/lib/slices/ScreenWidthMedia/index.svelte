@@ -33,6 +33,11 @@
       <PrismicImage
         class="w-screen h-full object-cover absolute {padTop ? 'top-12' : 'top-0'} left-0 z-0"
         field={slice.primary.image}
+        imgixParams={{ auto: ["format", "compress"] }}
+        widths={[640, 960, 1280, 1920, 2560]}
+        sizes="100vw"
+        loading="lazy"
+        decoding="async"
       />
 
       <iframe
@@ -69,6 +74,11 @@
                   ? 'aspect-9/16'
                   : ''}"
         field={slice.primary.image}
+        imgixParams={{ auto: ["format", "compress"] }}
+        widths={[640, 960, 1280, 1920, 2560]}
+        sizes="100vw"
+        loading="lazy"
+        decoding="async"
       />
     {/if}
   </section>

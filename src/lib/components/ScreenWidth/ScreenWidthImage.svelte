@@ -94,7 +94,15 @@
         "
       />
     {:else}
-      <PrismicImage {field} class="absolute h-full w-full object-cover -z-10" />
+      <PrismicImage
+        {field}
+        class="absolute h-full w-full object-cover -z-10"
+        imgixParams={{ auto: ["format", "compress"] }}
+        widths={[640, 960, 1280, 1920, 2560]}
+        sizes="100vw"
+        loading="lazy"
+        decoding="async"
+      />
     {/if}
 
     <!-- Video - only show if vimeoId exists and hasn't failed. When lazy, the

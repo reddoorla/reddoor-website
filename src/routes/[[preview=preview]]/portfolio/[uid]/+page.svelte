@@ -9,6 +9,7 @@
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
   import type { PageData } from "./$types";
   import { mediumString } from "$lib/utils/projectServices";
+  import { imgixSrcset } from "$lib/utils/imgix";
 
   let { data }: { data: PageData } = $props();
 
@@ -18,6 +19,9 @@
 <div class="w-screen h-[80vh] relative">
   <PrismicImage
     field={data.page.data.hero}
+    imgixParams={{ auto: ["format", "compress"] }}
+    widths={[640, 960, 1280, 1920, 2560]}
+    sizes="100vw"
     class="w-full h-full absolute object-cover"
     loading="eager"
     fetchpriority="high"
@@ -85,8 +89,12 @@
           >
             <img
               src={data.relatedProjectOne.data.hero.url || ""}
+              srcset={imgixSrcset(data.relatedProjectOne.data.hero.url)}
+              sizes="(min-width: 768px) 40vw, 100vw"
               alt={(data.relatedProjectOne.data.title || "") + " Hero Image"}
               class="absolute w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
               fetchpriority="low"
             />
             <div
@@ -117,8 +125,12 @@
           >
             <img
               src={data.relatedProjectTwo.data.hero.url || ""}
+              srcset={imgixSrcset(data.relatedProjectTwo.data.hero.url)}
+              sizes="(min-width: 768px) 40vw, 100vw"
               alt={(data.relatedProjectTwo.data.title || "") + " Hero Image"}
               class="absolute w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
               fetchpriority="low"
             />
             <div

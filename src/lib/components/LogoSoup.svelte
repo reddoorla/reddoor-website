@@ -108,6 +108,11 @@
             alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
         {showImage && brandIndex === i ? '' : 'opacity-0'}"
+            imgixParams={{ auto: ["format", "compress"] }}
+            widths={[640, 960, 1280, 1920, 2560]}
+            sizes="100vw"
+            loading="lazy"
+            decoding="async"
           />
         {/each}
       </div>
@@ -155,7 +160,11 @@
                     brandIndex === i
                       ? ''
                       : 'opacity-0'}"
-                    loading="eager"
+                    imgixParams={{ auto: ["compress"] }}
+                    widths={[120, 240, 360]}
+                    sizes="(min-width: 768px) 25vw, 50vw"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <PrismicImage
                     field={brand.logo_color}
@@ -164,7 +173,11 @@
                     brandIndex > -1
                       ? 'opacity-0'
                       : ''}"
-                    loading="eager"
+                    imgixParams={{ auto: ["compress"] }}
+                    widths={[120, 240, 360]}
+                    sizes="(min-width: 768px) 25vw, 50vw"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </PrismicLink>
               </button>
@@ -246,6 +259,11 @@
             alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
             {mobileScrollActive && brandIndex === i ? '' : 'opacity-0'}"
+            imgixParams={{ auto: ["format", "compress"] }}
+            widths={[640, 960, 1280, 1920, 2560]}
+            sizes="100vw"
+            loading="lazy"
+            decoding="async"
           />
         {/each}
       </div>
@@ -272,7 +290,11 @@
                   brandIndex === i
                     ? ''
                     : 'opacity-0'}"
-                  loading="eager"
+                  imgixParams={{ auto: ["compress"] }}
+                  widths={[120, 240, 360]}
+                  sizes="(min-width: 768px) 25vw, 50vw"
+                  loading="lazy"
+                  decoding="async"
                 />
               </PrismicLink>
             </div>
