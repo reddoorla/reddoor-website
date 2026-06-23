@@ -123,6 +123,15 @@
     "script>"}
 </svelte:head>
 
+<!-- Keyboard bypass-block (WCAG 2.4.1): first focusable element on every page,
+     visually hidden until focused, jumps focus past the nav to <main>. -->
+<a
+  href="#main-content"
+  class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-primary focus:px-4 focus:py-2 focus:text-white focus:no-underline"
+>
+  Skip to main content
+</a>
+
 {#if isOverlayVisible}
   <div
     class="w-screen h-lvh fixed inset-0 bg-paper z-30 overflow-hidden"
@@ -169,7 +178,13 @@
 {/if}
 <LandscapeModal />
 {#key data.pathname}
-  <main out:fade={{ duration: 500 }} in:fade={{ delay: 700, duration: 700 }}>
+  <main
+    id="main-content"
+    tabindex="-1"
+    class="focus:outline-none"
+    out:fade={{ duration: 500 }}
+    in:fade={{ delay: 700, duration: 700 }}
+  >
     {#if !showNav && !isInHero.value}
       <div
         class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
