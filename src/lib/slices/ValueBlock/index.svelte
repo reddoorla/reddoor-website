@@ -15,7 +15,9 @@
     <ContentWidth>
       <div class="w-full flex flex-col xl:flex-row xl:w-full">
         <div class="w-full xl:w-1/5 h-full overflow-hidden pt-4">
-          <h6 class="text-white">{slice.primary.eyebrow || ""}</h6>
+          {#if slice.primary.eyebrow}
+            <h6 class="text-white">{slice.primary.eyebrow}</h6>
+          {/if}
         </div>
         <div class="w-full xl:w-2/5 text-white flex flex-col gap-2 p-4 rich-text">
           <h3 class="mb-4">{slice.primary.title || ""}</h3>

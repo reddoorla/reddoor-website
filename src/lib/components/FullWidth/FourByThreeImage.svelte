@@ -44,6 +44,8 @@
       class="absolute bg-light h-[2px] {isPlaceholder ? '' : 'hidden'}"
       style="transform: rotate(-{rotationAngle}deg); width:{crossLength}"
     ></div>
-    <h6 class="absolute bottom-4 z-20">{label}</h6>
+    {#if label}
+      <h6 class="absolute bottom-4 z-20">{label}</h6>
+    {/if}
   </div>
 </div>
