@@ -66,6 +66,11 @@
               <PrismicImage
                 class="w-full h-full object-cover absolute top-0 left-0"
                 field={item.image}
+                imgixParams={{ auto: ["format", "compress"] }}
+                widths={[400, 640, 800, 1200, 1600]}
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                loading="lazy"
+                decoding="async"
               />
 
               <iframe
@@ -84,6 +89,11 @@
               <PrismicImage
                 class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
                 field={item.image}
+                imgixParams={{ auto: ["format", "compress"] }}
+                widths={[400, 640, 800, 1200, 1600]}
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                loading="lazy"
+                decoding="async"
               />
             {/if}
           </a>
@@ -121,6 +131,11 @@
             <PrismicImage
               class="w-full h-full object-cover absolute top-0 left-0"
               field={item.image}
+              imgixParams={{ auto: ["format", "compress"] }}
+              widths={[400, 640, 800, 1200, 1600]}
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              loading="lazy"
+              decoding="async"
             />
 
             <iframe
@@ -138,6 +153,11 @@
             <PrismicImage
               class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
               field={item.image}
+              imgixParams={{ auto: ["format", "compress"] }}
+              widths={[400, 640, 800, 1200, 1600]}
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              loading="lazy"
+              decoding="async"
             />
           {/if}
         </div>

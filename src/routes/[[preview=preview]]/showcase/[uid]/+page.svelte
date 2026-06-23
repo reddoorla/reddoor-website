@@ -10,6 +10,7 @@
   import type { ProjectDocument } from "../../../../prismicio-types";
   import type { PageData } from "./$types";
   import { mediumString } from "$lib/utils/projectServices";
+  import { imgixSrcset } from "$lib/utils/imgix";
 
   let { data }: { data: PageData } = $props();
 
@@ -21,6 +22,9 @@
 <div class="w-screen h-[80vh] relative">
   <PrismicImage
     field={pageData.hero}
+    imgixParams={{ auto: ["format", "compress"] }}
+    widths={[640, 960, 1280, 1920, 2560]}
+    sizes="100vw"
     class="w-full h-full absolute object-cover"
     loading="eager"
     fetchpriority="high"
@@ -57,8 +61,12 @@
       >
         <img
           src={pageData.featuredImageOverride.url || featuredProject?.data.hero.url || ""}
+          srcset={imgixSrcset(pageData.featuredImageOverride.url || featuredProject?.data.hero.url)}
+          sizes="(min-width: 768px) 75vw, 100vw"
           alt={featuredProject?.data.title || "" + " Hero Image"}
           class="absolute w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
         />
         <div
           class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
@@ -94,8 +102,12 @@
           >
             <img
               src={pageData.projects[i].imageOverride.url || project.data.hero.url || ""}
+              srcset={imgixSrcset(pageData.projects[i].imageOverride.url || project.data.hero.url)}
+              sizes="(min-width: 1024px) 40vw, 100vw"
               alt={project.data.title + " Hero Image"}
               class="absolute w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
               fetchpriority="low"
             />
             <div

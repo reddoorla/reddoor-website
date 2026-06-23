@@ -22,6 +22,7 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import type { PageData } from "./$types";
   import { mediumString, toSearchRecord } from "$lib/utils/projectServices";
+  import { imgixSrcset } from "$lib/utils/imgix";
   import { ArrowDown, ChevronDown, Minus, Search, X } from "@lucide/svelte";
   import Fuse from "fuse.js";
 
@@ -806,8 +807,12 @@
           >
             <img
               src={project.data.hero.url || ""}
+              srcset={imgixSrcset(project.data.hero.url)}
+              sizes="(min-width: 1024px) 50vw, 100vw"
               alt={project.data.title + " Hero Image"}
               class="absolute w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
               fetchpriority="low"
             />
             <div

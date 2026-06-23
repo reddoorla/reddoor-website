@@ -136,7 +136,15 @@
             >
               {#each tripledArray as media, i (i)}
                 <div class="h-full z-0" style="width: {slideWidth}%;">
-                  <PrismicImage field={media.image} class="h-full w-full object-contain" />
+                  <PrismicImage
+                    field={media.image}
+                    class="h-full w-full object-contain"
+                    imgixParams={{ auto: ["format", "compress"] }}
+                    widths={[400, 640, 800, 1200, 1600]}
+                    sizes="(min-width: 768px) 80vw, 100vw"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
               {/each}
             </div>

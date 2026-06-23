@@ -239,7 +239,15 @@
                       class="w-full h-full object-cover"
                     />
                   {:else}
-                    <PrismicImage field={card.image} class="w-full h-full object-cover" />
+                    <PrismicImage
+                      field={card.image}
+                      class="w-full h-full object-cover"
+                      imgixParams={{ auto: ["format", "compress"] }}
+                      widths={[400, 640, 800, 1000]}
+                      sizes="(min-width: 768px) 30vw, 100vw"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   {/if}
 
                   <h1
