@@ -6,7 +6,10 @@
   />
 </svelte:head>
 
-<main class="min-h-screen bg-white p-8 text-black">
+<!-- No <main> here: the root layout already wraps every page in
+     <main id="main-content">. A second <main> would nest/duplicate the main
+     landmark (axe: landmark-no-duplicate-main / landmark-main-is-top-level). -->
+<div class="min-h-screen bg-white p-8 text-black">
   <header>
     <h1>Accessibility fixtures</h1>
     <p>
@@ -18,8 +21,8 @@
   <section aria-labelledby="landmarks-heading">
     <h2 id="landmarks-heading">Landmarks</h2>
     <p>
-      A single <code>main</code> wraps the page; sections each declare
-      <code>aria-labelledby</code> matched to their heading id so screen readers and axe both see a clean
+      The root layout provides the single <code>main</code> landmark; each section here declares
+      <code>aria-labelledby</code> matched to its heading id so screen readers and axe both see a clean
       outline.
     </p>
   </section>
@@ -31,4 +34,4 @@
       <code>aria-label</code> override is needed.
     </p>
   </section>
-</main>
+</div>
