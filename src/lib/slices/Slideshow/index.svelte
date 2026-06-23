@@ -115,7 +115,9 @@
             : 'w-full md:w-1/5 pb-4 md:pb-0 md:pr-4'} h-full overflow-hidden"
         >
           {#if slice.primary.label}
-            <h6 class="text-primary">{slice.primary.label}</h6>
+            <!-- Caption/kicker, not a section heading: non-heading <p> keeps it
+                 out of the document outline. font-bold == the old <h6> look. -->
+            <p class="font-bold text-primary">{slice.primary.label}</p>
           {/if}
           <PrismicRichText field={slice.primary.body} />
         </div>
