@@ -114,7 +114,9 @@
             ? 'w-0'
             : 'w-full md:w-1/5 pb-4 md:pb-0 md:pr-4'} h-full overflow-hidden"
         >
-          <h6 class="text-primary">{slice.primary.label || ""}</h6>
+          {#if slice.primary.label}
+            <h6 class="text-primary">{slice.primary.label}</h6>
+          {/if}
           <PrismicRichText field={slice.primary.body} />
         </div>
 
