@@ -12,6 +12,7 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
+  import { trapFocus } from "$lib/actions/trapFocus";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
   import LogoSoup from "$lib/components/LogoSoup.svelte";
   import { fade } from "svelte/transition";
@@ -227,6 +228,7 @@
       aria-label="Additional information"
       aria-modal="true"
       class="relative bg-white/95 backdrop-blur-sm shadow-xl p-6 max-w-sm w-full border border-primary"
+      use:trapFocus
     >
       <button
         data-popup-close

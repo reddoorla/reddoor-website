@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
+  import { trapFocus } from "$lib/actions/trapFocus";
 
   let showLandscapeModal = $state(false);
 
@@ -34,6 +35,11 @@
   <div
     transition:fade
     class="w-screen h-screen fixed bg-black flex justify-center items-center top-0 left-0 p-12 z-50"
+    role="alertdialog"
+    aria-modal="true"
+    aria-label="Rotate your device to portrait mode"
+    tabindex="-1"
+    use:trapFocus
   >
     <h3 class="text-white text-center">
       Please Flip <br /> to Portrait Mode
