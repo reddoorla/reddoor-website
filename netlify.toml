@@ -6,3 +6,27 @@
 [build.environment]
     NODE_VERSION = "24"
     COREPACK_INTEGRITY_KEYS = "0"
+
+# Baseline security headers, applied to every response on the deployed site.
+# Intentionally conservative — NO Content-Security-Policy yet (a strict CSP needs
+# to be validated against the Vimeo embeds, Typekit, Prismic images and the
+# Prismic preview toolbar before it can be enforced; tracked as a follow-up).
+#
+# Notes on what is deliberately NOT restricted, so nothing breaks:
+#   - Permissions-Policy lists only features the site never uses; autoplay and
+#     fullscreen are left untouched so the Vimeo background embeds keep working.
+#   - X-Frame-Options is SAMEORIGIN. The Slice Machine simulator frames the
+#     LOCAL dev server (localSliceSimulatorURL = localhost:5173), not this
+#     deployed origin, and the Prismic preview toolbar injects a script rather
+#     than framing — so neither is affected. If the slice simulator is ever
+#     pointed at a deployed URL, /slice-simulator will need a frame-ancestors
+#     carve-out (CSP) instead.
+[[headers]]
+    for = "/*"
+
+    [headers.values]
+        X-Frame-Options = "SAMEORIGIN"
+        X-Content-Type-Options = "nosniff"
+        Referrer-Policy = "strict-origin-when-cross-origin"
+        Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+        Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=()"
