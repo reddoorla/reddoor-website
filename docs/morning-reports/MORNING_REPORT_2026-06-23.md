@@ -6,11 +6,11 @@ _Evening review run 2026-06-22. Scope: whole repo, branch-aware (`feat/portfolio
 
 **I ran Lighthouse against a production preview (desktop preset) — your perf-regression hunch comes back clean:**
 
-| Route | Perf | A11y | Best-Pr | SEO | LCP | CLS | TBT |
-| ----------------- | ---- | ---- | ------- | --- | ----- | ----- | ----- |
-| `/` | 95 | 100 | 100 | 100 | 1.4 s | 0.004 | 0 ms |
-| `/portfolio` | 99 | 98 | 100 | 100 | 0.6 s | 0 | 70 ms |
-| `/dev/a11y-fixtures` | 100 | 100 | 100 | 100 | 0.4 s | 0.004 | 0 ms |
+| Route                | Perf | A11y | Best-Pr | SEO | LCP   | CLS   | TBT   |
+| -------------------- | ---- | ---- | ------- | --- | ----- | ----- | ----- |
+| `/`                  | 95   | 100  | 100     | 100 | 1.4 s | 0.004 | 0 ms  |
+| `/portfolio`         | 99   | 98   | 100     | 100 | 0.6 s | 0     | 70 ms |
+| `/dev/a11y-fixtures` | 100  | 100  | 100     | 100 | 0.4 s | 0.004 | 0 ms  |
 
 No regression; Best-Practices is **100 everywhere** (the #44 cookie gate holds — and GA, see MED-7, isn't currently tanking it). The only deductions: `/portfolio` a11y 98 = **heading-order** (h1→h4 skip; the "But wait, there's more!" title is a styled `<div>`, not a heading — the #40 homepage heading fix never reached this page; MED-10), plus a `valid-source-maps` best-practices info flag.
 
