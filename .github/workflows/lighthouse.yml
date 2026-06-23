@@ -1,0 +1,64 @@
+name: lighthouse
+
+# Gates PRs on Lighthouse scores for REAL prod-built routes, by auditing the
+# Netlify deploy preview (the repo-root lighthouserc.json / fleet nightly only
+# ever audits /dev/a11y-fixtures in dev mode — see the 2026-06-23 morning brief,
+# HIGH-1). a11y + best-practices are hard gates; performance is warn-only for now
+# (mobile perf is ~60 until the image pipeline lands — MED-1). Thresholds and the
+# rationale live in .github/lighthouse/lighthouserc.json.
+on:
+  pull_request:
+
+# A newer push to the PR supersedes any in-flight Lighthouse run.
+concurrency:
+  group: lighthouse-${{ github.event.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Lighthouse the Netlify deploy preview (real routes)
+        run: |
+          set -euo pipefail
+          BASE="https://deploy-preview-${{ github.event.number }}--reddoorla.netlify.app"
+
+          echo "Waiting for the Netlify deploy preview: $BASE"
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "$BASE/"; then
+              echo "Preview is up (after ~$((i * 10))s)."
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "::error::Netlify deploy preview never became reachable at $BASE (10 min)."
+              exit 1
+            fi
+            sleep 10
+          done
+
+          # Derive a real, currently-published detail page from the live /portfolio
+          # so the LCP hero is sampled without hardcoding a uid that could be unpublished.
+          DETAIL="$(curl -fsS "$BASE/portfolio" | grep -oE '/portfolio/[a-z0-9][a-z0-9-]*' | head -n1 || true)"
+
+          URLS=( "$BASE/" "$BASE/portfolio" )
+          if [ -n "$DETAIL" ]; then
+            URLS+=( "$BASE$DETAIL" )
+          else
+            echo "::warning::No /portfolio/<uid> detail link found; auditing / and /portfolio only."
+          fi
+          echo "Auditing: ${URLS[*]}"
+
+          ARGS=()
+          for u in "${URLS[@]}"; do ARGS+=( "--collect.url=$u" ); done
+
+          npx -y @lhci/cli@0.15 autorun \
+            --config=./.github/lighthouse/lighthouserc.json \
+            "${ARGS[@]}"

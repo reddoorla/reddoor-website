@@ -1,0 +1,19 @@
+{
+  "$note": "Standalone config for the real-route PR Lighthouse gate (.github/workflows/lighthouse.yml). Separate from the repo-root lighthouserc.json, which is sync-managed by @reddoorla/maintenance and audits /dev/a11y-fixtures. URLs are supplied by the workflow against the Netlify deploy preview.",
+  "$thresholds": "Conservative initial rollout (measured on the deploy preview, mobile): a11y 98-100, best-practices 96, perf 60-64. a11y + best-practices are hard errors at 0.9 (real regressions like re-introduced tracking cookies or broken markup drop these 10-30 pts, well below 0.9, while leaving headroom so minor noise never false-fails). Performance is warn-only — mobile perf is currently ~60 because of the un-propagated image pipeline (MED-1) and is throttle-flaky, so blocking on it would fail every PR; tighten to error once MED-1 lands. SEO is intentionally NOT asserted: Netlify deploy previews send `x-robots-tag: noindex`, which fails Lighthouse's is-crawlable audit (SEO ~66 on every preview) — a false signal; production SEO is covered by the @reddoorla/maintenance nightly run.",
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.8 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:best-practices": ["error", { "minScore": 0.9 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}
