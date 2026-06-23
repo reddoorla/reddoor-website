@@ -8,9 +8,6 @@
     COREPACK_INTEGRITY_KEYS = "0"
 
 # Baseline security headers, applied to every response on the deployed site.
-# Intentionally conservative — NO Content-Security-Policy yet (a strict CSP needs
-# to be validated against the Vimeo embeds, Typekit, Prismic images and the
-# Prismic preview toolbar before it can be enforced; tracked as a follow-up).
 #
 # Notes on what is deliberately NOT restricted, so nothing breaks:
 #   - Permissions-Policy lists only features the site never uses; autoplay and
@@ -21,6 +18,20 @@
 #     than framing — so neither is affected. If the slice simulator is ever
 #     pointed at a deployed URL, /slice-simulator will need a frame-ancestors
 #     carve-out (CSP) instead.
+#
+# Content-Security-Policy is shipped in REPORT-ONLY mode first (it reports
+# violations to the browser console but enforces nothing), so a missed source
+# can't break the live site. Validate it on the deploy preview against: the home
+# Vimeo embeds (frame-src player.vimeo.com), Typekit + Google Fonts (style/font),
+# Prismic images + preview toolbar (img/frame/connect *.prismic.io) and GA
+# (script/connect google*.com). When the console is clean for a week, promote it
+# by renaming the header to `Content-Security-Policy`.
+#
+# The allowlist directives are tight; script-src/style-src keep 'unsafe-inline'
+# because SvelteKit emits an inline hydration script and the app uses inline
+# style attributes + Svelte transitions throughout. Dropping script 'unsafe-
+# inline' later means adopting SvelteKit's built-in CSP (kit.csp hash/nonce mode)
+# AND hashing the GA bootstrap in app.html — out of scope for this report-only pass.
 [[headers]]
     for = "/*"
 
@@ -30,3 +41,4 @@
         Referrer-Policy = "strict-origin-when-cross-origin"
         Strict-Transport-Security = "max-age=31536000; includeSubDomains"
         Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=()"
+        Content-Security-Policy-Report-Only = "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io; style-src 'self' 'unsafe-inline' https://use.typekit.net https://fonts.googleapis.com; font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://player.vimeo.com https://*.prismic.io; connect-src 'self' https://*.google-analytics.com https://www.googletagmanager.com https://*.prismic.io https://*.typekit.net; upgrade-insecure-requests"
