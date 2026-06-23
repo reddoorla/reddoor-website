@@ -45,7 +45,10 @@
       style="transform: rotate(-{rotationAngle}deg); width:{crossLength}"
     ></div>
     {#if label}
-      <h6 class="absolute bottom-4 z-20">{label}</h6>
+      <!-- Image caption, not a section heading: a non-heading <p> keeps it out of
+           the document outline (heading-order). `font-bold` reproduces the old
+           <h6> look exactly (h6 and p are both 18px/30px; only the weight differs). -->
+      <p class="font-bold absolute bottom-4 z-20">{label}</p>
     {/if}
   </div>
 </div>
