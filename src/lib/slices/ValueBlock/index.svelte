@@ -1,6 +1,7 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import { PrismicRichText, PrismicImage } from "@prismicio/svelte";
+  import { PrismicImage } from "@prismicio/svelte";
+  import RichTextBody from "$lib/components/RichTextBody.svelte";
   import type { Content } from "@prismicio/client";
 
   let { slice }: { slice: Content.ValueBlockSlice } = $props();
@@ -30,7 +31,7 @@
             <h2 class="type-title mb-4">{slice.primary.title}</h2>
           {/if}
 
-          <PrismicRichText field={slice.primary.body} />
+          <RichTextBody field={slice.primary.body} />
         </div>
       </div>
     </ContentWidth>

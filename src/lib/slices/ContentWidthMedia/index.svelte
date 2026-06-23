@@ -1,6 +1,7 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
+  import { PrismicImage } from "@prismicio/svelte";
+  import RichTextBody from "$lib/components/RichTextBody.svelte";
   import type { ContentWidthImageSlice } from "../../../prismicio-types";
   import { isFilled } from "@prismicio/client";
   import { animateIn as anim } from "$lib/actions/animateIn";
@@ -50,7 +51,7 @@
                  out of the document outline. font-bold == the old <h6> look. -->
             <p class="font-bold text-primary">{slice.primary.label}</p>
           {/if}
-          <PrismicRichText field={slice.primary.body} />
+          <RichTextBody field={slice.primary.body} />
         </div>
 
         <div

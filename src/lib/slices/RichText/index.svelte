@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PrismicRichText } from "@prismicio/svelte";
+  import RichTextBody from "$lib/components/RichTextBody.svelte";
   import type { Content } from "@prismicio/client";
 
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
@@ -43,7 +43,7 @@
 		rich-text
 		"
       >
-        <PrismicRichText field={slice.primary.content} />
+        <RichTextBody field={slice.primary.content} />
       </div>
     </ContentWidth>
   </section>
