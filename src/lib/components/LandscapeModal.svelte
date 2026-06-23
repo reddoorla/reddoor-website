@@ -9,7 +9,11 @@
         navigator.userAgent,
       );
       const isLandscape = window.innerWidth > window.innerHeight;
-      const isNotPortrait = screen.orientation.type !== "portrait-primary";
+      // screen.orientation is undefined on some iOS Safari versions; reading
+      // `.type` there throws, and a throw inside this $effect kills Svelte's
+      // effect scheduler. Optional-chain it — when the API is absent we fall
+      // back to the innerWidth/innerHeight landscape check above.
+      const isNotPortrait = screen.orientation?.type !== "portrait-primary";
 
       if (isMobile && isLandscape && isNotPortrait) {
         showLandscapeModal = true;

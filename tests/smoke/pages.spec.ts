@@ -73,6 +73,41 @@ test("portfolio detail page loads with no console errors", async ({ page }) => {
   expect(errors, `console errors on ${firstProjectHref}`).toEqual([]);
 });
 
+test("layout survives a missing screen.orientation (old iOS Safari)", async ({ browser }) => {
+  // On some iOS Safari versions `screen.orientation` is undefined. The layout's
+  // LandscapeModal read `screen.orientation.type` unguarded, so it threw inside
+  // a Svelte $effect — which kills the effect scheduler for the whole page.
+  // Simulate that environment (landscape phone, orientation API absent) and
+  // assert the page still mounts cleanly with no thrown error.
+  const context = await browser.newContext({
+    viewport: { width: 844, height: 390 }, // a phone held in landscape
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 13_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/604.1",
+  });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      try {
+        Object.defineProperty(window.screen, "orientation", {
+          configurable: true,
+          get: () => undefined,
+        });
+      } catch {
+        /* platform won't let us override it; test still loads the page */
+      }
+    });
+    const errors = attachConsoleWatcher(page);
+    const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    await expect(page.locator("footer")).toBeVisible();
+    // Let the layout $effect and its resize handler run.
+    await page.waitForTimeout(300);
+    expect(errors, "no error from unguarded screen.orientation access").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("404 page renders the custom error component", async ({ page }) => {
   // The browser logs a top-level "Failed to load resource: 404" for the page
   // itself — that's expected on a 404 route, not a bug. Allow it locally.
