@@ -155,4 +155,44 @@ test.describe("portfolio archive search", () => {
     await sort.click();
     await expect(relevanceOption()).toHaveCount(0);
   });
+
+  test("sort dropdown is an ARIA listbox that closes on outside click and Escape", async ({
+    page,
+  }) => {
+    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    const sort = page.getByTestId("portfolio-sort");
+    await expect(sort).toHaveAttribute("aria-haspopup", "listbox");
+    await expect(sort).toHaveAttribute("aria-expanded", "false");
+
+    // Open → ARIA reflects it, listbox + options exposed.
+    await sort.click();
+    await expect(sort).toHaveAttribute("aria-expanded", "true");
+    await expect(page.locator('[role="listbox"]')).toHaveCount(1);
+    await expect(page.getByRole("option").first()).toBeVisible();
+
+    // Clicking outside (on the inert archive heading) closes it.
+    await page.getByRole("heading", { name: "But wait, there's more!" }).click();
+    await expect(sort).toHaveAttribute("aria-expanded", "false");
+
+    // Reopen, then Escape closes it and returns focus to the trigger.
+    await sort.click();
+    await expect(sort).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Escape");
+    await expect(sort).toHaveAttribute("aria-expanded", "false");
+    await expect(sort).toBeFocused();
+  });
+
+  test("category filter buttons expose aria-pressed state", async ({ page }) => {
+    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    const brand = page.getByRole("button", { name: "BRAND", exact: true });
+    await expect(brand).toHaveAttribute("aria-pressed", "false");
+    await brand.click();
+    await expect(brand).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("the archive section title is a real heading", async ({ page }) => {
+    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    // Was a styled <div>; now an <h2> so the archive section has a programmatic heading.
+    await expect(page.getByRole("heading", { name: "But wait, there's more!" })).toBeVisible();
+  });
 });
