@@ -57,8 +57,14 @@
 
   let isOrderSelectOpen = $state(false);
 
+  // Refs for the sort dropdown, used for outside-click / Escape handling below.
+  let sortDropdown: HTMLElement | undefined = $state();
+  let sortTrigger: HTMLButtonElement | undefined = $state();
+
   $effect(() => {
-    // read filters/order so the dropdown closes whenever any of them change
+    // read filters/order so the dropdown closes whenever any of them change.
+    // Track debouncedQuery (not raw searchQuery) so typing a query doesn't slam
+    // the dropdown shut on every keystroke — it closes once results settle.
     const _deps = [
       showBrand,
       showDigital,
@@ -67,9 +73,34 @@
       showPrint,
       showPackaging,
       orderString,
-      searchQuery,
+      debouncedQuery,
     ];
     isOrderSelectOpen = false;
+  });
+
+  // While the sort dropdown is open, close it on an outside click or Escape.
+  // Listeners only exist while open; the effect re-runs when isOrderSelectOpen
+  // flips and its teardown removes them. (Writes happen in handlers, never in the
+  // effect body, so this doesn't self-trigger.)
+  $effect(() => {
+    if (!isOrderSelectOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (sortDropdown && !sortDropdown.contains(e.target as Node)) {
+        isOrderSelectOpen = false;
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        isOrderSelectOpen = false;
+        sortTrigger?.focus();
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
   });
 
   const sortedProjects = $derived(
@@ -317,6 +348,19 @@
 
   // The sort dropdown gains a "Relevance" option only while a search is active.
   const isSearching = $derived(debouncedQuery.trim().length >= MIN_QUERY);
+
+  // Active category filters, in button order — surfaced to the aria-live region
+  // so screen-reader users hear which filter narrowed (or emptied) the grid.
+  const activeCategoryLabels = $derived(
+    [
+      showBrand ? "Brand" : null,
+      showPrint ? "Print" : null,
+      showEnvironmental ? "Environmental" : null,
+      showProduct ? "Product" : null,
+      showDigital ? "Digital" : null,
+      showPackaging ? "Packaging" : null,
+    ].filter((label): label is string => label !== null),
+  );
   const sortOptions = $derived([
     ...(isSearching ? [RELEVANCE] : []),
     "A-Z",
@@ -607,7 +651,7 @@
 <div class="py-24 bg-paper" bind:this={projectsDiv} id="projectsDiv">
   <ContentWidth>
     <div use:anim class="w-full">
-      <div class="archive-title text-primary w-full text-left mb-12">But wait, there's more!</div>
+      <h2 class="archive-title text-primary w-full text-left mb-12">But wait, there's more!</h2>
     </div>
     <div class="flex flex-row justify-between w-full">
       <div use:anim class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
@@ -643,18 +687,21 @@
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showBrand
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
+          aria-pressed={showBrand}
           onclick={() => withViewTransition(() => (showBrand = !showBrand))}>BRAND</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showPrint
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
+          aria-pressed={showPrint}
           onclick={() => withViewTransition(() => (showPrint = !showPrint))}>PRINT</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showEnvironmental
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
+          aria-pressed={showEnvironmental}
           onclick={() => withViewTransition(() => (showEnvironmental = !showEnvironmental))}
           >ENVIRONMENTAL</button
         >
@@ -662,39 +709,53 @@
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showProduct
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
+          aria-pressed={showProduct}
           onclick={() => withViewTransition(() => (showProduct = !showProduct))}>PRODUCT</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showDigital
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
+          aria-pressed={showDigital}
           onclick={() => withViewTransition(() => (showDigital = !showDigital))}>DIGITAL</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showPackaging
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
+          aria-pressed={showPackaging}
           onclick={() => withViewTransition(() => (showPackaging = !showPackaging))}
           >PACKAGING</button
         >
       </div>
-      <div use:anim class="relative z-10">
+      <div use:anim bind:this={sortDropdown} class="relative z-10">
         <div class="w-48 h-12 bg-paper absolute z-20"></div>
         {#if isOrderSelectOpen}
-          {#each sortOptions as option, i (option)}
-            <button
-              class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 {orderString ===
-              option
-                ? 'border-primary bg-primary  hover:text-light text-white'
-                : 'border-light text-light  bg-white hover:text-primary'}"
-              style="transform: translateY({(i + 1) * 100}%)"
-              data-testid="sort-option"
-              transition:slide
-              onclick={() => withViewTransition(() => (orderString = option))}>{option}</button
-            >
-          {/each}
+          <!-- display:contents keeps the absolute-positioned option layout while
+               giving the options a real listbox container for assistive tech. -->
+          <div role="listbox" aria-label="Sort order" id="sort-listbox" class="contents">
+            {#each sortOptions as option, i (option)}
+              <button
+                role="option"
+                aria-selected={orderString === option}
+                class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 {orderString ===
+                option
+                  ? 'border-primary bg-primary  hover:text-light text-white'
+                  : 'border-light text-light  bg-white hover:text-primary'}"
+                style="transform: translateY({(i + 1) * 100}%)"
+                data-testid="sort-option"
+                transition:slide
+                onclick={() => withViewTransition(() => (orderString = option))}>{option}</button
+              >
+            {/each}
+          </div>
         {/if}
         <button
+          bind:this={sortTrigger}
+          aria-haspopup="listbox"
+          aria-expanded={isOrderSelectOpen}
+          aria-controls="sort-listbox"
+          aria-label="Sort projects, current order: {orderString}"
           class="relative z-20 pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 mb-24 flex flex-row items-center justify-between {isOrderSelectOpen
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light bg-paper text-light hover:border-primary hover:text-primary'}"
@@ -724,8 +785,12 @@
       </div>
     </div>
     <div aria-live="polite" class="sr-only">
-      {#if debouncedQuery.trim().length >= MIN_QUERY}
-        {visibleCount} project{visibleCount === 1 ? "" : "s"} match "{debouncedQuery}"
+      {#if isSearching}
+        {visibleCount} project{visibleCount === 1 ? "" : "s"} match "{debouncedQuery}"{activeCategoryLabels.length
+          ? ` in ${activeCategoryLabels.join(", ")}`
+          : ""}
+      {:else if activeCategoryLabels.length}
+        {visibleCount} project{visibleCount === 1 ? "" : "s"} in {activeCategoryLabels.join(", ")}
       {/if}
     </div>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
@@ -819,6 +884,9 @@
   }
 
   .archive-title {
+    /* Pin the body font: now that this is an <h2> (for heading semantics), the
+       global `h2 { font-family: Besley }` rule would otherwise change its look. */
+    font-family: "pragmatica", "helvetica", sans-serif;
     font-size: 60px;
     font-style: normal;
     font-weight: 700;
