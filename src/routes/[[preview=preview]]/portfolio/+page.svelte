@@ -17,13 +17,13 @@
   import dentist from "$lib/assets/images/1800dentist.png?as=run";
   import Img from "$lib/components/Img.svelte";
   import type { ProjectDocument } from "../../../prismicio-types.js";
-  import { flip } from "svelte/animate";
+  import { tick } from "svelte";
   import { fade, scale, slide } from "svelte/transition";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
-  import { expoOut } from "svelte/easing";
   import type { PageData } from "./$types";
-  import { mediumString } from "$lib/utils/projectServices";
-  import { ArrowDown, ChevronDown, Minus } from "@lucide/svelte";
+  import { mediumString, toSearchRecord } from "$lib/utils/projectServices";
+  import { ArrowDown, ChevronDown, Minus, Search, X } from "@lucide/svelte";
+  import Fuse from "fuse.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -43,6 +43,8 @@
   let showPrint = $state(false);
   let showWeb = $state(false);
 
+  let searchQuery = $state("");
+
   const showAll = $derived(
     !(
       showBrand ||
@@ -55,12 +57,12 @@
     ),
   );
 
-  let orderString = $state("Latest-Earliest");
-
-  const isAlphabeticalDescending = $derived(orderString === "A-Z");
-  const isAlphabeticalAscending = $derived(orderString === "Z-A");
-  const isChronologicalDescending = $derived(orderString === "Latest-Earliest");
-  const isChronologicalAscending = $derived(orderString === "Earliest-Latest");
+  // While a search is active, results rank by relevance unless the visitor picks a
+  // real sort. RELEVANCE is only offered while searching; DEFAULT_ORDER is what we
+  // fall back to when the query clears.
+  const RELEVANCE = "Relevance";
+  const DEFAULT_ORDER = "Latest-Earliest";
+  let orderString = $state(DEFAULT_ORDER);
 
   let isOrderSelectOpen = $state(false);
 
@@ -75,6 +77,7 @@
       showWeb,
       showPackaging,
       orderString,
+      searchQuery,
     ];
     isOrderSelectOpen = false;
   });
@@ -101,6 +104,236 @@
       }
     }),
   );
+
+  // Minimum query length before search runs; single source of truth shared by
+  // Fuse's minMatchCharLength, the matchedUids guard, and the no-results gate.
+  const MIN_QUERY = 2;
+
+  const fuse = $derived(
+    new Fuse(data.allProjects.map(toSearchRecord), {
+      keys: [
+        { name: "title", weight: 3 },
+        { name: "services", weight: 2 },
+        { name: "tagline", weight: 1.5 },
+        { name: "body", weight: 1 },
+      ],
+      threshold: 0.2,
+      ignoreLocation: true,
+      minMatchCharLength: MIN_QUERY,
+    }),
+  );
+
+  let debouncedQuery = $state("");
+  let searchInput: HTMLInputElement | undefined = $state();
+
+  function clearSearch() {
+    searchQuery = "";
+    searchInput?.focus();
+  }
+
+  // ─── View-transition motion tuning ─────────────────────────────────────────
+  // Cards animate at a roughly CONSTANT on-screen speed no matter how far the grid
+  // reflows: the duration is derived from how far the farthest *visible* card has
+  // to travel (distance ÷ velocity), so a big filter collapse and a small sort
+  // nudge feel like they move at the same pace. A card whose start is far off-
+  // screen is "cheated" — its start is pulled to just past the viewport edge so it
+  // slides in from off-screen instead of rocketing across the whole page.
+  // These are the knobs to play with:
+  const VT_VELOCITY = 0.5; // px per ms — master speed dial (higher = snappier)
+  const VT_MIN_DURATION = 900; // ms floor — keeps a tiny sort nudge deliberate
+  const VT_MAX_DURATION = 1550; // ms ceiling — keeps the biggest collapse from dragging
+  const VT_VIEWPORT_MARGIN = 0.2; // ± fraction of the viewport. Defines BOTH the band
+  //   of cards that count toward the duration AND how far off-screen a far card
+  //   starts (it slides in from this edge). 0.2 = ±20vh / ±20vw.
+  const VT_EASE = "cubic-bezier(0.16, 1, 0.3, 1)"; // the curve. Try
+  //   "cubic-bezier(0.4, 0, 0.2, 1)" if big moves read as bouncy.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  type CardBox = { cx: number; cy: number; top: number; bottom: number };
+
+  // Center + vertical extent of every named archive card currently in the DOM,
+  // keyed by uid. Read synchronously; getBoundingClientRect is valid inside the
+  // View Transition callback even though painting is frozen (layout still runs).
+  function cardCenters(): Map<string, CardBox> {
+    if (!projectsDiv) return new Map();
+    const entries: [string, CardBox][] = [];
+    for (const el of projectsDiv.querySelectorAll<HTMLElement>("[data-vt-uid]")) {
+      const uid = el.dataset.vtUid;
+      if (!uid) continue;
+      const r = el.getBoundingClientRect();
+      entries.push([
+        uid,
+        { cx: r.left + r.width / 2, cy: r.top + r.height / 2, top: r.top, bottom: r.bottom },
+      ]);
+    }
+    return new Map(entries);
+  }
+
+  // Travel distance (px) → duration (ms): constant velocity, clamped.
+  function durationForTravel(travel: number): number {
+    const ms = travel / VT_VELOCITY;
+    return Math.round(Math.min(VT_MAX_DURATION, Math.max(VT_MIN_DURATION, ms)));
+  }
+
+  // Wrap a list-changing state update in a View Transition. The browser snapshots
+  // the grid before & after; we measure how far the farthest visible card moves to
+  // set a constant-velocity duration, and (for cards whose true start is far off-
+  // screen) rewrite their group animation so they slide in from just past the
+  // viewport edge instead of flying the full distance. `await tick()` flushes
+  // Svelte's DOM inside the snapshot. Falls back to an instant update when the API
+  // is unavailable or the user prefers reduced motion.
+  function withViewTransition(update: () => void) {
+    if (
+      typeof document === "undefined" ||
+      !document.startViewTransition ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      update();
+      return;
+    }
+
+    const before = cardCenters();
+    // Cards whose start was clamped to the viewport edge. Each animates from this
+    // screen-space offset applied ON TOP of the browser's own positioning
+    // transform — filled in after `ready`, where that transform actually exists.
+    const clamped: { uid: string; dx: number; dy: number }[] = [];
+
+    const transition = document.startViewTransition(async () => {
+      update();
+      await tick();
+
+      const after = cardCenters();
+      const marginY = VT_VIEWPORT_MARGIN * window.innerHeight;
+      const marginX = VT_VIEWPORT_MARGIN * window.innerWidth;
+      const bandTop = -marginY;
+      const bandBottom = window.innerHeight + marginY;
+      const inBand = (b: CardBox) => b.bottom > bandTop && b.top < bandBottom;
+      const clampX = (x: number) => Math.min(window.innerWidth + marginX, Math.max(-marginX, x));
+      const clampY = (y: number) => Math.min(bandBottom, Math.max(bandTop, y));
+
+      let maxTravel = 0;
+
+      for (const [uid, b] of before) {
+        const a = after.get(uid);
+        if (!a) continue; // leaving card — fades in place, no travel
+        if (!inBand(b) && !inBand(a)) continue; // fully off-screen — cheated
+
+        // Pull a far start to just past the viewport edge: the card slides in from
+        // off-screen instead of traversing its true (possibly huge) distance.
+        const startX = clampX(b.cx);
+        const startY = clampY(b.cy);
+        const dx = startX - a.cx;
+        const dy = startY - a.cy;
+        maxTravel = Math.max(maxTravel, Math.hypot(dx, dy));
+
+        if (startX !== b.cx || startY !== b.cy) clamped.push({ uid, dx, dy });
+      }
+
+      document.documentElement.style.setProperty(
+        "--vt-duration",
+        `${durationForTravel(maxTravel)}ms`,
+      );
+      document.documentElement.style.setProperty("--vt-ease", VT_EASE);
+    });
+
+    // Once the pseudo-elements exist, retarget each clamped card's group animation
+    // to START from the clamped offset *composed with* the browser's end
+    // (positioning) transform — so it slides in from the viewport edge to its real
+    // slot, instead of collapsing to the top-left origin (which is what replacing
+    // the transform with a bare translate(0,0) did). We rewrite keyframes only, so
+    // the UA animation's timing — already driven by --vt-duration / --vt-ease —
+    // is preserved.
+    if (clamped.length) {
+      transition.ready
+        .then(() => {
+          for (const { uid, dx, dy } of clamped) {
+            const pseudo = `::view-transition-group(vt-${uid})`;
+            for (const anim of document.getAnimations()) {
+              const effect = anim.effect;
+              if (!(effect instanceof KeyframeEffect) || effect.pseudoElement !== pseudo) continue;
+              const frames = effect.getKeyframes();
+              const end = frames[frames.length - 1]?.transform;
+              if (!end || end === "none") break; // can't position safely → leave default
+              effect.setKeyframes([
+                { transform: `translate(${dx}px, ${dy}px) ${end}`, offset: 0 },
+                { transform: String(end), offset: 1 },
+              ]);
+              break;
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }
+
+  // ~250ms debounce. This writes DIFFERENT state vars (debouncedQuery / orderString)
+  // than the one it reads synchronously (searchQuery); the reads inside the timeout
+  // run outside the effect's tracked scope, so this does NOT trip the Svelte 5
+  // $effect self-write scheduler bug.
+  $effect(() => {
+    const q = searchQuery;
+    const id = setTimeout(
+      () =>
+        withViewTransition(() => {
+          const wasActive = debouncedQuery.trim().length >= MIN_QUERY;
+          const nowActive = q.trim().length >= MIN_QUERY;
+          debouncedQuery = q;
+          // Default to relevance the moment a search becomes active, and restore a
+          // real sort when it clears — but never override a sort the visitor picked
+          // themselves while searching.
+          if (nowActive && !wasActive) orderString = RELEVANCE;
+          else if (!nowActive && wasActive && orderString === RELEVANCE)
+            orderString = DEFAULT_ORDER;
+        }),
+      250,
+    );
+    return () => clearTimeout(id);
+  });
+
+  // Fuse results ordered best-match-first; null === "no active query".
+  const rankedUids = $derived.by<string[] | null>(() => {
+    const q = debouncedQuery.trim();
+    if (q.length < MIN_QUERY) return null;
+    return fuse.search(q).map((r) => r.item.uid);
+  });
+
+  function categoryMatch(project: ProjectDocument<string>): boolean {
+    return Boolean(
+      showAll ||
+      (project.data.branding && showBrand) ||
+      (project.data.digital && showDigital) ||
+      (project.data.environmental && showEnvironmental) ||
+      (project.data.print && showPrint) ||
+      (project.data.product && showProduct) ||
+      (project.data.packaging && showPackaging),
+    );
+  }
+
+  // The cards actually rendered: category-filtered, then — while searching —
+  // reduced to Fuse matches. With the Relevance sort active those matches are
+  // ordered best-match-first; with any real sort active they keep that sort's order
+  // (sortedProjects is already sorted), just filtered to the matches. Only visible
+  // cards are in the DOM; the View Transition animates the difference.
+  const visibleProjects = $derived.by(() => {
+    const inCategory = sortedProjects.filter(categoryMatch);
+    if (rankedUids === null) return inCategory;
+    const rank = new Map(rankedUids.map((uid, i) => [uid, i]));
+    const matched = inCategory.filter((p) => rank.has(p.uid ?? ""));
+    if (orderString !== RELEVANCE) return matched;
+    return matched.sort((a, b) => (rank.get(a.uid ?? "") ?? 0) - (rank.get(b.uid ?? "") ?? 0));
+  });
+
+  const visibleCount = $derived(visibleProjects.length);
+
+  // The sort dropdown gains a "Relevance" option only while a search is active.
+  const isSearching = $derived(debouncedQuery.trim().length >= MIN_QUERY);
+  const sortOptions = $derived([
+    ...(isSearching ? [RELEVANCE] : []),
+    "A-Z",
+    "Z-A",
+    "Latest-Earliest",
+    "Earliest-Latest",
+  ]);
 
   $effect(() => {
     const handleScroll = () => {
@@ -388,73 +621,87 @@
     </div>
     <div class="flex flex-row justify-between w-full">
       <div use:anim class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
+        <div class="relative flex items-center">
+          <Search
+            class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-light pointer-events-none"
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
+          <label for="portfolio-search" class="sr-only">Search projects</label>
+          <input
+            id="portfolio-search"
+            type="search"
+            data-testid="portfolio-search"
+            placeholder="Search projects…"
+            bind:this={searchInput}
+            bind:value={searchQuery}
+            class="w-56 max-w-full border-1 border-light py-[10px] pl-9 pr-9 text-light placeholder:text-light/60 focus:border-primary focus:text-primary focus:outline-none transition-colors duration-500"
+          />
+          {#if searchQuery}
+            <button
+              type="button"
+              aria-label="Clear search"
+              data-testid="portfolio-search-clear"
+              onclick={clearSearch}
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-light hover:text-primary transition-colors duration-300"
+            >
+              <X class="size-4" strokeWidth={1.5} />
+            </button>
+          {/if}
+        </div>
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showBrand
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showBrand = !showBrand)}>BRAND</button
+          onclick={() => withViewTransition(() => (showBrand = !showBrand))}>BRAND</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showPrint
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showPrint = !showPrint)}>PRINT</button
+          onclick={() => withViewTransition(() => (showPrint = !showPrint))}>PRINT</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showEnvironmental
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showEnvironmental = !showEnvironmental)}>ENVIRONMENTAL</button
+          onclick={() => withViewTransition(() => (showEnvironmental = !showEnvironmental))}
+          >ENVIRONMENTAL</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showProduct
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showProduct = !showProduct)}>PRODUCT</button
+          onclick={() => withViewTransition(() => (showProduct = !showProduct))}>PRODUCT</button
         >
         <button
           class="px-5 py-[10px] transition-colors duration-500 border-1 {showDigital
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light text-light hover:border-primary hover:text-primary'}"
-          onclick={() => (showDigital = !showDigital)}>DIGITAL</button
+          onclick={() => withViewTransition(() => (showDigital = !showDigital))}>DIGITAL</button
         >
       </div>
       <div use:anim class="relative z-10">
         <div class="w-48 h-12 bg-paper absolute z-20"></div>
         {#if isOrderSelectOpen}
-          <button
-            class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-full {isAlphabeticalDescending
-              ? 'border-primary bg-primary  hover:text-light text-white'
-              : 'border-light text-light  bg-white hover:text-primary'}"
-            transition:slide
-            onclick={() => (orderString = "A-Z")}>A-Z</button
-          >
-          <button
-            class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[200%] {isAlphabeticalAscending
-              ? 'border-primary bg-primary  hover:text-light text-white'
-              : 'border-light text-light  bg-white hover:text-primary'}"
-            transition:slide
-            onclick={() => (orderString = "Z-A")}>Z-A</button
-          >
-          <button
-            class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[300%] {isChronologicalDescending
-              ? 'border-primary bg-primary  hover:text-light text-white'
-              : 'border-light text-light  bg-white hover:text-primary'}"
-            transition:slide
-            onclick={() => (orderString = "Latest-Earliest")}>Latest-Earliest</button
-          >
-          <button
-            class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 translate-y-[400%] {isChronologicalAscending
-              ? 'border-primary bg-primary  hover:text-light text-white'
-              : 'border-light text-light  bg-white hover:text-primary'}"
-            transition:slide
-            onclick={() => (orderString = "Earliest-Latest")}>Earliest-Latest</button
-          >
+          {#each sortOptions as option, i (option)}
+            <button
+              class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 {orderString ===
+              option
+                ? 'border-primary bg-primary  hover:text-light text-white'
+                : 'border-light text-light  bg-white hover:text-primary'}"
+              style="transform: translateY({(i + 1) * 100}%)"
+              data-testid="sort-option"
+              transition:slide
+              onclick={() => withViewTransition(() => (orderString = option))}>{option}</button
+            >
+          {/each}
         {/if}
         <button
           class="relative z-20 pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 mb-24 flex flex-row items-center justify-between {isOrderSelectOpen
             ? 'border-primary bg-primary  hover:text-light text-white'
             : 'border-light bg-paper text-light hover:border-primary hover:text-primary'}"
+          data-testid="portfolio-sort"
           onclick={() => (isOrderSelectOpen = !isOrderSelectOpen)}
         >
           <div>{orderString}</div>
@@ -479,19 +726,17 @@
         </button>
       </div>
     </div>
+    <div aria-live="polite" class="sr-only">
+      {#if debouncedQuery.trim().length >= MIN_QUERY}
+        {visibleCount} project{visibleCount === 1 ? "" : "s"} match "{debouncedQuery}"
+      {/if}
+    </div>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
-      {#each sortedProjects as project (project.uid)}
+      {#each visibleProjects as project (project.uid)}
         <div
-          animate:flip={{ duration: 4500, easing: expoOut }}
-          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700 {showAll ||
-          (project.data.branding && showBrand) ||
-          (project.data.digital && showDigital) ||
-          (project.data.environmental && showEnvironmental) ||
-          (project.data.print && showPrint) ||
-          (project.data.product && showProduct) ||
-          (project.data.packaging && showPackaging)
-            ? 'relative'
-            : 'absolute top-1/2 left-1/2 opacity-0 pointer-events-none'}"
+          style="view-transition-name: vt-{project.uid}"
+          data-vt-uid={project.uid}
+          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 relative"
         >
           <a
             href={"/portfolio/" + project.uid}
@@ -508,7 +753,7 @@
               style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
             ></div>
 
-            <div use:anim={{ delayMax: 800 }} class="w-full flex flex-row justify-between p-6 z-10">
+            <div class="w-full flex flex-row justify-between p-6 z-10">
               <div>
                 <p class="text-white uppercase">{project.data.title}</p>
                 <p class="text-light">{mediumString(project) || ""}</p>
@@ -521,6 +766,21 @@
         </div>
       {/each}
     </div>
+    {#if debouncedQuery.trim().length >= MIN_QUERY && visibleCount === 0}
+      <div
+        class="w-full md:ml-[20%] md:w-4/5 py-16 text-center"
+        data-testid="portfolio-search-empty"
+      >
+        <p class="text-light">No projects match "{debouncedQuery}"</p>
+        <button
+          type="button"
+          onclick={clearSearch}
+          class="mt-4 px-5 py-[10px] border-1 border-light text-light hover:border-primary hover:text-primary transition-colors duration-500"
+        >
+          Clear search
+        </button>
+      </div>
+    {/if}
   </ContentWidth>
 </div>
 
@@ -574,6 +834,33 @@
     }
     h5 {
       font-size: 28px;
+    }
+  }
+
+  /* Archive grid filter / search / sort animation, driven by the View Transitions
+     API (see withViewTransition). :global because ::view-transition-* are
+     document-level pseudo-elements, not scoped to component markup. */
+  :global(::view-transition-group(*)),
+  :global(::view-transition-old(*)),
+  :global(::view-transition-new(*)) {
+    animation-duration: var(--vt-duration, 650ms);
+    animation-timing-function: var(--vt-ease, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  /* The page-level "root" snapshot can only cross-fade, so on filter/search —
+     where the grid collapses and everything below shifts — it flashed. Skip it
+     so ONLY the named cards animate; the background/footer settle instantly. */
+  :global(::view-transition-group(root)),
+  :global(::view-transition-old(root)),
+  :global(::view-transition-new(root)) {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(::view-transition-group(*)),
+    :global(::view-transition-old(*)),
+    :global(::view-transition-new(*)) {
+      animation: none !important;
     }
   }
 </style>
