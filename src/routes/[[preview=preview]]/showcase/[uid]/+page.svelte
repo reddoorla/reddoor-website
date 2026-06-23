@@ -145,9 +145,9 @@
 <!-- footer -->
 <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-    <h3 class="text-white md:w-3/5">
+    <h2 class="type-cta text-white md:w-3/5">
       Isn’t it time to arm your brand with a clear story and compelling design?
-    </h3>
+    </h2>
     <a href="/contact">
       <DefaultButton
         class="mt-6 text-white border-white border-1 hover:bg-mid/10"
@@ -157,3 +157,28 @@
     </a>
   </ContentWidth>
 </div>
+
+<style>
+  /* This CTA is now an <h2> for heading-order semantics (page goes h1 → h2, no
+     skip). Pin the former global <h3> display type so the look is unchanged —
+     including font-family, since the global `h2 { font-family: Besley }` rule
+     would otherwise re-style it. */
+  .type-cta {
+    font-family: "pragmatica", "helvetica", sans-serif;
+    font-size: 80px;
+    font-weight: 200;
+    line-height: 90px;
+  }
+  @media only screen and (max-width: 1024px) {
+    .type-cta {
+      font-size: 60px;
+      line-height: 70px;
+    }
+  }
+  @media only screen and (max-width: 480px) {
+    .type-cta {
+      font-size: 36px;
+      line-height: 48px;
+    }
+  }
+</style>

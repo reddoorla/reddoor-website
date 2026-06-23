@@ -10,6 +10,7 @@
   import printedReddoorLogo from "$lib/assets/icons/logos/reddoor_logo.png";
   import { isInHero } from "$lib/stores/isInHero.svelte";
   import drawnLogo from "$lib/assets/icons/logos/staticReddoor.png";
+  import { trapFocus } from "$lib/actions/trapFocus";
   import { untrack } from "svelte";
   import { ArrowDown, Menu, X } from "@lucide/svelte";
 
@@ -149,6 +150,10 @@
   <div
     class="w-screen h-lvh fixed inset-0 bg-paper z-50 overflow-hidden"
     transition:fly={{ y: "-100%" }}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Menu"
+    use:trapFocus={{ onEscape: () => (isOverlayVisible = false) }}
   >
     <div class="flex items-start justify-between px-6 md:px-20 py-2.5">
       <a
@@ -163,6 +168,7 @@
         class="text-black opacity-95 hover:opacity-100 transition mt-3"
         onclick={() => (isOverlayVisible = false)}
         aria-label="Close menu"
+        data-autofocus
       >
         <X class="size-[2em]" strokeWidth={1} />
       </button>

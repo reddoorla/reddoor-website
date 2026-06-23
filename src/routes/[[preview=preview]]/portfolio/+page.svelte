@@ -442,9 +442,9 @@
 
     <div class="w-full max-w-[100vw] h-full max-h-screen relative">
       <ContentWidth class="h-full z-10 relative">
-        <h4 class="md:w-3/5 absolute left-0 top-20 text-white">
+        <h2 class="type-h4 md:w-3/5 absolute left-0 top-20 text-white">
           The "buck stops here" with a branding system overhaul of LA County's CEO
-        </h4>
+        </h2>
 
         <div class="absolute bottom-20 flex justify-between w-full md:w-2/5">
           <div>
@@ -474,9 +474,9 @@
           use:anim={{ delayMax: 0 }}
           class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
         >
-          <h5 class="font-sm text-primary">
+          <h2 class="type-h5 font-sm text-primary">
             A mission to create beautiful and affordable lighting for the home.
-          </h5>
+          </h2>
           <div class="w-full flex flex-row justify-between">
             <div>
               <p class="text-primary">PROGRESS LIGHTING</p>
@@ -508,9 +508,9 @@
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%]">
       <div use:anim>
-        <h4 class=" mb-20">
+        <h2 class="type-h4 mb-20">
           An Authentic Texas Ranch <br /> Offering Resort-Quality Retreats.
-        </h4>
+        </h2>
       </div>
 
       <div use:anim class="w-full md:w-1/2 flex flex-row justify-between">
@@ -574,9 +574,9 @@
           use:anim={{ delayMax: 0 }}
           class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
         >
-          <h5 class="font-sm text-primary">
+          <h2 class="type-h5 font-sm text-primary">
             A diverse, joyful, and inclusive community of young learners.
-          </h5>
+          </h2>
           <div class="w-full flex flex-row justify-between">
             <div>
               <p class="text-primary uppercase">St. james' episcopal school</p>
@@ -608,9 +608,9 @@
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%]">
       <div use:anim>
-        <h4 class=" mb-20">
+        <h2 class="type-h4 mb-20">
           A dental referral service bridging the gap between patients and providers.
-        </h4>
+        </h2>
       </div>
       <div use:anim class="w-full md:w-1/2 flex flex-row justify-between">
         <div>
@@ -632,9 +632,9 @@
   <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
     <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
       <div use:anim>
-        <h3 class="text-white md:w-3/5">
+        <h2 class="type-cta text-white md:w-3/5">
           Isn't it time to arm your brand with a clear story and compelling design?
-        </h3>
+        </h2>
       </div>
       <div use:anim>
         <a href="/contact">
@@ -855,9 +855,9 @@
 <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
     <div use:anim>
-      <h3 class="text-white md:w-3/5">
+      <h2 class="type-cta text-white md:w-3/5">
         It's time to arm your brand with a clear story and compelling design
-      </h3>
+      </h2>
     </div>
     <div use:anim>
       <a href="/contact">
@@ -872,7 +872,12 @@
 </div>
 
 <style>
-  h4 {
+  /* The featured-project headlines below are now <h2> (heading-order: the page
+     goes h1 → h2 with no skipped levels). These classes pin their former display
+     type so the design is unchanged. `.type-h4`/`.type-h5` mirror the old scoped
+     <h4>/<h5>; the bare `h5` selector stays for the intro lead that is still an
+     <h5>. `.type-cta` is the footer CTA, formerly a global <h3>. */
+  .type-h4 {
     font-family: Pragmatica;
     font-size: 60px;
     font-style: normal;
@@ -880,12 +885,22 @@
     line-height: 125%; /* 75px */
   }
 
-  h5 {
+  h5,
+  .type-h5 {
     font-family: Pragmatica;
     font-size: 50px;
     font-style: normal;
     font-weight: 200;
     line-height: 140%; /* 70px */
+  }
+
+  .type-cta {
+    /* Pin the body font: now an <h2>, the global `h2 { font-family: Besley }`
+       rule would otherwise change the look. */
+    font-family: "pragmatica", "helvetica", sans-serif;
+    font-size: 80px;
+    font-weight: 200;
+    line-height: 90px;
   }
 
   .archive-title {
@@ -899,11 +914,26 @@
   }
 
   @media only screen and (max-width: 768px) {
-    h4 {
+    .type-h4 {
       font-size: 40px;
     }
-    h5 {
+    h5,
+    .type-h5 {
       font-size: 28px;
+    }
+  }
+
+  @media only screen and (max-width: 1024px) {
+    .type-cta {
+      font-size: 60px;
+      line-height: 70px;
+    }
+  }
+
+  @media only screen and (max-width: 480px) {
+    .type-cta {
+      font-size: 36px;
+      line-height: 48px;
     }
   }
 
