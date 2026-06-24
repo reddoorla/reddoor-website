@@ -22,6 +22,11 @@ export const load: LayoutServerLoad = async ({ url, fetch, cookies, setHeaders }
   if (!isPreviewSession) {
     setHeaders({
       "Netlify-CDN-Cache-Control": "public, durable, s-maxage=300, stale-while-revalidate=86400",
+      // Key the durable cache on the preview cookie. Without this the edge keys on
+      // URL alone, so an editor with an active preview session could be served a
+      // normal visitor's cached PUBLISHED HTML instead of their live draft. With
+      // it, preview and non-preview requests resolve to separate cache entries.
+      "Netlify-Vary": "cookie=io.prismic.preview",
     });
   }
 

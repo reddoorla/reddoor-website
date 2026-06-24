@@ -1,4 +1,5 @@
 User-agent: *
 Disallow: /showcase/
+Disallow: /dev/
 
 Sitemap: https://reddoorla.com/sitemap.xml
