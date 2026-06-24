@@ -130,28 +130,28 @@
 
         <div class="w-3/5 h-full flex flex-row justify-between items-center flex-wrap gap-12">
           {#each brands as brand, i (brand.name || i)}
-            <div use:anim class="w-1/4 relative">
-              <button
-                type="button"
-                class="block w-full text-left bg-transparent border-0 p-0 cursor-pointer"
-                onmouseenter={() => {
-                  showImage = true;
-                  brandIndex = i;
-                }}
-                onmouseleave={() => {
-                  showImage = false;
-                  brandIndex = -1;
-                }}
-                onfocus={() => {
-                  showImage = true;
-                  brandIndex = i;
-                }}
-                onblur={() => {
-                  showImage = false;
-                  brandIndex = -1;
-                }}
-                aria-label="Preview {brand.name}"
-              >
+            <div
+              use:anim
+              class="w-1/4 relative"
+              role="presentation"
+              onmouseenter={() => {
+                showImage = true;
+                brandIndex = i;
+              }}
+              onmouseleave={() => {
+                showImage = false;
+                brandIndex = -1;
+              }}
+              onfocusin={() => {
+                showImage = true;
+                brandIndex = i;
+              }}
+              onfocusout={() => {
+                showImage = false;
+                brandIndex = -1;
+              }}
+            >
+              <div class="w-full text-left">
                 <PrismicLink field={brand.project_link} aria-label={brand.name || "View project"}>
                   <PrismicImage
                     field={brand.logo_negative}
@@ -180,7 +180,7 @@
                     decoding="async"
                   />
                 </PrismicLink>
-              </button>
+              </div>
             </div>
           {/each}
         </div>
