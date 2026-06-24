@@ -68,6 +68,10 @@ Disjoint caret ranges pull two majors: `sharp@0.33.5` via `@zerodevx/svelte-img`
 2 high (`html-minifier` ReDoS via maintenance→mjml; `tmp` path-traversal via `@lhci/cli`), 5 moderate (`mjml`, `file-type`, `uuid`, `js-yaml`, `http-proxy-middleware` — slice-machine-ui/lhci/maintenance chains), 2 low (`cookie` <0.7 in every SvelteKit copy — not exploitable as used; `tmp` symlink). **None sit in the visitor-facing SSR/edge runtime.** Note: `@reddoorla/maintenance` is a _prod_ dep that pulls `@lhci/cli`, so the lhci-chain advisories also appear under `--prod` — they don't execute at runtime but bloat the prod install.
 **Fix:** prefer upstream bumps (Renovate); for immediate mitigation, targeted verified overrides (`tmp>=0.2.6`, `uuid>=11.1.1`, `js-yaml>=4.1.2`, `cookie>=0.7.0`, `http-proxy-middleware>=2.0.10`; html-minifier/mjml are the riskiest to force). **The 06-05 brief's "add `pnpm audit --prod --audit-level high` as a CI gate" is still unaddressed** — that's why these accumulate silently.
 
+> **Update (2026-06-23):** Deferred out of this repo — the `pnpm audit` CI gate and the
+> advisory overrides are being handled at the fleet level (`reddoorla/.github` workflow +
+> `@reddoorla/maintenance`), not in reddoor-website. Cleared from this repo's backlog.
+
 ### MED-5 — The Lighthouse gate only audits `/dev/a11y-fixtures`, in dev mode, perf warn-only _(non-obvious)_
 
 The shared `@reddoorla/maintenance/configs/lighthouse` sets `collect.url = ['http://localhost:5173/dev/a11y-fixtures']`, `startServerCommand: "npm run vite:dev"` (dev, not prod build), and assertions a11y≥0.95 / bp≥0.9 / seo≥0.9 as **errors**, perf≥0.7 as a **warn**. The nightly deployed run only hits the apex URL. So no automated Lighthouse ever exercises portfolio/detail/showcase/slice-heavy pages — the ones most likely to fail.

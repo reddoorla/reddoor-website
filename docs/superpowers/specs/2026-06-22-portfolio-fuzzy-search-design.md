@@ -1,7 +1,7 @@
 # Portfolio Fuzzy Search — Design
 
 **Date:** 2026-06-22
-**Status:** Approved (pending spec review)
+**Status:** Shipped (2026-06-22)
 **Scope:** Add a fuzzy, debounced text search to the portfolio archive grid.
 
 > **Revision (2026-06-22, post-implementation):** After trying the first cut, the search
@@ -23,7 +23,9 @@
 > unique `view-transition-name: vt-{uid}`, and `::view-transition-*` CSS gives a uniform ~650ms
 > smooth glide. This makes category-filter, search, and sort animate identically. Dropped the
 > per-card `use:anim` scroll-reveal on archive cards (it double-fired with VT on re-entry).
-> GSAP Flip remains the fallback at the `withViewTransition` seam if the native feel falls short.
+> The `withViewTransition` seam is the single place to graft a JS animation (e.g. GSAP Flip)
+> if the native feel ever falls short; today the unsupported / reduced-motion path is simply an
+> instant update.
 
 ## Goal
 
@@ -105,10 +107,12 @@ Notes:
 ```ts
 import Fuse from "fuse.js";
 
-const searchRecords = $derived(data.allProjects.map(toSearchRecord));
+// Shared source of truth: Fuse's minMatchCharLength, the ranking guard, and the
+// no-results / live-region gates all key off this one constant.
+const MIN_QUERY = 2;
 
 const fuse = $derived(
-  new Fuse(searchRecords, {
+  new Fuse(data.allProjects.map(toSearchRecord), {
     keys: [
       { name: "title", weight: 3 },
       { name: "services", weight: 2 },
@@ -117,71 +121,118 @@ const fuse = $derived(
     ],
     threshold: 0.2, // notably strict — close matches only (revised from 0.4)
     ignoreLocation: true, // match anywhere in the field
-    minMatchCharLength: 2,
+    minMatchCharLength: MIN_QUERY,
   }),
 );
 ```
 
-`searchRecords` / `fuse` rebuild only when `data.allProjects` changes — effectively once.
+`fuse` rebuilds only when `data.allProjects` changes — effectively once.
 
-### 3. Debounce + matching — in `portfolio/+page.svelte`
+### 3. Debounce + ranking — in `portfolio/+page.svelte`
 
 ```ts
 let searchQuery = $state(""); // bound to the input (instant)
 let debouncedQuery = $state(""); // what search actually uses
 
+// ~250ms debounce. It writes DIFFERENT state vars (debouncedQuery / orderString)
+// than the one it reads synchronously (searchQuery), and the reads run inside the
+// timeout — outside the effect's tracked scope — so this does NOT trip the Svelte 5
+// $effect self-write scheduler bug. The whole update is wrapped in withViewTransition
+// (§4) so the resulting grid change animates.
 $effect(() => {
   const q = searchQuery;
-  const id = setTimeout(() => (debouncedQuery = q), 250);
+  const id = setTimeout(
+    () =>
+      withViewTransition(() => {
+        const wasActive = debouncedQuery.trim().length >= MIN_QUERY;
+        const nowActive = q.trim().length >= MIN_QUERY;
+        debouncedQuery = q;
+        // Auto-engage Relevance when a search becomes active; restore the real
+        // sort when it clears — but never override a sort the visitor picked.
+        if (nowActive && !wasActive) orderString = RELEVANCE;
+        else if (!nowActive && wasActive && orderString === RELEVANCE) orderString = DEFAULT_ORDER;
+      }),
+    250,
+  );
   return () => clearTimeout(id);
 });
 
-const matchedUids = $derived.by(() => {
+// Fuse hits ordered best-match-first; null === "no active query".
+const rankedUids = $derived.by<string[] | null>(() => {
   const q = debouncedQuery.trim();
-  if (!q) return null; // null === "everything matches"
-  return new Set(fuse.search(q).map((r) => r.item.uid));
+  if (q.length < MIN_QUERY) return null;
+  return fuse.search(q).map((r) => r.item.uid);
 });
 ```
 
 `debouncedQuery` is a _different_ state var from the one the effect reads (`searchQuery`),
-so this does not trip the Svelte 5 `$effect` self-write scheduler bug.
+and the reads run inside the timeout, so this does not trip the Svelte 5 `$effect`
+self-write scheduler bug.
 
-### 4. Visibility predicate
+### 4. Rendered list + view-transition motion
 
-Today the per-card visibility lives in an inline class ternary (category match → `relative`,
-else `absolute … opacity-0 pointer-events-none`). Extract it into a readable helper and add
-the search condition:
+There is **no keep-mounted / CSS-hide layer**. The grid renders only the cards that should
+be visible; the View Transitions API animates the delta between the old and new DOM.
 
 ```ts
-function isVisible(project: ProjectDocument): boolean {
-  const categoryMatch =
+function categoryMatch(project: ProjectDocument<string>): boolean {
+  return Boolean(
     showAll ||
     (project.data.branding && showBrand) ||
     (project.data.digital && showDigital) ||
     (project.data.environmental && showEnvironmental) ||
     (project.data.print && showPrint) ||
     (project.data.product && showProduct) ||
-    (project.data.packaging && showPackaging);
-
-  const searchMatch = matchedUids === null || matchedUids.has(project.uid ?? "");
-
-  return categoryMatch && searchMatch;
+    (project.data.packaging && showPackaging),
+  );
 }
+
+// Category-filtered, then (while searching) reduced to Fuse matches. Ordered by
+// relevance only when the Relevance sort is active; with any real sort active the
+// matches keep that sort's order (sortedProjects is already sorted), just filtered.
+const visibleProjects = $derived.by(() => {
+  const inCategory = sortedProjects.filter(categoryMatch);
+  if (rankedUids === null) return inCategory;
+  const rank = new Map(rankedUids.map((uid, i) => [uid, i]));
+  const matched = inCategory.filter((p) => rank.has(p.uid ?? ""));
+  if (orderString !== RELEVANCE) return matched;
+  return matched.sort((a, b) => (rank.get(a.uid ?? "") ?? 0) - (rank.get(b.uid ?? "") ?? 0));
+});
 ```
 
-The `{#each sortedProjects}` block keeps the CSS-hide pattern: visible → `relative`; hidden →
-`absolute top-1/2 left-1/2 opacity-0 pointer-events-none`. Cards stay mounted so
-`animate:flip` continues to animate sort reordering.
+The `{#each visibleProjects (project.uid)}` cards each carry
+`style="view-transition-name: vt-{uid}"` + `data-vt-uid`, and **every** list-changing state
+update — category buttons, sort options, and the debounced search — is wrapped in
+`withViewTransition(fn)`:
 
-### 5. No-results state
+- **Fallback first** — if `document.startViewTransition` is missing or the user prefers
+  reduced motion, it runs the update synchronously (no animation).
+- **Constant velocity** — otherwise it snapshots the grid, runs the update + `await tick()`,
+  then measures (via `getBoundingClientRect` on `[data-vt-uid]`) how far the farthest
+  _visible_ card travels and sets `--vt-duration = distance ÷ VT_VELOCITY`, clamped to
+  `[VT_MIN_DURATION, VT_MAX_DURATION]`. A big filter collapse and a small sort nudge thus
+  move at the same on-screen pace.
+- **Off-screen start-clamp** — a card whose start is far off-screen has its start pulled to
+  just past the viewport edge (`VT_VIEWPORT_MARGIN`), so it slides in from the edge instead
+  of rocketing across the page — by rewriting that card's `::view-transition-group(vt-{uid})`
+  keyframes after `transition.ready`.
+
+The motion constants (`VT_VELOCITY`, `VT_MIN_DURATION`, `VT_MAX_DURATION`,
+`VT_VIEWPORT_MARGIN`, `VT_EASE`) are grouped and commented as the tuning knobs.
+
+### 5. No-results + live region
 
 ```ts
-const visibleCount = $derived(sortedProjects.filter(isVisible).length);
+const visibleCount = $derived(visibleProjects.length);
+const isSearching = $derived(debouncedQuery.trim().length >= MIN_QUERY);
 ```
 
-When `visibleCount === 0`, render a centered message in place of the grid:
-"No projects match "{debouncedQuery}"" plus a **Clear search** button that resets
-`searchQuery = ""`.
+When a query is active and `visibleCount === 0`, the grid is replaced by a centered
+"No projects match "{debouncedQuery}"" message plus a **Clear search** button
+(`clearSearch()` resets `searchQuery` and refocuses the input). A separate
+`aria-live="polite"` `sr-only` region announces the match count and any active category
+filters (e.g. _"3 projects match "ranch" in Brand, Print"_), so screen-reader users hear
+the result of each search/filter change.
 
 ### 6. UI — search input in the control row
 
@@ -198,18 +249,24 @@ When `visibleCount === 0`, render a centered message in place of the grid:
 
 ## Data flow
 
-```
+```text
 input → searchQuery (state, instant)
-      → [250ms debounce $effect] → debouncedQuery (state)
-      → fuse.search(debouncedQuery) → matchedUids (Set | null)
+      → [250ms debounce $effect, wrapped in withViewTransition]
+           → debouncedQuery (state)  + auto-engage / restore the Relevance sort
+      → fuse.search(debouncedQuery) → rankedUids (string[] best-match-first | null)
                                           │
-category buttons → showBrand/… ───────────┤
-sort dropdown   → sortedProjects ─────────┤
+category buttons → showBrand/… → categoryMatch(project)
+sort dropdown    → orderString → sortedProjects (already sorted)
                                           ▼
-                            isVisible(project) per card
-                       (CSS-hide; sort controls order)
+        visibleProjects = sortedProjects.filter(categoryMatch),
+        then while searching filter to rankedUids
+        (ordered by rank only when the Relevance sort is active)
                                           ▼
-                     visibleCount === 0 → no-results state
+        {#each visibleProjects} — only matches are in the DOM; each card has
+        view-transition-name: vt-{uid}; withViewTransition animates the delta
+        (constant velocity + off-screen edge-clamp)
+                                          ▼
+                  visibleCount === 0 → no-results state
 ```
 
 ## Error / edge handling
