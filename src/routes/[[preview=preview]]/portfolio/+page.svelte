@@ -24,7 +24,6 @@
   import { mediumString, toSearchRecord } from "$lib/utils/projectServices";
   import { imgixSrcset } from "$lib/utils/imgix";
   import { ArrowDown, ChevronDown, Minus, Search, X } from "@lucide/svelte";
-  import Fuse from "fuse.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -128,21 +127,36 @@
   );
 
   // Minimum query length before search runs; single source of truth shared by
-  // Fuse's minMatchCharLength, the matchedUids guard, and the no-results gate.
+  // Fuse's minMatchCharLength, the rankedUids guard, and the no-results gate.
   const MIN_QUERY = 2;
 
+  // Fuse.js is loaded lazily — it's dead weight on the edge-cached portfolio page
+  // for the (many) visitors who never search. The constructor is fetched on the
+  // first focus of the search box (loadFuse) and again, defensively, when a query
+  // first appears; the index isn't built until it arrives. Until then rankedUids
+  // stays null (everything shows).
+  let FuseCtor = $state<(typeof import("fuse.js"))["default"] | null>(null);
+  let fuseLoadStarted = false;
+  async function loadFuse() {
+    if (fuseLoadStarted) return;
+    fuseLoadStarted = true;
+    FuseCtor = (await import("fuse.js")).default;
+  }
+
   const fuse = $derived(
-    new Fuse(data.allProjects.map(toSearchRecord), {
-      keys: [
-        { name: "title", weight: 3 },
-        { name: "services", weight: 2 },
-        { name: "tagline", weight: 1.5 },
-        { name: "body", weight: 1 },
-      ],
-      threshold: 0.2,
-      ignoreLocation: true,
-      minMatchCharLength: MIN_QUERY,
-    }),
+    FuseCtor
+      ? new FuseCtor(data.allProjects.map(toSearchRecord), {
+          keys: [
+            { name: "title", weight: 3 },
+            { name: "services", weight: 2 },
+            { name: "tagline", weight: 1.5 },
+            { name: "body", weight: 1 },
+          ],
+          threshold: 0.2,
+          ignoreLocation: true,
+          minMatchCharLength: MIN_QUERY,
+        })
+      : null,
   );
 
   let debouncedQuery = $state("");
@@ -294,6 +308,9 @@
   // $effect self-write scheduler bug.
   $effect(() => {
     const q = searchQuery;
+    // Defensive: ensure Fuse is loading whenever a real query appears, even if it
+    // arrived without a focus event (restored value, programmatic set).
+    if (q.trim().length >= MIN_QUERY) loadFuse();
     const id = setTimeout(
       () =>
         withViewTransition(() => {
@@ -316,6 +333,7 @@
   const rankedUids = $derived.by<string[] | null>(() => {
     const q = debouncedQuery.trim();
     if (q.length < MIN_QUERY) return null;
+    if (!fuse) return null; // Fuse still loading — show all until the index is ready
     return fuse.search(q).map((r) => r.item.uid);
   });
 
@@ -670,6 +688,7 @@
             placeholder="Search projects…"
             bind:this={searchInput}
             bind:value={searchQuery}
+            onfocus={loadFuse}
             class="w-56 max-w-full border-1 border-light py-[10px] pl-9 pr-9 text-light placeholder:text-light/60 focus:border-primary focus:text-primary focus:outline-none transition-colors duration-500"
           />
           {#if searchQuery}
