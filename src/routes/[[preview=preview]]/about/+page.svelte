@@ -368,15 +368,15 @@
 <div class="w-screen flex flex-col lg:flex-row relative bg-paper">
   <div use:anim class="w-full md:w-1/3 aspect-square relative">
     <Img class="w-full h-full absolute z-0 object-cover" src={beach} alt="beach" />
-    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2" aria-level="2">CA</h3>
+    <p class="state-label text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">CA</p>
   </div>
   <div use:anim class="w-full md:w-1/3 aspect-square relative">
     <Img class="w-full h-full absolute z-0 object-cover" src={hills} alt="hills" />
-    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2" aria-level="2">TX</h3>
+    <p class="state-label text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">TX</p>
   </div>
   <div use:anim class="w-full md:w-1/3 aspect-square relative">
     <Img class="w-full h-full absolute z-0 object-cover" src={lake} alt="lake" />
-    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2" aria-level="2">ID</h3>
+    <p class="state-label text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">ID</p>
   </div>
 </div>
 <div class="w-screen text-center py-20 bg-paper">
@@ -527,6 +527,28 @@
   @media only screen and (max-width: 768px) {
     h5.title {
       font-size: 28px;
+    }
+  }
+
+  /* CA / TX / ID are graphic labels over the location images, not document
+     headings — they're <p> so they stay out of the a11y heading tree. Pin the
+     former global <h3> display type (80px/200/lh90 + responsive steps) so the
+     visual is unchanged; font-family inherits body "pragmatica" as <h3> did. */
+  .state-label {
+    font-size: 80px;
+    font-weight: 200;
+    line-height: 90px;
+  }
+  @media only screen and (max-width: 1024px) {
+    .state-label {
+      font-size: 60px;
+      line-height: 70px;
+    }
+  }
+  @media only screen and (max-width: 480px) {
+    .state-label {
+      font-size: 36px;
+      line-height: 48px;
     }
   }
 </style>
