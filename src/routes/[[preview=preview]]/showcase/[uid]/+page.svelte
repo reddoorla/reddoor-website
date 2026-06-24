@@ -5,7 +5,8 @@
   import { animateIn as anim } from "$lib/actions/animateIn";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
-  import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
+  import { PrismicImage } from "@prismicio/svelte";
+  import RichTextBody from "$lib/components/RichTextBody.svelte";
   import { isFilled, asLink } from "@prismicio/client";
   import type { ProjectDocument } from "../../../../prismicio-types";
   import type { PageData } from "./$types";
@@ -47,7 +48,7 @@
 <section class="w-full py-12">
   <ContentWidth class="flex flex-col items-center" animateIn>
     <div class="w-full md:w-3/5 rich-text">
-      <PrismicRichText field={pageData.body} />
+      <RichTextBody field={pageData.body} />
     </div>
   </ContentWidth>
 </section>
