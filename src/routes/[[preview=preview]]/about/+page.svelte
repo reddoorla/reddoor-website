@@ -208,13 +208,15 @@
 {/snippet}
 
 {#if popupText && !isMobile}
-  <h5
+  <!-- Desktop hover tooltip — tooltip prose, not a section heading; a <p> keeps it
+       out of the heading outline while still in the a11y tree. -->
+  <p
     transition:fade
     class="pointer-events-none -translate-y-full w-[360px] p-5 fixed z-20 bg-white/80 backdrop-blur-sm text-primary"
     style="top:{popupY}px;left:{popupX}px"
   >
     {popupText}
-  </h5>
+  </p>
 {/if}
 
 <!-- Mobile Popup -->
@@ -245,7 +247,12 @@
 
 <div class="w-screen relative bg-paper">
   <ContentWidth class="h-full flex justify-center items-center py-48">
-    <h5 class="w-full md:w-4/5 max-w-[800px] z-10 title">
+    <!-- This hero statement is the page's primary heading. The /about page has no
+         literal <h1>; aria-level="1" makes this the heading-order root (and
+         satisfies page-has-heading-one) without changing the .title visual. The
+         rest of the page's headings keep their tags (so visuals are untouched) and
+         use aria-level to form a valid h1 → h2 → h3 outline. -->
+    <h5 class="w-full md:w-4/5 max-w-[800px] z-10 title" aria-level="1">
       We save you from drowning in an ocean of noise by arming you with a clear story and compelling
       design.
     </h5>
@@ -253,7 +260,7 @@
 </div>
 <div class="w-screen bg-paper pb-8 relative overflow-x-clip" bind:this={monoCarDivRef}>
   <ContentWidth class="flex ">
-    <h3 class="text-primary z-10 relative">About</h3>
+    <h3 class="text-primary z-10 relative" aria-level="2">About</h3>
   </ContentWidth>
   <img
     src={monotoneCar}
@@ -266,7 +273,7 @@
 <div class="w-screen bg-paper pb-12 md:pb-48">
   <ContentWidth class="flex relative border-primary border-b-1">
     <img src={key} alt="keys" class="lg:w-1/5 md:w-1/3 w-2/3" />
-    <h2 class="text-primary absolute left-0 bottom-2 md:bottom-8">Our Promises</h2>
+    <h2 class="text-primary absolute left-0 bottom-2 md:bottom-8" aria-level="2">Our Promises</h2>
   </ContentWidth>
   <ContentWidth class="flex flex-row justify-end">
     <div class=" w-full md:w-3/5 h-72 relative">
@@ -277,7 +284,7 @@
           out:fade={{ duration: 400 }}
         >
           <p class="mt-8">01/03</p>
-          <h5 class="text-primary">
+          <h5 class="text-primary" aria-level="3">
             We will
             {@render promiseLink("act on your behalf", "by using our creative expertise to serve.")}
             <br /> by choosing to
@@ -299,7 +306,7 @@
           out:fade={{ duration: 400 }}
         >
           <p class="mt-8">02/03</p>
-          <h5 class="text-primary">
+          <h5 class="text-primary" aria-level="3">
             We will
             {@render promiseLink(
               "create compelling design",
@@ -321,7 +328,7 @@
           out:fade={{ duration: 400 }}
         >
           <p class="mt-8">03/03</p>
-          <h5 class="text-primary">
+          <h5 class="text-primary" aria-level="3">
             We will
             {@render promiseLink("do meaningful work", "so we may care deeply about it.")}
             <br /> by choosing to
@@ -361,20 +368,20 @@
 <div class="w-screen flex flex-col lg:flex-row relative bg-paper">
   <div use:anim class="w-full md:w-1/3 aspect-square relative">
     <Img class="w-full h-full absolute z-0 object-cover" src={beach} alt="beach" />
-    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">CA</h3>
+    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2" aria-level="2">CA</h3>
   </div>
   <div use:anim class="w-full md:w-1/3 aspect-square relative">
     <Img class="w-full h-full absolute z-0 object-cover" src={hills} alt="hills" />
-    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">TX</h3>
+    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2" aria-level="2">TX</h3>
   </div>
   <div use:anim class="w-full md:w-1/3 aspect-square relative">
     <Img class="w-full h-full absolute z-0 object-cover" src={lake} alt="lake" />
-    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2">ID</h3>
+    <h3 class="text-white z-10 absolute left-1/2 top-1/2 -translate-1/2" aria-level="2">ID</h3>
   </div>
 </div>
 <div class="w-screen text-center py-20 bg-paper">
   <ContentWidth class="flex flex-col border-primary border-b-1 pb-8" animateIn>
-    <h2 class="text-primary text-left">
+    <h2 class="text-primary text-left" aria-level="2">
       Serving our clients,<br /> near and far.
     </h2>
   </ContentWidth>
@@ -404,12 +411,12 @@
 
 <div class="w-screen pt-16 bg-paper pb-16">
   <ContentWidth class="flex" animateIn>
-    <h6 class="text-primary text-center">The Reddoor Story</h6>
+    <h6 class="text-primary text-center" aria-level="2">The Reddoor Story</h6>
   </ContentWidth>
 
   <ContentWidth class="flex flex-col justify-end items-end">
     <div use:anim class="md:w-3/5">
-      <h5 class="md:w-2/3">
+      <h5 class="md:w-2/3" aria-level="3">
         Because of unforeseen circumstances owner, Tim Holmes, found himself stuck in LA with a
         white Toyota and a seemingly unfortunate red door.
       </h5>
@@ -448,7 +455,7 @@
       </div>
 
       <div use:anim class="md:w-2/3 border-t-1 border-t-primary pt-6">
-        <h6 class="text-primary">
+        <h6 class="text-primary" aria-level="3">
           The original "reddoor" taught us two things at Reddoor Creative:
         </h6>
       </div>
@@ -474,10 +481,10 @@
 <section class="w-screen py-16 bg-paper-red">
   <ContentWidth class="flex flex-col md:flex-row">
     <div use:anim class="md:w-2/5 mb-6">
-      <h6 class="text-white">Perspective</h6>
+      <h6 class="text-white" aria-level="2">Perspective</h6>
     </div>
     <div use:anim class="md:w-3/5 text-white">
-      <h5 class=" md:w-2/3">
+      <h5 class=" md:w-2/3" aria-level="3">
         "Time has taught me that true north is to not just focus on the work itself but also the
         people I'm working with."
       </h5>
@@ -498,7 +505,7 @@
 
 <section class="relative w-screen bg-paper py-16 md:py-32">
   <ContentWidth class="flex flex-col" animateIn>
-    <h2 class="text-primary md:w-3/5">
+    <h2 class="text-primary md:w-3/5" aria-level="2">
       Isn't it time to arm your brand with a clear story and compelling design?
     </h2>
     <div class="flex flex-row mt-16 gap-8">
