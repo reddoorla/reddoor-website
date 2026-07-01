@@ -226,6 +226,11 @@
     }
 
     const before = cardCenters();
+    // Viewport scroll at transition start. The ::view-transition overlay is
+    // viewport-anchored per spec, so its snapshots detach from the document if the
+    // user scrolls mid-animation. We compensate below by translating the card
+    // groups by the NEGATIVE scroll delta so they track document content.
+    const startScrollY = window.scrollY;
     // Cards whose start was clamped to the viewport edge. Each animates from this
     // screen-space offset applied ON TOP of the browser's own positioning
     // transform — filled in after `ready`, where that transform actually exists.
@@ -297,6 +302,41 @@
         })
         .catch(() => {});
     }
+
+    // ── Document-tracking scroll compensation ──────────────────────────────
+    // Keep the animating cards anchored to the DOCUMENT, not the viewport: while
+    // the transition runs we push the negative scroll delta onto the INDEPENDENT
+    // `translate` property of every named card group via one custom property on
+    // <html>. `translate` composes with — never clobbers — the UA's animated
+    // `transform` AND the clamped-keyframe retarget above (separate matrix
+    // factors). Root is opted out in CSS so the frozen background doesn't ghost.
+    // Y only — this is a vertical grid.
+    let compRaf = 0;
+    let compTicking = false;
+    const applyScrollComp = () => {
+      compTicking = false;
+      // Scroll DOWN → scrollY↑ → content rises → snapshot must translate UP → -dy.
+      const dy = window.scrollY - startScrollY;
+      document.documentElement.style.setProperty("--vt-scroll-comp", `0 ${-dy}px`);
+    };
+    const onCompScroll = () => {
+      if (compTicking) return; // coalesce a scroll burst to one write per frame
+      compTicking = true;
+      compRaf = requestAnimationFrame(applyScrollComp);
+    };
+
+    transition.ready
+      .then(() => {
+        applyScrollComp(); // cover any scroll between startViewTransition and ready
+        window.addEventListener("scroll", onCompScroll, { passive: true });
+      })
+      .catch(() => {}); // aborted/skipped transition: no listener attached
+
+    transition.finished.finally(() => {
+      window.removeEventListener("scroll", onCompScroll);
+      if (compRaf) cancelAnimationFrame(compRaf);
+      document.documentElement.style.removeProperty("--vt-scroll-comp");
+    });
   }
 
   // ~250ms debounce. This writes DIFFERENT state vars (debouncedQuery / orderString)
@@ -989,12 +1029,44 @@
     animation-timing-function: var(--vt-ease, cubic-bezier(0.16, 1, 0.3, 1));
   }
 
+  /* Scroll compensation rides the INDEPENDENT `translate` property (NOT
+     `transform`), so it composes with the browser's animated positioning
+     transform AND with the clamped-keyframe retarget in withViewTransition
+     instead of replacing either. Idle default `none` = no offset; withViewTransition
+     writes a two-value `0 -Npx` custom property on <html> from ready→finished so
+     the cards track the document if the visitor scrolls mid-animation. */
+  :global(::view-transition-group(*)) {
+    translate: var(--vt-scroll-comp, none);
+  }
+
   /* The page-level "root" snapshot can only cross-fade, so on filter/search —
      where the grid collapses and everything below shifts — it flashed. Skip it
-     so ONLY the named cards animate; the background/footer settle instantly. */
+     so ONLY the named cards animate; the background/footer settle instantly.
+     `translate: none` ALSO opts root OUT of scroll compensation: its snapshot is
+     only ~one viewport tall, so translating it would slide a blank band into view
+     and detach the frozen background from the real (scrolling) DOM beneath. Equal
+     specificity + later source order than the group(*) rule above ⇒ this wins. */
   :global(::view-transition-group(root)),
   :global(::view-transition-old(root)),
   :global(::view-transition-new(root)) {
+    animation: none;
+    translate: none;
+  }
+
+  /* The site nav (named `site-nav` in +layout.svelte) is captured as its own
+     group so it stacks ABOVE the animating cards instead of being buried in the
+     root snapshot beneath them. The huge z-index keeps it on top of every card
+     group; `translate: none` opts it OUT of the scroll compensation above — it's
+     a viewport-fixed bar, so it must stay pinned while the cards track the
+     document beneath it; `animation: none` holds the static bar (no cross-fade).
+     Placed after the group(*) rule so source order wins the `translate` override. */
+  :global(::view-transition-group(site-nav)) {
+    z-index: 2147483647;
+    translate: none;
+  }
+  :global(::view-transition-group(site-nav)),
+  :global(::view-transition-old(site-nav)),
+  :global(::view-transition-new(site-nav)) {
     animation: none;
   }
 
@@ -1003,6 +1075,8 @@
     :global(::view-transition-old(*)),
     :global(::view-transition-new(*)) {
       animation: none !important;
+      /* Defense-in-depth: no snapshot may be offset when motion is suppressed. */
+      translate: none !important;
     }
   }
 </style>

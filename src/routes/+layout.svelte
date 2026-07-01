@@ -231,8 +231,14 @@
     {/if}
     <!-- nav #2 -->
     {#if showNav && !isInHero.value}
+      <!-- `view-transition-name: site-nav` lifts this fixed bar INTO any View
+           Transition (see the portfolio archive grid) so it stacks ABOVE the
+           animating cards instead of being buried in the root snapshot beneath
+           them. Its group styling (high z-index, opt-out of scroll compensation)
+           lives with the other ::view-transition rules in portfolio/+page.svelte. -->
       <div
         class="h-12 w-screen top-0 fixed z-20 bg-white/80"
+        style="view-transition-name: site-nav"
         transition:fly={{ y: -64, delay: 500 }}
       >
         <ContentWidth class="flex flex-row justify-between items-center h-full">
