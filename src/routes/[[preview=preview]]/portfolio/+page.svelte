@@ -1,21 +1,21 @@
 <script lang="ts">
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
-  import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
-  import FourByThreeImage from "$lib/components/FullWidth/FourByThreeImage.svelte";
-  import ceoHeroDesktop from "$lib/assets/images/CEO_HERO_Badge_Lanyard 1.jpg?as=run";
-  import ceoHeroMobile from "$lib/assets/images/ceoHeroMobile.jpg?as=run";
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
-  import bed from "$lib/assets/images/bed.jpg?as=run";
-  import catalogs from "$lib/assets/images/catalogs.jpg?as=run";
-  import longHollow from "$lib/assets/images/longHollow.png?as=run";
-  import hq from "$lib/assets/images/headquarters.png?as=run";
-  import screamer from "$lib/assets/images/screamer.jpg";
-  import roadmap from "$lib/assets/images/roadmap.png?as=run";
-  import stJames from "$lib/assets/images/stJames.jpg?as=run";
-  import report from "$lib/assets/images/annualReport.png?as=run";
-  import dentist from "$lib/assets/images/1800dentist.png?as=run";
   import Img from "$lib/components/Img.svelte";
+  // Featured-project imagery — exported from Figma, delivered via the ?as=run
+  // (vite-imagetools) responsive pipeline. See the featured sequence in markup.
+  import rubrikHero from "$lib/assets/images/rubrikHero.jpg?as=run";
+  import rubrikReport from "$lib/assets/images/rubrikReport.jpg?as=run";
+  import revogenHero from "$lib/assets/images/revogenHero.jpg?as=run";
+  import revogenPackaging from "$lib/assets/images/revogenPackaging.jpg?as=run";
+  import ceoLanyard from "$lib/assets/images/ceoLanyard.jpg?as=run";
+  import ceoBrandGrid from "$lib/assets/images/ceoBrandGrid.jpg?as=run";
+  import trinitySteps from "$lib/assets/images/trinitySteps.jpg?as=run";
+  import trinityTablet from "$lib/assets/images/trinityTablet.jpg?as=run";
+  import stJamesMural from "$lib/assets/images/stJamesMural.jpg?as=run";
+  import stJamesPhone from "$lib/assets/images/stJamesPhone.jpg?as=run";
+  import gallerySonder from "$lib/assets/images/gallerySonder.jpg?as=run";
   import type { ProjectDocument } from "../../../prismicio-types.js";
   import { tick } from "svelte";
   import { fade, scale, slide } from "svelte/transition";
@@ -29,11 +29,7 @@
 
   let projectsDiv: HTMLElement;
 
-  let viewportWidth = $state(0);
-  let viewportHeight = $state(0);
   let showAllProjectsButton = $state(true);
-
-  const ceoHero = $derived(viewportWidth < 768 ? ceoHeroMobile : ceoHeroDesktop);
 
   let showBrand = $state(false);
   let showDigital = $state(false);
@@ -406,8 +402,6 @@
   });
 </script>
 
-<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
-
 <svelte:head>
   <title>Portfolio | Reddoor Creative</title>
 </svelte:head>
@@ -441,230 +435,233 @@
     <h1 class="text-primary w-full text-left">Portfolio</h1>
   </ContentWidth>
 </section>
-<section class="max-w-screen overflow-x-clip">
-  <div
-    class="right-0 max-h-screen aspect-video relative {viewportHeight * 16 > viewportWidth * 9
-      ? 'h-screen min-w-full'
-      : 'w-screen min-h-full'}"
-  >
-    <Img
-      src={ceoHero}
-      alt="ceo name tag"
-      class="absolute h-full w-full max-w-screen object-cover object-left"
-      style="object-position:{viewportWidth < 1440 && viewportWidth > 768
-        ? viewportWidth - (viewportHeight * 16) / 9 + 240
-        : 0}px center"
-      loading="eager"
-      fetchpriority="high"
-    />
-
-    <div class="w-full max-w-[100vw] h-full max-h-screen relative">
-      <ContentWidth class="h-full z-10 relative">
-        <h2 class="type-h4 md:w-3/5 absolute left-0 top-20 text-white">
-          The "buck stops here" with a branding system overhaul of LA County's CEO
-        </h2>
-
-        <div class="absolute bottom-20 flex justify-between w-full md:w-2/5">
-          <div>
-            <p class="text-white">COUNTY OF LOS ANGELES</p>
-            <p class="text-light">brand, digital, print</p>
-          </div>
-          <a
-            href="/portfolio/ceo-la"
-            class="hover:brightness-200 transition bump"
-            aria-label="Go to CEO LA project"
-          >
-            <img src={arrowButton} alt="" class="h-full" />
-          </a>
-        </div>
-      </ContentWidth>
+<!-- ─────────────────────────────────────────────────────────────────────────
+     Featured projects. Each card's circular arrow links to its project page.
+     Three layout primitives are used: full-bleed banner, offset image (right
+     80% column), and 2-col paper-card + image. The recurring red-label /
+     services / arrow row is the `featureLabel` snippet. Imagery exported from
+     Figma (node 725:1226).
+     ───────────────────────────────────────────────────────────────────────── -->
+{#snippet featureLabel({
+  name,
+  services,
+  href,
+  aria,
+  onDark = false,
+}: {
+  name: string;
+  services: string;
+  href: string;
+  aria: string;
+  onDark?: boolean;
+})}
+  <div class="w-full flex flex-row justify-between items-start gap-5">
+    <div>
+      <p class="uppercase {onDark ? 'text-white' : 'text-primary'}">{name}</p>
+      <p class={onDark ? "text-white" : "text-light"}>{services}</p>
     </div>
-  </div>
-</section>
-<section class="my-24">
-  <ContentWidth>
-    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col">
-      <div use:anim>
-        <Img class="w-full aspect-4/3" src={bed} alt="a beautiful bed" />
-      </div>
-      <div class="w-full flex flex-col-reverse lg:flex-row">
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-        >
-          <h2 class="type-h5 font-sm text-primary">
-            A mission to create beautiful and affordable lighting for the home.
-          </h2>
-          <div class="w-full flex flex-row justify-between">
-            <div>
-              <p class="text-primary">PROGRESS LIGHTING</p>
-              <p class="text-light">brand, environmental, packaging, print</p>
-            </div>
-            <a
-              href="/portfolio/progress-lighting"
-              class="hover:brightness-50 transition bump"
-              aria-label="Go to Progress Lighting project"
-            >
-              <img src={arrowButton} alt="" class="h-full" />
-            </a>
-          </div>
-        </div>
-        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-          <Img
-            class="h-full w-auto top-0 left-0 object-cover object-left"
-            src={catalogs}
-            alt="catalogs"
-          />
-        </div>
-      </div>
-    </div>
-  </ContentWidth>
-</section>
-
-<ScreenWidthImage img={longHollow} alt="longhollow ranch" />
-<section class="bg-paper pt-16 pb-60 -mb-56">
-  <ContentWidth>
-    <div class="w-full md:w-4/5 md:ml-[20%]">
-      <div use:anim>
-        <h2 class="type-h4 mb-20">
-          An Authentic Texas Ranch <br /> Offering Resort-Quality Retreats.
-        </h2>
-      </div>
-
-      <div use:anim class="w-full md:w-1/2 flex flex-row justify-between">
-        <div>
-          <p class="text-primary">LONEHOLLOW RANCH</p>
-          <p class="text-light">brand, digital, environmental, print</p>
-        </div>
-        <a
-          href="/portfolio/lonehollow-ranch"
-          class="hover:brightness-50 transition bump"
-          aria-label="Go to Lonehollow Ranch project"
-        >
-          <img src={arrowButton} alt="" class="h-full" />
-        </a>
-      </div>
-    </div>
-  </ContentWidth>
-</section>
-<ContentWidth animateIn>
-  <div class="w-full md:w-4/5 md:ml-[20%]">
-    <FourByThreeImage img={hq} alt="rustic headquarters sign" />
-  </div>
-</ContentWidth>
-<ContentWidth>
-  <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse md:flex-row">
-    <div
-      use:anim={{ delayMax: 0 }}
-      class="flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square relative"
-      style="background-image: url({screamer}); background-size: 180%; background-position:35% 0"
+    <a
+      {href}
+      class="shrink-0 {onDark ? 'brightness-200 ' : ''}hover:brightness-50 transition bump"
+      aria-label={aria}
     >
-      <div
-        class="w-full h-full absolute top-0 left-0"
-        style="background: linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.25) 100%)"
-      ></div>
-      <div></div>
-      <div class="w-full flex flex-row justify-between z-10">
-        <div>
-          <p class="text-white">YOUNGLIFE CONNECT</p>
-          <p class="text-white">digital</p>
-        </div>
-        <a
-          href="/portfolio/young-life-connect"
-          class="brightness-200 hover:brightness-50 transition bump"
-          aria-label="Go to YoungLife Connect project"
-        >
-          <img src={arrowButton} alt="" class="h-full" />
-        </a>
+      <img src={arrowButton} alt="" class="size-[50px]" />
+    </a>
+  </div>
+{/snippet}
+
+<!-- Rubrik Zero Labs -->
+<section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
+  <Img
+    src={rubrikHero}
+    alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
+    class="absolute inset-0 h-full w-full object-cover"
+    loading="eager"
+    fetchpriority="high"
+  />
+</section>
+<section class="mt-16 mb-24">
+  <ContentWidth>
+    <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
+      <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep <br /> Your Data Protected</h2>
+      <div class="w-full md:w-1/2">
+        {@render featureLabel({
+          name: "Rubrik Zero Labs",
+          services: "Brand, Digital",
+          href: "/portfolio/rubrik-zero-labs",
+          aria: "Go to Rubrik Zero Labs project",
+        })}
       </div>
     </div>
-    <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-      <Img class="h-full object-cover" src={roadmap} alt="roadmap mockup on iphone" />
-    </div>
+  </ContentWidth>
+</section>
+<ContentWidth animateIn>
+  <div class="mb-24 w-full md:w-4/5 md:ml-[20%]">
+    <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
   </div>
 </ContentWidth>
-<section class="mt-16">
-  <ScreenWidthImage img={stJames} alt="st james' stairwell" />
+
+<!-- Revogen -->
+<section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
+  <Img
+    src={revogenHero}
+    alt="Revogen homepage featuring surgical, wound-care and ocular grafts"
+    class="absolute inset-0 h-full w-full object-cover"
+  />
+</section>
+<section class="mt-16 mb-24">
   <ContentWidth>
-    <div class="w-full mt-12 md:w-4/5 md:ml-[20%] flex flex-col">
-      <div class="w-full flex flex-col-reverse lg:flex-row">
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-        >
-          <h2 class="type-h5 font-sm text-primary">
-            A diverse, joyful, and inclusive community of young learners.
-          </h2>
-          <div class="w-full flex flex-row justify-between">
-            <div>
-              <p class="text-primary uppercase">St. james' episcopal school</p>
-              <p class="text-light">brand, digital, environmental, print</p>
-            </div>
-            <a
-              href="/portfolio/st-james-episcopal-school"
-              class="hover:brightness-50 transition bump"
-              aria-label="Go to St. James' project"
-            >
-              <img src={arrowButton} alt="" class="h-full" />
-            </a>
-          </div>
-        </div>
-        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-          <Img class="h-full object-cover" src={report} alt="annual reports" />
-        </div>
+    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+      <div
+        use:anim={{ delayMax: 0 }}
+        class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+      >
+        <h2 class="type-feature-card text-primary">
+          A revolutionary brand with a simple purpose: Healing.
+        </h2>
+        {@render featureLabel({
+          name: "Revogen",
+          services: "brand, digital, print, environmental",
+          href: "/portfolio/revogen",
+          aria: "Go to Revogen project",
+        })}
+      </div>
+      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+        <Img class="h-full w-full object-cover" src={revogenPackaging} alt="Revogen product packaging" />
       </div>
     </div>
   </ContentWidth>
 </section>
 
+<!-- CEO of Los Angeles -->
 <ContentWidth animateIn>
-  <div class="mt-24 w-full md:w-4/5 md:ml-[20%]">
-    <FourByThreeImage img={dentist} alt="a dentist" />
+  <div class="mb-24 w-full md:w-4/5 md:ml-[20%]">
+    <Img
+      src={ceoLanyard}
+      alt="Chief Executive Office of LA County — employee badge on a lanyard"
+      class="w-full"
+    />
   </div>
 </ContentWidth>
-<section class="bg-paper pb-16 pt-60 -mt-56">
+<section class="mb-24">
   <ContentWidth>
-    <div class="w-full md:w-4/5 md:ml-[20%]">
-      <div use:anim>
-        <h2 class="type-h4 mb-20">
-          A dental referral service bridging the gap between patients and providers.
+    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+      <div
+        use:anim={{ delayMax: 0 }}
+        class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+      >
+        <h2 class="type-feature-card text-primary">
+          The &ldquo;buck stops here&rdquo; with a branding system overhaul of LA County&rsquo;s CEO
         </h2>
+        {@render featureLabel({
+          name: "CEO of Los Angeles",
+          services: "brand, digital, print",
+          href: "/portfolio/ceo-la",
+          aria: "Go to CEO of Los Angeles project",
+        })}
       </div>
-      <div use:anim class="w-full md:w-1/2 flex flex-row justify-between">
-        <div>
-          <p class="text-primary">1-800-DENTIST</p>
-          <p class="text-light">digital</p>
-        </div>
-        <a
-          href="/portfolio/1-800-dentist"
-          class="hover:brightness-50 transition bump"
-          aria-label="Go to 1-800-Dentist project"
-        >
-          <img src={arrowButton} alt="" class="h-full" />
-        </a>
+      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+        <Img
+          class="h-full w-full object-cover"
+          src={ceoBrandGrid}
+          alt="CEO of LA County brand-guidelines grid"
+        />
       </div>
     </div>
   </ContentWidth>
 </section>
-<section>
-  <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
-    <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-      <div use:anim>
-        <h2 class="type-cta text-white md:w-3/5">
-          Isn't it time to arm your brand with a clear story and compelling design?
+<!-- Trinity Law School -->
+<section class="mb-24">
+  <ContentWidth>
+    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+      <div use:anim={{ delayMax: 0 }} class="relative w-full lg:w-1/2 aspect-square overflow-hidden">
+        <Img
+          class="absolute inset-0 h-full w-full object-cover"
+          src={trinitySteps}
+          alt="Trinity Law School — an associate on the campus steps"
+        />
+        <div
+          class="absolute inset-0 pointer-events-none"
+          style="background: linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(0,0,0,0.3) 96%)"
+        ></div>
+        <div class="absolute bottom-0 left-0 w-full p-4 z-10">
+          {@render featureLabel({
+            name: "Trinity Law School",
+            services: "Print, Digital",
+            href: "/portfolio/trinity-law-school",
+            aria: "Go to Trinity Law School project",
+            onDark: true,
+          })}
+        </div>
+      </div>
+      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+        <Img
+          class="h-full w-full object-cover"
+          src={trinityTablet}
+          alt="Trinity Law School JD viewbook on a tablet"
+        />
+      </div>
+    </div>
+  </ContentWidth>
+</section>
+<!-- St. James' Episcopal School -->
+<section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
+  <Img
+    src={stJamesMural}
+    alt="St. James' Episcopal School — a colorful painted mural wall"
+    class="absolute inset-0 h-full w-full object-cover"
+  />
+</section>
+<section class="mt-16 mb-24">
+  <ContentWidth>
+    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+      <div
+        use:anim={{ delayMax: 0 }}
+        class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+      >
+        <h2 class="type-feature-card text-primary">
+          A diverse, joyful, and inclusive community of young learners.
         </h2>
+        {@render featureLabel({
+          name: "St. James' Episcopal School",
+          services: "brand, digital, print, environmental",
+          href: "/portfolio/st-james-episcopal-school",
+          aria: "Go to St. James' Episcopal School project",
+        })}
       </div>
-      <div use:anim>
-        <a href="/contact">
-          <DefaultButton
-            class="mt-6 text-white border-white border-1 hover:bg-mid/10"
-            text="MEET WITH US"
-            filled={false}
-          />
-        </a>
+      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+        <Img
+          class="h-full w-full object-cover"
+          src={stJamesPhone}
+          alt="St. James' Episcopal School responsive website on a phone"
+        />
       </div>
-    </ContentWidth>
+    </div>
+  </ContentWidth>
+</section>
+
+<!-- Gallery Sonder -->
+<ContentWidth animateIn>
+  <div class="mb-16 w-full md:w-4/5 md:ml-[20%]">
+    <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
   </div>
+</ContentWidth>
+<section class="mb-24">
+  <ContentWidth>
+    <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
+      <h2 class="type-feature mb-12 md:mb-16">
+        A local gallery highlighting the stories <br /> of emerging and established artists.
+      </h2>
+      <div class="w-full md:w-1/2">
+        {@render featureLabel({
+          name: "Gallery Sonder",
+          services: "brand, digital, print, environmental",
+          href: "/portfolio/gallery-sonder",
+          aria: "Go to Gallery Sonder project",
+        })}
+      </div>
+    </div>
+  </ContentWidth>
 </section>
 
 <div class="py-24 bg-paper" bind:this={projectsDiv} id="projectsDiv">
@@ -891,21 +888,30 @@
 </div>
 
 <style>
-  /* The featured-project headlines below are now <h2> (heading-order: the page
-     goes h1 → h2 with no skipped levels). These classes pin their former display
-     type so the design is unchanged. `.type-h4`/`.type-h5` mirror the old scoped
-     <h4>/<h5>; the bare `h5` selector stays for the intro lead that is still an
-     <h5>. `.type-cta` is the footer CTA, formerly a global <h3>. */
-  .type-h4 {
-    font-family: Pragmatica;
+  /* The featured-project headlines are <h2> (heading-order: the page goes
+     h1 → h2 with no skipped levels). These classes pin their display type so the
+     global `h2 { font-family: Besley }` rule doesn't change the look.
+     `.type-feature` is the big muted-gray caption headline (Rubrik, Gallery
+     Sonder); `.type-feature-card` is the red paper-card headline (Revogen, CEO,
+     St James — colour from the `text-primary` utility). The bare `h5` selector
+     stays for the hero intro lead, still an <h5>. `.type-cta` is the footer CTA,
+     formerly a global <h3>. */
+  .type-feature {
+    font-family: "pragmatica", "helvetica", sans-serif;
     font-size: 60px;
-    font-style: normal;
     font-weight: 200;
-    line-height: 125%; /* 75px */
+    line-height: 140%; /* 84px */
+    color: #8b8c8d;
   }
 
-  h5,
-  .type-h5 {
+  .type-feature-card {
+    font-family: "pragmatica", "helvetica", sans-serif;
+    font-size: 40px;
+    font-weight: 200;
+    line-height: 125%; /* 50px */
+  }
+
+  h5 {
     font-family: Pragmatica;
     font-size: 50px;
     font-style: normal;
@@ -932,20 +938,22 @@
     line-height: 140%; /* 84px */
   }
 
-  @media only screen and (max-width: 768px) {
-    .type-h4 {
-      font-size: 40px;
-    }
-    h5,
-    .type-h5 {
-      font-size: 28px;
-    }
-  }
-
   @media only screen and (max-width: 1024px) {
     .type-cta {
       font-size: 60px;
       line-height: 70px;
+    }
+  }
+
+  @media only screen and (max-width: 768px) {
+    .type-feature {
+      font-size: 34px;
+    }
+    .type-feature-card {
+      font-size: 28px;
+    }
+    h5 {
+      font-size: 28px;
     }
   }
 
