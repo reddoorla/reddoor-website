@@ -110,7 +110,7 @@
         </div>
         <p class="type-graft mt-2">{g.title}</p>
         {#if active}
-          <p transition:slide class="mt-3 max-w-[20rem] text-[10px] leading-relaxed">{g.desc}</p>
+          <p transition:slide class="type-graft-desc mt-3 max-w-[20rem]">{g.desc}</p>
         {/if}
         <div
           class="w-8 h-8 border-[1.5px] border-white rounded-full relative mt-4 transition-opacity group-hover:opacity-80"
@@ -139,11 +139,21 @@
 </div>
 
 <style>
+  /* Graft label + reveal copy sized to the site's small-screen UI scale: the
+     label matches `.nav-link` (16px) and sits a step above the body, which
+     matches `.label` (14px). Both are declared here (scoped, 0-1-0 class beats
+     the global unlayered `p { font-size: 18px }` that Tailwind text utilities
+     lose to) so the label is never smaller than its own body copy. */
   .type-graft {
     font-family: "pragmatica", "helvetica", sans-serif;
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 300;
-    line-height: 1.2;
+    line-height: 1.3;
+  }
+  .type-graft-desc {
+    font-size: 14px;
+    font-weight: 200;
+    line-height: 1.6;
   }
 
   /* svelte-img bakes a blurred low-quality placeholder into each <img>'s inline
