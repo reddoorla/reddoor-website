@@ -768,8 +768,11 @@
     <div use:anim class="w-full">
       <h2 class="archive-title text-primary w-full text-left mb-12">But wait, there's more!</h2>
     </div>
-    <div class="flex flex-row justify-between w-full">
-      <div use:anim class="flex flex-row gap-4 mb-24 flex-wrap max-w-full">
+    <div class="flex flex-col md:flex-row md:justify-between w-full">
+      <div
+        use:anim
+        class="flex flex-row items-center gap-2 md:gap-4 mb-4 md:mb-24 flex-wrap max-w-full"
+      >
         <div class="relative flex items-center">
           <Search
             class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-light pointer-events-none"
@@ -803,7 +806,9 @@
              animates the grid. The tri-state look comes from catBtnClass. -->
         {#each FILTERS as f (f.key)}
           <button
-            class="px-5 py-[10px] transition-colors duration-500 border-1 {catBtnClass(f.key)}"
+            class="px-3 py-1.5 text-sm md:px-5 md:py-[10px] md:text-base transition-colors duration-500 border-1 {catBtnClass(
+              f.key,
+            )}"
             aria-pressed={cats[f.key]}
             onclick={() => (cats[f.key] = !cats[f.key])}>{f.label}</button
           >
