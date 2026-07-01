@@ -123,10 +123,7 @@
   });
 </script>
 
-<section
-  bind:this={sectionEl}
-  class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden bg-black"
->
+<section bind:this={sectionEl} class="w-screen aspect-video relative overflow-hidden bg-black">
   <!-- Poster (fallback: pre-play, reduced-motion, iOS suspension) -->
   <Img
     src={poster}
@@ -137,9 +134,10 @@
   />
 
   {#if mount}
-    <!-- 16:9 iframe scaled to cover the frame (crops sides on the taller mobile ratio) -->
+    <!-- The 16:9 iframe fills the now-16:9 frame exactly, so the video keeps its
+         native aspect ratio with no cropping on any breakpoint. -->
     <div
-      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 aspect-video h-full w-auto min-w-full md:w-full md:h-full md:min-w-0 transition-opacity duration-700 {playing
+      class="absolute inset-0 h-full w-full transition-opacity duration-700 {playing
         ? 'opacity-100'
         : 'opacity-0'}"
     >
