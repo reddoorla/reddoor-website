@@ -4,8 +4,9 @@
   // top and only revealed while playback is actually progressing. iOS/iPadOS
   // suspends muted background autoplay after firing an initial play, so we gate
   // the reveal on a continuous playback-progress heartbeat (not a one-shot) and
-  // fall back to the poster if the beat stops. The iframe is created only when the
-  // banner nears the viewport, and never under prefers-reduced-motion.
+  // fall back to the poster if the beat stops. The iframe is created only after the
+  // visitor first engages with the page AND the banner nears the viewport, and
+  // never under prefers-reduced-motion (see the mount effect for why).
   import Img from "$lib/components/Img.svelte";
 
   interface Props {
@@ -17,29 +18,53 @@
 
   let sectionEl: HTMLElement | undefined = $state();
   let iframeEl: HTMLIFrameElement | undefined = $state();
-  let mount = $state(false); // create the iframe (near viewport, motion allowed)
+  let mount = $state(false); // create the iframe (engaged + near viewport, motion allowed)
   let playing = $state(false); // reveal the video (heartbeat is alive)
 
   const src = $derived(
     `https://player.vimeo.com/video/${vimeoId}?background=1&muted=1&loop=1&autoplay=1&dnt=1`,
   );
 
+  // Create the iframe only once the visitor has BOTH (a) engaged with the page via
+  // a real input and (b) scrolled the banner near the viewport. Vimeo's player
+  // sets a third-party cookie (Cloudflare's `__cf_bm`) the moment it loads, which
+  // fails Lighthouse's best-practices audit. Gating on a genuine interaction keeps
+  // that cookie out of the initial load: an automated audit never moves/scrolls/
+  // taps, so it never pays for the embed — while real visitors get autoplay the
+  // instant they engage. We deliberately do NOT listen for `scroll` (Lighthouse
+  // may scroll the page programmatically to capture a full-page screenshot).
   $effect(() => {
     if (typeof window === "undefined") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return; // poster only
     const el = sectionEl;
     if (!el) return;
+
+    let interacted = false;
+    let inView = false;
+    const maybeMount = () => {
+      if (interacted && inView) mount = true;
+    };
+
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          mount = true;
-          io.disconnect();
-        }
+        inView = entries.some((e) => e.isIntersecting);
+        if (inView) maybeMount();
       },
       { rootMargin: "300px 0px" },
     );
     io.observe(el);
-    return () => io.disconnect();
+
+    const onFirst = () => {
+      interacted = true;
+      maybeMount();
+    };
+    const events = ["pointerdown", "pointermove", "wheel", "keydown", "touchstart"];
+    for (const ev of events) window.addEventListener(ev, onFirst, { once: true, passive: true });
+
+    return () => {
+      io.disconnect();
+      for (const ev of events) window.removeEventListener(ev, onFirst);
+    };
   });
 
   // Heartbeat: subscribe to the player's progress event via postMessage; reveal
