@@ -423,17 +423,17 @@
 {/if}
 
 <section
-  class="w-screen max-h-[720px] flex flex-col justify-between lg:aspect-video pt-24 bg-paper"
+  class="w-screen max-h-180 flex flex-col justify-between lg:aspect-video pt-24 bg-paper"
 >
   <div></div>
   <ContentWidth>
-    <h5 class="w-4/5 max-w-(--breakpoint-lg) mr-0 ml-auto">
+    <h5 class="w-4/5 max-w-5xl mr-0 ml-auto mb-20">
       We are honored to work with these amazing clients. Take a look and consider taking your place
       among them.
     </h5>
   </ContentWidth>
   <ContentWidth>
-    <h1 class="text-primary w-full text-left">Portfolio</h1>
+    <h1 class="text-primary w-full text-left font-serif font-normal text-[100px] mb-9">Portfolio</h1>
   </ContentWidth>
 </section>
 <!-- ─────────────────────────────────────────────────────────────────────────
@@ -466,7 +466,7 @@
       class="shrink-0 {onDark ? 'brightness-200 ' : ''}hover:brightness-50 transition bump"
       aria-label={aria}
     >
-      <img src={arrowButton} alt="" class="size-[50px]" />
+      <img src={arrowButton} alt="" class="size-12.5" />
     </a>
   </div>
 {/snippet}
@@ -477,11 +477,11 @@
   poster={rubrikHero}
   alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
 />
-<section class="mt-16 mb-24">
+<section class="pt-16 pb-56 bg-paper">
   <ContentWidth>
     <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
       <h2 class="type-feature mb-12 md:mb-16">
-        Smarter Insights to Keep <br /> Your Data Protected
+        Smarter Insights to Keep Your Data Protected
       </h2>
       <div class="w-full md:w-1/2">
         {@render featureLabel({
@@ -495,7 +495,7 @@
   </ContentWidth>
 </section>
 <ContentWidth animateIn>
-  <div class="mb-24 w-full md:w-4/5 md:ml-[20%]">
+  <div class="mb-24 w-full md:w-4/5 md:ml-[20%] -mt-40">
     <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
   </div>
 </ContentWidth>
@@ -642,15 +642,15 @@
 
 <!-- Gallery Sonder -->
 <ContentWidth animateIn>
-  <div class="mb-16 w-full md:w-4/5 md:ml-[20%]">
+  <div class="-mb-40 w-full md:w-4/5 md:ml-[20%]">
     <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
   </div>
 </ContentWidth>
-<section class="mb-24">
+<section class="pb-24 bg-paper pt-56">
   <ContentWidth>
     <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
       <h2 class="type-feature mb-12 md:mb-16">
-        A local gallery highlighting the stories <br /> of emerging and established artists.
+        A local gallery highlighting the stories of emerging and established artists.
       </h2>
       <div class="w-full md:w-1/2">
         {@render featureLabel({
@@ -663,6 +663,31 @@
     </div>
   </ContentWidth>
 </section>
+
+<!-- CTA — a snippet so the "let's work together" block can repeat: once above the
+     archive grid and again as the page footer. -->
+{#snippet cta()}
+  <div class="w-screen py-40 xl:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
+    <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
+      <div use:anim>
+        <h2 class="type-cta text-white md:w-4/5 xl:w-2/3">
+          It's time to arm your brand with a clear story and compelling design
+        </h2>
+      </div>
+      <div use:anim>
+        <a href="/contact">
+          <DefaultButton
+            class="mt-6 text-white border-white border-1 hover:bg-mid/10"
+            text="MEET WITH US"
+            filled={false}
+          />
+        </a>
+      </div>
+    </ContentWidth>
+  </div>
+{/snippet}
+
+{@render cta()}
 
 <div class="py-24 bg-paper" bind:this={projectsDiv} id="projectsDiv">
   <ContentWidth>
@@ -868,24 +893,7 @@
 </div>
 
 <!-- footer -->
-<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
-  <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-    <div use:anim>
-      <h2 class="type-cta text-white md:w-3/5">
-        It's time to arm your brand with a clear story and compelling design
-      </h2>
-    </div>
-    <div use:anim>
-      <a href="/contact">
-        <DefaultButton
-          class="mt-6 text-white border-white border-1 hover:bg-mid/10"
-          text="MEET WITH US"
-          filled={false}
-        />
-      </a>
-    </div>
-  </ContentWidth>
-</div>
+{@render cta()}
 
 <style>
   /* The featured-project headlines are <h2> (heading-order: the page goes
@@ -938,10 +946,17 @@
     line-height: 140%; /* 84px */
   }
 
-  @media only screen and (max-width: 1024px) {
+    @media only screen and (max-width: 1224px) {
     .type-cta {
       font-size: 60px;
-      line-height: 70px;
+      line-height: 72px;
+    }
+  }
+
+  @media only screen and (max-width: 1024px) {
+    .type-cta {
+      font-size: 52px;
+      line-height: 64px;
     }
   }
 
