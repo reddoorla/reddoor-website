@@ -3,11 +3,12 @@
   import { animateIn as anim } from "$lib/actions/animateIn";
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
   import Img from "$lib/components/Img.svelte";
+  import RevogenBanner from "$lib/components/RevogenHero/RevogenBanner.svelte";
+  import VimeoBanner from "$lib/components/RevogenHero/VimeoBanner.svelte";
   // Featured-project imagery — exported from Figma, delivered via the ?as=run
   // (vite-imagetools) responsive pipeline. See the featured sequence in markup.
   import rubrikHero from "$lib/assets/images/rubrikHero.jpg?as=run";
   import rubrikReport from "$lib/assets/images/rubrikReport.jpg?as=run";
-  import revogenHero from "$lib/assets/images/revogenHero.jpg?as=run";
   import revogenPackaging from "$lib/assets/images/revogenPackaging.jpg?as=run";
   import ceoLanyard from "$lib/assets/images/ceoLanyard.jpg?as=run";
   import ceoBrandGrid from "$lib/assets/images/ceoBrandGrid.jpg?as=run";
@@ -470,16 +471,12 @@
   </div>
 {/snippet}
 
-<!-- Rubrik Zero Labs -->
-<section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
-  <Img
-    src={rubrikHero}
-    alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
-    class="absolute inset-0 h-full w-full object-cover"
-    loading="eager"
-    fetchpriority="high"
-  />
-</section>
+<!-- Rubrik Zero Labs — live brand video (Vimeo) with the static frame as poster -->
+<VimeoBanner
+  vimeoId="1205996665"
+  poster={rubrikHero}
+  alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
+/>
 <section class="mt-16 mb-24">
   <ContentWidth>
     <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
@@ -503,14 +500,8 @@
   </div>
 </ContentWidth>
 
-<!-- Revogen -->
-<section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
-  <Img
-    src={revogenHero}
-    alt="Revogen homepage featuring surgical, wound-care and ocular grafts"
-    class="absolute inset-0 h-full w-full object-cover"
-  />
-</section>
+<!-- Revogen — live interactive grafts hero (ported from the Revogen homepage) -->
+<RevogenBanner />
 <section class="mt-16 mb-24">
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
