@@ -229,16 +229,16 @@
   // Hidden cards (display:none via the keep-mounted filter) report a zero-area rect
   // and are skipped, so a FLIP's `first`/`last` only ever hold on-screen cards.
   function measureCards(): Map<string, { el: HTMLElement; r: DOMRect }> {
-    const m = new Map<string, { el: HTMLElement; r: DOMRect }>();
-    if (!projectsDiv) return m;
+    const entries: [string, { el: HTMLElement; r: DOMRect }][] = [];
+    if (!projectsDiv) return new Map(entries);
     for (const el of projectsDiv.querySelectorAll<HTMLElement>("[data-flip-uid]")) {
       const uid = el.dataset.flipUid;
       if (!uid) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) continue; // hidden card
-      m.set(uid, { el, r });
+      entries.push([uid, { el, r }]);
     }
-    return m;
+    return new Map(entries);
   }
 
   // FLIP the survivors: for every card visible BOTH before and after the applied
