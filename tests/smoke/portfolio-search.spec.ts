@@ -1,10 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const ARCHIVE_LINKS = '#projectsDiv a[href^="/portfolio/"]';
+// Every card stays mounted (the FLIP animation keeps filtered-out cards in the DOM
+// as display:none so it only ever MOVES survivors), so we must scope to the visible
+// ones — Playwright's .count() otherwise includes the hidden cards.
+const ARCHIVE_LINKS = '#projectsDiv [data-flip-uid]:not(.hidden) a[href^="/portfolio/"]';
 
-// Only matching cards are rendered now (the View Transitions rework dropped the
-// keep-everything-mounted CSS-hide pattern), so the rendered count IS the
-// visible count.
 async function archiveCount(page: Page): Promise<number> {
   return page.locator(ARCHIVE_LINKS).count();
 }
