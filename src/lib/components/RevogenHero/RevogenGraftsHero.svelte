@@ -87,7 +87,7 @@
       {@const active = theme === g.key}
       <button
         type="button"
-        class="group md:w-1/4 flex flex-col items-center justify-start text-center cursor-default"
+        class="graft-btn group md:w-1/4 flex flex-col items-center justify-start text-center"
         onmouseenter={() => (theme = g.key)}
         onmouseleave={() => (theme = 0)}
         onclick={() => (theme = active ? 0 : g.key)}
@@ -144,6 +144,14 @@
      matches `.label` (14px). Both are declared here (scoped, 0-1-0 class beats
      the global unlayered `p { font-size: 18px }` that Tailwind text utilities
      lose to) so the label is never smaller than its own body copy. */
+  /* The grafts are intentionally non-navigating, so keep the default arrow
+     cursor — not the link/pointer cursor. Tailwind's `cursor-default` utility
+     loses to app.css's unlayered `button { cursor: pointer }` (unlayered beats
+     @layer utilities), so pin it with this scoped class. */
+  .graft-btn {
+    cursor: default;
+  }
+
   .type-graft {
     font-family: "pragmatica", "helvetica", sans-serif;
     font-size: 16px;
