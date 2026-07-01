@@ -483,7 +483,9 @@
 <section class="mt-16 mb-24">
   <ContentWidth>
     <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
-      <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep <br /> Your Data Protected</h2>
+      <h2 class="type-feature mb-12 md:mb-16">
+        Smarter Insights to Keep <br /> Your Data Protected
+      </h2>
       <div class="w-full md:w-1/2">
         {@render featureLabel({
           name: "Rubrik Zero Labs",
@@ -527,7 +529,11 @@
         })}
       </div>
       <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-        <Img class="h-full w-full object-cover" src={revogenPackaging} alt="Revogen product packaging" />
+        <Img
+          class="h-full w-full object-cover"
+          src={revogenPackaging}
+          alt="Revogen product packaging"
+        />
       </div>
     </div>
   </ContentWidth>
@@ -574,7 +580,10 @@
 <section class="mb-24">
   <ContentWidth>
     <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-      <div use:anim={{ delayMax: 0 }} class="relative w-full lg:w-1/2 aspect-square overflow-hidden">
+      <div
+        use:anim={{ delayMax: 0 }}
+        class="relative w-full lg:w-1/2 aspect-square overflow-hidden"
+      >
         <Img
           class="absolute inset-0 h-full w-full object-cover"
           src={trinitySteps}

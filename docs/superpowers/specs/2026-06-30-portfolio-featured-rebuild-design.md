@@ -17,6 +17,7 @@ featured projects (Progress Lighting, LoneHollow, Young Life, St James[old],
 1-800-Dentist), **and** the mid-page red CTA (`Isn't it time…`).
 
 **Untouched:**
+
 - Hero "Portfolio" header (intro lead + red `Portfolio` h1).
 - Archive grid `#projectsDiv`: "But wait, there's more!", search, sort dropdown,
   category filters, the entire View-Transition machinery, aria-live region.
@@ -28,23 +29,23 @@ featured projects (Progress Lighting, LoneHollow, Young Life, St James[old],
 All arrows are circular-arrow links to the project page. Slugs confirmed live in
 Prismic (`reddoor-la`).
 
-| # | Project | Slug | Layout |
-|---|---|---|---|
-| 1 | Rubrik Zero Labs | `/portfolio/rubrik-zero-labs` | full-bleed image → caption below → offset 2nd image (report-mac) |
-| 2 | Revogen | `/portfolio/revogen` | full-bleed image → 2-col (paper card headline+label \| packaging image) |
-| 3 | CEO of Los Angeles | `/portfolio/ceo-la` | offset lanyard image → 2-col (paper card headline+label \| brand-guide-grid) |
-| 4 | Trinity Law School | `/portfolio/trinity-law-school` | 2-col (steps image w/ label overlay \| tablet viewbook) |
-| 5 | St. James' Episcopal School | `/portfolio/st-james-episcopal-school` | full-bleed mural → 2-col (paper card headline+label \| phone mockup) |
-| 6 | Gallery Sonder | `/portfolio/gallery-sonder` | offset storefront image → caption below |
+| #   | Project                     | Slug                                   | Layout                                                                       |
+| --- | --------------------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
+| 1   | Rubrik Zero Labs            | `/portfolio/rubrik-zero-labs`          | full-bleed image → caption below → offset 2nd image (report-mac)             |
+| 2   | Revogen                     | `/portfolio/revogen`                   | full-bleed image → 2-col (paper card headline+label \| packaging image)      |
+| 3   | CEO of Los Angeles          | `/portfolio/ceo-la`                    | offset lanyard image → 2-col (paper card headline+label \| brand-guide-grid) |
+| 4   | Trinity Law School          | `/portfolio/trinity-law-school`        | 2-col (steps image w/ label overlay \| tablet viewbook)                      |
+| 5   | St. James' Episcopal School | `/portfolio/st-james-episcopal-school` | full-bleed mural → 2-col (paper card headline+label \| phone mockup)         |
+| 6   | Gallery Sonder              | `/portfolio/gallery-sonder`            | offset storefront image → caption below                                      |
 
 ### Copy
 
-- **Rubrik** caption headline: "Smarter Insights to Keep Your Data Protected" — *Brand, Digital*
-- **Revogen** card headline: "A revolutionary brand with a simple purpose: Healing." — *Brand, Print, Digital, Environmental*
-- **CEO** card headline: "The “buck stops here” with a branding system overhaul of LA County's CEO" — *brand, digital, print*
-- **Trinity** label overlay: *Print, Digital*
-- **St. James'** card headline: "A diverse, joyful, and inclusive community of young learners." — *brand, digital, print, environmental*
-- **Gallery Sonder** caption headline: "A local gallery highlighting the stories of emerging and established artists." — *brand, digital, print, environmental*
+- **Rubrik** caption headline: "Smarter Insights to Keep Your Data Protected" — _Brand, Digital_
+- **Revogen** card headline: "A revolutionary brand with a simple purpose: Healing." — _Brand, Print, Digital, Environmental_
+- **CEO** card headline: "The “buck stops here” with a branding system overhaul of LA County's CEO" — _brand, digital, print_
+- **Trinity** label overlay: _Print, Digital_
+- **St. James'** card headline: "A diverse, joyful, and inclusive community of young learners." — _brand, digital, print, environmental_
+- **Gallery Sonder** caption headline: "A local gallery highlighting the stories of emerging and established artists." — _brand, digital, print, environmental_
 
 ## Layout primitives
 
@@ -70,19 +71,19 @@ much for one clean component). Pull exact spacing/colors per section via Figma
 Reuse existing local assets where present; export the rest from Figma into
 `src/lib/assets/images/` via the `?as=run` (vite-imagetools) pipeline.
 
-| Image | Source |
-|---|---|
-| CEO lanyard hero | existing `CEO_HERO_Badge_Lanyard 1.jpg` (reuse) |
-| St James mural (full-bleed) | check existing `stJames.jpg`; else export |
-| Rubrik city/data (full-bleed) | export |
-| Rubrik report-on-iMac | export |
-| Revogen homepage (full-bleed) | export |
-| Revogen packaging | export |
-| CEO brand-guide grid | export |
-| Trinity man-on-steps | export |
-| Trinity tablet viewbook | export |
-| St James phone mockup | export |
-| Gallery Sonder storefront | export |
+| Image                         | Source                                          |
+| ----------------------------- | ----------------------------------------------- |
+| CEO lanyard hero              | existing `CEO_HERO_Badge_Lanyard 1.jpg` (reuse) |
+| St James mural (full-bleed)   | check existing `stJames.jpg`; else export       |
+| Rubrik city/data (full-bleed) | export                                          |
+| Rubrik report-on-iMac         | export                                          |
+| Revogen homepage (full-bleed) | export                                          |
+| Revogen packaging             | export                                          |
+| CEO brand-guide grid          | export                                          |
+| Trinity man-on-steps          | export                                          |
+| Trinity tablet viewbook       | export                                          |
+| St James phone mockup         | export                                          |
+| Gallery Sonder storefront     | export                                          |
 
 Flag any export that comes down too low-res for replacement with a hi-res original.
 
