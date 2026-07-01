@@ -203,195 +203,107 @@
     searchInput?.focus();
   }
 
-  // ─── View-transition motion tuning ─────────────────────────────────────────
+  // ─── FLIP motion tuning ─────────────────────────────────────────────────────
   // Cards animate at a roughly CONSTANT on-screen speed no matter how far the grid
-  // reflows: the duration is derived from how far the farthest *visible* card has
-  // to travel (distance ÷ velocity), so a big filter collapse and a small sort
-  // nudge feel like they move at the same pace. A card whose start is far off-
-  // screen is "cheated" — its start is pulled to just past the viewport edge so it
-  // slides in from off-screen instead of rocketing across the whole page.
-  // These are the knobs to play with:
-  const VT_VELOCITY = 0.5; // px per ms — master speed dial (higher = snappier)
-  const VT_MIN_DURATION = 900; // ms floor — keeps a tiny sort nudge deliberate
-  const VT_MAX_DURATION = 1550; // ms ceiling — keeps the biggest collapse from dragging
-  const VT_VIEWPORT_MARGIN = 0.2; // ± fraction of the viewport. Defines BOTH the band
-  //   of cards that count toward the duration AND how far off-screen a far card
-  //   starts (it slides in from this edge). 0.2 = ±20vh / ±20vw.
-  const VT_EASE = "cubic-bezier(0.16, 1, 0.3, 1)"; // the curve. Try
+  // reflows: the batch duration is derived from how far the farthest *visible* card
+  // has to travel (distance ÷ velocity), so a big filter collapse and a small sort
+  // nudge feel like they move at the same pace. A card whose start is far off-screen
+  // is "cheated" — its start is pulled to just past the viewport edge so it slides in
+  // from off-screen instead of rocketing across the whole page. These are the knobs:
+  const FLIP_VELOCITY = 0.5; // px per ms — master speed dial (higher = snappier)
+  const FLIP_MIN_DURATION = 900; // ms floor — keeps a tiny sort nudge deliberate
+  const FLIP_MAX_DURATION = 1550; // ms ceiling — keeps the biggest collapse from dragging
+  const FLIP_VIEWPORT_MARGIN = 0.2; // ± fraction of the viewport: BOTH the band of cards
+  //   that count toward the duration AND how far off-screen a far card starts.
+  const FLIP_EASE = "cubic-bezier(0.16, 1, 0.3, 1)"; // the curve. Try
   //   "cubic-bezier(0.4, 0, 0.2, 1)" if big moves read as bouncy.
   // ───────────────────────────────────────────────────────────────────────────
 
-  type CardBox = { cx: number; cy: number; top: number; bottom: number };
-
-  // Center + vertical extent of every named archive card currently in the DOM,
-  // keyed by uid. Read synchronously; getBoundingClientRect is valid inside the
-  // View Transition callback even though painting is frozen (layout still runs).
-  function cardCenters(): Map<string, CardBox> {
-    if (!projectsDiv) return new Map();
-    const entries: [string, CardBox][] = [];
-    for (const el of projectsDiv.querySelectorAll<HTMLElement>("[data-vt-uid]")) {
-      const uid = el.dataset.vtUid;
-      if (!uid) continue;
-      const r = el.getBoundingClientRect();
-      entries.push([
-        uid,
-        { cx: r.left + r.width / 2, cy: r.top + r.height / 2, top: r.top, bottom: r.bottom },
-      ]);
-    }
-    return new Map(entries);
-  }
-
   // Travel distance (px) → duration (ms): constant velocity, clamped.
   function durationForTravel(travel: number): number {
-    const ms = travel / VT_VELOCITY;
-    return Math.round(Math.min(VT_MAX_DURATION, Math.max(VT_MIN_DURATION, ms)));
+    const ms = travel / FLIP_VELOCITY;
+    return Math.round(Math.min(FLIP_MAX_DURATION, Math.max(FLIP_MIN_DURATION, ms)));
   }
 
-  // Wrap a list-changing state update in a View Transition. The browser snapshots
-  // the grid before & after; we measure how far the farthest visible card moves to
-  // set a constant-velocity duration, and (for cards whose true start is far off-
-  // screen) rewrite their group animation so they slide in from just past the
-  // viewport edge instead of flying the full distance. `await tick()` flushes
-  // Svelte's DOM inside the snapshot. Falls back to an instant update when the API
-  // is unavailable or the user prefers reduced motion.
-  // Returns a promise that resolves when the transition finishes (or immediately on
-  // the no-VT / reduced-motion fallback), so the committer can serialize commits.
-  function withViewTransition(update: () => void): Promise<void> {
-    if (
-      typeof document === "undefined" ||
-      !document.startViewTransition ||
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-    ) {
-      update();
-      return Promise.resolve();
+  // Measure every VISIBLE archive card in the DOM, keyed by uid, with its live node.
+  // Hidden cards (display:none via the keep-mounted filter) report a zero-area rect
+  // and are skipped, so a FLIP's `first`/`last` only ever hold on-screen cards.
+  function measureCards(): Map<string, { el: HTMLElement; r: DOMRect }> {
+    const m = new Map<string, { el: HTMLElement; r: DOMRect }>();
+    if (!projectsDiv) return m;
+    for (const el of projectsDiv.querySelectorAll<HTMLElement>("[data-flip-uid]")) {
+      const uid = el.dataset.flipUid;
+      if (!uid) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue; // hidden card
+      m.set(uid, { el, r });
+    }
+    return m;
+  }
+
+  // FLIP the survivors: for every card visible BOTH before and after the applied
+  // change, invert (translate it back to its old spot) then play (animate to none)
+  // on the LIVE, in-flow node via the Web Animations API. There is no overlay, so
+  // the filter buttons stay clickable throughout, the cards scroll with the document
+  // for free, and the fixed nav paints above them for free. A card whose old spot is
+  // far off-screen starts from the viewport edge (the "cheat") instead of flying the
+  // whole page; entering cards appear in place and leaving cards vanish (cards only
+  // ever MOVE). Resolves when the animations finish so the committer can serialize.
+  function playFlip(
+    first: Map<string, { el: HTMLElement; r: DOMRect }>,
+    last: Map<string, { el: HTMLElement; r: DOMRect }>,
+  ): Promise<void> {
+    const marginY = FLIP_VIEWPORT_MARGIN * window.innerHeight;
+    const marginX = FLIP_VIEWPORT_MARGIN * window.innerWidth;
+    const bandTop = -marginY;
+    const bandBottom = window.innerHeight + marginY;
+    const inBand = (r: DOMRect) => r.bottom > bandTop && r.top < bandBottom;
+    const clampX = (x: number) => Math.min(window.innerWidth + marginX, Math.max(-marginX, x));
+    const clampY = (y: number) => Math.min(bandBottom, Math.max(bandTop, y));
+
+    const moves: { el: HTMLElement; dx: number; dy: number }[] = [];
+    let maxTravel = 0;
+
+    for (const [uid, b] of first) {
+      const a = last.get(uid);
+      if (!a) continue; // leaving card — vanishes, no travel
+      if (!inBand(b.r) && !inBand(a.r)) continue; // fully off-screen both — skip
+
+      // Pull a far start to just past the viewport edge so the card slides in from
+      // off-screen instead of traversing its true (possibly huge) distance.
+      const startCx = clampX(b.r.left + b.r.width / 2);
+      const startCy = clampY(b.r.top + b.r.height / 2);
+      const dx = startCx - (a.r.left + a.r.width / 2);
+      const dy = startCy - (a.r.top + a.r.height / 2);
+      if (dx === 0 && dy === 0) continue;
+      maxTravel = Math.max(maxTravel, Math.hypot(dx, dy));
+      moves.push({ el: a.el, dx, dy });
     }
 
-    const before = cardCenters();
-    // Viewport scroll at transition start. The ::view-transition overlay is
-    // viewport-anchored per spec, so its snapshots detach from the document if the
-    // user scrolls mid-animation. We compensate below by translating the card
-    // groups by the NEGATIVE scroll delta so they track document content.
-    const startScrollY = window.scrollY;
-    // Cards whose start was clamped to the viewport edge. Each animates from this
-    // screen-space offset applied ON TOP of the browser's own positioning
-    // transform — filled in after `ready`, where that transform actually exists.
-    const clamped: { uid: string; dx: number; dy: number }[] = [];
+    if (!moves.length) return Promise.resolve();
 
-    const transition = document.startViewTransition(async () => {
-      update();
-      await tick();
-
-      const after = cardCenters();
-      const marginY = VT_VIEWPORT_MARGIN * window.innerHeight;
-      const marginX = VT_VIEWPORT_MARGIN * window.innerWidth;
-      const bandTop = -marginY;
-      const bandBottom = window.innerHeight + marginY;
-      const inBand = (b: CardBox) => b.bottom > bandTop && b.top < bandBottom;
-      const clampX = (x: number) => Math.min(window.innerWidth + marginX, Math.max(-marginX, x));
-      const clampY = (y: number) => Math.min(bandBottom, Math.max(bandTop, y));
-
-      let maxTravel = 0;
-
-      for (const [uid, b] of before) {
-        const a = after.get(uid);
-        if (!a) continue; // leaving card — fades in place, no travel
-        if (!inBand(b) && !inBand(a)) continue; // fully off-screen — cheated
-
-        // Pull a far start to just past the viewport edge: the card slides in from
-        // off-screen instead of traversing its true (possibly huge) distance.
-        const startX = clampX(b.cx);
-        const startY = clampY(b.cy);
-        const dx = startX - a.cx;
-        const dy = startY - a.cy;
-        maxTravel = Math.max(maxTravel, Math.hypot(dx, dy));
-
-        if (startX !== b.cx || startY !== b.cy) clamped.push({ uid, dx, dy });
-      }
-
-      document.documentElement.style.setProperty(
-        "--vt-duration",
-        `${durationForTravel(maxTravel)}ms`,
-      );
-      document.documentElement.style.setProperty("--vt-ease", VT_EASE);
-    });
-
-    // Once the pseudo-elements exist, retarget each clamped card's group animation
-    // to START from the clamped offset *composed with* the browser's end
-    // (positioning) transform — so it slides in from the viewport edge to its real
-    // slot, instead of collapsing to the top-left origin (which is what replacing
-    // the transform with a bare translate(0,0) did). We rewrite keyframes only, so
-    // the UA animation's timing — already driven by --vt-duration / --vt-ease —
-    // is preserved.
-    if (clamped.length) {
-      transition.ready
-        .then(() => {
-          for (const { uid, dx, dy } of clamped) {
-            const pseudo = `::view-transition-group(vt-${uid})`;
-            for (const anim of document.getAnimations()) {
-              const effect = anim.effect;
-              if (!(effect instanceof KeyframeEffect) || effect.pseudoElement !== pseudo) continue;
-              const frames = effect.getKeyframes();
-              const end = frames[frames.length - 1]?.transform;
-              if (!end || end === "none") break; // can't position safely → leave default
-              effect.setKeyframes([
-                { transform: `translate(${dx}px, ${dy}px) ${end}`, offset: 0 },
-                { transform: String(end), offset: 1 },
-              ]);
-              break;
-            }
-          }
-        })
-        .catch(() => {});
-    }
-
-    // ── Document-tracking scroll compensation ──────────────────────────────
-    // Keep the animating cards anchored to the DOCUMENT, not the viewport: while
-    // the transition runs we push the negative scroll delta onto the INDEPENDENT
-    // `translate` property of every named card group via one custom property on
-    // <html>. `translate` composes with — never clobbers — the UA's animated
-    // `transform` AND the clamped-keyframe retarget above (separate matrix
-    // factors). Root is opted out in CSS so the frozen background doesn't ghost.
-    // Y only — this is a vertical grid.
-    let compRaf = 0;
-    let compTicking = false;
-    const applyScrollComp = () => {
-      compTicking = false;
-      // Scroll DOWN → scrollY↑ → content rises → snapshot must translate UP → -dy.
-      const dy = window.scrollY - startScrollY;
-      document.documentElement.style.setProperty("--vt-scroll-comp", `0 ${-dy}px`);
-    };
-    const onCompScroll = () => {
-      if (compTicking) return; // coalesce a scroll burst to one write per frame
-      compTicking = true;
-      compRaf = requestAnimationFrame(applyScrollComp);
-    };
-
-    transition.ready
-      .then(() => {
-        applyScrollComp(); // cover any scroll between startViewTransition and ready
-        window.addEventListener("scroll", onCompScroll, { passive: true });
-      })
-      .catch(() => {}); // aborted/skipped transition: no listener attached
-
-    transition.finished.finally(() => {
-      window.removeEventListener("scroll", onCompScroll);
-      if (compRaf) cancelAnimationFrame(compRaf);
-      document.documentElement.style.removeProperty("--vt-scroll-comp");
-    });
-
-    // A skipped/aborted transition rejects `finished`; swallow it so the committer's
-    // await always resolves and the queue keeps draining.
-    return transition.finished.catch(() => {});
+    const duration = durationForTravel(maxTravel);
+    const done = moves.map(({ el, dx, dy }) =>
+      el
+        .animate(
+          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0px, 0px)" }],
+          { duration, easing: FLIP_EASE },
+        )
+        .finished.catch(() => {}),
+    );
+    return Promise.all(done).then(() => {});
   }
 
   // ── Debounced + serialized committer ────────────────────────────────────────
   // Every pending change (filter, sort, keystroke) resets a debounce timer; when it
-  // settles we copy pending → applied inside ONE View Transition. A busy-lock
-  // serializes transitions so a change made mid-animation queues (and coalesces with
-  // any other in-flight changes) instead of interrupting the running animation. This
-  // shared debounce is also what gives search its ~250ms settle (no separate one).
+  // settles we copy pending → applied and FLIP the grid to catch up. A busy-lock
+  // serializes commits so a change made mid-animation queues (and coalesces with any
+  // other in-flight changes) instead of interrupting the running FLIP. The filter
+  // buttons stay live throughout — they only mutate PENDING state, never the grid —
+  // so you can hammer them and every click lands. This shared debounce is also what
+  // gives search its ~250ms settle (no separate one).
   const COMMIT_DEBOUNCE = 250; // ms
-  let vtBusy = false;
+  let committing = false;
   let commitTimer = 0;
 
   function pendingEqualsApplied(): boolean {
@@ -407,13 +319,19 @@
     );
   }
 
-  function commitPending() {
+  async function commitPending(): Promise<void> {
     // Default to Relevance the moment a search becomes active, and restore a real
     // sort when it clears — but never override a sort the visitor picked themselves.
     const wasActive = applied.query.trim().length >= MIN_QUERY;
     const nowActive = searchQuery.trim().length >= MIN_QUERY;
     if (nowActive && !wasActive) orderString = RELEVANCE;
     else if (!nowActive && wasActive && orderString === RELEVANCE) orderString = DEFAULT_ORDER;
+
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // FIRST: card positions before the grid reflows (skipped under reduced motion).
+    const first = reduce ? null : measureCards();
 
     applied.brand = cats.brand;
     applied.print = cats.print;
@@ -423,21 +341,25 @@
     applied.packaging = cats.packaging;
     applied.order = orderString;
     applied.query = searchQuery;
+
+    if (!first) return; // reduced motion / SSR: instant, no animation
+    await tick(); // flush Svelte's DOM so the grid is in its new layout
+    await playFlip(first, measureCards()); // LAST + invert/play the survivors
   }
 
   async function runCommit() {
-    if (vtBusy) return;
-    vtBusy = true;
+    if (committing) return;
+    committing = true;
     try {
       // Keep committing until pending == applied, but yield the loop whenever the
       // debounce is pending again (commitTimer set) so a fresh burst keeps batching.
       while (!pendingEqualsApplied() && !commitTimer) {
-        await withViewTransition(() => commitPending());
+        await commitPending();
       }
     } finally {
-      vtBusy = false;
+      committing = false;
     }
-    // A change that landed during the last transition, with the debounce already
+    // A change that landed during the last commit, with the debounce already
     // settled, still needs its commit.
     if (!commitTimer && !pendingEqualsApplied()) runCommit();
   }
@@ -498,11 +420,10 @@
     );
   }
 
-  // The cards actually rendered: category-filtered, then — while searching —
-  // reduced to Fuse matches. With the Relevance sort active those matches are
-  // ordered best-match-first; with any real sort active they keep that sort's order
-  // (sortedProjects is already sorted), just filtered to the matches. Only visible
-  // cards are in the DOM; the View Transition animates the difference.
+  // The cards on screen: category-filtered, then — while searching — reduced to Fuse
+  // matches. With the Relevance sort active those matches are ordered best-match-
+  // first; with any real sort active they keep that sort's order (sortedProjects is
+  // already sorted), just filtered to the matches. The FLIP animates the difference.
   const visibleProjects = $derived.by(() => {
     const inCategory = sortedProjects.filter(categoryMatch);
     if (rankedUids === null) return inCategory;
@@ -513,6 +434,17 @@
   });
 
   const visibleCount = $derived(visibleProjects.length);
+
+  // Keep EVERY card mounted so the grid only ever MOVES survivors (no enter/leave
+  // DOM churn, no crossfade): we render all projects — the visible ones first, in
+  // display order, then the rest hidden with display:none — and toggle the `hidden`
+  // class from this set. Hidden cards keep their decoded images, so re-showing a
+  // filtered-out card is instant, and measureCards() skips them (zero-area rect).
+  const visibleUidSet = $derived(new Set(visibleProjects.map((p) => p.uid)));
+  const orderedProjects = $derived([
+    ...visibleProjects,
+    ...sortedProjects.filter((p) => !visibleUidSet.has(p.uid)),
+  ]);
 
   // The sort dropdown gains a "Relevance" option only while a search is active
   // (tracks the committed query so the option and the results appear together).
@@ -566,9 +498,7 @@
   </a>
 {/if}
 
-<section
-  class="w-screen max-h-180 flex flex-col justify-between lg:aspect-video pt-24 bg-paper"
->
+<section class="w-screen max-h-180 flex flex-col justify-between lg:aspect-video pt-24 bg-paper">
   <div></div>
   <ContentWidth>
     <h5 class="w-4/5 max-w-5xl mr-0 ml-auto mb-20">
@@ -577,7 +507,9 @@
     </h5>
   </ContentWidth>
   <ContentWidth>
-    <h1 class="text-primary w-full text-left font-serif font-normal text-[100px] mb-9">Portfolio</h1>
+    <h1 class="text-primary w-full text-left font-serif font-normal text-[100px] mb-9">
+      Portfolio
+    </h1>
   </ContentWidth>
 </section>
 <!-- ─────────────────────────────────────────────────────────────────────────
@@ -624,9 +556,7 @@
 <section class="pt-16 pb-56 bg-paper">
   <ContentWidth>
     <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
-      <h2 class="type-feature mb-12 md:mb-16">
-        Smarter Insights to Keep Your Data Protected
-      </h2>
+      <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep Your Data Protected</h2>
       <div class="w-full md:w-1/2">
         {@render featureLabel({
           name: "Rubrik Zero Labs",
@@ -947,11 +877,12 @@
       {/if}
     </div>
     <div class="w-full md:ml-[20%] md:w-4/5 flex flex-row flex-wrap">
-      {#each visibleProjects as project (project.uid)}
+      {#each orderedProjects as project (project.uid ?? project.id)}
         <div
-          style="view-transition-name: vt-{project.uid}"
-          data-vt-uid={project.uid}
-          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 relative"
+          data-flip-uid={project.uid}
+          class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 relative {visibleUidSet.has(project.uid)
+            ? ''
+            : 'hidden'}"
         >
           <a
             href={"/portfolio/" + project.uid}
@@ -1057,7 +988,7 @@
     line-height: 140%; /* 84px */
   }
 
-    @media only screen and (max-width: 1224px) {
+  @media only screen and (max-width: 1224px) {
     .type-cta {
       font-size: 60px;
       line-height: 72px;
@@ -1087,72 +1018,6 @@
     .type-cta {
       font-size: 36px;
       line-height: 48px;
-    }
-  }
-
-  /* Archive grid filter / search / sort animation, driven by the View Transitions
-     API (see withViewTransition). :global because ::view-transition-* are
-     document-level pseudo-elements, not scoped to component markup. */
-  :global(::view-transition-group(*)),
-  :global(::view-transition-old(*)),
-  :global(::view-transition-new(*)) {
-    animation-duration: var(--vt-duration, 650ms);
-    animation-timing-function: var(--vt-ease, cubic-bezier(0.16, 1, 0.3, 1));
-  }
-
-  /* Scroll compensation rides the INDEPENDENT `translate` property (NOT
-     `transform`), so it composes with the browser's animated positioning
-     transform AND with the clamped-keyframe retarget in withViewTransition
-     instead of replacing either. Idle default `none` = no offset; withViewTransition
-     writes a two-value `0 -Npx` custom property on <html> from ready→finished so
-     the cards track the document if the visitor scrolls mid-animation. */
-  :global(::view-transition-group(*)) {
-    translate: var(--vt-scroll-comp, none);
-  }
-
-  /* The page-level "root" snapshot can only cross-fade, so on filter/search —
-     where the grid collapses and everything below shifts — it flashed. Skip it
-     so ONLY the named cards animate; the background/footer settle instantly.
-     `translate: none` ALSO opts root OUT of scroll compensation: its snapshot is
-     only ~one viewport tall, so translating it would slide a blank band into view
-     and detach the frozen background from the real (scrolling) DOM beneath. Equal
-     specificity + later source order than the group(*) rule above ⇒ this wins. */
-  :global(::view-transition-group(root)),
-  :global(::view-transition-old(root)),
-  :global(::view-transition-new(root)) {
-    animation: none;
-    translate: none;
-  }
-
-  /* The site nav (named `site-nav` in +layout.svelte) is captured as its own
-     group so it stacks ABOVE the animating cards instead of being buried in the
-     root snapshot beneath them. The huge z-index keeps it on top of every card
-     group; `translate: none` opts it OUT of the scroll compensation above — it's
-     a viewport-fixed bar, so it must stay pinned while the cards track the
-     document beneath it. Placed after the group(*) rule so source order wins the
-     `translate` override. */
-  :global(::view-transition-group(site-nav)) {
-    z-index: 2147483647;
-    translate: none;
-    animation: none;
-  }
-  /* Render a SINGLE snapshot (new only). Showing old AND new together double-stacks
-     the nav's semi-transparent bg-white/80, so it read ~96% opaque mid-animation.
-     The nav is unchanged across the transition, so `new` alone matches the live bar. */
-  :global(::view-transition-new(site-nav)) {
-    animation: none;
-  }
-  :global(::view-transition-old(site-nav)) {
-    display: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(::view-transition-group(*)),
-    :global(::view-transition-old(*)),
-    :global(::view-transition-new(*)) {
-      animation: none !important;
-      /* Defense-in-depth: no snapshot may be offset when motion is suppressed. */
-      translate: none !important;
     }
   }
 </style>

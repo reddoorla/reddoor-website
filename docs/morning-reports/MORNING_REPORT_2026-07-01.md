@@ -45,6 +45,7 @@ So the findings below are a short list of resilience/a11y/perf items — no crit
 ### MED-3 — Autoplay background Vimeo ignores `prefers-reduced-motion` (WCAG 2.2.2) _(carried from 06-05 MED-10, still open)_
 
 Four surfaces autoplay `?background=1&autoplay=1` with **no** reduced-motion gate:
+
 - `src/lib/components/ScreenWidth/ScreenWidthImage.svelte:113`
 - `src/lib/slices/ScreenWidthMedia/index.svelte:45`
 - `src/lib/slices/ContentWidthMedia/index.svelte:110, 186`
