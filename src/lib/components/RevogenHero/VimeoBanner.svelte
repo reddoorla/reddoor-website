@@ -3,8 +3,8 @@
   // A static poster sits underneath; the muted/looping Vimeo iframe is layered on
   // top and only revealed while playback is actually progressing. iOS/iPadOS
   // suspends muted background autoplay after firing an initial play, so we gate
-  // the reveal on a continuous `timeupdate` heartbeat (not a one-shot) and fall
-  // back to the poster if the beat stops. The iframe is created only when the
+  // the reveal on a continuous playback-progress heartbeat (not a one-shot) and
+  // fall back to the poster if the beat stops. The iframe is created only when the
   // banner nears the viewport, and never under prefers-reduced-motion.
   import Img from "$lib/components/Img.svelte";
 
@@ -42,8 +42,11 @@
     return () => io.disconnect();
   });
 
-  // Heartbeat: subscribe to Vimeo `timeupdate` via postMessage; reveal while beats
-  // keep arriving, hide (show poster) if they stop for >2.5s (iOS suspension).
+  // Heartbeat: subscribe to the player's progress event via postMessage; reveal
+  // while beats keep arriving, hide (show poster) if they stop for >2.5s (iOS
+  // suspension). The `?background=1` embed speaks the legacy Froogaloop protocol,
+  // whose progress event is `playProgress` (NOT the player.js SDK's `timeupdate`);
+  // we register and listen for both so the iframe reveals on either.
   $effect(() => {
     if (!mount) return;
     let lastBeat = 0;
@@ -52,6 +55,11 @@
         JSON.stringify({ method, value }),
         "https://player.vimeo.com",
       );
+    const subscribe = () => {
+      post("addEventListener", "playProgress"); // legacy Froogaloop
+      post("addEventListener", "timeupdate"); // player.js SDK
+      post("play");
+    };
 
     const onMessage = (e: MessageEvent) => {
       if (!/player\.vimeo\.com$/.test(new URL(e.origin).host)) return;
@@ -62,9 +70,12 @@
         return;
       }
       if (data.event === "ready") {
-        post("addEventListener", "timeupdate");
-        post("play");
-      } else if (data.event === "timeupdate") {
+        subscribe();
+      } else if (
+        data.event === "playProgress" ||
+        data.event === "timeupdate" ||
+        data.event === "play"
+      ) {
         lastBeat = performance.now();
         playing = true;
       }
@@ -72,10 +83,7 @@
     window.addEventListener("message", onMessage);
 
     // Some browsers need a nudge after load if the ready handshake is missed.
-    const onLoad = () => {
-      post("addEventListener", "timeupdate");
-      post("play");
-    };
+    const onLoad = () => subscribe();
     iframeEl?.addEventListener("load", onLoad);
 
     const watchdog = setInterval(() => {

@@ -110,7 +110,7 @@
         </div>
         <p class="type-graft mt-2">{g.title}</p>
         {#if active}
-          <p transition:slide class="mt-4 max-w-[22rem] text-sm leading-relaxed">{g.desc}</p>
+          <p transition:slide class="mt-3 max-w-[20rem] text-[10px] leading-relaxed">{g.desc}</p>
         {/if}
         <div
           class="w-8 h-8 border-[1.5px] border-white rounded-full relative mt-4 transition-opacity group-hover:opacity-80"
@@ -141,7 +141,7 @@
 <style>
   .type-graft {
     font-family: "pragmatica", "helvetica", sans-serif;
-    font-size: 26px;
+    font-size: 11px;
     font-weight: 300;
     line-height: 1.2;
   }
