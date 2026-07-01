@@ -32,18 +32,34 @@
 
   let showAllProjectsButton = $state(true);
 
-  let showBrand = $state(false);
-  let showDigital = $state(false);
-  let showEnvironmental = $state(false);
-  let showProduct = $state(false);
-  let showPackaging = $state(false);
-  let showPrint = $state(false);
+  // The six category toggles, in button order. Kept in one config so the button
+  // row renders from a single {#each} and the tri-state look (below) isn't
+  // copy-pasted per button. `label` is the button text; `name` is the aria wording.
+  const FILTERS = [
+    { key: "brand", label: "BRAND", name: "Brand" },
+    { key: "print", label: "PRINT", name: "Print" },
+    { key: "environmental", label: "ENVIRONMENTAL", name: "Environmental" },
+    { key: "product", label: "PRODUCT", name: "Product" },
+    { key: "digital", label: "DIGITAL", name: "Digital" },
+    { key: "packaging", label: "PACKAGING", name: "Packaging" },
+  ] as const;
+  type Cat = (typeof FILTERS)[number]["key"];
+
+  // ── Pending vs applied ──────────────────────────────────────────────────────
+  // Controls mutate PENDING state (cats / orderString / searchQuery) immediately so
+  // they feel responsive. The GRID reads APPLIED state and only catches up inside a
+  // View Transition (see the committer below), so clicking mid-animation queues the
+  // next set instead of interrupting the current animation.
+  let cats = $state<Record<Cat, boolean>>({
+    brand: false,
+    print: false,
+    environmental: false,
+    product: false,
+    digital: false,
+    packaging: false,
+  });
 
   let searchQuery = $state("");
-
-  const showAll = $derived(
-    !(showBrand || showDigital || showEnvironmental || showProduct || showPrint || showPackaging),
-  );
 
   // While a search is active, results rank by relevance unless the visitor picks a
   // real sort. RELEVANCE is only offered while searching; DEFAULT_ORDER is what we
@@ -52,6 +68,29 @@
   const DEFAULT_ORDER = "Latest-Earliest";
   let orderString = $state(DEFAULT_ORDER);
 
+  // What the grid actually reflects; commitPending() copies pending → applied inside
+  // one serialized View Transition. The grid derivations all read from here.
+  let applied = $state({
+    brand: false,
+    print: false,
+    environmental: false,
+    product: false,
+    digital: false,
+    packaging: false,
+    order: DEFAULT_ORDER,
+    query: "",
+  });
+  const appliedShowAll = $derived(
+    !(
+      applied.brand ||
+      applied.digital ||
+      applied.environmental ||
+      applied.product ||
+      applied.print ||
+      applied.packaging
+    ),
+  );
+
   let isOrderSelectOpen = $state(false);
 
   // Refs for the sort dropdown, used for outside-click / Escape handling below.
@@ -59,18 +98,19 @@
   let sortTrigger: HTMLButtonElement | undefined = $state();
 
   $effect(() => {
-    // read filters/order so the dropdown closes whenever any of them change.
-    // Track debouncedQuery (not raw searchQuery) so typing a query doesn't slam
-    // the dropdown shut on every keystroke — it closes once results settle.
+    // Close the dropdown whenever a filter/sort changes. Track pending cats + order
+    // (so picking a sort closes it instantly) and applied.query (not raw
+    // searchQuery, so typing doesn't slam it shut on every keystroke — it closes
+    // once the search commits).
     const _deps = [
-      showBrand,
-      showDigital,
-      showEnvironmental,
-      showProduct,
-      showPrint,
-      showPackaging,
+      cats.brand,
+      cats.digital,
+      cats.environmental,
+      cats.product,
+      cats.print,
+      cats.packaging,
       orderString,
-      debouncedQuery,
+      applied.query,
     ];
     isOrderSelectOpen = false;
   });
@@ -102,7 +142,7 @@
 
   const sortedProjects = $derived(
     [...data.allProjects].sort((a: ProjectDocument<string>, b: ProjectDocument<string>) => {
-      switch (orderString) {
+      switch (applied.order) {
         case "A-Z":
           return (a.data.title || "").localeCompare(b.data.title || "");
         case "Z-A":
@@ -156,7 +196,6 @@
       : null,
   );
 
-  let debouncedQuery = $state("");
   let searchInput: HTMLInputElement | undefined = $state();
 
   function clearSearch() {
@@ -215,14 +254,16 @@
   // viewport edge instead of flying the full distance. `await tick()` flushes
   // Svelte's DOM inside the snapshot. Falls back to an instant update when the API
   // is unavailable or the user prefers reduced motion.
-  function withViewTransition(update: () => void) {
+  // Returns a promise that resolves when the transition finishes (or immediately on
+  // the no-VT / reduced-motion fallback), so the committer can serialize commits.
+  function withViewTransition(update: () => void): Promise<void> {
     if (
       typeof document === "undefined" ||
       !document.startViewTransition ||
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
     ) {
       update();
-      return;
+      return Promise.resolve();
     }
 
     const before = cardCenters();
@@ -337,38 +378,109 @@
       if (compRaf) cancelAnimationFrame(compRaf);
       document.documentElement.style.removeProperty("--vt-scroll-comp");
     });
+
+    // A skipped/aborted transition rejects `finished`; swallow it so the committer's
+    // await always resolves and the queue keeps draining.
+    return transition.finished.catch(() => {});
   }
 
-  // ~250ms debounce. This writes DIFFERENT state vars (debouncedQuery / orderString)
-  // than the one it reads synchronously (searchQuery); the reads inside the timeout
-  // run outside the effect's tracked scope, so this does NOT trip the Svelte 5
-  // $effect self-write scheduler bug.
-  $effect(() => {
-    const q = searchQuery;
-    // Defensive: ensure Fuse is loading whenever a real query appears, even if it
-    // arrived without a focus event (restored value, programmatic set).
-    if (q.trim().length >= MIN_QUERY) loadFuse();
-    const id = setTimeout(
-      () =>
-        withViewTransition(() => {
-          const wasActive = debouncedQuery.trim().length >= MIN_QUERY;
-          const nowActive = q.trim().length >= MIN_QUERY;
-          debouncedQuery = q;
-          // Default to relevance the moment a search becomes active, and restore a
-          // real sort when it clears — but never override a sort the visitor picked
-          // themselves while searching.
-          if (nowActive && !wasActive) orderString = RELEVANCE;
-          else if (!nowActive && wasActive && orderString === RELEVANCE)
-            orderString = DEFAULT_ORDER;
-        }),
-      250,
+  // ── Debounced + serialized committer ────────────────────────────────────────
+  // Every pending change (filter, sort, keystroke) resets a debounce timer; when it
+  // settles we copy pending → applied inside ONE View Transition. A busy-lock
+  // serializes transitions so a change made mid-animation queues (and coalesces with
+  // any other in-flight changes) instead of interrupting the running animation. This
+  // shared debounce is also what gives search its ~250ms settle (no separate one).
+  const COMMIT_DEBOUNCE = 250; // ms
+  let vtBusy = false;
+  let commitTimer = 0;
+
+  function pendingEqualsApplied(): boolean {
+    return (
+      applied.brand === cats.brand &&
+      applied.print === cats.print &&
+      applied.environmental === cats.environmental &&
+      applied.product === cats.product &&
+      applied.digital === cats.digital &&
+      applied.packaging === cats.packaging &&
+      applied.order === orderString &&
+      applied.query === searchQuery
     );
-    return () => clearTimeout(id);
+  }
+
+  function commitPending() {
+    // Default to Relevance the moment a search becomes active, and restore a real
+    // sort when it clears — but never override a sort the visitor picked themselves.
+    const wasActive = applied.query.trim().length >= MIN_QUERY;
+    const nowActive = searchQuery.trim().length >= MIN_QUERY;
+    if (nowActive && !wasActive) orderString = RELEVANCE;
+    else if (!nowActive && wasActive && orderString === RELEVANCE) orderString = DEFAULT_ORDER;
+
+    applied.brand = cats.brand;
+    applied.print = cats.print;
+    applied.environmental = cats.environmental;
+    applied.product = cats.product;
+    applied.digital = cats.digital;
+    applied.packaging = cats.packaging;
+    applied.order = orderString;
+    applied.query = searchQuery;
+  }
+
+  async function runCommit() {
+    if (vtBusy) return;
+    vtBusy = true;
+    try {
+      // Keep committing until pending == applied, but yield the loop whenever the
+      // debounce is pending again (commitTimer set) so a fresh burst keeps batching.
+      while (!pendingEqualsApplied() && !commitTimer) {
+        await withViewTransition(() => commitPending());
+      }
+    } finally {
+      vtBusy = false;
+    }
+    // A change that landed during the last transition, with the debounce already
+    // settled, still needs its commit.
+    if (!commitTimer && !pendingEqualsApplied()) runCommit();
+  }
+
+  function fireCommit() {
+    commitTimer = 0;
+    runCommit();
+  }
+
+  // Debounce any pending change into a single (serialized) commit.
+  $effect(() => {
+    // Track every pending input so this re-runs (and re-arms the debounce) on change.
+    void [
+      cats.brand,
+      cats.print,
+      cats.environmental,
+      cats.product,
+      cats.digital,
+      cats.packaging,
+      orderString,
+      searchQuery,
+    ];
+    if (typeof window === "undefined") return;
+    // Defensive: start loading Fuse as soon as a real query appears.
+    if (searchQuery.trim().length >= MIN_QUERY) loadFuse();
+    clearTimeout(commitTimer);
+    commitTimer = window.setTimeout(fireCommit, COMMIT_DEBOUNCE);
+    return () => clearTimeout(commitTimer);
   });
+
+  // Tri-state look for a category button, from pending (cats) vs applied. RED
+  // strictly follows the APPLIED state, so a filter queued OFF stays red until its
+  // removal animates in. GREY is the "will become active" state (pending on, not yet
+  // applied); toggling back to off reverts it to the inactive style.
+  function catBtnClass(key: Cat): string {
+    if (applied[key]) return "border-primary bg-primary hover:text-light text-white";
+    if (cats[key]) return "border-mid bg-mid/15 text-mid";
+    return "border-light text-light hover:border-primary hover:text-primary";
+  }
 
   // Fuse results ordered best-match-first; null === "no active query".
   const rankedUids = $derived.by<string[] | null>(() => {
-    const q = debouncedQuery.trim();
+    const q = applied.query.trim();
     if (q.length < MIN_QUERY) return null;
     if (!fuse) return null; // Fuse still loading — show all until the index is ready
     return fuse.search(q).map((r) => r.item.uid);
@@ -376,13 +488,13 @@
 
   function categoryMatch(project: ProjectDocument<string>): boolean {
     return Boolean(
-      showAll ||
-      (project.data.branding && showBrand) ||
-      (project.data.digital && showDigital) ||
-      (project.data.environmental && showEnvironmental) ||
-      (project.data.print && showPrint) ||
-      (project.data.product && showProduct) ||
-      (project.data.packaging && showPackaging),
+      appliedShowAll ||
+      (project.data.branding && applied.brand) ||
+      (project.data.digital && applied.digital) ||
+      (project.data.environmental && applied.environmental) ||
+      (project.data.print && applied.print) ||
+      (project.data.product && applied.product) ||
+      (project.data.packaging && applied.packaging),
     );
   }
 
@@ -396,27 +508,19 @@
     if (rankedUids === null) return inCategory;
     const rank = new Map(rankedUids.map((uid, i) => [uid, i]));
     const matched = inCategory.filter((p) => rank.has(p.uid ?? ""));
-    if (orderString !== RELEVANCE) return matched;
+    if (applied.order !== RELEVANCE) return matched;
     return matched.sort((a, b) => (rank.get(a.uid ?? "") ?? 0) - (rank.get(b.uid ?? "") ?? 0));
   });
 
   const visibleCount = $derived(visibleProjects.length);
 
-  // The sort dropdown gains a "Relevance" option only while a search is active.
-  const isSearching = $derived(debouncedQuery.trim().length >= MIN_QUERY);
+  // The sort dropdown gains a "Relevance" option only while a search is active
+  // (tracks the committed query so the option and the results appear together).
+  const isSearching = $derived(applied.query.trim().length >= MIN_QUERY);
 
-  // Active category filters, in button order — surfaced to the aria-live region
-  // so screen-reader users hear which filter narrowed (or emptied) the grid.
-  const activeCategoryLabels = $derived(
-    [
-      showBrand ? "Brand" : null,
-      showPrint ? "Print" : null,
-      showEnvironmental ? "Environmental" : null,
-      showProduct ? "Product" : null,
-      showDigital ? "Digital" : null,
-      showPackaging ? "Packaging" : null,
-    ].filter((label): label is string => label !== null),
-  );
+  // Active category filters (applied), in button order — surfaced to the aria-live
+  // region so screen-reader users hear which filter narrowed (or emptied) the grid.
+  const activeCategoryLabels = $derived(FILTERS.filter((f) => applied[f.key]).map((f) => f.name));
   const sortOptions = $derived([
     ...(isSearching ? [RELEVANCE] : []),
     "A-Z",
@@ -765,50 +869,15 @@
             </button>
           {/if}
         </div>
-        <button
-          class="px-5 py-[10px] transition-colors duration-500 border-1 {showBrand
-            ? 'border-primary bg-primary  hover:text-light text-white'
-            : 'border-light text-light hover:border-primary hover:text-primary'}"
-          aria-pressed={showBrand}
-          onclick={() => withViewTransition(() => (showBrand = !showBrand))}>BRAND</button
-        >
-        <button
-          class="px-5 py-[10px] transition-colors duration-500 border-1 {showPrint
-            ? 'border-primary bg-primary  hover:text-light text-white'
-            : 'border-light text-light hover:border-primary hover:text-primary'}"
-          aria-pressed={showPrint}
-          onclick={() => withViewTransition(() => (showPrint = !showPrint))}>PRINT</button
-        >
-        <button
-          class="px-5 py-[10px] transition-colors duration-500 border-1 {showEnvironmental
-            ? 'border-primary bg-primary  hover:text-light text-white'
-            : 'border-light text-light hover:border-primary hover:text-primary'}"
-          aria-pressed={showEnvironmental}
-          onclick={() => withViewTransition(() => (showEnvironmental = !showEnvironmental))}
-          >ENVIRONMENTAL</button
-        >
-        <button
-          class="px-5 py-[10px] transition-colors duration-500 border-1 {showProduct
-            ? 'border-primary bg-primary  hover:text-light text-white'
-            : 'border-light text-light hover:border-primary hover:text-primary'}"
-          aria-pressed={showProduct}
-          onclick={() => withViewTransition(() => (showProduct = !showProduct))}>PRODUCT</button
-        >
-        <button
-          class="px-5 py-[10px] transition-colors duration-500 border-1 {showDigital
-            ? 'border-primary bg-primary  hover:text-light text-white'
-            : 'border-light text-light hover:border-primary hover:text-primary'}"
-          aria-pressed={showDigital}
-          onclick={() => withViewTransition(() => (showDigital = !showDigital))}>DIGITAL</button
-        >
-        <button
-          class="px-5 py-[10px] transition-colors duration-500 border-1 {showPackaging
-            ? 'border-primary bg-primary  hover:text-light text-white'
-            : 'border-light text-light hover:border-primary hover:text-primary'}"
-          aria-pressed={showPackaging}
-          onclick={() => withViewTransition(() => (showPackaging = !showPackaging))}
-          >PACKAGING</button
-        >
+        <!-- Clicking only mutates PENDING state (cats); the committer debounces and
+             animates the grid. The tri-state look comes from catBtnClass. -->
+        {#each FILTERS as f (f.key)}
+          <button
+            class="px-5 py-[10px] transition-colors duration-500 border-1 {catBtnClass(f.key)}"
+            aria-pressed={cats[f.key]}
+            onclick={() => (cats[f.key] = !cats[f.key])}>{f.label}</button
+          >
+        {/each}
       </div>
       <div use:anim bind:this={sortDropdown} class="relative z-10">
         <div class="w-48 h-12 bg-paper absolute z-20"></div>
@@ -827,7 +896,7 @@
                 style="transform: translateY({(i + 1) * 100}%)"
                 data-testid="sort-option"
                 transition:slide
-                onclick={() => withViewTransition(() => (orderString = option))}>{option}</button
+                onclick={() => (orderString = option)}>{option}</button
               >
             {/each}
           </div>
@@ -840,7 +909,9 @@
           aria-label="Sort projects, current order: {orderString}"
           class="relative z-20 pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 mb-24 flex flex-row items-center justify-between {isOrderSelectOpen
             ? 'border-primary bg-primary  hover:text-light text-white'
-            : 'border-light bg-paper text-light hover:border-primary hover:text-primary'}"
+            : orderString !== applied.order
+              ? 'border-mid bg-mid/15 text-mid'
+              : 'border-light bg-paper text-light hover:border-primary hover:text-primary'}"
           data-testid="portfolio-sort"
           onclick={() => (isOrderSelectOpen = !isOrderSelectOpen)}
         >
@@ -868,7 +939,7 @@
     </div>
     <div aria-live="polite" class="sr-only">
       {#if isSearching}
-        {visibleCount} project{visibleCount === 1 ? "" : "s"} match "{debouncedQuery}"{activeCategoryLabels.length
+        {visibleCount} project{visibleCount === 1 ? "" : "s"} match "{applied.query}"{activeCategoryLabels.length
           ? ` in ${activeCategoryLabels.join(", ")}`
           : ""}
       {:else if activeCategoryLabels.length}
@@ -914,12 +985,12 @@
         </div>
       {/each}
     </div>
-    {#if debouncedQuery.trim().length >= MIN_QUERY && visibleCount === 0}
+    {#if applied.query.trim().length >= MIN_QUERY && visibleCount === 0}
       <div
         class="w-full md:ml-[20%] md:w-4/5 py-16 text-center"
         data-testid="portfolio-search-empty"
       >
-        <p class="text-light">No projects match "{debouncedQuery}"</p>
+        <p class="text-light">No projects match "{applied.query}"</p>
         <button
           type="button"
           onclick={clearSearch}
@@ -1058,16 +1129,21 @@
      root snapshot beneath them. The huge z-index keeps it on top of every card
      group; `translate: none` opts it OUT of the scroll compensation above — it's
      a viewport-fixed bar, so it must stay pinned while the cards track the
-     document beneath it; `animation: none` holds the static bar (no cross-fade).
-     Placed after the group(*) rule so source order wins the `translate` override. */
+     document beneath it. Placed after the group(*) rule so source order wins the
+     `translate` override. */
   :global(::view-transition-group(site-nav)) {
     z-index: 2147483647;
     translate: none;
+    animation: none;
   }
-  :global(::view-transition-group(site-nav)),
-  :global(::view-transition-old(site-nav)),
+  /* Render a SINGLE snapshot (new only). Showing old AND new together double-stacks
+     the nav's semi-transparent bg-white/80, so it read ~96% opaque mid-animation.
+     The nav is unchanged across the transition, so `new` alone matches the live bar. */
   :global(::view-transition-new(site-nav)) {
     animation: none;
+  }
+  :global(::view-transition-old(site-nav)) {
+    display: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
