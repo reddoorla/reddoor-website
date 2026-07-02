@@ -990,13 +990,14 @@
   }
 
   .archive-title {
-    /* Pin the body font: now that this is an <h2> (for heading semantics), the
-       global `h2 { font-family: Besley }` rule would otherwise change its look. */
-    font-family: "pragmatica", "helvetica", sans-serif;
-    font-size: 60px;
+    /* Match the h1 "Portfolio" style (Besley serif, 100px, weight 400). It's an
+       <h2> for heading semantics, so the global `h2 { font-family: Besley;
+       font-size: 60px; ... }` rules would otherwise change its look. */
+    font-family: "Besley", serif;
+    font-size: 100px;
     font-style: normal;
-    font-weight: 700;
-    line-height: 140%; /* 84px */
+    font-weight: 400;
+    line-height: normal;
   }
 
   @media only screen and (max-width: 1224px) {
@@ -1004,12 +1005,18 @@
       font-size: 60px;
       line-height: 72px;
     }
+    .archive-title {
+      font-size: 72px;
+    }
   }
 
   @media only screen and (max-width: 1024px) {
     .type-cta {
       font-size: 52px;
       line-height: 64px;
+    }
+    .archive-title {
+      font-size: 60px;
     }
   }
 
@@ -1023,12 +1030,18 @@
     h5 {
       font-size: 28px;
     }
+    .archive-title {
+      font-size: 48px;
+    }
   }
 
   @media only screen and (max-width: 480px) {
     .type-cta {
       font-size: 36px;
       line-height: 48px;
+    }
+    .archive-title {
+      font-size: 40px;
     }
   }
 </style>
