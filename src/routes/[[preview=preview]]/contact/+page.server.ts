@@ -27,7 +27,7 @@ function elapsedMs(tsRaw: FormDataEntryValue | null): number | null {
 }
 
 export const actions: Actions = {
-  default: async ({ request, fetch, url }) => {
+  default: async ({ request, fetch, url, getClientAddress }) => {
     const form = await request.formData();
 
     // Bot screen: a filled honeypot or an implausibly fast fill is silently
@@ -45,6 +45,23 @@ export const actions: Actions = {
       });
     }
 
+    // Transient `_meta` envelope for central ingest: the Cloudflare Turnstile token
+    // (verified centrally) plus IP/UA used only for verification + scoring. None of
+    // it is persisted; an absent token leaves central verification fail-open.
+    const turnstileToken = form.get("cf-turnstile-response")?.toString().trim();
+    const userAgent = request.headers.get("user-agent")?.trim();
+    let clientIp: string | undefined;
+    try {
+      clientIp = getClientAddress();
+    } catch {
+      // Some adapters expose no client address — drop it silently.
+    }
+    const meta = {
+      ...(turnstileToken ? { turnstileToken } : {}),
+      ...(clientIp ? { clientIp } : {}),
+      ...(userAgent ? { userAgent } : {}),
+    };
+
     const result = await submitToIngest({
       url: env.FORMS_INGEST_URL,
       token: env.FORMS_INGEST_TOKEN,
@@ -57,6 +74,7 @@ export const actions: Actions = {
         message: form.get("message")?.toString(),
         company: form.get("company")?.toString(),
         sourceUrl: `${url.origin}${url.pathname}`,
+        ...(Object.keys(meta).length ? { _meta: meta } : {}),
       },
     });
 
