@@ -124,7 +124,7 @@
 <section class="w-screen bg-paper-red relative">
   <ContentWidth class="z-20 h-0" animateIn>
     <div class="absolute top-32 w-72 z-20">
-      <p class="text-lg font-bold leading-7.5 text-white">
+      <p class="text-lg font-extralight leading-7.5 text-white">
         We pride ourselves in a hands-on approach to producing compelling design that excites our
         clients.
       </p>

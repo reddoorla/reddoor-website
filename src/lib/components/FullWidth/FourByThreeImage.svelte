@@ -46,9 +46,9 @@
     ></div>
     {#if label}
       <!-- Image caption, not a section heading: a non-heading <p> keeps it out of
-           the document outline (heading-order). `font-bold` reproduces the old
-           <h6> look exactly (h6 and p are both 18px/30px; only the weight differs). -->
-      <p class="font-bold absolute bottom-4 z-20">{label}</p>
+           the document outline (heading-order). Weight 200 (body) preserves the
+           established look (h6 and p are both 18px/30px; only the weight differs). -->
+      <p class="font-extralight absolute bottom-4 z-20">{label}</p>
     {/if}
   </div>
 </div>

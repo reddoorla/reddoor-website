@@ -117,8 +117,9 @@
         >
           {#if slice.primary.label}
             <!-- Caption/kicker, not a section heading: non-heading <p> keeps it
-                 out of the document outline. font-bold == the old <h6> look. -->
-            <p class="font-bold text-primary">{slice.primary.label}</p>
+                 out of the document outline. Weight 200 (body) preserves the look
+                 — the old font-bold was suppressed by unlayered element rules. -->
+            <p class="font-extralight text-primary">{slice.primary.label}</p>
           {/if}
           <RichTextBody field={slice.primary.body} />
         </div>

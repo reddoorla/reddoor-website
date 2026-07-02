@@ -507,7 +507,9 @@
     </h5>
   </ContentWidth>
   <ContentWidth>
-    <h1 class="text-primary w-full text-left font-serif font-normal text-[100px] mb-9">
+    <h1
+      class="text-primary w-full text-left font-serif font-normal text-[100px] max-[1224px]:text-[72px] max-[1024px]:text-[60px] max-[768px]:text-[48px] max-[480px]:text-[40px] mb-9"
+    >
       Portfolio
     </h1>
   </ContentWidth>
