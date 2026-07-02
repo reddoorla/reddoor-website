@@ -18,8 +18,9 @@
         <div class="w-full xl:w-1/5 h-full overflow-hidden pt-4">
           {#if slice.primary.eyebrow}
             <!-- Eyebrow/kicker, not a heading: non-heading <p> keeps it out of the
-                 outline. font-bold == the old <h6> look. -->
-            <p class="font-bold text-white">{slice.primary.eyebrow}</p>
+                 outline. Weight 200 (body) preserves the established look — the
+                 old font-bold was suppressed by unlayered element rules. -->
+            <p class="font-extralight text-white">{slice.primary.eyebrow}</p>
           {/if}
         </div>
         <div class="w-full xl:w-2/5 text-white flex flex-col gap-2 p-4 rich-text">
