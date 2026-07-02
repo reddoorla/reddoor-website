@@ -24,8 +24,14 @@
   }
 }
 
-html {
-  scroll-behavior: smooth;
+/* Smooth scrolling, gated on prefers-reduced-motion: reduced-motion users (and
+   Playwright, which emulates reduced motion) get instant, deterministic scrolls
+   instead of a long animated scrollIntoView. */
+@media (prefers-reduced-motion: no-preference) {
+  html,
+  body {
+    scroll-behavior: smooth;
+  }
 }
 body {
   font-family: "pragmatica", "helvetica", sans-serif;
@@ -38,7 +44,6 @@ body {
   overflow-y: auto;
   color: #6d6e71;
   background-color: white;
-  scroll-behavior: smooth;
 }
 
 body::-webkit-scrollbar {

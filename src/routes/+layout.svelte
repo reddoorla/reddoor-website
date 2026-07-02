@@ -3,6 +3,7 @@
   import { Menu, X } from "@lucide/svelte";
   import { page } from "$app/state";
   import { repositoryName } from "$lib/prismicio";
+  import { SITE_URL } from "$lib/site";
 
   import "../app.css";
 
@@ -71,10 +72,17 @@
 
   // Every load resolves meta_image to a URL string (Prismic URLs are absolute;
   // imported-asset paths are root-relative). OG/Twitter need an absolute URL.
+  // Prerendered pages report `page.url.origin` as the `sveltekit-prerender`
+  // placeholder, so a root-relative asset must resolve against the canonical
+  // origin (SITE_URL) instead — otherwise the baked-in og:image points at a
+  // non-existent host. Real request origins (SSR pages, previews, dev) are used
+  // as-is so each host advertises its own image.
   const metaImageUrl = $derived.by(() => {
     const img = page.data.meta_image;
     if (typeof img !== "string" || !img) return undefined;
-    return img.startsWith("http") ? img : new URL(img, page.url.origin).href;
+    if (img.startsWith("http")) return img;
+    const origin = page.url.origin.includes("sveltekit-prerender") ? SITE_URL : page.url.origin;
+    return new URL(img, origin).href;
   });
 
   function disableScrollRestoration() {
