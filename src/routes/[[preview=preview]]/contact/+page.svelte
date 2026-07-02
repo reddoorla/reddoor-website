@@ -2,10 +2,47 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import { enhance } from "$app/forms";
+  import { env } from "$env/dynamic/public";
+  import { loadTurnstile } from "$lib/turnstile";
   import type { PageData, ActionData } from "./$types";
 
   let { data, form }: { data: PageData; form: ActionData } = $props();
   let submitting = $state(false);
+
+  // Optional Cloudflare Turnstile. Dark until PUBLIC_TURNSTILE_SITE_KEY is set;
+  // trimmed so a stray-whitespace value stays dark. Rendered explicitly by the
+  // effect below (works on full load AND SPA nav). Its hidden `cf-turnstile-response`
+  // input is forwarded to the central ingest by +page.server.ts.
+  const turnstileSiteKey = env.PUBLIC_TURNSTILE_SITE_KEY?.trim();
+  let turnstileEl = $state<HTMLDivElement>();
+
+  $effect(() => {
+    const el = turnstileEl;
+    if (!turnstileSiteKey || !el) return;
+    let widgetId: string | undefined;
+    let cancelled = false;
+    loadTurnstile()
+      .then((turnstile) => {
+        if (cancelled || !el.isConnected) return;
+        widgetId = turnstile.render(el, { sitekey: turnstileSiteKey });
+      })
+      .catch((err) => {
+        // Offline / blocked / CSP / misconfigured sitekey: central ingest is
+        // fail-open, so a missing token degrades to honeypot + timing + heuristic
+        // scoring, never a dropped lead. Warn so an operator can triage.
+        console.warn("[turnstile] widget did not render:", err);
+      });
+    return () => {
+      cancelled = true;
+      if (widgetId !== undefined) {
+        try {
+          window.turnstile?.remove(widgetId);
+        } catch {
+          // Widget already torn down (e.g. by navigation) — nothing to clean up.
+        }
+      }
+    };
+  });
 </script>
 
 <svelte:head>
@@ -120,6 +157,13 @@
               placeholder="how can we help?"
               class="min-h-24 w-full border-1 border-mid p-1 mb-4"></textarea>
           </div>
+          {#if turnstileSiteKey}
+            <div class="w-full mb-4">
+              <!-- Cloudflare Turnstile mount point; the effect renders it explicitly
+                   and injects a hidden `cf-turnstile-response` input the action forwards. -->
+              <div class="cf-turnstile" bind:this={turnstileEl}></div>
+            </div>
+          {/if}
           <div use:anim>
             <input
               type="submit"
