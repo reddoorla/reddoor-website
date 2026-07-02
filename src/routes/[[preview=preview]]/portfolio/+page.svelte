@@ -768,12 +768,15 @@
     <div use:anim class="w-full">
       <h2 class="archive-title text-primary w-full text-left mb-12">But wait, there's more!</h2>
     </div>
-    <div class="flex flex-col md:flex-row md:justify-between w-full">
-      <div
-        use:anim
-        class="flex flex-row items-center gap-2 md:gap-4 mb-4 md:mb-24 flex-wrap max-w-full"
-      >
-        <div class="relative flex items-center">
+    <div class="w-full">
+      <!-- Search + sort span the full width; the category filters sit underneath.
+           `relative z-10` lifts this row (and the sort dropdown that opens downward
+           out of it) above the filters row below — the filters row is a later
+           sibling and, once animateIn leaves a transform on it, its own stacking
+           context, so without this it would paint over and swallow clicks on the
+           open sort options. Stays below the fixed nav (z-20) so it scrolls under. -->
+      <div use:anim class="relative z-10 flex flex-row items-stretch gap-2 md:gap-4 w-full mb-4">
+        <div class="relative flex items-center flex-1 min-w-0">
           <Search
             class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-light pointer-events-none"
             strokeWidth={1.5}
@@ -788,7 +791,7 @@
             bind:this={searchInput}
             bind:value={searchQuery}
             onfocus={loadFuse}
-            class="w-56 max-w-full border-1 border-light py-[10px] pl-9 pr-9 text-light placeholder:text-light/60 focus:border-primary focus:text-primary focus:outline-none transition-colors duration-500"
+            class="w-full h-12 border-1 border-light pl-9 pr-9 text-light placeholder:text-light/60 focus:border-primary focus:text-primary focus:outline-none transition-colors duration-500"
           />
           {#if searchQuery}
             <button
@@ -802,6 +805,66 @@
             </button>
           {/if}
         </div>
+        <div bind:this={sortDropdown} class="relative z-10 shrink-0">
+          <div class="w-48 h-12 bg-paper absolute z-20"></div>
+          {#if isOrderSelectOpen}
+            <!-- display:contents keeps the absolute-positioned option layout while
+                 giving the options a real listbox container for assistive tech. -->
+            <div role="listbox" aria-label="Sort order" id="sort-listbox" class="contents">
+              {#each sortOptions as option, i (option)}
+                <button
+                  role="option"
+                  aria-selected={orderString === option}
+                  class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 flex flex-row items-center justify-between absolute top-0 left-0 {orderString ===
+                  option
+                    ? 'border-primary bg-primary  hover:text-light text-white'
+                    : 'border-light text-light  bg-white hover:text-primary'}"
+                  style="transform: translateY({(i + 1) * 100}%)"
+                  data-testid="sort-option"
+                  transition:slide
+                  onclick={() => (orderString = option)}>{option}</button
+                >
+              {/each}
+            </div>
+          {/if}
+          <button
+            bind:this={sortTrigger}
+            aria-haspopup="listbox"
+            aria-expanded={isOrderSelectOpen}
+            aria-controls="sort-listbox"
+            aria-label="Sort projects, current order: {orderString}"
+            class="relative z-20 pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 flex flex-row items-center justify-between {isOrderSelectOpen
+              ? 'border-primary bg-primary  hover:text-light text-white'
+              : orderString !== applied.order
+                ? 'border-mid bg-mid/15 text-mid'
+                : 'border-light bg-paper text-light hover:border-primary hover:text-primary'}"
+            data-testid="portfolio-sort"
+            onclick={() => (isOrderSelectOpen = !isOrderSelectOpen)}
+          >
+            <div>{orderString}</div>
+            <div class="h-12 w-12 relative">
+              {#if !isOrderSelectOpen}
+                <span
+                  class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                  transition:scale={{ duration: 300 }}
+                >
+                  <ChevronDown class="size-[1em]" strokeWidth={2} />
+                </span>
+              {/if}
+              {#if isOrderSelectOpen}
+                <span
+                  class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                  transition:scale={{ duration: 300 }}
+                >
+                  <Minus class="size-[1em]" strokeWidth={2} />
+                </span>
+              {/if}
+            </div>
+          </button>
+        </div>
+      </div>
+      <!-- Category filters, underneath the full-width search + sort. -->
+      <div use:anim class="flex flex-row items-center gap-2 md:gap-4 flex-wrap mb-24">
         <!-- Clicking only mutates PENDING state (cats); the committer debounces and
              animates the grid. The tri-state look comes from catBtnClass. -->
         {#each FILTERS as f (f.key)}
@@ -813,63 +876,6 @@
             onclick={() => (cats[f.key] = !cats[f.key])}>{f.label}</button
           >
         {/each}
-      </div>
-      <div use:anim bind:this={sortDropdown} class="relative z-10">
-        <div class="w-48 h-12 bg-paper absolute z-20"></div>
-        {#if isOrderSelectOpen}
-          <!-- display:contents keeps the absolute-positioned option layout while
-               giving the options a real listbox container for assistive tech. -->
-          <div role="listbox" aria-label="Sort order" id="sort-listbox" class="contents">
-            {#each sortOptions as option, i (option)}
-              <button
-                role="option"
-                aria-selected={orderString === option}
-                class="pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 border-t-0 mb-24 flex flex-row items-center justify-between absolute top-0 left-0 {orderString ===
-                option
-                  ? 'border-primary bg-primary  hover:text-light text-white'
-                  : 'border-light text-light  bg-white hover:text-primary'}"
-                style="transform: translateY({(i + 1) * 100}%)"
-                data-testid="sort-option"
-                transition:slide
-                onclick={() => (orderString = option)}>{option}</button
-              >
-            {/each}
-          </div>
-        {/if}
-        <button
-          bind:this={sortTrigger}
-          aria-haspopup="listbox"
-          aria-expanded={isOrderSelectOpen}
-          aria-controls="sort-listbox"
-          aria-label="Sort projects, current order: {orderString}"
-          class="relative z-20 pl-5 py-[10px] w-48 h-12 transition-colors duration-500 border-1 mb-24 flex flex-row items-center justify-between {isOrderSelectOpen
-            ? 'border-primary bg-primary  hover:text-light text-white'
-            : orderString !== applied.order
-              ? 'border-mid bg-mid/15 text-mid'
-              : 'border-light bg-paper text-light hover:border-primary hover:text-primary'}"
-          data-testid="portfolio-sort"
-          onclick={() => (isOrderSelectOpen = !isOrderSelectOpen)}
-        >
-          <div>{orderString}</div>
-          <div class="h-12 w-12 relative">
-            {#if !isOrderSelectOpen}
-              <span
-                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                transition:scale={{ duration: 300 }}
-              >
-                <ChevronDown class="size-[1em]" strokeWidth={2} />
-              </span>
-            {/if}
-            {#if isOrderSelectOpen}
-              <span
-                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                transition:scale={{ duration: 300 }}
-              >
-                <Minus class="size-[1em]" strokeWidth={2} />
-              </span>
-            {/if}
-          </div>
-        </button>
       </div>
     </div>
     <div aria-live="polite" class="sr-only">
