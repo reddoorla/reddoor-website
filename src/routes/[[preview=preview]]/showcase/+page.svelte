@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { page } from "$app/state";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
 </script>
 
 <svelte:head>
-  <title>{"Reddoor Creative | " + page.error?.message}</title>
+  <title>Reddoor Creative | Showcase</title>
 </svelte:head>
 <section class="h-screen w-screen flex items-center justify-center gap-12 flex-col">
   <h1>This is Our Private Showcase</h1>
