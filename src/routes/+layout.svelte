@@ -116,13 +116,12 @@
     <meta name="description" content={page.data.meta_description} />
   {/if}
   {#if page.data.meta_title}
-    <meta name="og:title" content={page.data.meta_title} />
+    <meta property="og:title" content={page.data.meta_title} />
   {/if}
   {#if metaImageUrl}
-    <meta name="og:image" content={metaImageUrl} />
+    <meta property="og:image" content={metaImageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
   {/if}
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- JSON-LD assembled via concatenation so the Svelte ESLint parser doesn't see a literal </script> tag -->
   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html "<" +
