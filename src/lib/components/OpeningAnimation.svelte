@@ -13,6 +13,7 @@
   import { trapFocus } from "$lib/actions/trapFocus";
   import { untrack } from "svelte";
   import { ArrowDown, Menu, X } from "@lucide/svelte";
+  import { whenPageReady } from "$lib/utils/whenPageReady";
 
   const NAV_LINKS = [
     { label: "Portfolio", href: "/portfolio" },
@@ -31,6 +32,7 @@
   const MOBILE_BREAKPOINT_PX = 768;
   const ROTATE_INTERVAL_MS = 5000;
   const INTRO_FADE_MS = 400;
+  const INTRO_MAX_HOLD_MS = 2000;
   const HEADLINE_INTRO = "Arm your brand with";
 
   type Props = { slides: OpeningAnimationDocumentDataSlidesItem[] };
@@ -111,7 +113,15 @@
     // on viewport state changes and tear down the listener it just registered.
     untrack(() => updateScroll());
 
-    const transitionTimer = setTimeout(() => (transitioning = false), INTRO_FADE_MS);
+    // Lift the intro cover when the first slide (the only eager image) has
+    // settled instead of a blind timer: INTRO_FADE_MS stays as the floor so
+    // fast loads feel identical, INTRO_MAX_HOLD_MS caps a stalled slide.
+    // Reads mq.matches (not the reducedMotion state) so this effect doesn't
+    // gain a reactive dependency and tear down its listeners on mq changes.
+    let cancelled = false;
+    whenPageReady({ minMs: mq.matches ? 0 : INTRO_FADE_MS, maxMs: INTRO_MAX_HOLD_MS }).then(() => {
+      if (!cancelled) transitioning = false;
+    });
 
     return () => {
       // Reset the global flag so the layout nav reappears on the next page —
@@ -119,7 +129,7 @@
       isInHero.value = false;
       window.removeEventListener("scroll", handleScroll);
       mq.removeEventListener("change", handleMQ);
-      clearTimeout(transitionTimer);
+      cancelled = true;
       if (scrollFrame) cancelAnimationFrame(scrollFrame);
     };
   });
@@ -143,7 +153,10 @@
 <svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
 {#if transitioning}
-  <div class="bg-white w-screen h-dvh fixed top-0 left-0 z-50" transition:fade></div>
+  <div
+    class="bg-white w-screen h-dvh fixed top-0 left-0 z-50"
+    transition:fade={{ duration: reducedMotion ? 0 : 400 }}
+  ></div>
 {/if}
 
 {#if isOverlayVisible}
