@@ -13,7 +13,7 @@
   import { trapFocus } from "$lib/actions/trapFocus";
   import { untrack } from "svelte";
   import { ArrowDown, Menu, X } from "@lucide/svelte";
-  import { whenPageReady } from "$lib/utils/whenPageReady";
+  import { whenPageReady } from "@reddoorla/maintenance/client";
 
   const NAV_LINKS = [
     { label: "Portfolio", href: "/portfolio" },
