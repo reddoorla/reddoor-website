@@ -85,7 +85,9 @@
     <div class="w-full md:w-4/5 flex flex-col gap-8">
       <h5>Complete this form and we'll get back to you.</h5>
       {#if form?.success}
-        <p class="text-primary mt-2">
+        <!-- role="status": announces the confirmation to screen readers (and is
+             the success signal the fleet form-e2e probe waits for). -->
+        <p role="status" class="text-primary mt-2">
           Thanks — your message is on its way. We'll be in touch shortly.
         </p>
       {:else}
