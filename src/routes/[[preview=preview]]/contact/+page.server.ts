@@ -74,6 +74,11 @@ export const actions: Actions = {
         message: form.get("message")?.toString(),
         company: form.get("company")?.toString(),
         sourceUrl: `${url.origin}${url.pathname}`,
+        // Synthetic end-to-end probe marker (the fleet `form-e2e` audit). Forwarded
+        // ONLY when the submitted form carries testMode=true — a real visitor never
+        // sets it; central ingest recognizes it and routes the submission away from
+        // every real sink.
+        ...(form.get("testMode")?.toString() === "true" ? { testMode: true } : {}),
         ...(Object.keys(meta).length ? { _meta: meta } : {}),
       },
     });

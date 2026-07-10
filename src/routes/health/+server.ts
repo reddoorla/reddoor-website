@@ -43,6 +43,12 @@ export const GET: RequestHandler = async ({ fetch }) => {
     ingestUrl: !!privateEnv.FORMS_INGEST_URL,
     ingestToken: !!privateEnv.FORMS_INGEST_TOKEN,
     turnstile: !!publicEnv.PUBLIC_TURNSTILE_SITE_KEY?.trim(),
+    // Declares that this deploy's contact form forwards the `testMode` marker
+    // to central ingest (contact +page.server.ts action payload) — the fleet
+    // form-e2e probe refuses to submit without this flag. Never copy it to a
+    // build whose form does not forward the marker (the probe would land as a
+    // real lead).
+    testMode: true,
   };
   // We're inside the handler, so the function ran; ok is false only when the
   // Prismic probe actively errored.
