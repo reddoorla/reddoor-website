@@ -33,6 +33,7 @@
 ## Task 1: `mediaSrcset` helper (pure, unit-TDD)
 
 **Files:**
+
 - Create: `src/lib/utils/mediaSrcset.ts`
 - Test: `src/lib/utils/mediaSrcset.test.ts`
 
@@ -139,6 +140,7 @@ git commit -m "feat(slideshow): mediaImgAttrs helper for responsive media-link i
 ## Task 2: `MediaImg` component
 
 **Files:**
+
 - Create: `src/lib/components/Slideshow/MediaImg.svelte`
 
 - [ ] **Step 1: Write the component**
@@ -194,6 +196,7 @@ git commit -m "feat(slideshow): MediaImg responsive image for media-link slides"
 Extract the carousel from `src/lib/slices/Slideshow/index.svelte` (read it first for parity) into a reusable component that renders each slide through a `slide` snippet, hides controls below a container-width threshold, and respects `prefers-reduced-motion`.
 
 **Files:**
+
 - Create: `src/lib/components/Slideshow/Slideshow.svelte`
 
 - [ ] **Step 1: Write the component**
@@ -325,7 +328,8 @@ Create `src/lib/components/Slideshow/Slideshow.svelte`:
     <div
       use:swipe
       class="flex flex-row flex-nowrap transition-transform ease-[cubic-bezier(0.25,0.1,0.25,1)] h-full"
-      style="width: {tripled.length * 100}%; transform: translateX({translateX}%); transition-duration: {isTransitioning &&
+      style="width: {tripled.length *
+        100}%; transform: translateX({translateX}%); transition-duration: {isTransitioning &&
       !reduceMotion
         ? transitionMs
         : 0}ms;"
@@ -387,7 +391,9 @@ Create `src/lib/components/Slideshow/Slideshow.svelte`:
     {/if}
   {:else}
     <!-- 0 or 1 slide: render the single slide, no carousel chrome. -->
-    <div class="h-full w-full">{#if count}{@render slide(slides[0], 0)}{/if}</div>
+    <div class="h-full w-full">
+      {#if count}{@render slide(slides[0], 0)}{/if}
+    </div>
   {/if}
 </div>
 ```
@@ -409,6 +415,7 @@ git commit -m "feat(slideshow): shared snippet-driven carousel component"
 ## Task 4: Refactor the `Slideshow` slice to the shared component
 
 **Files:**
+
 - Modify: `src/lib/slices/Slideshow/index.svelte`
 
 - [ ] **Step 1: Replace the inline carousel with `<Slideshow>`**
@@ -464,6 +471,7 @@ git commit -m "refactor(slideshow): slice delegates to shared carousel component
 ## Task 5: Add the `slides` field to the ContentWidthMedia model
 
 **Files:**
+
 - Modify: `src/lib/slices/ContentWidthMedia/model.json` (via Prismic MCP — do NOT hand-edit)
 - Regenerate: `src/prismicio-types.d.ts`
 
@@ -507,6 +515,7 @@ git commit -m "feat(slideshow): add repeatable media 'slides' field to ContentWi
 ## Task 6: Render the slideshow branch in ContentWidthMedia
 
 **Files:**
+
 - Modify: `src/lib/slices/ContentWidthMedia/index.svelte`
 
 - [ ] **Step 1: Add imports + helpers**
@@ -514,8 +523,8 @@ git commit -m "feat(slideshow): add repeatable media 'slides' field to ContentWi
 In `<script>` of `src/lib/slices/ContentWidthMedia/index.svelte`, add:
 
 ```svelte
-import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
-import MediaImg from "$lib/components/Slideshow/MediaImg.svelte";
+import Slideshow from "$lib/components/Slideshow/Slideshow.svelte"; import MediaImg from
+"$lib/components/Slideshow/MediaImg.svelte";
 ```
 
 Add a helper to extract filled slide URLs (adjust `.filter`/field access to the exact type confirmed in Task 5 Step 3):
@@ -530,16 +539,9 @@ const slideUrls = (item: { slides?: Array<{ url?: string }> | null }): string[] 
 Add an aspect-class helper mirroring the existing per-item aspect ternary, with `free → aspect-video` (a carousel needs a defined height):
 
 ```svelte
-const slideshowAspect = (aspect: string | null): string =>
-  aspect === "square"
-    ? "aspect-square"
-    : aspect === "4/3"
-      ? "aspect-4/3"
-      : aspect === "3/4"
-        ? "aspect-3/4"
-        : aspect === "9/16"
-          ? "aspect-9/16"
-          : "aspect-video"; // "16/9" and "free" both → aspect-video
+const slideshowAspect = (aspect: string | null): string => aspect === "square" ? "aspect-square" :
+aspect === "4/3" ? "aspect-4/3" : aspect === "3/4" ? "aspect-3/4" : aspect === "9/16" ?
+"aspect-9/16" : "aspect-video"; // "16/9" and "free" both → aspect-video
 ```
 
 - [ ] **Step 2: Add the slideshow branch at the top of the item loop**
@@ -594,6 +596,7 @@ git commit -m "feat(slideshow): render slideshow branch in ContentWidthMedia ite
 ## Task 7: Add slides to the ContentWidthMedia mock
 
 **Files:**
+
 - Modify: `src/lib/slices/ContentWidthMedia/mocks.json`
 
 - [ ] **Step 1: Populate `slides` via the simulator (reliable mock shape)**
@@ -616,6 +619,7 @@ git commit -m "test(slideshow): add slides to ContentWidthMedia mock"
 ## Task 8: Dev fixture + Playwright verification
 
 **Files:**
+
 - Create: `src/routes/dev/slideshow-fixture/+page.svelte`
 - Create: `tests/smoke/slideshow.spec.ts`
 
@@ -749,4 +753,4 @@ Run: `git status` — only the intended files changed. `git log --oneline main..
 
 - **Spec coverage:** data model (T5), precedence + ignore-link + aspect-free fallback (T6), shared snippet component + internal snippets (T3), MediaImg quality (T1/T2), Slideshow refactor + reduced-motion inheritance (T3/T4), container-query controls + reduced-motion (T3, verified T8), mocks (T7), testing (T1/T8/T9). All covered.
 - **Known verification-time adjustment:** the exact `slides` runtime/type shape is confirmed in T5 S3 and threaded into T6's `slideUrls`; the plan flags this explicitly rather than guessing.
-- **Reduced-motion + smoke:** because the Playwright base sets `reducedMotion: "reduce"`, the auto-advance assertion lives in a `test.use({ reducedMotion: "no-preference" })` block (T8), and the default-config test asserts the *static* behavior.
+- **Reduced-motion + smoke:** because the Playwright base sets `reducedMotion: "reduce"`, the auto-advance assertion lives in a `test.use({ reducedMotion: "no-preference" })` block (T8), and the default-config test asserts the _static_ behavior.

@@ -149,22 +149,31 @@
       {@render controlButton(slideRight, "Next slide", isTransitioning, chevR)}
     </div>
 
-    <!-- Play/pause: hidden below ~400px. -->
-    <div class="hidden @min-[400px]:block absolute bottom-2 lg:bottom-6 right-2 lg:right-6 z-10">
-      {#snippet playIcon()}
-        {#if isPlaying}
-          <Pause class="size-[1em] translate-y-[-1.5px] scale-90" strokeWidth={2} />
-        {:else}
-          <Play class="size-[1em] translate-y-[-1.5px] translate-x-px scale-75" strokeWidth={2} />
-        {/if}
-      {/snippet}
-      {@render controlButton(
-        togglePlayPause,
-        isPlaying ? "Pause slideshow" : "Play slideshow",
-        false,
-        playIcon,
-      )}
-    </div>
+    <!-- Play/pause: the WCAG 2.2.2 pause mechanism. Rendered only when motion
+         actually runs (canAutoplay) — so under reduced motion there is no
+         misleading no-op button. Visible at >=400px; below that it stays in the
+         DOM but is visually hidden until keyboard focus, so small "auto-run"
+         cells still expose a pause control to keyboard/AT users without adding
+         chrome for mouse users. -->
+    {#if canAutoplay}
+      <div
+        class="opacity-0 pointer-events-none focus-within:opacity-100 focus-within:pointer-events-auto @min-[400px]:opacity-100 @min-[400px]:pointer-events-auto transition-opacity absolute bottom-2 lg:bottom-6 right-2 lg:right-6 z-10"
+      >
+        {#snippet playIcon()}
+          {#if isPlaying}
+            <Pause class="size-[1em] translate-y-[-1.5px] scale-90" strokeWidth={2} />
+          {:else}
+            <Play class="size-[1em] translate-y-[-1.5px] translate-x-px scale-75" strokeWidth={2} />
+          {/if}
+        {/snippet}
+        {@render controlButton(
+          togglePlayPause,
+          isPlaying ? "Pause slideshow" : "Play slideshow",
+          false,
+          playIcon,
+        )}
+      </div>
+    {/if}
 
     {#if hasNavDots}
       <div

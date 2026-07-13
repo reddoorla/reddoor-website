@@ -131,14 +131,21 @@ consistent with the recent poster-padding fix.
 ## Behavior & accessibility
 
 - **Container-width-responsive controls** via a Tailwind container query on the carousel
-  root (`@container`). Controls (`arrows`, `play/pause`, `dots`) are `hidden` by default and
-  shown at `@min-[400px]`. Below the threshold the pause button is hidden, so default
-  `isPlaying = true` keeps it auto-running. This gives narrow desktop cells (≈3-column) and
-  all mobile cells (full-width but narrow) a clean, chrome-less auto-run; wider cells get
-  full controls. Threshold px is tunable.
+  root (`@container`). Arrows and dots are `hidden` (display:none) by default and shown at
+  `@min-[400px]`; below the threshold the carousel auto-runs chrome-less (default
+  `isPlaying = true`). This gives narrow desktop cells (≈3-column) and all mobile cells
+  (full-width but narrow) a clean auto-run; wider cells get full controls. Threshold px is
+  tunable.
+- **Play/pause is the WCAG 2.2.2 pause mechanism** and is treated differently from the other
+  controls. It is rendered only when motion actually runs (`canAutoplay`), so under reduced
+  motion there is no misleading no-op button. At `@min-[400px]` it is visible; below the
+  threshold it stays in the DOM but is visually hidden (`opacity-0 pointer-events-none`)
+  until keyboard focus (`focus-within` reveals it). So small "auto-run" cells still expose a
+  pause control to keyboard/AT users — satisfying 2.2.2 — without adding visible chrome for
+  mouse users. (Resolution of the carousel code review's a11y finding.)
 - **`prefers-reduced-motion` wins everywhere**: no autoplay + instant/no transition,
-  regardless of cell width. On a small controls-less cell this yields a static first slide,
-  which also satisfies WCAG 2.2.2 (pause/stop for auto-moving content).
+  regardless of cell width. On a small cell this yields a static first slide (and, per the
+  above, no play/pause button, since there is no motion to pause).
 - **1 slide** → static image, no autoplay/controls. **0 slides** → not a slideshow (falls
   through to video/image).
 - Existing `aria-label`s on arrows/play-pause/dots are preserved.
