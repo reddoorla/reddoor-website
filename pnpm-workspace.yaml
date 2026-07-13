@@ -1,6 +1,3 @@
-# pnpm 11 reads project settings from here (the package.json "pnpm" field is no longer read).
-# allowBuilds replaces the removed onlyBuiltDependencies; strictDepBuilds defaults to true in v11,
-# so any package with build scripts that isn't listed here fails with ERR_PNPM_IGNORED_BUILDS.
 allowBuilds:
   "@scarf/scarf": false
   esbuild: true
@@ -24,4 +21,4 @@ minimumReleaseAge: 0
 # duplicate-class warning on every run). Force a single sharp; imagetools-core 6.x
 # transforms fine on 0.34.
 overrides:
-  sharp: "0.34.5"
+  sharp: "0.35.3"
