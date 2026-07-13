@@ -162,19 +162,14 @@
                   </div>
                 {/if}
 
-                <PrismicImage
-                  class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
-                  field={item.image}
-                  imgixParams={{ auto: ["format", "compress"] }}
-                  widths={[400, 640, 800, 1200, 1600]}
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  loading="lazy"
-                  decoding="async"
-                />
-
                 {#if item.vimeoid}
+                  <!-- Poster is absolute against the padded (pr-6/pb-6) cell, so
+                       subtract the gap when hasGap to match the video box instead
+                       of bleeding into the gap. -->
                   <PrismicImage
-                    class="w-full h-full object-cover absolute top-0 left-0 z-0"
+                    class="object-cover absolute top-0 left-0 z-0 {slice.primary.hasGap
+                      ? 'w-[calc(100%-1.5rem)] h-[calc(100%-1.5rem)]'
+                      : 'w-full h-full'}"
                     field={item.image}
                     imgixParams={{ auto: ["format", "compress"] }}
                     widths={[400, 640, 800, 1200, 1600]}
@@ -194,6 +189,16 @@
                     allow="autoplay"
                     onerror={() => hiddenVideos.add(i)}
                   ></iframe>
+                {:else}
+                  <PrismicImage
+                    class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
+                    field={item.image}
+                    imgixParams={{ auto: ["format", "compress"] }}
+                    widths={[400, 640, 800, 1200, 1600]}
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 {/if}
               </div>
             {/if}
