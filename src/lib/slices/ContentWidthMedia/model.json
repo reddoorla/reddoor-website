@@ -144,6 +144,14 @@
                   "options": ["free", "square", "4/3", "3/4", "16/9", "9/16"],
                   "default_value": "free"
                 }
+              },
+              "gallery": {
+                "type": "Link",
+                "config": {
+                  "label": "gallery (slideshow)",
+                  "select": "document",
+                  "customtypes": ["gallery"]
+                }
               }
             }
           }

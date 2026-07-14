@@ -11,7 +11,9 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
   let page;
 
   try {
-    page = await client.getByUID("showcase", params.uid);
+    // fetchLinks resolves each ContentWidthMedia item's `gallery` relationship so a
+    // slideshow item can render its gallery's images (one level: gallery.images).
+    page = await client.getByUID("showcase", params.uid, { fetchLinks: ["gallery.images"] });
   } catch {
     throw error(404, {
       message: "Showcase not found",
