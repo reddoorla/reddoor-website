@@ -1,5 +1,17 @@
 # ContentWidthMedia Slideshow Item — Implementation Plan
 
+> **⚠️ SUPERSEDED — this plan describes Approach A (repeatable media `Link`), which proved
+> unworkable in this Prismic/SliceMachine version (no usable generated type; `save_slice_data`
+> stripped the field). The feature shipped as **Approach B** (a reusable `gallery` document via
+> a content relationship). The tasks below (the `slides` field, `mediaSrcset`, `MediaImg`) are
+> **not** what was built — see the revised design doc for the as-built architecture:**
+> **`docs/superpowers/specs/2026-07-13-contentwidthmedia-slideshow-item-design.md`.**
+>
+> As-built summary: `gallery` content-relationship field on the ContentWidthMedia item →
+> reusable `gallery` custom type; slice resolves images via `fetchLinks: ["gallery.images"]`
+> on the project/showcase/page loads; slideshow branch uses `<PrismicImage>` (no `MediaImg`);
+> verified via `/dev/slideshow-fixture` + `tests/smoke/contentwidthmedia-slideshow.spec.ts`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let one item in the `ContentWidthMedia` slice's `images` group render as an inline image slideshow, reusing the existing Slideshow carousel behavior.
