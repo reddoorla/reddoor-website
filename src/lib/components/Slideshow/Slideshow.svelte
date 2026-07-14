@@ -48,6 +48,16 @@
   const translateX = $derived(-(currentIndex + count) * slideWidth);
   const displayIndex = $derived(count ? ((currentIndex % count) + count) % count : 0);
 
+  // While actively auto-advancing, the chrome fades out (video-player style) and
+  // returns on hover or keyboard focus; paused/non-autoplaying it stays put.
+  // Keyboard focus always reveals it, keeping the WCAG 2.2.2 pause reachable.
+  const chromeHidden = $derived(canAutoplay && isPlaying);
+  const controlReveal = $derived(
+    chromeHidden
+      ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+      : "opacity-100",
+  );
+
   const stopAutoPlay = () => {
     if (sliderInterval) {
       clearInterval(sliderInterval);
@@ -111,13 +121,13 @@
     {onclick}
     {disabled}
     aria-label={label}
-    class="h-6 w-6 rounded-full border-mid border-2 p-1 flex align-middle justify-center cursor-pointer transition-all duration-300 active:-translate-y-1 hover:bg-primary hover:border-primary hover:text-white disabled:opacity-50 disabled:cursor-default"
+    class="h-6 w-6 rounded-full border-mid border-1 p-1 flex items-center justify-center cursor-pointer transition-all duration-300 active:-translate-y-1 hover:bg-primary hover:border-primary hover:text-white disabled:opacity-50 disabled:cursor-default"
   >
     {@render inner()}
   </button>
 {/snippet}
 
-<div class="@container w-full h-full relative overflow-hidden {aspectClass}">
+<div class="@container group w-full h-full relative overflow-hidden {aspectClass}">
   {#if isCarousel}
     <div
       use:swipe
@@ -133,65 +143,73 @@
       {/each}
     </div>
 
-    <!-- Prev/next: hidden below ~400px container width (auto-run). -->
-    <div
-      class="ml-8 h-6 w-[72px] hidden @min-[400px]:flex justify-between z-10 absolute bottom-2 lg:bottom-6 left-0"
-    >
-      {#snippet chevL()}<ChevronLeft
-          class="size-[1em] translate-y-[-1.75px] translate-x-[-0.75px] scale-90"
-          strokeWidth={2}
-        />{/snippet}
-      {#snippet chevR()}<ChevronRight
-          class="size-[1em] translate-y-[-1.75px] translate-x-[0.75px] scale-90"
-          strokeWidth={2}
-        />{/snippet}
-      {@render controlButton(slideLeft, "Previous slide", isTransitioning, chevL)}
-      {@render controlButton(slideRight, "Next slide", isTransitioning, chevR)}
+    <!-- Controls bar: prev/next (left), nav dots (floated centered), play/pause
+         (right) as three equal flex columns, so the dots stay centered on the
+         carousel regardless of the side controls. Below the ~400px container
+         width the arrows and dots collapse (auto-run, chrome-less); while
+         auto-advancing each control fades out and returns on hover or keyboard
+         focus (keeping the WCAG 2.2.2 pause reachable). -->
+    <div class="absolute bottom-2 lg:bottom-6 left-0 right-0 px-6 flex items-center z-10">
+      <div
+        class="flex-1 hidden @min-[400px]:flex items-center justify-start gap-3 transition-opacity duration-300 {controlReveal}"
+      >
+        {#snippet chevL()}<ChevronLeft
+            class="size-3.5 -translate-x-px"
+            strokeWidth={1.5}
+          />{/snippet}
+        {#snippet chevR()}<ChevronRight
+            class="size-3.5 translate-x-px"
+            strokeWidth={1.5}
+          />{/snippet}
+        {@render controlButton(slideLeft, "Previous slide", isTransitioning, chevL)}
+        {@render controlButton(slideRight, "Next slide", isTransitioning, chevR)}
+      </div>
+
+      <div
+        class="flex-1 flex items-center justify-center transition-opacity duration-300 {controlReveal}"
+      >
+        {#if hasNavDots}
+          <div class="hidden @min-[400px]:flex items-center gap-1.5">
+            {#each slides as _, i (i)}
+              <button
+                onclick={() => goToSlide(i)}
+                disabled={displayIndex === i}
+                class="w-2 h-2 rounded-full transition-all duration-300 opacity-60 hover:opacity-100 {displayIndex ===
+                i
+                  ? 'bg-primary'
+                  : 'bg-mid'}"
+                aria-label="Go to slide {i + 1}"
+              ></button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Play/pause: the WCAG 2.2.2 pause mechanism, rendered only when motion
+           actually runs (canAutoplay) — so under reduced motion there is no
+           misleading no-op button. Faded out while auto-advancing and revealed
+           on hover or keyboard focus; keyboard focus keeps it reachable at any
+           size. -->
+      <div
+        class="flex-1 flex items-center justify-end transition-opacity duration-300 {controlReveal}"
+      >
+        {#if canAutoplay}
+          {#snippet playIcon()}
+            {#if isPlaying}
+              <Pause class="size-3.5" strokeWidth={1.5} />
+            {:else}
+              <Play class="size-3.5" strokeWidth={1.5} />
+            {/if}
+          {/snippet}
+          {@render controlButton(
+            togglePlayPause,
+            isPlaying ? "Pause slideshow" : "Play slideshow",
+            false,
+            playIcon,
+          )}
+        {/if}
+      </div>
     </div>
-
-    <!-- Play/pause: the WCAG 2.2.2 pause mechanism. Rendered only when motion
-         actually runs (canAutoplay) — so under reduced motion there is no
-         misleading no-op button. Visible at >=400px; below that it stays in the
-         DOM but is visually hidden until keyboard focus, so small "auto-run"
-         cells still expose a pause control to keyboard/AT users without adding
-         chrome for mouse users. -->
-    {#if canAutoplay}
-      <div
-        class="opacity-0 pointer-events-none focus-within:opacity-100 focus-within:pointer-events-auto @min-[400px]:opacity-100 @min-[400px]:pointer-events-auto transition-opacity absolute bottom-2 lg:bottom-6 right-2 lg:right-6 z-10"
-      >
-        {#snippet playIcon()}
-          {#if isPlaying}
-            <Pause class="size-[1em] translate-y-[-1.5px] scale-90" strokeWidth={2} />
-          {:else}
-            <Play class="size-[1em] translate-y-[-1.5px] translate-x-px scale-75" strokeWidth={2} />
-          {/if}
-        {/snippet}
-        {@render controlButton(
-          togglePlayPause,
-          isPlaying ? "Pause slideshow" : "Play slideshow",
-          false,
-          playIcon,
-        )}
-      </div>
-    {/if}
-
-    {#if hasNavDots}
-      <div
-        class="hidden @min-[400px]:flex absolute bottom-2 lg:bottom-6 left-1/2 -translate-x-1/2 gap-1.5 z-10"
-      >
-        {#each slides as _, i (i)}
-          <button
-            onclick={() => goToSlide(i)}
-            disabled={displayIndex === i}
-            class="w-2 h-2 rounded-full transition-all duration-300 opacity-60 hover:opacity-100 {displayIndex ===
-            i
-              ? 'bg-primary'
-              : 'bg-mid'}"
-            aria-label="Go to slide {i + 1}"
-          ></button>
-        {/each}
-      </div>
-    {/if}
   {:else}
     <!-- 0 or 1 slide: render the single slide, no carousel chrome. -->
     <div class="h-full w-full">

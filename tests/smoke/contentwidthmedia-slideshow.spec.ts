@@ -9,8 +9,7 @@ const SECTION = '[data-slice-type="content_width_image"]';
 
 // The carousel detects reduced motion via window.matchMedia (JS), and
 // Playwright's `reducedMotion` emulation doesn't reach matchMedia in this setup.
-// Stub matchMedia directly so we can drive that code path deterministically in
-// both directions.
+// Stub matchMedia directly so we can drive that code path deterministically.
 async function forceReducedMotion(page: Page, reduce: boolean) {
   await page.addInitScript((reduce: boolean) => {
     const real = window.matchMedia.bind(window);
@@ -30,7 +29,7 @@ async function forceReducedMotion(page: Page, reduce: boolean) {
 }
 
 test.describe("ContentWidthMedia slideshow item", () => {
-  test("renders the gallery as a carousel with working controls", async ({ page }) => {
+  test("renders the gallery images as a carousel", async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on("console", (m) => {
       // Ignore failed-resource noise (external Unsplash images); assert only on
@@ -40,7 +39,7 @@ test.describe("ContentWidthMedia slideshow item", () => {
       }
     });
 
-    await forceReducedMotion(page, false); // motion allowed → autoplay + pause control
+    await forceReducedMotion(page, false);
     await page.goto(FIXTURE, { waitUntil: "load" });
 
     const section = page.locator(SECTION);
@@ -50,17 +49,35 @@ test.describe("ContentWidthMedia slideshow item", () => {
     // 3-image track), so there are well more than the 3 source images.
     await expect.poll(() => section.locator("img").count()).toBeGreaterThanOrEqual(3);
 
-    // Prev/next are visible on a wide (>=400px container) cell.
-    await expect(section.getByRole("button", { name: "Previous slide" })).toBeVisible();
-    await expect(section.getByRole("button", { name: "Next slide" })).toBeVisible();
-
-    // Play/pause (the WCAG 2.2.2 pause mechanism) is present and toggles.
-    const pause = section.getByRole("button", { name: "Pause slideshow" });
-    await expect(pause).toBeVisible();
-    await pause.click();
-    await expect(section.getByRole("button", { name: "Play slideshow" })).toBeVisible();
-
     expect(consoleErrors).toEqual([]);
+  });
+
+  test("hides controls while autoplaying, reveals them on hover, keeps them once paused", async ({
+    page,
+  }) => {
+    await forceReducedMotion(page, false); // motion allowed → autoplay runs
+    await page.goto(FIXTURE, { waitUntil: "load" });
+
+    const section = page.locator(SECTION);
+    const carousel = section.locator(".\\@container").first();
+    const next = section.getByRole("button", { name: "Next slide" });
+    // The controls' wrapper carries the fade; read its computed opacity.
+    const controlsOpacity = () =>
+      next.evaluate((el) => getComputedStyle(el.parentElement as HTMLElement).opacity);
+
+    // Auto-advancing → chrome faded out.
+    await expect.poll(controlsOpacity).toBe("0");
+
+    // Hovering the carousel reveals the chrome.
+    await carousel.hover();
+    await expect.poll(controlsOpacity).toBe("1");
+
+    // The revealed pause control works, and once paused the chrome stays put even
+    // after the pointer leaves (no longer auto-advancing).
+    await section.getByRole("button", { name: "Pause slideshow" }).click();
+    await page.mouse.move(5, 5);
+    await expect.poll(controlsOpacity).toBe("1");
+    await expect(section.getByRole("button", { name: "Play slideshow" })).toBeVisible();
   });
 
   test("omits the pause control under reduced motion (WCAG 2.2.2)", async ({ page }) => {
@@ -73,8 +90,10 @@ test.describe("ContentWidthMedia slideshow item", () => {
     // Images still render as a static carousel...
     await expect.poll(() => section.locator("img").count()).toBeGreaterThanOrEqual(3);
 
-    // ...but nothing auto-advances, so there is no misleading no-op pause button.
+    // ...but nothing auto-advances, so there is no misleading no-op pause button,
+    // and the nav arrows stay put (no autoplay chrome to hide behind).
     await expect(section.getByRole("button", { name: /slideshow/ })).toHaveCount(0);
+    await expect(section.getByRole("button", { name: "Next slide" })).toBeVisible();
   });
 
   test.describe("on a narrow cell", () => {
