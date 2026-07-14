@@ -58,6 +58,63 @@ type ContentRelationshipFieldWithData<
 }[Exclude<TCustomType[number], string>["id"]];
 
 /**
+ * Item in *Gallery → images*
+ */
+export interface GalleryDocumentDataImagesItem {
+  /**
+   * image field in *Gallery → images*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: *None*
+   * - **API ID Path**: gallery.images[].image
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  image: prismic.ImageField<never>;
+}
+
+/**
+ * Content for Gallery documents
+ */
+interface GalleryDocumentData {
+  /**
+   * title field in *Gallery*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: gallery.title
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  title: prismic.KeyTextField;
+
+  /**
+   * images field in *Gallery*
+   *
+   * - **Field Type**: Group
+   * - **Placeholder**: *None*
+   * - **API ID Path**: gallery.images[]
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+   */
+  images: prismic.GroupField<Simplify<GalleryDocumentDataImagesItem>>;
+}
+
+/**
+ * Gallery document from Prismic
+ *
+ * - **API ID**: `gallery`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type GalleryDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<
+  Simplify<GalleryDocumentData>,
+  "gallery",
+  Lang
+>;
+
+/**
  * Item in *Logo Soup → brands*
  */
 export interface LogoSoupDocumentDataBrandsItem {
@@ -890,6 +947,7 @@ export type TwentyForTwentyDocument<Lang extends string = string> = prismic.Pris
 >;
 
 export type AllDocumentTypes =
+  | GalleryDocument
   | LogoSoupDocument
   | OpeningAnimationDocument
   | PageDocument
@@ -962,6 +1020,16 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
    * - **Documentation**: https://prismic.io/docs/fields/select
    */
   aspect: prismic.SelectField<"free" | "square" | "4/3" | "3/4" | "16/9" | "9/16", "filled">;
+
+  /**
+   * gallery (slideshow) field in *ContentWidthMedia → Default → Primary → images*
+   *
+   * - **Field Type**: Content Relationship
+   * - **Placeholder**: *None*
+   * - **API ID Path**: content_width_image.default.primary.images[].gallery
+   * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+   */
+  gallery: prismic.ContentRelationshipField<"gallery">;
 }
 
 /**
@@ -1792,6 +1860,9 @@ declare module "@prismicio/client" {
 
   namespace Content {
     export type {
+      GalleryDocument,
+      GalleryDocumentData,
+      GalleryDocumentDataImagesItem,
       LogoSoupDocument,
       LogoSoupDocumentData,
       LogoSoupDocumentDataBrandsItem,
