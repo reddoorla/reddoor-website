@@ -1,0 +1,465 @@
+{
+  "source": {
+    "figmaFile": "FwaZy5Jz0JsbJjJRvytnmY",
+    "figmaPage": "Project Page Design (node 799:786)",
+    "note": "Copy parsed from Figma <text> layer metadata; each frame maps 1:1 to a project doc by masthead title."
+  },
+  "entries": [
+    {
+      "frame": "814:34",
+      "uid": "rubrik-zero-labs",
+      "id": "ac6cAhAAACAACXcG",
+      "title": "Rubrik Zero Labs",
+      "dropExistingLead": true,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "Rubrik Zero Labs is a cybersecurity research team whose existing brand felt over-designed and trendy for the seriousness of its content. They also had a labor intensive design system that made every time-critical report slow and expensive to produce.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "On-Market Brand Identity",
+            "body": "A sophisticated approach invites you into in-depth insights on data security."
+          },
+          {
+            "title": "Efficient Workflow Saving Hours",
+            "body": "We cut hours off production and saved thousands on reports."
+          },
+          {
+            "title": "“Exceeding Every Metric”",
+            "body": "Quote from our client when asking about expectations and business goals"
+          }
+        ],
+        "accordion": {
+          "title": "About the Rubrik Zero Labs",
+          "body": "Rubrik Zero Labs is a cybersecurity research and thought leadership resource designed to provide actionable, vendor-agnostic insights to help organizations reduce data security risks. By analyzing real-world threats and surveying global IT and security leaders, it uncovers critical trends ranging from ransomware behavior to identity-driven exploits. They foster public advocacy, enhance community defense, and help businesses build practical cyber resilience against evolving threats."
+        }
+      }
+    },
+    {
+      "frame": "824:218",
+      "uid": "ceo-la",
+      "id": "Zr1RnBEAACkAI2Eb",
+      "title": "Chief Executive Office of LA County",
+      "dropExistingLead": true,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "The CEO’s office carries out the business of the county and initiatives set forth by an elected Board of Supervisors. They required a brand that communicated confidence as a public department with the operational complexity, scope and budget that exceeds many corporations.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "A Strong Mark, Period.",
+            "body": "A confident monogram and a red period that marks the \"final word” symbolizing the authority of the CEO's office on budget and hiring in the county."
+          },
+          {
+            "title": "A Flexible System for Unity",
+            "body": "We gave every department a guide for individuality within a consistent brand system that could scale with the many needs of the county."
+          },
+          {
+            "title": "Exude Presence and Authority",
+            "body": "The CEO now has a brand that expresses its authority and responsibility over LA County."
+          }
+        ],
+        "accordion": {
+          "title": "About the CEO of Los Angeles",
+          "body": "The Chief Executive Officer (CEO) of Los Angeles County serves as the top administrative manager responsible for the day-to-day operations and fiscal health of the nation's largest municipal government. Appointed by the elected five-member Board of Supervisors, the CEO translates political policies into county-wide action by managing an organization of over 84,000 employees. The core duties of the office include constructing and overseeing a multi-billion dollar budget, directing labor union negotiations, coordinating state and federal legislative advocacy, and managing the county's vast real estate portfolio. Additionally, the CEO leads strategic, cross-departmental initiatives targeting critical regional challenges like homelessness, poverty alleviation, and infrastructure readiness for major upcoming events."
+        }
+      }
+    },
+    {
+      "frame": "828:1059",
+      "uid": "msot",
+      "id": "Z1JP4BEAACcAxjgZ",
+      "title": "Medical Solutions of Texas",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "MSOT is a veteran-owned medical supply broker that acts as the bridge between medical supply companies and the Department of Defense and VA hospitals. They lacked a brand, identity and website to appear legitimate in the eyes of the medical community or the military end user.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Tactical Identity",
+            "body": "The brand that was inspired by the industry: military lettering and logistics shipping containers."
+          },
+          {
+            "title": "Military and Medical",
+            "body": "Balance between two industries was key to make the complex government sales process clear."
+          },
+          {
+            "title": "Ready to Deliver",
+            "body": "The approach was lead with a tactical \"we get it done\" mentality to reassure their partners and align with the end-users."
+          }
+        ],
+        "accordion": null
+      }
+    },
+    {
+      "frame": "828:1387",
+      "uid": "gallery-sonder",
+      "id": "ZyqgFhEAACcAQsOH",
+      "title": "Gallery Sonder",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "Going against the grain of typical sales-focused galleries, Gallery Sonder wanted a brand representative of their immersive, community-oriented space for artists and enthusiasts. Our collaborative effort was focused on a design that invites you into the unique narrative of each individual artist and celebrate their work.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "An Invitation to Explore",
+            "body": "A \"portal\" identity that draws people in through an approachable yet sophisticated experience across signage, digital spaces, and invitations"
+          },
+          {
+            "title": "Looking Established Day 1",
+            "body": "The business goal was to launch not only a compelling brand but look established on day one to compete in the Orange County market."
+          },
+          {
+            "title": "Client Needed Easy-to-use CMS",
+            "body": "To empower the gallery into this new chapter, we developed a robust, yet easy to use, CMS so the client can take ownership of the website content."
+          }
+        ],
+        "accordion": null
+      }
+    },
+    {
+      "frame": "828:1125",
+      "uid": "summittrek",
+      "id": "Z1J7nREAACsAxnfz",
+      "title": "SummitTrek",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "SummitTrek need a refreshed brand to support the deep work their clients did while engaging them in the process. We've enjoyed a lengthy partnership and consider it an honor to create tools for their coaching practice that bring lasting impact in the lives and businesses of their clients.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Minimal and Compelling",
+            "body": "A refreshed system of workbooks, materials, and web supports the process instead of competing with it."
+          },
+          {
+            "title": "10-yr Partnership",
+            "body": "Our all-In support allows for frequently updated materials, maintaining Consistency across all touch points giving their clients a seamless experience"
+          },
+          {
+            "title": "On Their Behalf",
+            "body": "Regular updates let us produce higher-quality materials at lower cost, while keeping everything consistent and building confidence in every marketing piece."
+          }
+        ],
+        "accordion": null
+      }
+    },
+    {
+      "frame": "828:1517",
+      "uid": "trinity-law-school",
+      "id": "Zrz_jxEAACsAIuf8",
+      "title": "Trinity Law School",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "A distinctively Christian law school with a real purpose went unnoticed at career fairs because it’s identity didn’t speak to its market. We stepped in to build marketing materials that could connect with prospective students ready to fight injustice.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Standing Out From the Competition",
+            "body": "A bold, clutter-free view book that turned heads, grew admissions, and gave Trinity legitimacy from a single print piece."
+          },
+          {
+            "title": "A Book with a Greater Purpose",
+            "body": "Each time the Viewbook was re-designed, the direction was applied towards other marketing materials for consistency."
+          },
+          {
+            "title": "15 Years of Viewbooks",
+            "body": "Since 2011, Trinity as trusted Reddoor to deliver a compelling Viewbook every year."
+          }
+        ],
+        "accordion": {
+          "title": "About Trinity Law School",
+          "body": "Trinity Law School is a private, Christian law school located in Santa Ana, California, serving as the law campus for the Trinity International University system. The institution provides a legal education rooted in the Judeo-Christian tradition, emphasizing the integration of law, biblical theology, and international human rights. Accredited by the State Bar of California, the school offers flexible on-campus and online academic pathways, primarily including its traditional Juris Doctor (JD) degree and a versatile Master of Legal Studies (MLS) program."
+        }
+      }
+    },
+    {
+      "frame": "826:546",
+      "uid": "progress-lighting",
+      "id": "Zr01_xEAACoAIzlq",
+      "title": "Progress Lighting",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "As a lighting company that works with thousands of products, it would be easy to sacrifice beauty for utility. We were challenged with creating marketing materials that were both beautiful and functional—a representation of the company’s products.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Beauty Meets Functionality",
+            "body": "A catalog and marketing system built to handle that volume without sacrificing design."
+          },
+          {
+            "title": "Award-Winning Design",
+            "body": "Platinum and Gold MarCom Awards for outstanding communication and design."
+          },
+          {
+            "title": "A True Collaboration",
+            "body": "20+ years working alongside Progress to weave consistency through brand, marketing and packaging."
+          }
+        ],
+        "accordion": {
+          "title": "About Progress Lighting",
+          "body": "Progress Lighting is a premier designer and manufacturer of residential and light commercial decorative lighting solutions. Headquartered in Greenville, South Carolina, the company offers a robust catalog of finely crafted fixtures, ranging from statement chandeliers and pendants to energy-efficient LED and durable outdoor lighting. The brand focuses heavily on combining aesthetic appeal with stellar performance, delivering style-forward designs that elevate modern interior spaces. Today, Progress Lighting serves as a primary supplier and trusted partner for DIY homeowners, production homebuilders, electrical contractors, and architects across North America."
+        }
+      }
+    },
+    {
+      "frame": "828:1191",
+      "uid": "canvas-worldwide",
+      "id": "Zr1JrxEAAC0AI1Ww",
+      "title": "CANVAS Worldwide",
+      "dropExistingLead": true,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "As a brand-new global media agency, CANVAS Worldwide wanted to “do business differently”; they needed an identity on a tight timeline to communicate that message from day one. People needed to see the brand as a fresh, creative, innovative new player who they feel intrigued inspired, and curious to explore.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Straight A Design",
+            "body": "The \"implied frame\" identity draws from the company's philosophy: you can use imagination to achieve almost anything on a blank canvas."
+          },
+          {
+            "title": "Collective Buy-In",
+            "body": "The design was met with a standing ovation from leadership and carried the brand through launch and hiring."
+          },
+          {
+            "title": "Collaborative Effort",
+            "body": "On a tight timeline, Canvas Worldwide trusted us to deliver a bold, thought-provoking solution—the launching point for a hiring campaign that made waves across the agency world."
+          }
+        ],
+        "accordion": {
+          "title": "About Canvas Worldwide",
+          "body": "The \"implied frame\" identity draws from the company's philosophy: you can use imagination to achieve almost anything on a blank canvas."
+        }
+      }
+    },
+    {
+      "frame": "828:1452",
+      "uid": "composition-hospitality",
+      "id": "Zr0-ohEAAC0AI0WV",
+      "title": "Composition Hospitality",
+      "dropExistingLead": true,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "A high-end custom furniture maker entering the hospitality market as a David among Goliaths, Composition Hospitality needed to come out of the gate strong against far bigger, established competitors.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Endless Combinations",
+            "body": "With a semi-fluid identity, based on the arrangement of the three \"O's\" from the word composition The logo, like the service, is simple, flexible and versatile."
+          },
+          {
+            "title": "Release the Production Backlog",
+            "body": "The brand helped grow a production backlog and double sales year over year for five straight years, from $1M to $16M."
+          },
+          {
+            "title": "Service First",
+            "body": "A fluid identity that reflects how the company solves unique problems in unexpected ways and creates breathtaking furniture for its clients."
+          }
+        ],
+        "accordion": {
+          "title": "About Composition Hospitality",
+          "body": "Manufacturing Fine Furnishings for the world's most exceptional hotels and resorts since 2006. Composition hangs its hat on Innovative Service + Resourceful Solutions. They've earned a reputation for the highest level of service in the industry, and have worked with some of the most talented craftsmen, artisans, mills, shops, factories and vendors around the globe. Their mission is to provide superior products that are a perfect fit for the composition of each clients installation."
+        }
+      }
+    },
+    {
+      "frame": "827:858",
+      "uid": "st-james-episcopal-school",
+      "id": "Zrv4jxMAACcA0jWO",
+      "title": "St. James' Episcopal School",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "For over 50 years, St. James’ Episcopal School has been nurturing students with an education that went beyond the classroom. Their website and campus lacked the visual energy to compliment these young leaders; we were tasked with developing a consistent visual language that spoke to the core of what it means to belong at St. James’.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Brings Joy Back to School",
+            "body": "With such a vast array of touch points to be tackled, each project shined with a bit of its own personality."
+          },
+          {
+            "title": "Communicates Their Four Pillars",
+            "body": "A cohesive identity rooted in the school's four pillars that tells its story across campus and marketing materials."
+          },
+          {
+            "title": "Consistent Brand Experience",
+            "body": "From business cards to signage and web, we worked together to balance outlets of creativity with sophistication in the school environment."
+          }
+        ],
+        "accordion": null
+      }
+    },
+    {
+      "frame": "828:1256",
+      "uid": "aura",
+      "id": "ZyqMuhEAAC0AQqat",
+      "title": "AURA™ Optical Gas Imaging",
+      "dropExistingLead": true,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "AURA™, a best-in-class methane-detection camera headed into brutal oilfield conditions, needed a name and brand as rugged and credible as the hardware. Our effort included naming, branding and collaboration on the product design of the AURA™ OGI camera.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Brand Built to Last",
+            "body": "The Aura camera was built to survive the harshest conditions: hundred-degree heat, heavy dust, and rough handling by oil and gas crews, not to mention a truck-bed ride between every job site."
+          },
+          {
+            "title": "Made to be Seen",
+            "body": "Our collaboration resulted in yellow-and-black cerakote and custom NANUK cases, designed to survive heat, dust, and hard use."
+          },
+          {
+            "title": "World Changing",
+            "body": "The brand and design had to be as revolutionary as the AURA’s capabilities: double the resolution of any competing methane-detection tool, letting companies cut emissions and stay ahead of regulations."
+          }
+        ],
+        "accordion": {
+          "title": "About Aura™",
+          "body": "The AURA Optical Gas Imaging (OGI) camera was created in partnership with Sherpa Design for ChampionX. The AURA camera is the best-in-class optical gas imaging camera. It's primary function is to detect methane in oil field operations. Methane detection is very important to energy companies, first, because it is harmful to the environment and second because there are stringent regulations and penalties for releasing methane into the atmosphere."
+        }
+      }
+    },
+    {
+      "frame": "828:1582",
+      "uid": "worthe",
+      "id": "Zrz33xEAACwAItvL",
+      "title": "The Burbank Portfolio",
+      "dropExistingLead": true,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "The challenge was to create one voice for a collection of branded properties and market to companies that want to be in the center of the media industry, Burbank. As we dug in, it became apparent that Burbank was and is \"the cradle of content creation\" and some would arguably say – the entertainment capital of the world.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "A System that Rooted in Simplicity",
+            "body": "With a simplified type and color system, each building had its own personality but still belonged to the same family"
+          },
+          {
+            "title": "Setting the Foundation",
+            "body": "The system has taken hold as a timeless brand that has the ability to evolve for over a decade."
+          },
+          {
+            "title": "Consistent Delivery and Results",
+            "body": "Our long-term partnership of nearly ten years has continued to through regular marketing engagements using the brand."
+          }
+        ],
+        "accordion": {
+          "title": "About The Burbank Portfolio",
+          "body": "Worthe Real Estate Group and Blackstone co-own a collection of thirteen office buildings in Burbank that total over 3,000,000 SF of office space. They have six unique brands, one of which is a 19-acre campus with it's own state of art movie screening theater. Our unique opportunity was to unify and market the portfolio of properties as a single collection named: The Burbank Portfolio."
+        }
+      }
+    },
+    {
+      "frame": "827:925",
+      "uid": "1-800-dentist",
+      "id": "ZsSyQBEAACwA2Dz3",
+      "title": "1-800-DENTIST",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "A well-established dental network once pulled serious traffic and thought leadership, until a previous vendor trashed the site and left a skeleton behind. To rectify the situation, we needed to design a website that pulls traffic and guides patients towards making the best decision for their dental health.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Achieved Business Goals through Tech",
+            "body": "We brought real traffic through a location-based search tool tied into their API network of 25,000 dentists."
+          },
+          {
+            "title": "15x Growth in Web Traffic",
+            "body": "Monthly visitors went from hundreds to 773,000 unique visitors over the last twelve months."
+          },
+          {
+            "title": "A Website that Creates trust",
+            "body": "The design changed from a sketchy template to a bespoke website worthy of someone’s search."
+          }
+        ],
+        "accordion": null
+      }
+    },
+    {
+      "frame": "828:1321",
+      "uid": "hearts-and-minds",
+      "id": "ZselDREAACkAT6pk",
+      "title": "Hearts & Minds",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "With only a vision, Crossmovement Legacy knew they wanted to raise awareness for LA's unhoused youth and their mental health, but the substance behind it didn't exist yet. We took this opportunity to make a difference, take the lead, and open Hearts & Minds.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Compelling Content Created In-house",
+            "body": "We did the research to connect people to the story of those experiencing homelessness and mental health crises."
+          },
+          {
+            "title": "Story Driven Narrative",
+            "body": "The site’s simple structure and story-driven narrative helps move people into action to support their community."
+          },
+          {
+            "title": "Inspiring Action for the Community",
+            "body": "We vetted the LA organizations actually doing the work to build an impactful resource for those wanting to help."
+          }
+        ],
+        "accordion": null
+      }
+    },
+    {
+      "frame": "828:1648",
+      "uid": "the-texas-organ-sharing-alliance",
+      "id": "Zr0ubREAACcAIy5w",
+      "title": "Texas Organ Sharing Alliance",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "A life-saving organ donation nonprofit needed a brand to carry the full weight and meaning of its mission, while speaking with heart to both grieving donor families and waiting recipients.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "Life-Saving Colors",
+            "body": "The heart is a source of warmth, life and generosity, its blue-to-red color gradation representing how the loss of life can lead to new life."
+          },
+          {
+            "title": "Rich in Meaning",
+            "body": "The heart shape blends into a partial infinity symbol, representing the continuation of life via organ donation. The infinity symbol alone can be read as the number eight, which is the number of lives a single organ donor can save."
+          },
+          {
+            "title": "Standing Ovation",
+            "body": "A dynamic, meaning-rich logo, was met with a standing ovation from the board."
+          }
+        ],
+        "accordion": null
+      }
+    },
+    {
+      "frame": "828:992",
+      "uid": "revogen",
+      "id": "aBVF_xEAACgAmpDf",
+      "title": "Revogen",
+      "dropExistingLead": false,
+      "intro": {
+        "eyebrow": "The Challenge",
+        "lead": "Revogen produces revolutionary products, but their brand identity fell short. On the shelf, they disappeared between their clinical competitors, lacking a vision reflective of Revogen's innovative and high-quality products that help patients heal.",
+        "solutionEyebrow": "Our Solution",
+        "columns": [
+          {
+            "title": "A Brand to Remember",
+            "body": "We created a distinctive identity to express each products unique purpose on the shelf."
+          },
+          {
+            "title": "Designed to Grow with the Products",
+            "body": "The scalable system could grow with the product line across packaging, and web."
+          },
+          {
+            "title": "A Source of Pride for the Team",
+            "body": "The brand is a source of pride for a small but mighty company."
+          }
+        ],
+        "accordion": null
+      }
+    }
+  ]
+}
