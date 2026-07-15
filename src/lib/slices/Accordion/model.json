@@ -1,0 +1,61 @@
+{
+  "id": "accordion",
+  "type": "SharedSlice",
+  "name": "Accordion",
+  "description": "Accordion",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Collapsible disclosure items with a plus/minus toggle",
+      "imageUrl": "",
+      "primary": {
+        "defaultOpen": {
+          "type": "Boolean",
+          "config": {
+            "label": "defaultOpen",
+            "placeholder_false": "collapsed",
+            "placeholder_true": "expanded",
+            "default_value": false
+          }
+        },
+        "items": {
+          "type": "Group",
+          "config": {
+            "label": "items",
+            "fields": {
+              "title": {
+                "type": "Text",
+                "config": {
+                  "label": "title",
+                  "placeholder": "e.g. About Canvas Worldwide"
+                }
+              },
+              "body": {
+                "type": "StructuredText",
+                "config": {
+                  "label": "body",
+                  "placeholder": "",
+                  "allowTargetBlank": true,
+                  "multi": "paragraph,strong,em,hyperlink"
+                }
+              }
+            }
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}
