@@ -20,5 +20,16 @@ minimumReleaseAge: 0
 # land on disk (and macOS logs a "GNotificationCenterDelegate implemented in both …"
 # duplicate-class warning on every run). Force a single sharp; imagetools-core 6.x
 # transforms fine on 0.34.
+#
+# Transitive-dependency security pins (same idiom as reddoor-starter #53 /
+# reddoor-maintenance). Cleared 2026-07-15:
+#   - uuid <11.1.1: missing buffer bounds check in v3/v5/v6 (GHSA-w5hq-g745-h8pq) — dev-only,
+#     via the slice-machine chain
+#   - cookie <0.7.0: out-of-bounds chars in name/path/domain (GHSA-pxg6-pf52-xh8x) — the one
+#     runtime-scope alert, via @sveltejs/kit
+#   - qs: already resolves ≥6.15.2 here; capped anyway for fleet consistency (GHSA-q8mj-m7cp-5q26)
 overrides:
   sharp: "0.35.3"
+  qs@<6.15.2: ">=6.15.2 <7"
+  uuid@<11.1.1: ">=11.1.1"
+  cookie@<0.7.0: ">=0.7.0 <1"
