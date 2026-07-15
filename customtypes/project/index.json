@@ -126,6 +126,15 @@
             },
             "rich_text": {
               "type": "SharedSlice"
+            },
+            "lead_text": {
+              "type": "SharedSlice"
+            },
+            "text_columns": {
+              "type": "SharedSlice"
+            },
+            "accordion": {
+              "type": "SharedSlice"
             }
           }
         }

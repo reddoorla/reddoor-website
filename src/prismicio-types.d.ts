@@ -345,7 +345,7 @@ interface PageDocumentData {
    * - **Tab**: Main
    * - **Documentation**: https://prismic.io/docs/slices
    */
-  slices: prismic.SliceZone<PageDocumentDataSlicesSlice>; /**
+  slices: prismic.SliceZone<PageDocumentDataSlicesSlice> /**
    * Meta Title field in *Page*
    *
    * - **Field Type**: Text
@@ -353,7 +353,7 @@ interface PageDocumentData {
    * - **API ID Path**: page.meta_title
    * - **Tab**: SEO & Metadata
    * - **Documentation**: https://prismic.io/docs/fields/text
-   */
+   */;
   meta_title: prismic.KeyTextField;
 
   /**
@@ -400,7 +400,10 @@ type ProjectDocumentDataSlicesSlice =
   | ValueBlockSlice
   | ScreenWidthImageSlice
   | ContentWidthImageSlice
-  | RichTextSlice;
+  | RichTextSlice
+  | LeadTextSlice
+  | TextColumnsSlice
+  | AccordionSlice;
 
 /**
  * Content for project documents
@@ -542,7 +545,7 @@ interface ProjectDocumentData {
    * - **Tab**: Main
    * - **Documentation**: https://prismic.io/docs/slices
    */
-  slices: prismic.SliceZone<ProjectDocumentDataSlicesSlice>; /**
+  slices: prismic.SliceZone<ProjectDocumentDataSlicesSlice> /**
    * Meta Title field in *project*
    *
    * - **Field Type**: Text
@@ -550,7 +553,7 @@ interface ProjectDocumentData {
    * - **API ID Path**: project.meta_title
    * - **Tab**: SEO & Metadata
    * - **Documentation**: https://prismic.io/docs/fields/text
-   */
+   */;
   meta_title: prismic.KeyTextField;
 
   /**
@@ -779,7 +782,7 @@ interface ShowcaseDocumentData {
    * - **Tab**: Main
    * - **Documentation**: https://prismic.io/docs/slices
    */
-  slices: prismic.SliceZone<ShowcaseDocumentDataSlicesSlice>; /**
+  slices: prismic.SliceZone<ShowcaseDocumentDataSlicesSlice> /**
    * Meta Title field in *showcase*
    *
    * - **Field Type**: Text
@@ -787,7 +790,7 @@ interface ShowcaseDocumentData {
    * - **API ID Path**: showcase.meta_title
    * - **Tab**: SEO & Metadata
    * - **Documentation**: https://prismic.io/docs/fields/text
-   */
+   */;
   meta_title: prismic.KeyTextField;
 
   /**
@@ -955,6 +958,95 @@ export type AllDocumentTypes =
   | ProjectDocument
   | ShowcaseDocument
   | TwentyForTwentyDocument;
+
+/**
+ * Item in *Accordion → Default → Primary → items*
+ */
+export interface AccordionSliceDefaultPrimaryItemsItem {
+  /**
+   * title field in *Accordion → Default → Primary → items*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: e.g. About Canvas Worldwide
+   * - **API ID Path**: accordion.default.primary.items[].title
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  title: prismic.KeyTextField;
+
+  /**
+   * body field in *Accordion → Default → Primary → items*
+   *
+   * - **Field Type**: Rich Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: accordion.default.primary.items[].body
+   * - **Documentation**: https://prismic.io/docs/fields/rich-text
+   */
+  body: prismic.RichTextField;
+}
+
+/**
+ * Primary content in *Accordion → Default → Primary*
+ */
+export interface AccordionSliceDefaultPrimary {
+  /**
+   * defaultOpen field in *Accordion → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: accordion.default.primary.defaultOpen
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  defaultOpen: prismic.BooleanField;
+
+  /**
+   * items field in *Accordion → Default → Primary*
+   *
+   * - **Field Type**: Group
+   * - **Placeholder**: *None*
+   * - **API ID Path**: accordion.default.primary.items[]
+   * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+   */
+  items: prismic.GroupField<Simplify<AccordionSliceDefaultPrimaryItemsItem>>;
+
+  /**
+   * hide field in *Accordion → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: accordion.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for Accordion Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Collapsible disclosure items with a plus/minus toggle
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type AccordionSliceDefault = prismic.SharedSliceVariation<
+  "default",
+  Simplify<AccordionSliceDefaultPrimary>,
+  never
+>;
+
+/**
+ * Slice variation for *Accordion*
+ */
+type AccordionSliceVariation = AccordionSliceDefault;
+
+/**
+ * Accordion Shared Slice
+ *
+ * - **API ID**: `accordion`
+ * - **Description**: Accordion
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type AccordionSlice = prismic.SharedSlice<"accordion", AccordionSliceVariation>;
 
 /**
  * Item in *ContentWidthMedia → Default → Primary → images*
@@ -1185,6 +1277,80 @@ export type ContentWidthImageSlice = prismic.SharedSlice<
   "content_width_image",
   ContentWidthImageSliceVariation
 >;
+
+/**
+ * Primary content in *LeadText → Default → Primary*
+ */
+export interface LeadTextSliceDefaultPrimary {
+  /**
+   * eyebrow field in *LeadText → Default → Primary*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: e.g. The Challenge
+   * - **API ID Path**: lead_text.default.primary.eyebrow
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  eyebrow: prismic.KeyTextField;
+
+  /**
+   * body field in *LeadText → Default → Primary*
+   *
+   * - **Field Type**: Rich Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: lead_text.default.primary.body
+   * - **Documentation**: https://prismic.io/docs/fields/rich-text
+   */
+  body: prismic.RichTextField;
+
+  /**
+   * isAnimated field in *LeadText → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: lead_text.default.primary.isAnimated
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  isAnimated: prismic.BooleanField;
+
+  /**
+   * hide field in *LeadText → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: lead_text.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for LeadText Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Eyebrow label above a serif lead paragraph
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type LeadTextSliceDefault = prismic.SharedSliceVariation<
+  "default",
+  Simplify<LeadTextSliceDefaultPrimary>,
+  never
+>;
+
+/**
+ * Slice variation for *LeadText*
+ */
+type LeadTextSliceVariation = LeadTextSliceDefault;
+
+/**
+ * LeadText Shared Slice
+ *
+ * - **API ID**: `lead_text`
+ * - **Description**: LeadText
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type LeadTextSlice = prismic.SharedSlice<"lead_text", LeadTextSliceVariation>;
 
 /**
  * Primary content in *RichText → Default → Primary*
@@ -1758,6 +1924,127 @@ type SlideshowSliceVariation = SlideshowSliceDefault;
 export type SlideshowSlice = prismic.SharedSlice<"slideshow", SlideshowSliceVariation>;
 
 /**
+ * Item in *TextColumns → Default → Primary → columns*
+ */
+export interface TextColumnsSliceDefaultPrimaryColumnsItem {
+  /**
+   * title field in *TextColumns → Default → Primary → columns*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: text_columns.default.primary.columns[].title
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  title: prismic.KeyTextField;
+
+  /**
+   * body field in *TextColumns → Default → Primary → columns*
+   *
+   * - **Field Type**: Rich Text
+   * - **Placeholder**: *None*
+   * - **API ID Path**: text_columns.default.primary.columns[].body
+   * - **Documentation**: https://prismic.io/docs/fields/rich-text
+   */
+  body: prismic.RichTextField;
+}
+
+/**
+ * Primary content in *TextColumns → Default → Primary*
+ */
+export interface TextColumnsSliceDefaultPrimary {
+  /**
+   * eyebrow field in *TextColumns → Default → Primary*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: e.g. Our Solution
+   * - **API ID Path**: text_columns.default.primary.eyebrow
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  eyebrow: prismic.KeyTextField;
+
+  /**
+   * hasTopRule field in *TextColumns → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: text_columns.default.primary.hasTopRule
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopRule: prismic.BooleanField;
+
+  /**
+   * desktopColumns field in *TextColumns → Default → Primary*
+   *
+   * - **Field Type**: Select
+   * - **Placeholder**: *None*
+   * - **Default Value**: 3
+   * - **API ID Path**: text_columns.default.primary.desktopColumns
+   * - **Documentation**: https://prismic.io/docs/fields/select
+   */
+  desktopColumns: prismic.SelectField<"2" | "3" | "4", "filled">;
+
+  /**
+   * columns field in *TextColumns → Default → Primary*
+   *
+   * - **Field Type**: Group
+   * - **Placeholder**: *None*
+   * - **API ID Path**: text_columns.default.primary.columns[]
+   * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+   */
+  columns: prismic.GroupField<Simplify<TextColumnsSliceDefaultPrimaryColumnsItem>>;
+
+  /**
+   * isAnimated field in *TextColumns → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: text_columns.default.primary.isAnimated
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  isAnimated: prismic.BooleanField;
+
+  /**
+   * hide field in *TextColumns → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: text_columns.default.primary.hide
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for TextColumns Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Eyebrow + optional rule + repeatable text columns
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TextColumnsSliceDefault = prismic.SharedSliceVariation<
+  "default",
+  Simplify<TextColumnsSliceDefaultPrimary>,
+  never
+>;
+
+/**
+ * Slice variation for *TextColumns*
+ */
+type TextColumnsSliceVariation = TextColumnsSliceDefault;
+
+/**
+ * TextColumns Shared Slice
+ *
+ * - **API ID**: `text_columns`
+ * - **Description**: TextColumns
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TextColumnsSlice = prismic.SharedSlice<"text_columns", TextColumnsSliceVariation>;
+
+/**
  * Primary content in *ValueBlock → Default → Primary*
  */
 export interface ValueBlockSliceDefaultPrimary {
@@ -1884,11 +2171,20 @@ declare module "@prismicio/client" {
       TwentyForTwentyDocument,
       TwentyForTwentyDocumentData,
       AllDocumentTypes,
+      AccordionSlice,
+      AccordionSliceDefaultPrimaryItemsItem,
+      AccordionSliceDefaultPrimary,
+      AccordionSliceVariation,
+      AccordionSliceDefault,
       ContentWidthImageSlice,
       ContentWidthImageSliceDefaultPrimaryImagesItem,
       ContentWidthImageSliceDefaultPrimary,
       ContentWidthImageSliceVariation,
       ContentWidthImageSliceDefault,
+      LeadTextSlice,
+      LeadTextSliceDefaultPrimary,
+      LeadTextSliceVariation,
+      LeadTextSliceDefault,
       RichTextSlice,
       RichTextSliceDefaultPrimary,
       RichTextSliceVariation,
@@ -1907,6 +2203,11 @@ declare module "@prismicio/client" {
       SlideshowSliceDefaultPrimary,
       SlideshowSliceVariation,
       SlideshowSliceDefault,
+      TextColumnsSlice,
+      TextColumnsSliceDefaultPrimaryColumnsItem,
+      TextColumnsSliceDefaultPrimary,
+      TextColumnsSliceVariation,
+      TextColumnsSliceDefault,
       ValueBlockSlice,
       ValueBlockSliceDefaultPrimary,
       ValueBlockSliceVariation,
