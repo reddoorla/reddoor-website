@@ -9,10 +9,13 @@
 // (the existing project body) flows after it, unchanged.
 //
 // Behaviour
-//   • Idempotent — re-running replaces the intro slices rather than duplicating.
-//   • Per-doc `dropExistingLead` (in data.json) removes the doc's old opening
-//     rich_text where the new intro supersedes it; otherwise that paragraph is
-//     kept and flows after the intro. Nothing is deleted that isn't re-added.
+//   • Idempotent — only the LEADING CONTIGUOUS RUN of intro-type slices is
+//     treated as "the intro" and replaced; an editor-added lead_text/
+//     text_columns/accordion deeper in the doc is content and is preserved.
+//     (Slice planning lives in ./lib.mjs and is unit-tested.)
+//   • Per-doc `dropExistingLead` (in data.json) removes the slice after the
+//     intro ONLY if it is a rich_text whose copy duplicates the new lead/
+//     accordion — an organic editor paragraph never matches and is kept.
 //   • Content is staged as an UNPUBLISHED DRAFT — the Prismic Migration API never
 //     auto-publishes. Review each doc and Publish to go live.
 //
@@ -24,6 +27,7 @@
 // Needs PRISMIC_WRITE_TOKEN (Prismic → Settings → API & Security → Write APIs).
 import * as prismic from "@prismicio/client";
 import { readFile } from "node:fs/promises";
+import { planSlices } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
@@ -33,15 +37,7 @@ const only = args
   .split(",")
   .filter(Boolean);
 
-const INTRO_TYPES = new Set(["lead_text", "text_columns", "accordion"]);
 const p = (text) => [{ type: "paragraph", text, spans: [] }];
-const textOf = (rt) =>
-  Array.isArray(rt)
-    ? rt
-        .map((b) => b.text)
-        .filter(Boolean)
-        .join(" ")
-    : "";
 
 function buildIntro(intro) {
   const slices = [
@@ -104,7 +100,18 @@ const writeClient = DRY_RUN
   : prismic.createWriteClient(config.repositoryName, { writeToken });
 
 let targets = entries;
-if (only) targets = targets.filter((e) => only.includes(e.uid));
+if (only) {
+  // A typo'd uid must fail loudly, not report a success-shaped "0/0 planned".
+  const known = new Set(entries.map((e) => e.uid));
+  const unknown = only.filter((u) => !known.has(u));
+  if (unknown.length) {
+    console.error(
+      `Unknown uid(s) in --only: ${unknown.join(", ")}\nKnown: ${[...known].join(", ")}`,
+    );
+    process.exit(1);
+  }
+  targets = targets.filter((e) => only.includes(e.uid));
+}
 
 let ok = 0;
 for (const entry of targets) {
@@ -124,16 +131,20 @@ for (const entry of targets) {
   }
 
   const existing = Array.isArray(doc.data?.slices) ? doc.data.slices : [];
-  let kept = existing.filter((s) => !INTRO_TYPES.has(s.slice_type));
-  let action = "keep";
-  if (entry.dropExistingLead && kept[0]?.slice_type === "rich_text") {
-    action = `drop "${textOf(kept[0].primary?.content).slice(0, 40)}…"`;
-    kept = kept.slice(1);
-  }
-  const newSlices = [...intro, ...kept];
+  const {
+    slices: newSlices,
+    dropped,
+    replacedIntroCount,
+  } = planSlices({
+    existing,
+    intro,
+    dropExistingLead: entry.dropExistingLead,
+    introTexts: [entry.intro.lead, entry.intro.accordion?.body].filter(Boolean),
+  });
+  const action = dropped ? `drop duplicate "${dropped.slice(0, 40)}…"` : "keep";
 
   console.log(`\n• ${entry.title}  →  ${entry.uid}  [${types}]${accNote}`);
-  console.log(`    old lead: ${action}`);
+  console.log(`    replacing leading intro run of ${replacedIntroCount}; old lead: ${action}`);
   console.log(`    slices ${existing.length} → ${newSlices.length}`);
 
   if (DRY_RUN) {
