@@ -158,6 +158,7 @@
               >
                 <a
                   href={item.link.url}
+                  aria-label={item.label || item.image.alt || "View linked media"}
                   class="relative w-full flex flex-col items-center justify-start"
                 >
                   {#if item.label}
@@ -179,6 +180,7 @@
                     <VimeoEmbed
                       vimeoId={item.vimeoid}
                       background={!!item.loopvideo}
+                      hasPoster={isFilled.image(item.image)}
                       class="object-cover w-full {item.aspect !== 'free'
                         ? 'h-full'
                         : ''} mx-auto z-10"
@@ -244,6 +246,7 @@
                   <VimeoEmbed
                     vimeoId={item.vimeoid}
                     background={!!item.loopvideo}
+                    hasPoster={isFilled.image(item.image)}
                     class="object-cover w-full {item.aspect !== 'free' ? 'h-full' : ''} z-10"
                   />
                 {:else}

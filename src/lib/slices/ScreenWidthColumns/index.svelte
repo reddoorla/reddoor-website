@@ -56,7 +56,11 @@
               ? 'lg:w-1/3'
               : ''}"
         >
-          <a href={item.link.url} class="relative w-full flex flex-col items-center justify-start">
+          <a
+            href={item.link.url}
+            aria-label={item.label || item.image.alt || "View linked media"}
+            class="relative w-full flex flex-col items-center justify-start"
+          >
             {#if item.label}
               <div class="w-full border-b-1 border-dark label mb-8">
                 {item.label}
@@ -76,6 +80,7 @@
               <VimeoEmbed
                 vimeoId={item.vimeoId}
                 background={!!item.loopvideo}
+                hasPoster={isFilled.image(item.image)}
                 class="object-cover {item.aspect !== 'free'
                   ? 'h-full'
                   : ''} relative w-full mx-auto z-10"
@@ -136,6 +141,7 @@
             <VimeoEmbed
               vimeoId={item.vimeoId}
               background={!!item.loopvideo}
+              hasPoster={isFilled.image(item.image)}
               class="object-cover {item.aspect !== 'free'
                 ? 'h-full'
                 : ''} w-full mx-auto z-10 relative"

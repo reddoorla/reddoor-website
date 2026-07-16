@@ -23,9 +23,16 @@
   // Interactive embeds (background = false): rendered eagerly with controls,
   // exactly as before — playback is user-initiated, so no gating. (Do not
   // heartbeat-gate these: an invisible player can never be clicked play.)
+  //
+  // hasPoster: ALL the gating above assumes a poster sits underneath — every
+  // withheld/hidden state shows it. When the CMS item has no poster image,
+  // those states would render a permanently blank box, which is worse than the
+  // old behavior; pass hasPoster={false} and the embed degrades to the
+  // pre-VimeoEmbed behavior (eager src, always visible).
   interface Props {
     vimeoId: string | number;
     background?: boolean;
+    hasPoster?: boolean;
     class?: string;
     title?: string;
     allow?: string;
@@ -33,6 +40,7 @@
   let {
     vimeoId,
     background = false,
+    hasPoster = true,
     class: className = "",
     title = "background video",
     allow = "autoplay",
@@ -42,14 +50,17 @@
   let mountSrc = $state(false); // attach src (engaged + near viewport, motion allowed)
   let playing = $state(false); // reveal the video (heartbeat is alive)
 
+  // Gate only when there is a poster to fall back on.
+  const gated = $derived(background && hasPoster);
+
   const src = $derived(
     `https://player.vimeo.com/video/${vimeoId}?title=0&dnt=1` +
       (background ? "&background=1&loop=1&autoplay=1&muted=1" : ""),
   );
 
-  // Engagement + proximity gate (background embeds only).
+  // Engagement + proximity gate (gated background embeds only).
   $effect(() => {
-    if (!background) return;
+    if (!gated) return;
     if (typeof window === "undefined") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return; // poster only
     const el = iframeEl;
@@ -85,7 +96,7 @@
 
   // Heartbeat: reveal while playback progresses, poster back if it stops.
   $effect(() => {
-    if (!mountSrc) return;
+    if (!gated || !mountSrc) return;
     const el = iframeEl; // read the binding so the effect re-runs when it attaches
     if (!el) return;
     let lastBeat = 0;
@@ -143,8 +154,10 @@
   <iframe
     bind:this={iframeEl}
     {title}
-    src={mountSrc ? src : undefined}
-    class="{className} {playing ? 'opacity-100' : 'opacity-0'} transition-opacity duration-700"
+    src={!gated || mountSrc ? src : undefined}
+    class="{className} {!gated || playing
+      ? 'opacity-100'
+      : 'opacity-0'} transition-opacity duration-700"
     frameborder="0"
     {allow}
     tabindex="-1"

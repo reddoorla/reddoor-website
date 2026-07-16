@@ -44,6 +44,16 @@
   let isPlaying = $state(true);
   let isTransitioning = $state(false);
   let sliderInterval: ReturnType<typeof setInterval> | null = null;
+  // One shared transition timer: a new jump RETARGETS an in-flight transition
+  // (clear + reschedule) instead of being dropped, so rapid dot-clicks all land.
+  let transitionTimer: ReturnType<typeof setTimeout> | null = null;
+  const settleAfter = (ms: number, done: () => void) => {
+    if (transitionTimer) clearTimeout(transitionTimer);
+    transitionTimer = setTimeout(() => {
+      transitionTimer = null;
+      done();
+    }, ms);
+  };
 
   const translateX = $derived(-(currentIndex + count) * slideWidth);
   const displayIndex = $derived(count ? ((currentIndex % count) + count) % count : 0);
@@ -74,31 +84,26 @@
     if (isTransitioning || !isCarousel) return;
     isTransitioning = true;
     currentIndex += direction;
-    setTimeout(
-      () => {
-        if (currentIndex >= count) currentIndex = currentIndex % count;
-        else if (currentIndex < 0) currentIndex = count + (currentIndex % count);
-        isTransitioning = false;
-      },
-      reduceMotion ? 0 : transitionMs,
-    );
+    settleAfter(reduceMotion ? 0 : transitionMs, () => {
+      if (currentIndex >= count) currentIndex = currentIndex % count;
+      else if (currentIndex < 0) currentIndex = count + (currentIndex % count);
+      isTransitioning = false;
+    });
     if (isPlaying) startAutoPlay();
   };
 
   const slideLeft = () => moveSlide(-1);
   const slideRight = () => moveSlide(1);
   const goToSlide = (i: number) => {
-    if (isTransitioning || !isCarousel || i === displayIndex) return;
-    // Same transition bookkeeping as moveSlide — without it the track's
-    // transition-duration stays 0 and dot-clicks snap instead of sliding.
+    // Deliberately NOT guarded on isTransitioning: dots jump to an absolute
+    // in-range index, so retargeting mid-transition is always safe — dropping
+    // the click (and disabling every dot for transitionMs) is not.
+    if (!isCarousel || i === displayIndex) return;
     isTransitioning = true;
     currentIndex = i;
-    setTimeout(
-      () => {
-        isTransitioning = false;
-      },
-      reduceMotion ? 0 : transitionMs,
-    );
+    settleAfter(reduceMotion ? 0 : transitionMs, () => {
+      isTransitioning = false;
+    });
     if (isPlaying) startAutoPlay();
   };
   const togglePlayPause = () => {

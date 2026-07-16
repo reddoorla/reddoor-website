@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PrismicImage } from "@prismicio/svelte";
-  import type { Content } from "@prismicio/client";
+  import { isFilled, type Content } from "@prismicio/client";
   import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
 
   let { slice }: { slice: Content.ScreenWidthImageSlice } = $props();
@@ -39,6 +39,7 @@
       <VimeoEmbed
         vimeoId={slice.primary.vimeoid}
         background={!!slice.primary.loopvideo}
+        hasPoster={isFilled.image(slice.primary.image)}
         allow="autoplay; fullscreen;"
         class="object-cover {slice.primary.aspect === 'square'
           ? 'aspect-square'

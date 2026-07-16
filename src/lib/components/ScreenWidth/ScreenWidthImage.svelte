@@ -4,7 +4,7 @@
   import Img from "$lib/components/Img.svelte";
   import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
   import type { Snippet } from "svelte";
-  import type { ImageField } from "@prismicio/client";
+  import { isFilled, type ImageField } from "@prismicio/client";
 
   interface Props {
     src?: string;
@@ -80,9 +80,14 @@
     {/if}
 
     {#if vimeoId}
+      <!-- hasPoster mirrors the fallback-image branches above: img, bare src,
+           or a filled Prismic field. Without one, VimeoEmbed skips its
+           poster-dependent gating (a withheld video would otherwise be a
+           permanently blank band). -->
       <VimeoEmbed
         {vimeoId}
         background
+        hasPoster={!!img || (!field && !!src) || isFilled.image(field)}
         allow="autoplay; fullscreen"
         class="aspect-video absolute {viewportHeight * 16 > viewportWidth * 9
           ? 'h-screen min-w-full'
