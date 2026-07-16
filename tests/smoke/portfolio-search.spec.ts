@@ -18,9 +18,11 @@ async function archiveTitles(page: Page): Promise<string[]> {
     );
 }
 
-// Debounce (250ms) + the ~650ms view transition; a fixed settle keeps the
-// DOM-count reads deterministic.
-const SETTLE = 700;
+// No fixed settles: the search debounces 250ms and the FLIP batch runs
+// 900–1550ms (FLIP_MIN/MAX_DURATION), so any hardcoded wait either loses the
+// race under parallel-worker CPU contention (the 07-16 brief's flake) or
+// overwaits. Poll the observable state instead. Generous ceiling for CI.
+const POLL = { timeout: 10_000 };
 
 test.describe("portfolio archive search", () => {
   test("filters the grid by title and clears", async ({ page }) => {
@@ -38,17 +40,18 @@ test.describe("portfolio archive search", () => {
     const title = (await archiveTitles(page))[0];
     expect(title, "read a project title").toBeTruthy();
     await search.fill(title);
-    await page.waitForTimeout(SETTLE);
+    await expect
+      .poll(() => archiveCount(page), { message: "non-matching cards removed", ...POLL })
+      .toBeLessThan(full);
     await expect(page.getByTestId("portfolio-search-empty")).toBeHidden();
-    const narrowed = await archiveCount(page);
-    expect(narrowed, "matching card stays shown").toBeGreaterThan(0);
-    expect(narrowed, "non-matching cards removed").toBeLessThan(full);
+    expect(await archiveCount(page), "matching card stays shown").toBeGreaterThan(0);
 
     // Clear restores the full grid (target the input's × by testid to avoid the
     // no-results "Clear search" button's matching accessible name).
     await page.getByTestId("portfolio-search-clear").click();
-    await page.waitForTimeout(SETTLE);
-    expect(await archiveCount(page), "all cards shown after clear").toBe(full);
+    await expect
+      .poll(() => archiveCount(page), { message: "all cards shown after clear", ...POLL })
+      .toBe(full);
   });
 
   test("tolerates a typo and shows a no-results state", async ({ page }) => {
@@ -57,18 +60,19 @@ test.describe("portfolio archive search", () => {
     await expect(search).toBeVisible();
 
     // Drop the last character to simulate a typo; fuzzy match should still hit.
+    // "Relevance" appearing in the sort control is the signal that the debounced
+    // query has committed (same state flush as the ranked results).
     const title = (await archiveTitles(page))[0];
     expect(title).toBeTruthy();
     const typo = title.slice(0, Math.max(2, title.length - 1));
     await search.fill(typo);
-    await page.waitForTimeout(SETTLE);
+    await expect(page.getByTestId("portfolio-sort")).toContainText("Relevance", POLL);
     await expect(page.getByTestId("portfolio-search-empty")).toBeHidden();
     expect(await archiveCount(page), "typo still matches via fuzzy search").toBeGreaterThan(0);
 
-    // Gibberish yields the no-results message.
+    // Gibberish yields the no-results message (toBeVisible retries built-in).
     await search.fill("zzqqxhjklvwxyz");
-    await page.waitForTimeout(SETTLE);
-    await expect(page.getByTestId("portfolio-search-empty")).toBeVisible();
+    await expect(page.getByTestId("portfolio-search-empty")).toBeVisible(POLL);
   });
 
   test("ranks the best match first while searching", async ({ page }) => {
@@ -84,10 +88,12 @@ test.describe("portfolio archive search", () => {
     expect(target, "target differs from the current first card").not.toBe(titles[0]);
 
     await page.getByTestId("portfolio-search").fill(target);
-    await page.waitForTimeout(SETTLE);
-
-    const ordered = await archiveTitles(page);
-    expect(ordered[0], "exact-title match is ranked first").toBe(target);
+    await expect
+      .poll(async () => (await archiveTitles(page))[0], {
+        message: "exact-title match is ranked first",
+        ...POLL,
+      })
+      .toBe(target);
   });
 
   test("exposes a filter button for every category, including Packaging", async ({ page }) => {
@@ -107,10 +113,12 @@ test.describe("portfolio archive search", () => {
     // Activating Packaging narrows the grid to packaging-tagged projects.
     const full = await archiveCount(page);
     await page.getByRole("button", { name: "PACKAGING", exact: true }).click();
-    await page.waitForTimeout(SETTLE);
-    const narrowed = await archiveCount(page);
-    expect(narrowed, "Packaging filter shows at least one project").toBeGreaterThan(0);
-    expect(narrowed, "Packaging filter narrows the grid").toBeLessThan(full);
+    await expect
+      .poll(() => archiveCount(page), { message: "Packaging filter narrows the grid", ...POLL })
+      .toBeLessThan(full);
+    expect(await archiveCount(page), "Packaging filter shows at least one project").toBeGreaterThan(
+      0,
+    );
   });
 
   test("offers a Relevance sort only while searching, and restores the sort on clear", async ({
@@ -128,30 +136,27 @@ test.describe("portfolio archive search", () => {
     await sort.click(); // close
 
     // Searching defaults the active sort to Relevance and adds it as an option.
+    // (toContainText/toHaveCount retry built-in — no fixed settles needed.)
     const search = page.getByTestId("portfolio-search");
     const title = (await archiveTitles(page))[0];
     await search.fill(title);
-    await page.waitForTimeout(SETTLE);
-    await expect(sort).toContainText("Relevance");
+    await expect(sort).toContainText("Relevance", POLL);
     await sort.click();
     await expect(page.getByTestId("sort-option")).toHaveCount(5);
     await expect(relevanceOption()).toHaveCount(1);
 
     // You can switch to a real sort while the query is active…
     await page.getByTestId("sort-option").filter({ hasText: "A-Z" }).click();
-    await page.waitForTimeout(SETTLE);
-    await expect(sort).toContainText("A-Z");
+    await expect(sort).toContainText("A-Z", POLL);
 
     // …and back to Relevance, which is still offered while searching.
     await sort.click();
     await relevanceOption().click();
-    await page.waitForTimeout(SETTLE);
-    await expect(sort).toContainText("Relevance");
+    await expect(sort).toContainText("Relevance", POLL);
 
     // Clearing the query removes Relevance and restores the default sort.
     await page.getByTestId("portfolio-search-clear").click();
-    await page.waitForTimeout(SETTLE);
-    await expect(sort).toContainText("Latest-Earliest");
+    await expect(sort).toContainText("Latest-Earliest", POLL);
     await sort.click();
     await expect(relevanceOption()).toHaveCount(0);
   });
