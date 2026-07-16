@@ -58,17 +58,22 @@ test.describe("portfolio archive search", () => {
     await page.goto("/portfolio", { waitUntil: "networkidle" });
     const search = page.getByTestId("portfolio-search");
     await expect(search).toBeVisible();
+    const full = await archiveCount(page);
 
     // Drop the last character to simulate a typo; fuzzy match should still hit.
-    // "Relevance" appearing in the sort control is the signal that the debounced
-    // query has committed (same state flush as the ranked results).
+    // Poll for the grid actually NARROWING — the "Relevance" sort label commits
+    // before the lazily-imported Fuse index resolves (rankedUids stays null →
+    // full grid), so it can't serve as the results-applied signal: a count
+    // assertion against the full grid would pass vacuously.
     const title = (await archiveTitles(page))[0];
     expect(title).toBeTruthy();
     const typo = title.slice(0, Math.max(2, title.length - 1));
     await search.fill(typo);
-    await expect(page.getByTestId("portfolio-sort")).toContainText("Relevance", POLL);
-    await expect(page.getByTestId("portfolio-search-empty")).toBeHidden();
+    await expect
+      .poll(() => archiveCount(page), { message: "typo query filters the grid", ...POLL })
+      .toBeLessThan(full);
     expect(await archiveCount(page), "typo still matches via fuzzy search").toBeGreaterThan(0);
+    await expect(page.getByTestId("portfolio-search-empty")).toBeHidden();
 
     // Gibberish yields the no-results message (toBeVisible retries built-in).
     await search.fill("zzqqxhjklvwxyz");
@@ -82,18 +87,52 @@ test.describe("portfolio archive search", () => {
     const titles = await archiveTitles(page);
     expect(titles.length, "need multiple projects to test ordering").toBeGreaterThan(1);
 
-    // Pick a project that is NOT currently first, so relevance ordering has to
-    // move it to the front. Its exact title is its own best match.
-    const target = titles[titles.length - 1];
-    expect(target, "target differs from the current first card").not.toBe(titles[0]);
+    // Relevance ordering is only truly exercised when a query matches MORE
+    // THAN ONE card — with a single match, matched.sort() is a no-op and a
+    // broken comparator still passes. At threshold 0.2 most full-title queries
+    // single-match, so: probe up to three candidates whose titles share a
+    // ≥5-char token with another title (the only ones that can plausibly
+    // multi-match). If one multi-matches, assert the exact-title card ranks
+    // first among them; otherwise fall back to the single-match assertion
+    // (which still catches search-not-applying: the grid would stay on
+    // titles[0]) and record that ordering wasn't exercisable.
+    const search = page.getByTestId("portfolio-search");
+    const tokens = (t: string) =>
+      t
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length >= 5);
+    const candidates = titles
+      .filter(
+        (t, idx) =>
+          idx !== 0 && tokens(t).some((w) => titles.some((o) => o !== t && tokens(o).includes(w))),
+      )
+      .slice(0, 3);
+    const fallback = titles[titles.length - 1];
 
-    await page.getByTestId("portfolio-search").fill(target);
-    await expect
-      .poll(async () => (await archiveTitles(page))[0], {
-        message: "exact-title match is ranked first",
-        ...POLL,
-      })
-      .toBe(target);
+    let exercisedOrdering = false;
+    for (const target of candidates.length ? candidates : [fallback]) {
+      await search.fill(target);
+      await expect
+        .poll(async () => (await archiveTitles(page))[0], {
+          message: "exact-title match is ranked first",
+          ...POLL,
+        })
+        .toBe(target);
+      if ((await archiveCount(page)) > 1) {
+        exercisedOrdering = true;
+        break;
+      }
+      await page.getByTestId("portfolio-search-clear").click();
+      await expect.poll(() => archiveCount(page), POLL).toBe(titles.length);
+    }
+    if (!exercisedOrdering) {
+      test.info().annotations.push({
+        type: "coverage",
+        description:
+          "all probed queries single-matched — relevance comparator not exercised against current content",
+      });
+    }
   });
 
   test("exposes a filter button for every category, including Packaging", async ({ page }) => {
