@@ -42,19 +42,34 @@ jobs:
           # "Pages changed - reddoorla", …) to the exact head SHA when the deploy
           # for THAT commit finishes — wait for one of those to complete instead.
           echo "Waiting for Netlify's deploy check runs on $HEAD_SHA"
+          # Require completed AND success/neutral: a completed-but-FAILED deploy
+          # check must keep the gate closed (the stale preview is still serving),
+          # not green-light auditing the previous commit's build.
           DEPLOY_DONE=0
+          API_FAILS=0
           for i in $(seq 1 90); do
-            DEPLOY_DONE="$(gh api "repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs" \
-              --jq '[.check_runs[] | select(.name | endswith("- reddoorla")) | select(.status == "completed")] | length' \
-              2>/dev/null || echo 0)"
+            if RESP="$(gh api "repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs" \
+              --jq '[.check_runs[] | select(.name | endswith("- reddoorla")) | select(.status == "completed") | select(.conclusion == "success" or .conclusion == "neutral")] | length' \
+              2>/dev/null)"; then
+              DEPLOY_DONE="$RESP"
+            else
+              # A Checks-API problem is not "deploy not done" — surface it so a
+              # 15-minute stall doesn't get blamed on Netlify.
+              API_FAILS=$((API_FAILS + 1))
+              echo "::warning::check-runs poll failed (attempt $i/90, ${API_FAILS} API failures so far) — retrying"
+            fi
             if [ "${DEPLOY_DONE:-0}" -gt 0 ]; then
-              echo "Netlify deploy for $HEAD_SHA is complete (after ~$((i * 10))s)."
+              echo "Netlify deploy for $HEAD_SHA is complete and healthy (after ~$((i * 10))s)."
               break
             fi
             sleep 10
           done
           if [ "${DEPLOY_DONE:-0}" -eq 0 ]; then
-            echo "::error::Netlify never reported a completed deploy check for $HEAD_SHA (15 min) — refusing to audit a preview that may be stale."
+            if [ "$API_FAILS" -ge 45 ]; then
+              echo "::error::GitHub Checks API failed ${API_FAILS}/90 polls — cannot determine deploy state for $HEAD_SHA."
+            else
+              echo "::error::Netlify never reported a successful deploy check for $HEAD_SHA (15 min) — refusing to audit a preview that may be stale or broken."
+            fi
             exit 1
           fi
 
@@ -74,10 +89,22 @@ jobs:
 
           # Derive a real, currently-published detail page from the live /portfolio
           # so the LCP hero is sampled without hardcoding a uid that could be unpublished.
-          # HARD-FAIL when none is found (MED-2): the detail page carries the Vimeo
-          # carve-out — letting it silently drop out of the matrix turns a markup
-          # refactor into an untested page class.
-          DETAIL="$(curl -fsS "$BASE/portfolio" | grep -oE '/portfolio/[a-z0-9][a-z0-9-]*' | head -n1 || true)"
+          # Fetch with retries so a transient network blip isn't conflated with
+          # "no detail page"; then HARD-FAIL on a genuinely empty scrape (MED-2):
+          # the detail page carries the Vimeo carve-out — letting it silently drop
+          # out of the matrix turns a markup refactor into an untested page class.
+          PAGE=""
+          for i in $(seq 1 5); do
+            if PAGE="$(curl -fsS "$BASE/portfolio")"; then
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "::error::Could not fetch $BASE/portfolio after 5 attempts — cannot derive a detail page."
+              exit 1
+            fi
+            sleep 5
+          done
+          DETAIL="$(printf '%s' "$PAGE" | grep -oE '/portfolio/[a-z0-9][a-z0-9-]*' | head -n1 || true)"
           if [ -z "$DETAIL" ]; then
             echo "::error::No /portfolio/<uid> detail link found on $BASE/portfolio — the detail-page class would silently exit the audit matrix."
             exit 1
