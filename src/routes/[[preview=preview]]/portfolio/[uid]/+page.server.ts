@@ -28,9 +28,12 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     filters: [filter.not("document.tags", ["hide"])],
   });
 
+  // A hide-tagged project isn't in allProjects: findIndex yields -1, and
+  // allProjects[-1 + 1] would silently serve allProjects[0] as "previous".
+  // Hidden pages get no prev/next nav instead of wrong nav.
   const currentIndex = allProjects.findIndex((project) => project.uid === params.uid);
-  const prevProject = allProjects[currentIndex + 1] || null;
-  const nextProject = allProjects[currentIndex - 1] || null;
+  const prevProject = currentIndex === -1 ? null : allProjects[currentIndex + 1] || null;
+  const nextProject = currentIndex === -1 ? null : allProjects[currentIndex - 1] || null;
   let relatedProjectOne = prevProject;
   let relatedProjectTwo = nextProject;
   let isOneSet = false;
@@ -63,7 +66,11 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     }
   }
 
-  if (!isTwoSet) {
+  // Run the relatedness fallback whenever EITHER slot is unset: on a
+  // hide-tagged page (currentIndex -1 → null prev/next above) with only
+  // override2 set, gating on !isTwoSet alone would skip the fallback and
+  // leave slot one permanently empty.
+  if (!isOneSet || !isTwoSet) {
     const projectTags = [{ tag: "branding", count: 0 }];
     let tagTotalCount = 0;
     projectTags.push({ tag: "product", count: 0 });
@@ -156,9 +163,12 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
       }
     });
 
-    if (!isOneSet) {
+    if (!isOneSet && !isTwoSet) {
       relatedProjectOne = mostRelatedProject;
       relatedProjectTwo = secondMostRelatedProject;
+    } else if (!isOneSet) {
+      // Slot two holds an editor override — fill only the empty first slot.
+      relatedProjectOne = mostRelatedProject;
     } else {
       relatedProjectTwo = mostRelatedProject;
     }
@@ -184,7 +194,11 @@ export async function entries() {
 
   const pages = await client.getAllByType("project");
 
-  return pages.map((page) => {
-    return { uid: page.uid };
-  });
+  // Hide-tagged projects stay prerendered on purpose (reachable by URL,
+  // unlisted); only null uids are filtered — they can't be routed.
+  return pages
+    .filter((page) => page.uid)
+    .map((page) => {
+      return { uid: page.uid };
+    });
 }

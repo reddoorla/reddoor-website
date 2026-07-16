@@ -20,14 +20,35 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     });
   }
 
+  // isFilled.contentRelationship does NOT exclude broken links (an unpublished
+  // target keeps its uid but getByUID throws), so guard isBroken AND catch —
+  // an editor unpublishing a referenced project must degrade, not 500 the page.
   let featuredProject;
-  if (isFilled.contentRelationship(page.data.featuredproject) && page.data.featuredproject.uid)
-    featuredProject = await client.getByUID("project", page.data.featuredproject.uid);
+  if (
+    isFilled.contentRelationship(page.data.featuredproject) &&
+    !page.data.featuredproject.isBroken &&
+    page.data.featuredproject.uid
+  ) {
+    try {
+      featuredProject = await client.getByUID("project", page.data.featuredproject.uid);
+    } catch {
+      featuredProject = undefined;
+    }
+  }
 
-  const projects: ProjectDocument[] = [];
-  for (const project of page.data.projects) {
-    if (isFilled.contentRelationship(project.project) && project.project.uid)
-      projects.push(await client.getByUID("project", project.project.uid));
+  // Pair each resolved doc with ITS OWN group row. The template previously read
+  // overrides by `pageData.projects[i]` against this filtered array — one
+  // skipped (unfilled/broken) row shifted every subsequent card's
+  // image/title/subtitle/link overrides onto the wrong project.
+  const projects: { doc: ProjectDocument; item: (typeof page.data.projects)[number] }[] = [];
+  for (const item of page.data.projects) {
+    if (!isFilled.contentRelationship(item.project) || item.project.isBroken || !item.project.uid)
+      continue;
+    try {
+      projects.push({ doc: await client.getByUID("project", item.project.uid), item });
+    } catch {
+      // Target unpublished/deleted since the group was authored — skip the row.
+    }
   }
 
   return {
@@ -48,7 +69,9 @@ export async function entries() {
   const client = createClient();
   const pages = await client.getAllByType("showcase");
 
-  return pages.map((page) => {
-    return { uid: page.uid };
-  });
+  return pages
+    .filter((page) => page.uid)
+    .map((page) => {
+      return { uid: page.uid };
+    });
 }
