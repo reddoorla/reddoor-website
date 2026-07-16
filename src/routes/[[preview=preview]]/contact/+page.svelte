@@ -112,48 +112,71 @@
               /></label
             >
           </p>
+          <!-- Real <label for> elements (fields were named by adjacent <p> +
+               placeholder only — invisible to AT). The utility classes replicate
+               the base <p> typography so nothing moves visually. -->
           <div use:anim class="w-full">
-            <p>Name</p>
+            <label for="contact-name" class="block text-[18px] font-extralight leading-7.5">
+              Name
+            </label>
             <input
               type="text"
+              id="contact-name"
               name="name"
               required
+              autocomplete="name"
               placeholder="first and last name"
               class="w-full border-1 border-mid p-2 mb-4"
             />
           </div>
           <div use:anim class="w-full">
-            <p>Company Name</p>
+            <label for="contact-company" class="block text-[18px] font-extralight leading-7.5">
+              Company Name
+            </label>
             <input
               type="text"
+              id="contact-company"
               name="company"
+              autocomplete="organization"
               placeholder="company name"
               class="w-full border-1 border-mid p-2 mb-4"
             />
           </div>
           <div use:anim class="w-full">
-            <p>Phone</p>
+            <label for="contact-phone" class="block text-[18px] font-extralight leading-7.5">
+              Phone
+            </label>
+            <!-- type="tel", not the invalid type="phone" — mobile keyboards get the tel keypad. -->
             <input
-              type="phone"
+              type="tel"
+              id="contact-phone"
               name="phone"
               required
+              autocomplete="tel"
               placeholder="000-000-0000"
               class="w-full border-1 border-mid p-2 mb-4"
             />
           </div>
           <div use:anim class="w-full">
-            <p>Email</p>
+            <label for="contact-email" class="block text-[18px] font-extralight leading-7.5">
+              Email
+            </label>
             <input
               type="email"
+              id="contact-email"
               name="email"
               required
+              autocomplete="email"
               placeholder="you@domain.com"
               class="w-full border-1 border-mid p-2 mb-4"
             />
           </div>
           <div use:anim class="w-full">
-            <p>Message</p>
+            <label for="contact-message" class="block text-[18px] font-extralight leading-7.5">
+              Message
+            </label>
             <textarea
+              id="contact-message"
               name="message"
               required
               placeholder="how can we help?"

@@ -1,15 +1,11 @@
 <script lang="ts">
   import { PrismicImage } from "@prismicio/svelte";
-  import type { Content } from "@prismicio/client";
+  import { isFilled, type Content } from "@prismicio/client";
+  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
 
   let { slice }: { slice: Content.ScreenWidthImageSlice } = $props();
 
   const backgroundColorString = $derived("bg-" + slice.primary.background);
-
-  let showVideo = $state(true);
-  const handleError = () => {
-    showVideo = false;
-  };
 
   // Fallback to legacy `hasPadding` for docs not yet migrated to top/bottom flags.
   const padding = $derived(
@@ -40,9 +36,11 @@
         decoding="async"
       />
 
-      <iframe
-        title="background video"
-        src={`https://player.vimeo.com/video/${slice.primary.vimeoid}?title=0&dnt=1${slice.primary.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
+      <VimeoEmbed
+        vimeoId={slice.primary.vimeoid}
+        background={!!slice.primary.loopvideo}
+        hasPoster={isFilled.image(slice.primary.image)}
+        allow="autoplay; fullscreen;"
         class="object-cover {slice.primary.aspect === 'square'
           ? 'aspect-square'
           : slice.primary.aspect === '4/3'
@@ -53,13 +51,8 @@
                 ? 'aspect-video'
                 : slice.primary.aspect === '9/16'
                   ? 'aspect-9/16'
-                  : ''}  w-screen mx-auto relative z-10 {showVideo
-          ? 'opacity-100'
-          : 'opacity-0'} transition-opacity duration-200"
-        frameborder="0"
-        allow="autoplay; fullscreen;"
-        onerror={handleError}
-      ></iframe>
+                  : ''}  w-screen mx-auto relative z-10"
+      />
     {:else}
       <PrismicImage
         class="w-screen object-cover {slice.primary.aspect === 'square'

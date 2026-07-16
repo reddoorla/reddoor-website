@@ -1,16 +1,31 @@
 import { asText } from "@prismicio/client";
 
 import { createClient } from "$lib/prismicio";
+import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
   const client = createClient({ fetch, cookies });
 
-  const page = await client.getByUID("page", "home");
-
-  const logoSoup = await client.getSingle("logo_soup");
-
-  const openingAnimation = await client.getSingle("opening_animation");
+  let page, logoSoup, openingAnimation;
+  try {
+    // All three are essential to the page (the template dereferences them
+    // unconditionally). Parallel fetch; a Prismic failure renders the error
+    // page as a 503 instead of an unhandled 500. (No fetchLinks here: unlike
+    // the SliceZone routes, the home template renders no SliceZone — its
+    // sections are hardcoded — so there are no gallery relationships to
+    // resolve.)
+    [page, logoSoup, openingAnimation] = await Promise.all([
+      client.getByUID("page", "home"),
+      client.getSingle("logo_soup"),
+      client.getSingle("opening_animation"),
+    ]);
+  } catch (err) {
+    // Log the real cause — the controlled 503 must not silence what the old
+    // unhandled 500 used to print.
+    console.error("[home] Prismic load failed:", err);
+    throw error(503, { message: "Content is temporarily unavailable — please try again." });
+  }
 
   return {
     page,

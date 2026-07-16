@@ -29,10 +29,33 @@
   const isMobile = $derived(viewportWidth > 0 && viewportWidth < 768);
   const brands = $derived<LogoSoupDocumentDataBrandsItem[]>(isMobile ? featuredBrands : allBrands);
 
+  // Cached geometry: reading layout (getBoundingClientRect/offsetHeight) inside
+  // the scroll handler forces a synchronous reflow on every scroll frame. The
+  // section's absolute top and height only change with viewport/content
+  // changes — measure on those, and derive the scroll-relative top from
+  // the (already reactive) scrollY arithmetically.
+  let sectionAbsTop = 0;
+  let sectionHeight = 0;
+  function measure() {
+    if (!section) return;
+    sectionAbsTop = section.getBoundingClientRect().top + window.scrollY;
+    sectionHeight = section.offsetHeight;
+  }
+
+  $effect(() => {
+    void viewportHeight;
+    void viewportWidth; // re-measure when the viewport changes
+    if (!section) return;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(section);
+    ro.observe(document.body); // content loading above the section shifts its absolute top
+    return () => ro.disconnect();
+  });
+
   function handleScroll() {
     if (!isMobile || !section) return;
-    const sectionTop = section.getBoundingClientRect().top;
-    const sectionHeight = section.offsetHeight;
+    const sectionTop = sectionAbsTop - scrollY;
 
     let scrollProgress = 0;
     if (sectionTop < 0) scrollProgress = (Math.abs(sectionTop) + viewportHeight) / sectionHeight;
@@ -67,12 +90,12 @@
   function calculateScrollPositionForBrand(index: number) {
     if (!isMobile || !section) return 0;
 
-    const sectionHeight = section.offsetHeight;
-    const sectionTop = section.getBoundingClientRect().top;
-    const currentAbsolutePosition = window.scrollY + sectionTop;
-
-    const targetProgress = (index + 2) / (brands.length + 2);
-    return currentAbsolutePosition + targetProgress * sectionHeight - viewportHeight;
+    // Aim for the MIDDLE of brand `index`'s scroll band (+0.5): landing exactly
+    // on the band boundary lets floating-point noise floor into the previous
+    // band, which is what the old `i + 1` call-site offset was compensating
+    // for — one brand too far.
+    const targetProgress = (index + 2.5) / (brands.length + 2);
+    return sectionAbsTop + targetProgress * sectionHeight - viewportHeight;
   }
 
   const nextBrand = () => {
@@ -338,7 +361,7 @@
           <div class="flex flex-col gap-2">
             {#each brands as brand, i (i)}
               <button
-                onclick={() => navigateToBrand(i + 1)}
+                onclick={() => navigateToBrand(i)}
                 aria-label="Jump to {brand.name}"
                 class="grid place-items-center min-w-6 min-h-6 z-20"
               >

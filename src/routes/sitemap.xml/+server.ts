@@ -21,10 +21,14 @@ export const GET: RequestHandler = async ({ fetch }) => {
       lastmod: doc.last_publication_date,
     }));
 
-  const projectPaths = projects.map((doc) => ({
-    url: `/portfolio/${doc.uid}`,
-    lastmod: doc.last_publication_date,
-  }));
+  // Every listing surface filters hide-tagged projects — the sitemap must not
+  // advertise them to crawlers either.
+  const projectPaths = projects
+    .filter((doc) => doc.uid && !doc.tags.includes("hide"))
+    .map((doc) => ({
+      url: `/portfolio/${doc.uid}`,
+      lastmod: doc.last_publication_date,
+    }));
 
   const staticPaths = STATIC_ROUTES.map((url) => ({
     url,

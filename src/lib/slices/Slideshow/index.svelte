@@ -5,13 +5,19 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
+  import { isFilled } from "@prismicio/client";
 
   let { slice }: { slice: SlideshowSlice } = $props();
 
   const backgroundColorString = $derived(`bg-${slice.primary.backgroundcolor}`);
+  const hasImages = $derived(slice.primary.images.length > 0);
+  const hasText = $derived(!!slice.primary.label || isFilled.richText(slice.primary.body));
 </script>
 
-{#if !slice.primary.hide}
+<!-- Gated on having ANY content (a truly empty just-added slice renders
+     nothing), while authored label/body text still shows even before images
+     are added — only the blank aspect-video band itself needs images. -->
+{#if !slice.primary.hide && (hasImages || hasText)}
   <div
     use:anim={{ enabled: !!slice.primary.isAnimated }}
     class="w-full py-12 {backgroundColorString}"

@@ -31,7 +31,11 @@ export const entries: EntryGenerator = async () => {
   const client = createClient();
   const pages = await client.getAllByType("page");
 
-  return pages.map((page) => {
-    return { uid: page.uid };
-  });
+  // "home" is served at `/` — prerendering /home too ships a duplicate page
+  // (SEO dup; the sitemap already excludes it). Null uids can't be routed.
+  return pages
+    .filter((page) => page.uid && page.uid !== "home")
+    .map((page) => {
+      return { uid: page.uid };
+    });
 };
