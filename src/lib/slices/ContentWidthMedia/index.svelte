@@ -3,6 +3,7 @@
   import { PrismicImage } from "@prismicio/svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
+  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
   import type {
     ContentWidthImageSlice,
     ContentWidthImageSliceDefaultPrimaryImagesItem,
@@ -16,9 +17,6 @@
 
   const backgroundColorString = $derived("bg-" + slice.primary.background);
 
-  // Track which videos have failed to load (rather than a pre-sized boolean array, which
-  // would require reading slice.primary.images.length in a state initializer).
-  const hiddenVideos = $state(new Set<number>());
   const animationEnabled = $derived(
     slice.primary.isAnimated === null || slice.primary.isAnimated === true,
   );
@@ -160,6 +158,7 @@
               >
                 <a
                   href={item.link.url}
+                  aria-label={item.label || item.image.alt || "View linked media"}
                   class="relative w-full flex flex-col items-center justify-start"
                 >
                   {#if item.label}
@@ -178,19 +177,14 @@
                       loading="lazy"
                       decoding="async"
                     />
-                    <iframe
-                      title="background video"
-                      src={`https://player.vimeo.com/video/${item.vimeoid}?title=0&dnt=1${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
+                    <VimeoEmbed
+                      vimeoId={item.vimeoid}
+                      background={!!item.loopvideo}
+                      hasPoster={isFilled.image(item.image)}
                       class="object-cover w-full {item.aspect !== 'free'
                         ? 'h-full'
-                        : ''} mx-auto z-10
-                        {!hiddenVideos.has(i)
-                        ? 'opacity-100'
-                        : 'opacity-0'} transition-opacity duration-300"
-                      frameborder="0"
-                      allow="autoplay"
-                      onerror={() => hiddenVideos.add(i)}
-                    ></iframe>
+                        : ''} mx-auto z-10"
+                    />
                   {:else}
                     <PrismicImage
                       class="w-full {item.aspect !== 'free'
@@ -249,18 +243,12 @@
                     loading="lazy"
                     decoding="async"
                   />
-                  <iframe
-                    title="background video"
-                    src={`https://player.vimeo.com/video/${item.vimeoid}?title=0&dnt=1${item.loopvideo ? "&background=1&loop=1&autoplay=1&muted=1" : ""}`}
-                    class="object-cover w-full {item.aspect !== 'free'
-                      ? 'h-full'
-                      : ''} z-10 {!hiddenVideos.has(i)
-                      ? 'opacity-100'
-                      : 'opacity-0'} transition-opacity duration-300"
-                    frameborder="0"
-                    allow="autoplay"
-                    onerror={() => hiddenVideos.add(i)}
-                  ></iframe>
+                  <VimeoEmbed
+                    vimeoId={item.vimeoid}
+                    background={!!item.loopvideo}
+                    hasPoster={isFilled.image(item.image)}
+                    class="object-cover w-full {item.aspect !== 'free' ? 'h-full' : ''} z-10"
+                  />
                 {:else}
                   <PrismicImage
                     class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"

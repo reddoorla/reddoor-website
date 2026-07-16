@@ -2,8 +2,9 @@
   import placeholder from "../../assets/images/background_placeholder.svg";
   import { PrismicImage } from "@prismicio/svelte";
   import Img from "$lib/components/Img.svelte";
+  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
   import type { Snippet } from "svelte";
-  import type { ImageField } from "@prismicio/client";
+  import { isFilled, type ImageField } from "@prismicio/client";
 
   interface Props {
     src?: string;
@@ -16,7 +17,6 @@
     backdrop?: boolean;
     alt?: string;
     class?: string;
-    lazy?: boolean;
     children?: Snippet;
   }
 
@@ -31,45 +31,19 @@
     backdrop = false,
     alt = "",
     class: className = "",
-    lazy = false,
     children,
   }: Props = $props();
 
   let viewportHeight = $state(1024);
   let viewportWidth = $state(768);
-  let showVideo = $state(true);
-
-  // When lazy, defer mounting the Vimeo iframe until the section nears the
-  // viewport, so the player + video don't load during initial paint.
-  let sectionEl: HTMLElement | undefined = $state();
-  let inView = $state(false);
-
-  $effect(() => {
-    if (!lazy) return;
-    const el = sectionEl;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          inView = true;
-          io.disconnect();
-        }
-      },
-      { rootMargin: "200px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  });
-
-  const handleVideoError = () => {
-    showVideo = false;
-  };
+  // The old `lazy` prop + bespoke IntersectionObserver are gone: VimeoEmbed
+  // always gates background embeds on engagement + proximity (and skips them
+  // entirely under prefers-reduced-motion), which supersedes both.
 </script>
 
 <svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
 
 <section
-  bind:this={sectionEl}
   class="h-screen w-screen overflow-clip {className}
   {backdrop ? 'fixed -z-10 top-0 left-0' : 'relative'}"
 >
@@ -105,21 +79,20 @@
       />
     {/if}
 
-    <!-- Video - only show if vimeoId exists and hasn't failed. When lazy, the
-         iframe is withheld until the section nears the viewport (see effect). -->
-    {#if vimeoId && (!lazy || inView)}
-      <iframe
-        title="background video"
-        src={`https://player.vimeo.com/video/${vimeoId}?background=1&muted=1&loop=1&autoplay=1&dnt=1`}
-        loading="lazy"
+    {#if vimeoId}
+      <!-- hasPoster mirrors the fallback-image branches above: img, bare src,
+           or a filled Prismic field. Without one, VimeoEmbed skips its
+           poster-dependent gating (a withheld video would otherwise be a
+           permanently blank band). -->
+      <VimeoEmbed
+        {vimeoId}
+        background
+        hasPoster={!!img || (!field && !!src) || isFilled.image(field)}
+        allow="autoplay; fullscreen"
         class="aspect-video absolute {viewportHeight * 16 > viewportWidth * 9
           ? 'h-screen min-w-full'
-          : 'w-screen min-h-full'} contrast-[1.15] -z-10
-        {showVideo ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
-        frameborder="0"
-        allowfullscreen
-        onerror={handleVideoError}
-      ></iframe>
+          : 'w-screen min-h-full'} contrast-[1.15] -z-10"
+      />
     {/if}
 
     {#if darken}
