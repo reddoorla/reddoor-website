@@ -32,6 +32,13 @@ new lead/accordion (`ceo-la`, `composition-hospitality`, `aura`, `worthe`,
 else the existing opening paragraph is kept and flows after the intro, so nothing
 is deleted that isn't re-added elsewhere.
 
+Idempotency semantics (`lib.mjs`, unit-tested in `lib.test.mjs`): only the
+**leading contiguous run** of intro-type slices is treated as "the intro" and
+replaced — an editor-added LeadText/TextColumns/Accordion deeper in a document is
+content and is never touched. `dropExistingLead` drops the post-intro slice only
+if it is a `rich_text` whose copy **duplicates** the entry's lead/accordion text;
+an organic editor paragraph never matches. Re-running is therefore a true no-op.
+
 ## Run
 
 Requires `PRISMIC_WRITE_TOKEN` in `.env.local` (Prismic → Settings → API &
