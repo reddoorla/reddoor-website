@@ -171,3 +171,6 @@ console.log(
   `\n${DRY_RUN ? "DRY-RUN" : "DONE"}: ${ok}/${targets.length} ${DRY_RUN ? "planned" : "migrated as drafts"}.`,
 );
 if (!DRY_RUN && ok) console.log("Review each doc in Prismic and Publish to go live.");
+// Catching per-doc failures must not turn a partial/total failure into exit 0 —
+// shell chains and CI gate on the exit status.
+if (ok < targets.length) process.exitCode = 1;
