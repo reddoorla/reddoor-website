@@ -11,7 +11,9 @@
   const backgroundColorString = $derived(`bg-${slice.primary.backgroundcolor}`);
 </script>
 
-{#if !slice.primary.hide}
+<!-- Also gated on having images: a just-added slice with an empty gallery
+     otherwise renders a blank aspect-video band. -->
+{#if !slice.primary.hide && slice.primary.images.length > 0}
   <div
     use:anim={{ enabled: !!slice.primary.isAnimated }}
     class="w-full py-12 {backgroundColorString}"

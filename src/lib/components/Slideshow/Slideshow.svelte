@@ -88,8 +88,17 @@
   const slideLeft = () => moveSlide(-1);
   const slideRight = () => moveSlide(1);
   const goToSlide = (i: number) => {
-    if (isTransitioning) return;
+    if (isTransitioning || !isCarousel || i === displayIndex) return;
+    // Same transition bookkeeping as moveSlide — without it the track's
+    // transition-duration stays 0 and dot-clicks snap instead of sliding.
+    isTransitioning = true;
     currentIndex = i;
+    setTimeout(
+      () => {
+        isTransitioning = false;
+      },
+      reduceMotion ? 0 : transitionMs,
+    );
     if (isPlaying) startAutoPlay();
   };
   const togglePlayPause = () => {
