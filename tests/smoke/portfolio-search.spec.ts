@@ -21,13 +21,32 @@ async function archiveTitles(page: Page): Promise<string[]> {
 // No fixed settles: the search debounces 250ms and the FLIP batch runs
 // 900–1550ms (FLIP_MIN/MAX_DURATION), so any hardcoded wait either loses the
 // race under parallel-worker CPU contention (the 07-16 brief's flake) or
-// overwaits. Poll the observable state instead. Generous ceiling for CI.
-const POLL = { timeout: 10_000 };
+// overwaits. Poll the observable state instead.
+//
+// The ceiling is sized for the CI dev server's COLD-COMPILE STORM: at suite
+// start every worker's first /portfolio load triggers on-demand vite
+// transforms, and the search's lazily-imported Fuse chunk queues behind them —
+// observed >10s on 2 of the first 5 CI runs (grid "never" narrowed, then
+// neighboring tests timed out on goto). 30s absorbs the storm; the polls
+// return the moment the state lands, so green runs pay nothing extra.
+const POLL = { timeout: 30_000 };
+
+// Same reasoning for whole tests: 30s default minus a slow first goto leaves
+// too little for the actual assertions under contention.
+test.describe.configure({ timeout: 60_000 });
+
+// domcontentloaded + the layout's hydration marker instead of networkidle:
+// networkidle over-waits (and still under-synchronizes — it can fire before
+// hydration under a transform storm). `data-hydrated` is stamped from onMount,
+// by which point bind:value and click handlers are live.
+async function openPortfolio(page: Page) {
+  await page.goto("/portfolio", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html[data-hydrated]")).toBeAttached(POLL);
+}
 
 test.describe("portfolio archive search", () => {
   test("filters the grid by title and clears", async ({ page }) => {
-    // networkidle ensures Svelte has fully hydrated and bind:value is wired up.
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     await expect(page.locator("footer")).toBeVisible();
 
     const search = page.getByTestId("portfolio-search");
@@ -55,7 +74,7 @@ test.describe("portfolio archive search", () => {
   });
 
   test("tolerates a typo and shows a no-results state", async ({ page }) => {
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     const search = page.getByTestId("portfolio-search");
     await expect(search).toBeVisible();
     const full = await archiveCount(page);
@@ -81,7 +100,7 @@ test.describe("portfolio archive search", () => {
   });
 
   test("ranks the best match first while searching", async ({ page }) => {
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     await expect(page.getByTestId("portfolio-search")).toBeVisible();
 
     const titles = await archiveTitles(page);
@@ -136,7 +155,7 @@ test.describe("portfolio archive search", () => {
   });
 
   test("exposes a filter button for every category, including Packaging", async ({ page }) => {
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     await expect(page.locator("footer")).toBeVisible();
 
     // Every CMS category boolean must have a matching button (state ↔ button 1:1).
@@ -163,7 +182,7 @@ test.describe("portfolio archive search", () => {
   test("offers a Relevance sort only while searching, and restores the sort on clear", async ({
     page,
   }) => {
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     const sort = page.getByTestId("portfolio-sort");
     const relevanceOption = () => page.getByTestId("sort-option").filter({ hasText: "Relevance" });
 
@@ -203,7 +222,7 @@ test.describe("portfolio archive search", () => {
   test("sort dropdown is an ARIA listbox that closes on outside click and Escape", async ({
     page,
   }) => {
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     const sort = page.getByTestId("portfolio-sort");
     await expect(sort).toHaveAttribute("aria-haspopup", "listbox");
     await expect(sort).toHaveAttribute("aria-expanded", "false");
@@ -227,7 +246,7 @@ test.describe("portfolio archive search", () => {
   });
 
   test("category filter buttons expose aria-pressed state", async ({ page }) => {
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     const brand = page.getByRole("button", { name: "BRAND", exact: true });
     await expect(brand).toHaveAttribute("aria-pressed", "false");
     await brand.click();
@@ -235,7 +254,7 @@ test.describe("portfolio archive search", () => {
   });
 
   test("the archive section title is a real heading", async ({ page }) => {
-    await page.goto("/portfolio", { waitUntil: "networkidle" });
+    await openPortfolio(page);
     // Was a styled <div>; now an <h2> so the archive section has a programmatic heading.
     await expect(page.getByRole("heading", { name: "But wait, there's more!" })).toBeVisible();
   });
