@@ -19,6 +19,13 @@
   import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.webp";
   import scriptReddoor from "$lib/assets/icons/logos/staticReddoor.png";
   import type { Snippet } from "svelte";
+  import { onMount } from "svelte";
+
+  // Hydration marker for the smoke suite (same pattern as /dev/a11y-fixtures):
+  // onMount runs client-side after the initial effect flush, so tests can wait
+  // on `html[data-hydrated]` instead of guessing with fixed timeouts. Costs one
+  // attribute set; no behavioral effect.
+  onMount(() => document.documentElement.setAttribute("data-hydrated", "true"));
 
   const NAV_LINKS = [
     { label: "Portfolio", href: "/portfolio" },
