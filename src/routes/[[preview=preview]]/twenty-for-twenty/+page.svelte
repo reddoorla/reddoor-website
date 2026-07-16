@@ -344,8 +344,11 @@
   }
 
   /* Card titles are now h2 (real hierarchy under the page h1); pin the former
-     global-h5 display type (30px/200/46px, 22px/32px ≤1024px). */
+     global-h5 display type (30px/200/46px, 22px/32px ≤1024px). font-family must
+     be pinned too: the global @layer base h2 rule sets Besley, which would beat
+     inheritance — the old h5 inherited the body's pragmatica sans. */
   .card-title {
+    font-family: "pragmatica", "helvetica", sans-serif;
     font-size: 30px;
     font-style: normal;
     font-weight: 200;

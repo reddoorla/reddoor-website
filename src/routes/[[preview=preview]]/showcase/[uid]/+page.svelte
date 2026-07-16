@@ -92,7 +92,11 @@
     </div>
 
     <div class="w-full flex flex-col lg:flex-row mt-6 flex-wrap relative">
-      {#each projects as project, i (project.uid)}
+      <!-- Key by index: an editor can add the SAME project to a showcase group
+           twice, and duplicate uid keys throw each_key_duplicate in production.
+           The list is static per load (and the overrides below already pair by
+           this same index). -->
+      {#each projects as project, i (i)}
         <div class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700">
           <a
             href={isFilled.link(pageData.projects[i].linkOverride)
