@@ -5,6 +5,8 @@ import adapter from "@sveltejs/adapter-netlify";
 export default createSvelteConfig({
   kit: {
     adapter: adapter({ edge: false, split: false }),
-    prerender: { handleHttpError: "warn" },
+    // "fail", not "warn": a broken internal link must break the build, not
+    // prerender green and 404 in production.
+    prerender: { handleHttpError: "fail" },
   },
 });

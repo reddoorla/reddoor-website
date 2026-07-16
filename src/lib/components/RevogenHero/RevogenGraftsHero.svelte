@@ -145,9 +145,10 @@
      the global unlayered `p { font-size: 18px }` that Tailwind text utilities
      lose to) so the label is never smaller than its own body copy. */
   /* The grafts are intentionally non-navigating, so keep the default arrow
-     cursor — not the link/pointer cursor. Tailwind's `cursor-default` utility
-     loses to app.css's unlayered `button { cursor: pointer }` (unlayered beats
-     @layer utilities), so pin it with this scoped class. */
+     cursor — not the link/pointer cursor. (Historically this pinned the value
+     against app.css's unlayered `button { cursor: pointer }`; that rule is
+     gone and `cursor-default` utilities work again, but the scoped pin stays
+     as belt-and-braces documentation of intent.) */
   .graft-btn {
     cursor: default;
   }
