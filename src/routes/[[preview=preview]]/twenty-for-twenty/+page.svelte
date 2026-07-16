@@ -156,10 +156,15 @@
 <svelte:window bind:innerHeight={viewportHeight} />
 
 <section class="w-screen bg-paper py-16">
+  <!-- The page's one real heading. The "20 for" lockups below are typographic
+       art (and one is an invisible layout spacer), so they're aria-hidden
+       decoration with the old h1/h2 element styles pinned via .type-* classes —
+       multiple/decorative h1s polluted the document outline (06-05 MED-7). -->
+  <h1 class="sr-only">20 for 20</h1>
   <ContentWidth class="flex flex-col-reverse md:flex-row">
     <div class="md:w-1/2 flex flex-col">
-      <h1 class="opacity-0 hidden md:block">20</h1>
-      <h2 class="opacity-0 hidden md:block">for</h2>
+      <div aria-hidden="true" class="type-20 opacity-0 hidden md:block">20</div>
+      <div aria-hidden="true" class="type-for opacity-0 hidden md:block">for</div>
       <p class="md:w-4/5 max-w-lg large-body">
         As we step into our 20th year in business, our team has taken a moment to look back —
         revisiting the clients and projects that have shaped who we are today. From early
@@ -175,8 +180,8 @@
     </div>
     <div class="md:w-1/2 flex flex-col text-primary items-center">
       <div class="flex flex-col text-primary items-center relative">
-        <h1>20</h1>
-        <h2 class="-mt-8">for</h2>
+        <div aria-hidden="true" class="type-20">20</div>
+        <div aria-hidden="true" class="type-for -mt-8">for</div>
         <iframe
           title="background video"
           src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1&dnt=1"
@@ -214,7 +219,10 @@
         class="w-[125%] md:w-3/5 max-h-[80vh] aspect-square p-6 sm:translate-y-0 translate-x-[-2%] sm:translate-x-[-2%] md:translate-x-0 card-square"
       >
         <div class="h-full w-4/5 relative cards-container">
-          {#each projectCardArray as card, i (card.number)}
+          <!-- Key by index: `number` is editor-entered and defaults to 0, so two
+               blank/duplicate numbers keyed on it throw each_key_duplicate in
+               production. The array is server-sorted and static per load. -->
+          {#each projectCardArray as card, i (i)}
             <!-- Transform wrapper div -->
             <div
               class="card-transform-wrapper absolute top-0 sm:left-12 w-full h-full"
@@ -247,14 +255,17 @@
                       sizes="(min-width: 768px) 30vw, 100vw"
                       loading="lazy"
                       decoding="async"
+                      fallbackAlt=""
                     />
                   {/if}
 
-                  <h1
+                  <!-- Decorative card number, not a heading (was one <h1> per card). -->
+                  <p
+                    aria-hidden="true"
                     class="text-primary mix-blend-multiply absolute top-[6.5%] right-[6.5%] number"
                   >
                     {card.number.toString().padStart(2, "0")}
-                  </h1>
+                  </p>
                   <div
                     class="opacity-0 bg-dark/20 backdrop-blur-lg hover:opacity-100 transition-opacity duration-300 h-full w-full absolute top-0 left-0 flex items-center justify-center"
                   >
@@ -264,7 +275,9 @@
                   </div>
                 </div>
                 <div class="w-full h-full flex flex-col justify-between pt-4 xl:pt-6">
-                  <h5 class="text-black">{card.name}</h5>
+                  <!-- h2 under the page h1 (was h5 — a heading-level skip);
+                       .card-title pins the global h5 display type. -->
+                  <h2 class="text-black card-title">{card.name}</h2>
                   <div class="flex flex-row lg:flex-col xl:flex-row justify-between flex-wrap">
                     <p class="text-primary uppercase card-label">
                       {card.mediums}
@@ -311,19 +324,35 @@
 </section>
 
 <style>
-  h1 {
+  /* Display types for the decorative "20 for" lockups and card numbers — these
+     were h1/h2 element rules; the elements are now non-heading divs/p (see the
+     markup comments), so the visuals are pinned here instead. */
+  .type-20,
+  .number {
     font-size: 240px;
     font-style: normal;
     font-weight: 700;
     line-height: 100%;
   }
 
-  h2 {
+  .type-for {
     font-family: Besley;
     font-size: 55px;
     font-style: normal;
     font-weight: 400;
     line-height: 125%;
+  }
+
+  /* Card titles are now h2 (real hierarchy under the page h1); pin the former
+     global-h5 display type (30px/200/46px, 22px/32px ≤1024px). font-family must
+     be pinned too: the global @layer base h2 rule sets Besley, which would beat
+     inheritance — the old h5 inherited the body's pragmatica sans. */
+  .card-title {
+    font-family: "pragmatica", "helvetica", sans-serif;
+    font-size: 30px;
+    font-style: normal;
+    font-weight: 200;
+    line-height: 46px;
   }
 
   /* Performance optimizations for iOS Safari */
@@ -375,29 +404,33 @@
   }
 
   @media only screen and (max-width: 1200px) {
-    h1.number {
+    .number {
       font-size: 160px;
     }
   }
 
   @media only screen and (max-width: 1024px) {
-    h1.number {
+    .number {
       font-size: 80px;
       line-height: 125%;
     }
     p.card-label {
       font-size: 12px;
     }
+    .card-title {
+      font-size: 22px;
+      line-height: 32px;
+    }
   }
 
   @media only screen and (max-width: 768px) {
-    h1.number {
+    .number {
       font-size: 160px;
     }
   }
 
   @media only screen and (max-width: 540px) {
-    h1.number {
+    .number {
       font-size: 80px;
     }
   }

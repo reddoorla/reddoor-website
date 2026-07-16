@@ -25,8 +25,17 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
   const projectCards: ProjectCard[] = await Promise.all(
     projectArrayQuery.map(async (q) => {
       let linkedProject;
-      if (isFilled.contentRelationship(q.data.project)) {
-        linkedProject = (await client.getByID(q.data.project.id)) as ProjectDocument<string>;
+      // isFilled.contentRelationship only checks the link has an id — an
+      // unpublished/deleted target still passes but carries isBroken, and
+      // getByID on it throws, 500ing the whole page. Skip broken links and
+      // swallow a mid-flight delete so one bad card can't take the route down;
+      // the card falls through to its override fields.
+      if (isFilled.contentRelationship(q.data.project) && !q.data.project.isBroken) {
+        try {
+          linkedProject = (await client.getByID(q.data.project.id)) as ProjectDocument<string>;
+        } catch {
+          linkedProject = undefined;
+        }
       }
 
       let imageField = linkedProject?.data.meta_image;
