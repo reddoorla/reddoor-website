@@ -28,9 +28,12 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     filters: [filter.not("document.tags", ["hide"])],
   });
 
+  // A hide-tagged project isn't in allProjects: findIndex yields -1, and
+  // allProjects[-1 + 1] would silently serve allProjects[0] as "previous".
+  // Hidden pages get no prev/next nav instead of wrong nav.
   const currentIndex = allProjects.findIndex((project) => project.uid === params.uid);
-  const prevProject = allProjects[currentIndex + 1] || null;
-  const nextProject = allProjects[currentIndex - 1] || null;
+  const prevProject = currentIndex === -1 ? null : allProjects[currentIndex + 1] || null;
+  const nextProject = currentIndex === -1 ? null : allProjects[currentIndex - 1] || null;
   let relatedProjectOne = prevProject;
   let relatedProjectTwo = nextProject;
   let isOneSet = false;
@@ -184,7 +187,11 @@ export async function entries() {
 
   const pages = await client.getAllByType("project");
 
-  return pages.map((page) => {
-    return { uid: page.uid };
-  });
+  // Hide-tagged projects stay prerendered on purpose (reachable by URL,
+  // unlisted); only null uids are filtered — they can't be routed.
+  return pages
+    .filter((page) => page.uid)
+    .map((page) => {
+      return { uid: page.uid };
+    });
 }

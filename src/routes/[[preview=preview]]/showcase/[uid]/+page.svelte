@@ -17,7 +17,10 @@
 
   const pageData = $derived(data.page.data);
   const featuredProject = $derived<ProjectDocument | undefined>(data.featuredProject);
-  const projects = $derived<ProjectDocument[]>(data.projects);
+  // Server-built {doc, item} pairs: each resolved project travels WITH its own
+  // group row, so overrides can never shift onto the wrong card when a row is
+  // skipped (unfilled/broken relationship).
+  const projects = $derived(data.projects);
 </script>
 
 <div class="w-screen h-[80vh] relative">
@@ -94,22 +97,22 @@
     <div class="w-full flex flex-col lg:flex-row mt-6 flex-wrap relative">
       <!-- Key by index: an editor can add the SAME project to a showcase group
            twice, and duplicate uid keys throw each_key_duplicate in production.
-           The list is static per load (and the overrides below already pair by
-           this same index). -->
-      {#each projects as project, i (i)}
+           The list is static per load. Overrides come from the pair's own group
+           row (item), never from a positional lookup. -->
+      {#each projects as { doc, item }, i (i)}
         <div class="md:pr-6 pb-6 w-full lg:w-1/2 aspect-4/3 transition-opacity duration-700">
           <a
-            href={isFilled.link(pageData.projects[i].linkOverride)
-              ? asLink(pageData.projects[i].linkOverride)
-              : "/portfolio/" + project.uid}
-            target={isFilled.link(pageData.projects[i].linkOverride) ? "_blank" : undefined}
+            href={isFilled.link(item.linkOverride)
+              ? asLink(item.linkOverride)
+              : "/portfolio/" + doc.uid}
+            target={isFilled.link(item.linkOverride) ? "_blank" : undefined}
             class="h-full w-full flex flex-col justify-end relative"
           >
             <img
-              src={pageData.projects[i].imageOverride.url || project.data.hero.url || ""}
-              srcset={imgixSrcset(pageData.projects[i].imageOverride.url || project.data.hero.url)}
+              src={item.imageOverride.url || doc.data.hero.url || ""}
+              srcset={imgixSrcset(item.imageOverride.url || doc.data.hero.url)}
               sizes="(min-width: 1024px) 40vw, 100vw"
-              alt={project.data.title + " Hero Image"}
+              alt={doc.data.title + " Hero Image"}
               class="absolute w-full h-full object-cover"
               loading="lazy"
               decoding="async"
@@ -126,10 +129,10 @@
             >
               <div class="w-4/5">
                 <p class="text-white uppercase">
-                  {pageData.projects[i].titleOverride || project.data.title}
+                  {item.titleOverride || doc.data.title}
                 </p>
                 <p class="text-light">
-                  {pageData.projects[i].subtitleOverride || mediumString(project) || ""}
+                  {item.subtitleOverride || mediumString(doc) || ""}
                 </p>
               </div>
               <div class="brightness-200 hover:brightness-50 transition bump w-12 h-12">

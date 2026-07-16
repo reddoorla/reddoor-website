@@ -38,6 +38,29 @@ export const actions: Actions = {
     });
     if (!screen.ok) return { success: true };
 
+    // Server-side validation: the browser's `required` attributes don't bind a
+    // direct POST — an empty submission must not report success, and oversized
+    // payloads must not be forwarded to ingest.
+    const fields = {
+      name: form.get("name")?.toString().trim() ?? "",
+      email: form.get("email")?.toString().trim() ?? "",
+      phone: form.get("phone")?.toString().trim() ?? "",
+      message: form.get("message")?.toString().trim() ?? "",
+      company: form.get("company")?.toString().trim() ?? "",
+    };
+    const MAX_LEN = { name: 200, email: 254, phone: 50, message: 5000, company: 200 };
+    if (!fields.email || !fields.message) {
+      return fail(400, { error: "Please provide an email address and a message." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) {
+      return fail(400, { error: "Please provide a valid email address." });
+    }
+    for (const key of Object.keys(MAX_LEN) as (keyof typeof MAX_LEN)[]) {
+      if (fields[key].length > MAX_LEN[key]) {
+        return fail(400, { error: "One of the fields is too long — please shorten it." });
+      }
+    }
+
     if (!env.FORMS_INGEST_URL || !env.FORMS_INGEST_TOKEN) {
       console.error("[contact] FORMS_INGEST_URL / FORMS_INGEST_TOKEN not set");
       return fail(500, {
@@ -68,11 +91,11 @@ export const actions: Actions = {
       fetch,
       payload: {
         formType: "contact",
-        name: form.get("name")?.toString(),
-        email: form.get("email")?.toString(),
-        phone: form.get("phone")?.toString(),
-        message: form.get("message")?.toString(),
-        company: form.get("company")?.toString(),
+        name: fields.name || undefined,
+        email: fields.email,
+        phone: fields.phone || undefined,
+        message: fields.message,
+        company: fields.company || undefined,
         sourceUrl: `${url.origin}${url.pathname}`,
         // Synthetic end-to-end probe marker (the fleet `form-e2e` audit). Forwarded
         // ONLY when the submitted form carries testMode=true — a real visitor never
