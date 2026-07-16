@@ -1,55 +1,44 @@
-# Reddoor Wireframer and Site Scaffold
+# reddoor-website
 
-## Purpose
+The [reddoorla.com](https://reddoorla.com) site — Reddoor Creative's own portfolio/marketing site.
 
-To provide a forkable starting point for all SvelteKit, Tailwind + Prismic sites developed at Reddoor.
+**Stack:** SvelteKit 2 + Svelte 5 (runes) · [Prismic](https://prismic.io) (Slice Machine) · Tailwind CSS v4 (`@config` legacy mode, see `src/app.css`) · Netlify (project name `reddoorla`) · Node 24 + pnpm 11 via corepack.
 
-## Contents
+## Getting started
 
-### Base configuration and boilerplate for a SvelteKit app integrated with Tailwind
+```sh
+nvm use            # node 24 (engines enforces >=24)
+corepack enable    # pins pnpm from packageManager
+pnpm install
+pnpm dev           # vite dev server (:5173) + Slice Machine (:9999), concurrently
+```
 
-SvelteKit has one of the best developer experiences of any framework, and is especially friendly to component-driven design. We combine it with Tailwind for implementation of CSS to pave the path to quickly devolping reactive, extensible, and data-driven frontends.
+## Scripts
 
-### Base configuration and boilerplate necessary to integrate SvelteKit with Prismic CMS
+| Script            | What it does                                                        |
+| ----------------- | ------------------------------------------------------------------- |
+| `pnpm dev`        | Vite dev server + Slice Machine, concurrently                       |
+| `pnpm build`      | Production build (Netlify adapter; prerender fails on broken links) |
+| `pnpm check`      | `svelte-check` type/diagnostic pass                                 |
+| `pnpm lint`       | Prettier check + ESLint                                             |
+| `pnpm format`     | Prettier write                                                      |
+| `pnpm test`       | `test:unit` then `test:smoke` — this is what CI runs                |
+| `pnpm test:unit`  | Vitest (`src/**/*.test.ts`, `scripts/**/*.test.mjs`)                |
+| `pnpm test:smoke` | Playwright behavior suite (`tests/smoke/`), installs chromium first |
 
-Prismic CMS allows flexible entry of data by content managers without exposing code, and can be integrated into any frontend design as necessary.
+## CI / gates
 
-### Designed and extensible components to be used within Prismic Slices or as Prismic Slices
+`.github/workflows/ci.yml` calls the shared fleet workflow (`reddoorla/.github`): prettier, eslint, svelte-check, build, `pnpm test` (unit + smoke), and an axe a11y audit against `/dev/a11y-fixtures`. `.github/workflows/lighthouse.yml` additionally gates PRs on Lighthouse scores of the **Netlify deploy preview** (real prod-built routes: `/`, `/portfolio`, one detail page); a11y + best-practices are hard gates, performance is warn-only.
 
-We've designed and implemented a library of responsive, functioning components to use first in the wireframing stage, and then to be customized for each site. Delivering these components as slices will allow both us and clients to quickly prototype and push new pages that remain within the design space originally conceived for the site.
+## Content ops
 
-This library will grow as we require new interactive functions or layouts, and allow programmatic work from different projects to be easily accessible and carry over, rather than rebuilding components anew for each project.
+- Content lives in the Prismic repo configured in `slicemachine.config.json`; slices are in `src/lib/slices/`, models are pushed via Slice Machine (interactive login required — a write token can't push models).
+- `scripts/portfolio-intro/` — the (idempotent, unit-tested) migration that seeded the 16 portfolio-page intros from the Figma project-page designs. See its README before re-running anything.
+- Secrets: `PRISMIC_WRITE_TOKEN` lives in `.env.local` (gitignored). Scripts load it via `node --env-file=.env.local …`. Never commit or print it.
 
-## How to Use
+## Conventions worth knowing
 
-1. clone this repo
-
-2. initiate new prismic repo and connect to this
-
-3. launch site on netlify
-
-4. set up prismic previews with netlify site
-
-5. wireframe site using slices of default components
-
-6. after receiving design, convert wireframed components into designed components
-
-//TODO: mirror prismic docs
-
-## Next steps
-
-### design
-
-address markup comments on currently implemented components, test components on all browsers
-
-### wireframer
-
-implement current components as prismic slices so tool is usable as a contentful wireframer that maps one to one with our current figma library
-
-### extending the component library
-
-add other designed components from the figma library, convert other commonly used components or systems into this repo as they are used
-
-## Bugs
-
-- arrow sometimes sticks on bump
+- **Tailwind v4 + `@config`:** element-level rules in `app.css` must live in `@layer base`, or they beat every utility. CMS-composed classes (`"bg-" + slice.primary.background`) are safelisted via `@source inline()` at the top of `app.css` — the legacy `safelist` config key is ignored by v4.
+- **Headings:** heading level and visual size are coupled by the global element styles; when changing a heading's level for a11y, pin its visual with a `.type-*` class (including `font-family` and every responsive step).
+- **Motion:** respect `prefers-reduced-motion`; Playwright runs with reduced motion, so smoke tests rely on it for determinism.
+- **Docs:** evening-review morning briefs live in `docs/morning-reports/`; design/implementation specs in `docs/superpowers/specs/`.

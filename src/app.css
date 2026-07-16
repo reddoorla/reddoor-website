@@ -2,6 +2,28 @@
 
 @config '../tailwind.config.js';
 
+/* Safelist for classes composed at runtime from CMS values — slice code builds
+   them from Prismic selects (`"bg-" + slice.primary.background`), so the
+   scanner finds no literal occurrence in src. Tailwind v4 IGNORES the legacy
+   `safelist` config key; `@source inline()` is the v4 mechanism. (Until now
+   these survived only because the oxide scanner happened to tokenize the old
+   safelist strings inside tailwind.config.js itself.) The bg-/text- sets cover
+   every option of the five background selects; the rest is ported verbatim
+   from the old safelist. bg-paper{,-red} are custom app.css classes and need
+   no safelisting. */
+@source inline("bg-{white,gray,red}");
+@source inline("text-{red,dark,white}");
+@source inline("{sm:,}justify-{center,start,end}");
+@source inline("justify-{between,around}");
+@source inline("hidden");
+@source inline("aspect-{square,video}");
+@source inline("aspect-[16/9]");
+@source inline("aspect-[4/3]");
+@source inline("translate-y-1");
+@source inline("w-[360px]");
+@source inline("md:w-1/2");
+@source inline("h-[40vw]");
+
 :root {
   --transition-fast-slow: cubic-bezier(0.5, 0, 0, 1);
 }
@@ -197,10 +219,6 @@ body::-webkit-scrollbar {
   font-weight: 300;
 }
 
-button {
-  cursor: pointer;
-}
-
 .label {
   font-size: 14px;
   line-height: 25px;
@@ -287,12 +305,13 @@ button {
   }
 }
 
-::placeholder {
-  color: #6d6e7140 !important;
-}
-
-input[type="textarea"]::placeholder {
-  margin-top: 0;
+/* In @layer base (not unlayered + !important) so `placeholder:*` utilities can
+   override it — e.g. the portfolio search box's `placeholder:text-light/60`,
+   which the old !important rule silently defeated. */
+@layer base {
+  ::placeholder {
+    color: #6d6e7140;
+  }
 }
 
 .rich-text a {

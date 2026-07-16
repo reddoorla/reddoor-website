@@ -56,8 +56,11 @@
 <ContentWidth class="flex flex-col items-end">
   <div class="w-full md:w-4/5">
     <div class="w-full md:pr-6 aspect-4/3 lg:aspect-video relative">
+      <!-- Guarded: `"/portfolio/" + uid || ""` concatenated before the fallback could
+           kick in, shipping a literal /portfolio/undefined link (404, and a prerender
+           failure under handleHttpError:"fail"). Fall back to the portfolio grid. -->
       <a
-        href={"/portfolio/" + data.featuredProject?.uid || ""}
+        href={data.featuredProject?.uid ? "/portfolio/" + data.featuredProject.uid : "/portfolio"}
         class="h-full w-full flex flex-col justify-end items-end relative"
       >
         <img

@@ -108,3 +108,19 @@ Flag any export that comes down too low-res for replacement with a hi-res origin
 - `svelte-check` clean, `pnpm build` clean.
 - Dev-server smoke + screenshot compare each section against Figma.
 - Heading-order pass (axe) + responsive check at mobile width.
+
+## Revision — 2026-07-16
+
+The shipped implementation diverged from this spec in one area it never
+anticipated: two featured sections became **live components instead of static
+exports** —
+
+- **Rubrik Zero Labs** ships as `VimeoBanner` (brand video with the static
+  frame as poster), not an exported image (`portfolio/+page.svelte`, the
+  `<VimeoBanner vimeoId="1205996665" …>` block).
+- **Revogen** ships as `RevogenBanner`, the interactive grafts hero ported
+  from the Revogen homepage, not the packaging export.
+
+The corresponding rows in the asset-export table above are superseded. The
+invariants section still holds as written (heading pinning, single footer CTA,
+no grid/search/sort changes) and was re-verified by the 2026-07-16 review.

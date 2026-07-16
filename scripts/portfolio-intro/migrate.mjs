@@ -39,6 +39,10 @@ const only = args
 
 const p = (text) => [{ type: "paragraph", text, spans: [] }];
 
+// Prismic client errors can embed the request URL — including ?access_token=… —
+// in their message. Never print one unredacted.
+const redact = (m) => String(m).replace(/([?&]access_token=)[^&\s"']+/gi, "$1[redacted]");
+
 function buildIntro(intro) {
   const slices = [
     {
@@ -126,7 +130,7 @@ for (const entry of targets) {
   try {
     doc = await readClient.getByUID("project", entry.uid);
   } catch (e) {
-    console.log(`✗ ${entry.uid.padEnd(30)} FETCH FAILED: ${e.message}`);
+    console.log(`✗ ${entry.uid.padEnd(30)} FETCH FAILED: ${redact(e.message)}`);
     continue;
   }
 
@@ -153,7 +157,12 @@ for (const entry of targets) {
   }
   const migration = prismic.createMigration();
   migration.updateDocument({ ...doc, data: { ...doc.data, slices: newSlices } }, doc.uid ?? doc.id);
-  await writeClient.migrate(migration, { reporter: () => {} });
+  try {
+    await writeClient.migrate(migration, { reporter: () => {} });
+  } catch (e) {
+    console.log(`    ✗ MIGRATE FAILED: ${redact(e.message)}`);
+    continue;
+  }
   console.log("    ✓ migrated (draft)");
   ok++;
 }
