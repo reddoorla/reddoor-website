@@ -16,8 +16,10 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
       },
       filters: [filter.not("document.tags", ["hide"])],
     });
-  } catch {
-    // A Prismic failure renders the error page as a 503, not an unhandled 500.
+  } catch (err) {
+    // A Prismic failure renders the error page as a 503, not an unhandled 500
+    // — but the real cause must still reach the logs.
+    console.error("[portfolio] Prismic load failed:", err);
     throw error(503, { message: "Content is temporarily unavailable — please try again." });
   }
 

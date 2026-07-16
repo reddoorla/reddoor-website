@@ -66,7 +66,11 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     }
   }
 
-  if (!isTwoSet) {
+  // Run the relatedness fallback whenever EITHER slot is unset: on a
+  // hide-tagged page (currentIndex -1 → null prev/next above) with only
+  // override2 set, gating on !isTwoSet alone would skip the fallback and
+  // leave slot one permanently empty.
+  if (!isOneSet || !isTwoSet) {
     const projectTags = [{ tag: "branding", count: 0 }];
     let tagTotalCount = 0;
     projectTags.push({ tag: "product", count: 0 });
@@ -159,9 +163,12 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
       }
     });
 
-    if (!isOneSet) {
+    if (!isOneSet && !isTwoSet) {
       relatedProjectOne = mostRelatedProject;
       relatedProjectTwo = secondMostRelatedProject;
+    } else if (!isOneSet) {
+      // Slot two holds an editor override — fill only the empty first slot.
+      relatedProjectOne = mostRelatedProject;
     } else {
       relatedProjectTwo = mostRelatedProject;
     }

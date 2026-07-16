@@ -11,16 +11,19 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
   try {
     // All three are essential to the page (the template dereferences them
     // unconditionally). Parallel fetch; a Prismic failure renders the error
-    // page as a 503 instead of an unhandled 500.
-    // fetchLinks: the same gallery resolution every other SliceZone route
-    // passes — without it a gallery-backed slideshow authored on the homepage
-    // silently degrades to a plain image.
+    // page as a 503 instead of an unhandled 500. (No fetchLinks here: unlike
+    // the SliceZone routes, the home template renders no SliceZone — its
+    // sections are hardcoded — so there are no gallery relationships to
+    // resolve.)
     [page, logoSoup, openingAnimation] = await Promise.all([
-      client.getByUID("page", "home", { fetchLinks: ["gallery.images"] }),
+      client.getByUID("page", "home"),
       client.getSingle("logo_soup"),
       client.getSingle("opening_animation"),
     ]);
-  } catch {
+  } catch (err) {
+    // Log the real cause — the controlled 503 must not silence what the old
+    // unhandled 500 used to print.
+    console.error("[home] Prismic load failed:", err);
     throw error(503, { message: "Content is temporarily unavailable — please try again." });
   }
 

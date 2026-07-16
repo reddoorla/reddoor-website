@@ -58,41 +58,48 @@
 
 <ContentWidth class="flex flex-col items-end">
   <div class="w-full md:w-4/5">
-    <div class="w-full md:pr-6 aspect-4/3 lg:aspect-video relative">
-      <a
-        href={"/portfolio/" + data.featuredProject?.uid || ""}
-        class="h-full w-full flex flex-col justify-end items-end relative"
-      >
-        <img
-          src={pageData.featuredImageOverride.url || featuredProject?.data.hero.url || ""}
-          srcset={imgixSrcset(pageData.featuredImageOverride.url || featuredProject?.data.hero.url)}
-          sizes="(min-width: 768px) 75vw, 100vw"
-          alt={featuredProject?.data.title || "" + " Hero Image"}
-          class="absolute w-full h-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-        <div
-          class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
-          style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
-        ></div>
-        <div class="w-full flex flex-row justify-between p-6 z-10">
-          <div class="w-4/5">
-            <p class="text-white uppercase">
-              {pageData.featuredTitleOverride || featuredProject?.data.title || ""}
-            </p>
-            <p class="text-light">
-              {pageData.featuredSubtitleOverride ||
-                (featuredProject && mediumString(featuredProject)) ||
-                ""}
-            </p>
+    <!-- Rendered only when the featured relationship actually resolved: the
+         server degrades unfilled/broken/unpublished links to undefined, and a
+         card whose only destination is /portfolio/{uid} has nothing valid to
+         render without a doc (the old markup shipped a phantom card linking
+         to /portfolio/undefined via `"…" + uid || ""` operator precedence). -->
+    {#if featuredProject}
+      <div class="w-full md:pr-6 aspect-4/3 lg:aspect-video relative">
+        <a
+          href={"/portfolio/" + featuredProject.uid}
+          class="h-full w-full flex flex-col justify-end items-end relative"
+        >
+          <img
+            src={pageData.featuredImageOverride.url || featuredProject.data.hero.url || ""}
+            srcset={imgixSrcset(
+              pageData.featuredImageOverride.url || featuredProject.data.hero.url,
+            )}
+            sizes="(min-width: 768px) 75vw, 100vw"
+            alt={(featuredProject.data.title || "") + " Hero Image"}
+            class="absolute w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          <div
+            class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
+            style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
+          ></div>
+          <div class="w-full flex flex-row justify-between p-6 z-10">
+            <div class="w-4/5">
+              <p class="text-white uppercase">
+                {pageData.featuredTitleOverride || featuredProject.data.title || ""}
+              </p>
+              <p class="text-light">
+                {pageData.featuredSubtitleOverride || mediumString(featuredProject) || ""}
+              </p>
+            </div>
+            <div class="brightness-200 hover:brightness-50 transition bump w-12 h-12">
+              <img src={arrowButton} alt="" class="h-full" />
+            </div>
           </div>
-          <div class="brightness-200 hover:brightness-50 transition bump w-12 h-12">
-            <img src={arrowButton} alt="" class="h-full" />
-          </div>
-        </div>
-      </a>
-    </div>
+        </a>
+      </div>
+    {/if}
 
     <div class="w-full flex flex-col lg:flex-row mt-6 flex-wrap relative">
       <!-- Key by index: an editor can add the SAME project to a showcase group
