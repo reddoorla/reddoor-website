@@ -12,95 +12,138 @@ const LEAD =
 const ABOUT =
   "Rubrik Zero Labs is a cybersecurity research and thought leadership resource designed to provide actionable insights.";
 
-const INTRO = [slice("lead_text"), slice("text_columns"), slice("accordion")];
+// Fresh intro arrays per call — planSlices output embeds these objects, so
+// sharing one INTRO constant across runs would let identity equality pass
+// where content equality should be asserted.
+const intro3 = () => [slice("lead_text", LEAD), slice("text_columns"), slice("accordion", ABOUT)];
+const intro2 = () => [slice("lead_text", LEAD), slice("text_columns")];
 
-describe("planSlices", () => {
-  it("prepends the intro to a doc that has none", () => {
+describe("planSlices — slot-based intro consumption", () => {
+  it("prepends the intro to a doc that has none, preserving body content byte-for-byte", () => {
     const body = [slice("rich_text", "organic opener"), slice("content_width_image")];
-    const { slices, dropped, replacedIntroCount } = planSlices({ existing: body, intro: INTRO });
-    expect(slices.map((s) => s.slice_type)).toEqual([
-      "lead_text",
-      "text_columns",
-      "accordion",
-      "rich_text",
-      "content_width_image",
-    ]);
-    expect(dropped).toBeNull();
+    const { slices, dropped, replacedIntroCount } = planSlices({ existing: body, intro: intro3() });
     expect(replacedIntroCount).toBe(0);
+    expect(dropped).toBeNull();
+    // Content equality on the kept slices, not just type sequence — a mutant
+    // that swaps kept slices for fresh copies must fail here.
+    expect(slices.slice(3)).toEqual(body);
+    expect(textOf(slices[3].primary.content)).toBe("organic opener");
   });
 
-  it("replaces only the leading contiguous intro run", () => {
-    const existing = [
-      slice("lead_text"),
+  it("does NOT consume an editor accordion that opens a never-migrated doc", () => {
+    // Slot 0 expects lead_text; an accordion at position 0 is editor content.
+    const faq = slice("accordion", "FAQ the editor wrote");
+    const existing = [faq, slice("content_width_image")];
+    const { slices, replacedIntroCount } = planSlices({ existing, intro: intro3() });
+    expect(replacedIntroCount).toBe(0);
+    expect(slices.slice(3)).toEqual(existing);
+    expect(textOf(slices[3].primary.content)).toBe("FAQ the editor wrote");
+  });
+
+  it("does NOT consume an editor accordion contiguous with the intro (the review repro)", () => {
+    // Run 1 on a doc whose duplicate lead sits before an editor FAQ accordion.
+    const faq = slice("accordion", "FAQ the editor wrote");
+    const existing = [slice("rich_text", LEAD), faq, slice("content_width_image")];
+    const run1 = planSlices({
+      existing,
+      intro: intro3(),
+      dropExistingLead: true,
+      introTexts: [LEAD, ABOUT],
+    });
+    expect(run1.dropped).toContain("Rubrik Zero Labs");
+    // The FAQ is now DIRECTLY after the intro's accordion — the naive
+    // "leading contiguous run of intro types" scan absorbed and deleted it
+    // on run 2. Slot matching must not.
+    const run2 = planSlices({
+      existing: run1.slices,
+      intro: intro3(),
+      dropExistingLead: true,
+      introTexts: [LEAD, ABOUT],
+    });
+    expect(run2.replacedIntroCount).toBe(3);
+    expect(run2.dropped).toBeNull();
+    expect(run2.slices).toEqual(run1.slices);
+    expect(textOf(run2.slices[3].primary.content)).toBe("FAQ the editor wrote");
+
+    const run3 = planSlices({
+      existing: run2.slices,
+      intro: intro3(),
+      dropExistingLead: true,
+      introTexts: [LEAD, ABOUT],
+    });
+    expect(run3.slices).toEqual(run1.slices);
+  });
+
+  it("re-run with an organic rich_text directly after the intro keeps it (drop guard live)", () => {
+    // Exercises the dropExistingLead branch ON the re-run path, not just run 1.
+    const organic = "A completely different paragraph the editor wrote after launch.";
+    const migrated = [...intro3(), slice("rich_text", organic), slice("screen_width_image")];
+    const rerun = planSlices({
+      existing: migrated,
+      intro: intro3(),
+      dropExistingLead: true,
+      introTexts: [LEAD, ABOUT],
+    });
+    expect(rerun.replacedIntroCount).toBe(3);
+    expect(rerun.dropped).toBeNull();
+    expect(textOf(rerun.slices[3].primary.content)).toBe(organic);
+  });
+
+  it("updates intro copy in place on re-run (the copy-edit use case)", () => {
+    const migrated = [...intro3(), slice("screen_width_image")];
+    const updatedIntro = [
+      slice("lead_text", LEAD + " Now with revised copy."),
       slice("text_columns"),
-      slice("accordion"),
-      slice("content_width_image"),
-      // Editor-added accordion mid-document: content, not intro.
-      slice("accordion", "FAQ the editor wrote"),
-      slice("rich_text", "closing thoughts"),
+      slice("accordion", ABOUT),
     ];
-    const { slices, replacedIntroCount } = planSlices({ existing, intro: INTRO });
+    const { slices, replacedIntroCount } = planSlices({ existing: migrated, intro: updatedIntro });
     expect(replacedIntroCount).toBe(3);
+    expect(textOf(slices[0].primary.content)).toContain("revised copy");
+    expect(slices).toHaveLength(4);
+  });
+
+  it("a data.json entry that gains an accordion extends a 2-slice intro cleanly", () => {
+    // Prior run wrote [lead, cols] (no accordion — e.g. summittrek); the entry
+    // later gains accordion copy. Only the 2 written slots are consumed; the
+    // kept old lead stays.
+    const oldKeptLead = slice("rich_text", "We've enjoyed a lengthy partnership with SummitTrek.");
+    const migrated = [...intro2(), oldKeptLead, slice("screen_width_image")];
+    const { slices, replacedIntroCount, dropped } = planSlices({
+      existing: migrated,
+      intro: intro3(),
+      dropExistingLead: false,
+    });
+    expect(replacedIntroCount).toBe(2);
+    expect(dropped).toBeNull();
     expect(slices.map((s) => s.slice_type)).toEqual([
       "lead_text",
       "text_columns",
       "accordion",
-      "content_width_image",
-      "accordion", // preserved — this was the destroy path in the original code
       "rich_text",
+      "screen_width_image",
     ]);
+    expect(slices[3]).toEqual(oldKeptLead);
   });
 
-  it("is idempotent: planning its own output changes nothing", () => {
-    const existing = [
-      slice("rich_text", LEAD), // duplicate of the new lead → dropped on first run
-      slice("screen_width_image"),
-      slice("accordion", "editor FAQ"),
-    ];
-    const first = planSlices({
-      existing,
-      intro: INTRO,
-      dropExistingLead: true,
-      introTexts: [LEAD, ABOUT],
-    });
-    expect(first.dropped).toContain("Rubrik Zero Labs");
-
-    const second = planSlices({
-      existing: first.slices,
-      intro: INTRO,
-      dropExistingLead: true,
-      introTexts: [LEAD, ABOUT],
-    });
-    expect(second.slices).toEqual(first.slices);
-    expect(second.dropped).toBeNull();
-
-    const third = planSlices({
-      existing: second.slices,
-      intro: INTRO,
-      dropExistingLead: true,
-      introTexts: [LEAD, ABOUT],
-    });
-    expect(third.slices).toEqual(first.slices);
-  });
-
-  it("never drops an organic paragraph, even with dropExistingLead set", () => {
+  it("never drops an organic paragraph on first run, even with dropExistingLead set", () => {
     const organic = "A completely different paragraph the editor wrote after launch.";
-    const existing = [slice("rich_text", organic), slice("screen_width_image")];
+    const original = slice("rich_text", organic);
+    const existing = [original, slice("screen_width_image")];
     const { slices, dropped } = planSlices({
       existing,
-      intro: INTRO,
+      intro: intro3(),
       dropExistingLead: true,
       introTexts: [LEAD, ABOUT],
     });
     expect(dropped).toBeNull();
-    expect(textOf(slices[3].primary.content)).toBe(organic);
+    expect(slices[3]).toEqual(original);
   });
 
-  it("drops the old lead only when it duplicates the intro copy", () => {
+  it("drops the old lead only when it prefix-duplicates the intro copy", () => {
     const existing = [slice("rich_text", LEAD + " Extra trailing words."), slice("slideshow")];
     const { slices, dropped } = planSlices({
       existing,
-      intro: INTRO,
+      intro: intro3(),
       dropExistingLead: true,
       introTexts: [LEAD, ABOUT],
     });
@@ -117,7 +160,7 @@ describe("planSlices", () => {
     const existing = [slice("content_width_image")];
     const { dropped } = planSlices({
       existing,
-      intro: INTRO,
+      intro: intro3(),
       dropExistingLead: true,
       introTexts: [LEAD],
     });
@@ -125,8 +168,9 @@ describe("planSlices", () => {
   });
 
   it("handles an empty doc", () => {
-    const { slices } = planSlices({ existing: [], intro: INTRO });
-    expect(slices).toEqual(INTRO);
+    const intro = intro3();
+    const { slices } = planSlices({ existing: [], intro });
+    expect(slices).toEqual(intro);
   });
 });
 
