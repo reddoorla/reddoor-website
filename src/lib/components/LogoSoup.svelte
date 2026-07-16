@@ -100,7 +100,11 @@
     {showImage && brandIndex > -1 ? '' : 'opacity-0'}
     {viewportHeight * 16 > viewportWidth * 9 ? 'h-lvh min-w-full' : 'w-screen min-h-full'}"
       >
-        {#each brands as brand, i (brand.name || i)}
+        <!-- All five brand eaches key by index: `name` is an optional, non-unique
+             KeyText, and a duplicate (same client twice, copied row) keyed on it
+             throws each_key_duplicate in production. The list is static per page
+             load, so index keys are stable. -->
+        {#each brands as brand, i (i)}
           <PrismicImage
             field={isMobile && brand.active_background_mobile_crop
               ? brand.active_background_mobile_crop
@@ -129,7 +133,7 @@
         </div>
 
         <div class="w-3/5 h-full flex flex-row justify-between items-center flex-wrap gap-12">
-          {#each brands as brand, i (brand.name || i)}
+          {#each brands as brand, i (i)}
             <div
               use:anim
               class="w-1/4 relative"
@@ -253,7 +257,7 @@
         {mobileScrollActive ? '' : 'opacity-0'}
         {viewportHeight * 16 > viewportWidth * 9 ? 'h-lvh min-w-full' : 'w-screen min-h-full'}"
       >
-        {#each brands as brand, i (brand.name || i)}
+        {#each brands as brand, i (i)}
           <PrismicImage
             field={brand.active_background}
             alt=""
@@ -280,7 +284,7 @@
 
         <!-- Mobile logo display -->
         <div class="relative h-24 w-full flex justify-center items-center mb-16">
-          {#each brands as brand, i (brand.name || i)}
+          {#each brands as brand, i (i)}
             <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <PrismicLink field={brand.project_link} aria-label={brand.name || "View project"}>
                 <PrismicImage
@@ -332,7 +336,7 @@
         <!-- Progress indicator -->
         <div class="absolute bottom-1/2 translate-y-1/2 left-6 flex justify-center">
           <div class="flex flex-col gap-2">
-            {#each brands as brand, i (brand.name || i)}
+            {#each brands as brand, i (i)}
               <button
                 onclick={() => navigateToBrand(i + 1)}
                 aria-label="Jump to {brand.name}"
