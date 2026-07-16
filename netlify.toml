@@ -19,13 +19,17 @@
 #     pointed at a deployed URL, /slice-simulator will need a frame-ancestors
 #     carve-out (CSP) instead.
 #
-# Content-Security-Policy is shipped in REPORT-ONLY mode first (it reports
-# violations to the browser console but enforces nothing), so a missed source
-# can't break the live site. Validate it on the deploy preview against: the home
-# Vimeo embeds (frame-src player.vimeo.com), Typekit + Google Fonts (style/font),
-# Prismic images + preview toolbar (img/frame/connect *.prismic.io) and GA
-# (script/connect google*.com). When the console is clean for a week, promote it
-# by renaming the header to `Content-Security-Policy`.
+# Content-Security-Policy is ENFORCING (promoted from Report-Only 2026-07-16
+# after a full-site crawl with securitypolicyviolation listeners on every route
+# — home/about/portfolio incl. filter+search, three detail pages incl. live
+# Vimeo iframes, twenty-for-twenty, contact incl. Turnstile, 404, mobile menu —
+# recorded zero violations). If a legitimate new source ever gets blocked, the
+# quick rollback is renaming this header back to
+# `Content-Security-Policy-Report-Only`.
+#
+# Known gap: Netlify only attaches these headers to statically-served files;
+# SSR/function responses (e.g. the 404 page) currently ship with NO custom
+# headers at all. That predates this change and is tracked separately.
 #
 # The allowlist directives are tight; script-src/style-src keep 'unsafe-inline'
 # because SvelteKit emits an inline hydration script and the app uses inline
@@ -41,4 +45,4 @@
         Referrer-Policy = "strict-origin-when-cross-origin"
         Strict-Transport-Security = "max-age=31536000; includeSubDomains"
         Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=()"
-        Content-Security-Policy-Report-Only = "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://use.typekit.net https://fonts.googleapis.com; font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com; connect-src 'self' https://*.google-analytics.com https://www.googletagmanager.com https://*.prismic.io https://*.typekit.net"
+        Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://use.typekit.net https://fonts.googleapis.com; font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com; connect-src 'self' https://*.google-analytics.com https://www.googletagmanager.com https://*.prismic.io https://*.typekit.net"
