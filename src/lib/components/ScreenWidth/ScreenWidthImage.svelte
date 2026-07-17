@@ -81,9 +81,9 @@
 
     {#if vimeoId}
       <!-- hasPoster mirrors the fallback-image branches above: img, bare src,
-           or a filled Prismic field. Without one, VimeoEmbed skips its
-           poster-dependent gating (a withheld video would otherwise be a
-           permanently blank band). -->
+           or a filled Prismic field. The home hero passes none of these, so it
+           is poster-less: VimeoEmbed still engagement-gates the src (no cookie),
+           but reveals on mount instead of over a poster. -->
       <VimeoEmbed
         {vimeoId}
         background
