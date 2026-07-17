@@ -24,11 +24,16 @@
   // exactly as before — playback is user-initiated, so no gating. (Do not
   // heartbeat-gate these: an invisible player can never be clicked play.)
   //
-  // hasPoster: ALL the gating above assumes a poster sits underneath — every
-  // withheld/hidden state shows it. When the CMS item has no poster image,
-  // those states would render a permanently blank box, which is worse than the
-  // old behavior; pass hasPoster={false} and the embed degrades to the
-  // pre-VimeoEmbed behavior (eager src, always visible).
+  // hasPoster: the ENGAGEMENT gate (delay src attach until real input +
+  // proximity, skip under reduced motion) applies to EVERY background embed
+  // regardless of poster — that gate is what keeps Vimeo's __cf_bm tracking
+  // cookie off the initial pageview (and out of the Lighthouse BP audit).
+  // hasPoster only governs the OPACITY reveal: with a poster we reveal on the
+  // playback heartbeat (poster shows meanwhile); without one there is nothing
+  // to reveal over, so we show the iframe as soon as its src is attached.
+  // (Poster-less + pre-engagement / reduced-motion is an empty box — correct
+  // for a decorative background video; an earlier "eager src" degrade here
+  // reintroduced the cookie on the home hero, which has no poster.)
   interface Props {
     vimeoId: string | number;
     background?: boolean;
@@ -50,17 +55,20 @@
   let mountSrc = $state(false); // attach src (engaged + near viewport, motion allowed)
   let playing = $state(false); // reveal the video (heartbeat is alive)
 
-  // Gate only when there is a poster to fall back on.
-  const gated = $derived(background && hasPoster);
+  // Visible when: interactive (non-background) embeds always; poster-backed
+  // background embeds once the heartbeat says playback is live; poster-less
+  // background embeds as soon as the src is attached (nothing to reveal over).
+  const visible = $derived(!background || (hasPoster ? playing : mountSrc));
 
   const src = $derived(
     `https://player.vimeo.com/video/${vimeoId}?title=0&dnt=1` +
       (background ? "&background=1&loop=1&autoplay=1&muted=1" : ""),
   );
 
-  // Engagement + proximity gate (gated background embeds only).
+  // Engagement + proximity gate — ALL background embeds (poster or not), so the
+  // __cf_bm cookie stays off the initial pageview either way.
   $effect(() => {
-    if (!gated) return;
+    if (!background) return;
     if (typeof window === "undefined") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return; // poster only
     const el = iframeEl;
@@ -95,8 +103,10 @@
   });
 
   // Heartbeat: reveal while playback progresses, poster back if it stops.
+  // Only meaningful when there IS a poster to reveal over; poster-less embeds
+  // show on mount (see `visible`) and need no heartbeat.
   $effect(() => {
-    if (!gated || !mountSrc) return;
+    if (!background || !hasPoster || !mountSrc) return;
     const el = iframeEl; // read the binding so the effect re-runs when it attaches
     if (!el) return;
     let lastBeat = 0;
@@ -154,10 +164,8 @@
   <iframe
     bind:this={iframeEl}
     {title}
-    src={!gated || mountSrc ? src : undefined}
-    class="{className} {!gated || playing
-      ? 'opacity-100'
-      : 'opacity-0'} transition-opacity duration-700"
+    src={mountSrc ? src : undefined}
+    class="{className} {visible ? 'opacity-100' : 'opacity-0'} transition-opacity duration-700"
     frameborder="0"
     {allow}
     tabindex="-1"
