@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import type { Content } from "@prismicio/client";
@@ -10,30 +11,24 @@
   const isAnimated = $derived(slice.primary.isAnimated === null || slice.primary.isAnimated);
 </script>
 
-{#if !slice.primary.hide}
-  <section
-    data-slice-type={slice.slice_type}
-    data-slice-variation={slice.variation}
-    class="w-full py-7.5"
-  >
-    <ContentWidth animateIn={isAnimated}>
-      <div class="w-full md:w-3/5 mx-auto">
-        {#if slice.primary.eyebrow}
-          <!-- The eyebrow names the section, so it's the section heading (h2, one
+<SliceSection {slice} class="w-full py-7.5">
+  <ContentWidth animateIn={isAnimated}>
+    <div class="w-full md:w-3/5 mx-auto">
+      {#if slice.primary.eyebrow}
+        <!-- The eyebrow names the section, so it's the section heading (h2, one
                level under the page's masthead h1). Utilities override the base
                `h2` element rule (which lives in @layer base), pinning the small
                red kicker look instead of the global 60px Besley heading. -->
-          <h2 class="mb-4 font-sans text-base font-bold leading-normal text-primary">
-            {slice.primary.eyebrow}
-          </h2>
-        {/if}
-        <div class="lead-body">
-          <RichTextBody field={slice.primary.body} />
-        </div>
+        <h2 class="mb-4 font-sans text-base font-bold leading-normal text-primary">
+          {slice.primary.eyebrow}
+        </h2>
+      {/if}
+      <div class="lead-body">
+        <RichTextBody field={slice.primary.body} />
       </div>
-    </ContentWidth>
-  </section>
-{/if}
+    </div>
+  </ContentWidth>
+</SliceSection>
 
 <style>
   /* Serif "lead" paragraph (Besley 26) — distinct from the site's sans
