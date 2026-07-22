@@ -11,7 +11,10 @@
   // the poster underneath simply stays). The video is then revealed only while
   // Vimeo's playback-progress heartbeat keeps arriving (playProgress for the
   // legacy Froogaloop protocol `?background=1` speaks, timeupdate for the
-  // player.js SDK), and hidden again if beats stop >2.5s (iOS suspends muted
+  // player.js SDK) — and only once that heartbeat's clock has advanced past
+  // zero (see isLiveBeat: `play` and 0s beats precede the first painted frame,
+  // and revealing on them let Vimeo's own loading state/thumbnail peek out over
+  // the poster) — and hidden again if beats stop >2.5s (iOS suspends muted
   // background autoplay after firing an initial play). This replaces two dead
   // fallbacks in one move: iframe `onerror` never fires for cross-origin
   // CONTENT failures, and `$state(new Set())` is never proxied by Svelte 5, so
@@ -34,6 +37,8 @@
   // (Poster-less + pre-engagement / reduced-motion is an empty box — correct
   // for a decorative background video; an earlier "eager src" degrade here
   // reintroduced the cookie on the home hero, which has no poster.)
+  import { isLiveBeat, type VimeoEventMessage } from "$lib/utils/vimeoBeat";
+
   interface Props {
     vimeoId: string | number;
     background?: boolean;
@@ -125,7 +130,7 @@
       // share a page — another video's beats must not reveal this one.
       if (e.origin !== "https://player.vimeo.com") return;
       if (e.source !== el.contentWindow) return;
-      let data: { event?: string };
+      let data: VimeoEventMessage;
       try {
         data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
       } catch {
@@ -133,11 +138,9 @@
       }
       if (data.event === "ready") {
         subscribe();
-      } else if (
-        data.event === "playProgress" ||
-        data.event === "timeupdate" ||
-        data.event === "play"
-      ) {
+      } else if (isLiveBeat(data)) {
+        // Only beats whose playback clock has moved past 0s count — `play`
+        // and 0s beats arrive before the first painted frame (see vimeoBeat).
         lastBeat = performance.now();
         playing = true;
       }
