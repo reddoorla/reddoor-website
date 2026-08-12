@@ -61,13 +61,11 @@
          the content column in the mobile flex order; a real grid cell from `lg`. -->
     <div class="contents lg:block">
       {#if railLabel}
-        <!-- Pinned to the board's 16px bold red kicker. `font-sans` is load
-             bearing: the global `h2` element rule sets Besley at 60px, and an
-             unpinned family leaks in even when the size is overridden. -->
-        <svelte:element
-          this={labelAs}
-          class="font-sans text-base font-bold leading-normal text-primary"
-        >
+        <!-- `.type-kicker` (app.css) is the board's 16px bold red kicker. It
+             pins font-family too, which is load bearing: this renders as an h2
+             by default, and the global `h2` rule is Besley 60px whose family
+             leaks in even when the size is overridden. -->
+        <svelte:element this={labelAs} class="type-kicker text-primary">
           {railLabel}
         </svelte:element>
       {/if}

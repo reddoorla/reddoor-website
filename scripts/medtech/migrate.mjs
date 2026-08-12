@@ -120,7 +120,10 @@ function makeAssetStager(migration) {
     const file = path.join(ASSET_DIR, filename);
     if (!existsSync(file)) throw new Error(`asset not found: ${file}`);
     const bytes = await readFile(file);
-    const type = filename.endsWith(".svg") ? "image/svg+xml" : "image/png";
+    const type =
+      { ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg" }[
+        path.extname(filename).toLowerCase()
+      ] ?? "image/png";
     const asset = migration.createAsset(new File([bytes], filename, { type }), filename, {
       alt: alt || undefined,
     });
@@ -279,6 +282,12 @@ async function buildSlices(d, stage, projects) {
         title: d.featuredProject.title,
         services: d.featuredProject.services,
         link: project(d.featuredProject.link.uid),
+        // The board runs the testimonial's paper texture 160px into this band
+        // (texture→white boundary measured at y=508; this section starts at
+        // y=348) with the plate sitting on top of it.
+        hasTextureBleed: d.featuredProject.hasTextureBleed ?? false,
+        hasTopPadding: false,
+        hasBottomPadding: false,
         isAnimated: true,
         hide: false,
       },

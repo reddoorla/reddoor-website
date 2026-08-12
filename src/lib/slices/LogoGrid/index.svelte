@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolvePadding } from "$lib/utils/slicePadding";
   // Static client-logo grid on the paper band: rail label + "Our Work" CTA on
   // the left, a 3-up logo grid in the wide (1004px) content column.
   //
@@ -17,6 +18,10 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
 
   let { slice }: { slice: Content.LogoGridSlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Defaults true, so an existing
+  // document that predates the field keeps the padding it shipped with.
+  const pad = $derived(resolvePadding(slice.primary));
 
   const isAnimated = $derived(slice.primary.isAnimated === null || slice.primary.isAnimated);
 
@@ -48,7 +53,12 @@
   const columnAlign = ["lg:justify-start", "lg:justify-center", "lg:justify-end"];
 </script>
 
-<SliceSection {slice} class="w-screen bg-paper py-16 md:py-32">
+<SliceSection
+  {slice}
+  class="w-screen bg-paper {pad.padTop ? 'pt-16 md:pt-32' : ''} {pad.padBottom
+    ? 'pb-16 md:pb-32'
+    : ''}"
+>
   <RailRow wide animateIn={isAnimated}>
     <!-- Label + CTA belong together in the left rail, and RailRow renders only
          a bare label there — so the pair lives here and is lifted into the (then
@@ -61,7 +71,7 @@
         <!-- Section heading. `font-sans` + every size property is pinned: the
              global `h2` element rule is Besley 60px and leaks its family in
              even when the size is overridden. -->
-        <h2 class="font-sans text-base font-bold leading-normal text-primary">
+        <h2 class="type-kicker text-primary">
           {slice.primary.label}
         </h2>
       {/if}

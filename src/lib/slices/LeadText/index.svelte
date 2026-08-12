@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolvePadding } from "$lib/utils/slicePadding";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
@@ -6,6 +7,10 @@
   import { isFilled, type Content, type RichTextField } from "@prismicio/client";
 
   let { slice }: { slice: Content.LeadTextSlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Defaults true, so an existing
+  // document that predates the field keeps the padding it shipped with.
+  const pad = $derived(resolvePadding(slice.primary));
 
   // Default-on animation, matching the RichText slice's convention (null = legacy
   // docs authored before the flag existed → treat as animated).
@@ -21,7 +26,7 @@
   const subBody = $derived((slice.primary as RailPrimary).subBody);
 </script>
 
-<SliceSection {slice} class="w-full py-7.5">
+<SliceSection {slice} class="w-full {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom ? 'pb-7.5' : ''}">
   {#if isRail}
     <!-- Landing-page grid: the eyebrow becomes the rail label (RailRow renders
          it as the section's h2, pinned to the same red kicker treatment the
@@ -53,7 +58,7 @@
                level under the page's masthead h1). Utilities override the base
                `h2` element rule (which lives in @layer base), pinning the small
                red kicker look instead of the global 60px Besley heading. -->
-          <h2 class="mb-4 font-sans text-base font-bold leading-normal text-primary">
+          <h2 class="mb-4 type-kicker text-primary">
             {slice.primary.eyebrow}
           </h2>
         {/if}

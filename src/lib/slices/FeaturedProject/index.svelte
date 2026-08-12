@@ -5,6 +5,7 @@
   import { asLink, isFilled } from "@prismicio/client";
   import type { Content } from "@prismicio/client";
   import { resolveCardLabel } from "./cardLabel";
+  import { resolvePadding } from "$lib/utils/slicePadding";
   // Real bytes exported from Figma node 4821:448 (provenance + the two edits
   // are documented in the asset's own header). Inlined `?raw` rather than used
   // as an <img src> because an <img>-loaded SVG has no colour context — its
@@ -12,6 +13,15 @@
   import circleArrow from "$lib/assets/icons/industry/circle-arrow.svg?raw";
 
   let { slice }: { slice: Content.FeaturedProjectSlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Fallback FALSE, unlike the other
+  // landing-page slices: this band ships flush in the comp, so a document that
+  // predates the field must keep rendering with no section padding.
+  const pad = $derived(resolvePadding(slice.primary, false));
+
+  // See the strip in the markup: opt-in continuation of the preceding band's
+  // paper texture over this section's top edge.
+  const hasTextureBleed = $derived(slice.primary.hasTextureBleed ?? false);
 
   // Drop the asset's provenance comment: it belongs in the file, not in ~1KB of
   // markup shipped with every render. Not `$derived` — the import is static, so
@@ -77,9 +87,7 @@
                    element rules, so the 18/1.4 Pragmatica Light below is the
                    only thing setting the type. `font-sans` is still pinned
                    explicitly per repo convention. -->
-              <span
-                class="font-sans text-[18px] leading-[1.4] font-light tracking-[0.01em] text-white uppercase"
-              >
+              <span class="type-caption tracking-[0.01em] text-white uppercase">
                 {title}
               </span>
             {/if}
@@ -92,7 +100,7 @@
                    white measures 5.27:1. The two are indistinguishable at this
                    size over a dark scrim. axe cannot flag it — it declines to
                    score text over an image. -->
-              <span class="font-sans text-[18px] leading-[1.4] font-light text-white">
+              <span class="type-caption text-white">
                 {services}
               </span>
             {/if}
@@ -111,7 +119,30 @@
   </div>
 {/snippet}
 
-<SliceSection {slice} class="w-full">
+<SliceSection
+  {slice}
+  class="relative w-full {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom ? 'pb-7.5' : ''}"
+>
+  {#if hasTextureBleed}
+    <!-- The paper texture from the band ABOVE does not stop at that band's
+         bottom edge — in the comp it runs 160px into this one and the plate sits
+         on top of it (measured off the Figma render: the texture→white boundary
+         is at y=508, and this section starts at y=348).
+
+         It is drawn here rather than as an over-long background on the slice
+         above because only this slice knows where its own top edge is, and the
+         two are independent documents in the slice zone. It is opt-in for the
+         same reason: the bleed is only right when the preceding band is paper,
+         which the CMS cannot infer.
+
+         `-inset-x-2` reproduces the comp's 8px overhang past both page edges
+         (the texture frame is 1454 wide on a 1440 page); `-z-10` puts it behind
+         the plate, and the section is `relative` so it anchors here. -->
+    <div
+      class="bg-paper pointer-events-none absolute -inset-x-2 top-0 -z-10 h-25 md:h-40"
+      aria-hidden="true"
+    ></div>
+  {/if}
   {#if isFilled.image(slice.primary.image)}
     <!-- No `w-full` in this class list: it beats ContentWidth's own `w-[92%]`,
          which keeps the 4% page margin as width rather than as slack for

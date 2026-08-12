@@ -13,6 +13,7 @@
   import RailRow from "$lib/components/RailRow.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import { isFilled, type Content } from "@prismicio/client";
+  import { resolvePadding } from "$lib/utils/slicePadding";
 
   // index.svelte narrows on `slice.variation` before rendering this. Extract the
   // matching member of the slice union rather than using
@@ -20,6 +21,10 @@
   // lacks `slice_type`, which SliceSection needs.
   type ExpandableSlice = Extract<Content.ValueBlockSlice, { variation: "expandable" }>;
   let { slice }: { slice: ExpandableSlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Defaults true, so an existing
+  // document that predates the field keeps the padding it shipped with.
+  const pad = $derived(resolvePadding(slice.primary));
 
   const primary = $derived(slice.primary);
 
@@ -50,7 +55,7 @@
   const panelId = `value-block-more-${uid}`;
 </script>
 
-<SliceSection {slice} class="w-full py-7.5">
+<SliceSection {slice} class="w-full {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom ? 'pb-7.5' : ''}">
   {#if displayTitle}
     <!-- Same ContentWidth call RailRow makes internally, so the rule and the
          title share the rail grid's left edge and full band width. Must stay in
@@ -60,9 +65,10 @@
          the rail below them stayed indented. -->
     <ContentWidth animateIn={isAnimated} class="relative">
       <!-- Section heading (h2, one level under the masthead h1). `.type-display`
-           pins the board's Besley 60/75 display type at every step — the global
-           `h2` rule sets family, size, weight and line-height and drops to 35px
-           at 1024 / 27px at 768, none of which is wanted here. -->
+           is the shared role in app.css — it pins the board's Besley display
+           type at every step, because the global `h2` rule sets family, size,
+           weight and line-height and drops to 35px at 1024 / 27px at 768, none
+           of which is wanted here. -->
       <h2 class="type-display text-primary">{displayTitle}</h2>
       <!-- The board's 1px `Line 4` rule, drawn in CSS rather than shipped as the
            exported SVG. 30px above/below, matching the board's 30.07/30.05. -->
@@ -129,106 +135,3 @@
     {/if}
   </RailRow>
 </SliceSection>
-
-<style>
-  /* Display title — Besley 60/75 (board `4803:876`). Every property the global
-     `h2` element rule sets is re-declared at every step, family included, so the
-     base scale (and its 35px/27px responsive drops) never leaks in. The board has
-     no mobile frame, so the smaller steps are a proportional scale-down. */
-  .type-display {
-    font-family: "Besley", serif;
-    font-size: 60px;
-    font-weight: 400;
-    line-height: 1.25;
-  }
-  @media only screen and (max-width: 1024px) {
-    .type-display {
-      font-family: "Besley", serif;
-      font-size: 44px;
-      font-weight: 400;
-      line-height: 1.25;
-    }
-  }
-  @media only screen and (max-width: 768px) {
-    .type-display {
-      font-family: "Besley", serif;
-      font-size: 36px;
-      font-weight: 400;
-      line-height: 1.25;
-    }
-  }
-  @media only screen and (max-width: 480px) {
-    .type-display {
-      font-family: "Besley", serif;
-      font-size: 30px;
-      font-weight: 400;
-      line-height: 1.25;
-    }
-  }
-
-  /* Besley 26/1.45 lede (board `4803:901`) — same treatment as LeadText's rail
-     lead line. Scoped :global reaches the <p> nodes PrismicRichText emits (they
-     carry no class of their own). */
-  .lede :global(p) {
-    font-family: "Besley", serif;
-    font-size: 26px;
-    font-weight: 400;
-    line-height: 1.45;
-    color: #000;
-  }
-  .lede :global(p:not(:last-child)) {
-    margin-bottom: 1.25rem;
-  }
-  .lede :global(a) {
-    color: #d71920;
-    text-decoration: underline;
-    transition: color 400ms;
-  }
-  .lede :global(a:hover) {
-    color: #aa1419;
-  }
-  @media (max-width: 768px) {
-    .lede :global(p) {
-      font-size: 22px;
-      line-height: 1.5;
-    }
-  }
-
-  /* Body — Pragmatica Book 16/24 (board `4803:873`). Pins every property the
-     base `p` rule sets (18/30, weight 200, inherited gray), family included.
-     NOTE: deliberately not inside a `.rich-text` wrapper — that class is
-     unlayered in app.css (23/35 + 36px paragraph padding) and would beat these. */
-  .more-body :global(p) {
-    font-family: "pragmatica", "helvetica", sans-serif;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 24px;
-    color: #000;
-  }
-  /* One blank line between paragraphs — real spacing in place of the U+200B
-     zero-width-space paragraph the designer used as a spacer in Figma. */
-  .more-body :global(p:not(:last-child)) {
-    margin-bottom: 24px;
-  }
-  .more-body :global(strong) {
-    font-weight: 700;
-  }
-  .more-body :global(a) {
-    color: #d71920;
-    text-decoration: underline;
-    transition: color 400ms;
-  }
-  .more-body :global(a:hover) {
-    color: #aa1419;
-  }
-
-  /* Every CSS transition this slice adds is disabled under reduced motion; the
-     markup's transitions carry `motion-reduce:transition-none`, these two are
-     in scoped CSS and need the query (same guard TextColumns/LeadText use). */
-  @media (prefers-reduced-motion: reduce) {
-    .lede :global(a),
-    .more-body :global(a) {
-      transition: none;
-    }
-  }
-</style>

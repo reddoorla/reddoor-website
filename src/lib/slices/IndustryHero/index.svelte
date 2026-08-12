@@ -33,15 +33,12 @@
   // a level-2 heading. PrismicRichText's shorthand serializer keeps the real
   // <h1> and hangs the pinned display type on it instead.
   //
-  // Pin every property the global `h1` element rule sets — family included: the
-  // rule lives in @layer base, so these utilities win at every width, but an
-  // unpinned family would still let the base sans through where the board wants
-  // Besley. Sizes step down from the board's 60px; family/weight/leading/color
-  // are set once at the base step because utilities outrank @layer base inside
-  // the global rule's own max-width media queries too.
-  const HEADLINE_CLASS =
-    "font-serif text-[34px] font-normal leading-[1.35] text-white " +
-    "md:text-[42px] lg:text-[48px] xl:text-[60px]";
+  // `.type-hero` (app.css) pins every property the global `h1` element rule
+  // sets, family included — it sits in @layer components, which outranks the
+  // base rule at every width including inside that rule's own max-width media
+  // queries, and without an explicit family the base sans would show through
+  // where the board wants Besley.
+  const HEADLINE_CLASS = "type-hero text-white";
 
   const headlineComponents: RichTextComponents = { heading1: { class: HEADLINE_CLASS } };
 
@@ -129,7 +126,7 @@
                  <h1> is the page heading and this labels a two-line blurb, so it
                  stays out of the outline as a <p> (same call ValueBlock makes for
                  its eyebrow). Pragmatica Bold 16/1.5, pinned over the base `p`. -->
-              <p class="font-sans text-base leading-normal font-bold text-white">
+              <p class="type-kicker text-white">
                 {slice.primary.card_label}
               </p>
             {/if}

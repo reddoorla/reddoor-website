@@ -314,6 +314,169 @@ body::-webkit-scrollbar {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Type scale for the industry landing pages (RD-Sales-Funnel-LP, board v2).
+
+   Why a layer instead of utilities on each element: the board reuses the same
+   handful of type roles across ~10 slices, and before this every one of them
+   pinned its own `text-[Npx] leading-[N] font-N` string. They drifted almost
+   immediately — the before/after switch label ended up 14px/24px/300 against
+   `.label`'s 14px/25px/200, close enough to look deliberate and different
+   enough to be wrong.
+
+   `@layer components`, deliberately: it beats the bare `h1`–`h6`/`p` rules in
+   `@layer base` (which set family, size, weight AND line-height, and would
+   otherwise leak Besley 60px into anything that lands on an <h2>), while still
+   losing to `@layer utilities` so a one-off `md:text-[19px]` still works.
+
+   Every role pins font-family explicitly. That is load bearing, not belt-and-
+   braces: the element rules set it, so a role used on a different tag than the
+   one it was designed against silently changes typeface without it.
+
+   Sizes are the board's, and the responsive steps mirror the breakpoints the
+   base heading scale already uses (1600 / 1024 / 768) so the two stay in step.
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* Red rail kicker naming a section. The most repeated role on the page —
+     RailRow, and the ValueBlock/Accordion eyebrows. Colour is NOT set here:
+     the rail is `text-primary`, but the same type is used in black elsewhere. */
+  .type-kicker {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: normal;
+  }
+
+  /* Masthead headline (industry_hero h1). Mobile-first, on Tailwind's own
+     breakpoints (md/lg/xl) rather than the base scale's max-width steps — this
+     is a straight lift of the utility string it replaces, and the two disagree
+     between 1280 and 1600 if you mix the conventions. */
+  .type-hero {
+    font-family: "Besley", serif;
+    font-size: 34px;
+    font-weight: 400;
+    line-height: 1.35;
+  }
+
+  /* Band title over a full-width rule (value_block/expandable), board 4803:876.
+     Besley 60/1.25. The board has no mobile frame, so the smaller steps are a
+     proportional scale-down — carried over verbatim from the local copy this
+     replaces, so hoisting it changes nothing visually. */
+  .type-display {
+    font-family: "Besley", serif;
+    font-size: 60px;
+    font-weight: 400;
+    line-height: 1.25;
+  }
+
+  /* Besley lead line introducing a section (case_study, text_columns). */
+  .type-lede {
+    font-family: "Besley", serif;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: normal;
+  }
+
+  /* Pull-quote body (testimonial). */
+  .type-quote {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 21px;
+    font-weight: 300;
+    line-height: 30px;
+  }
+
+  /* Credited name under a quote (testimonial). */
+  .type-name {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  /* Attribution / secondary metadata under a quote or card. */
+  .type-meta {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 200;
+    line-height: 1.5;
+  }
+
+  /* Caption over media (featured_project). */
+  .type-caption {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1.4;
+  }
+
+  /* Small uppercase control/state label — the before/after switch, button
+     text. Supersedes the near-miss copies of `.label` that were drifting. */
+  .type-eyebrow {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 24px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Disclosure question (accordion). */
+  .type-question {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 30px;
+  }
+
+  /* Mobile-first steps (Tailwind md/lg/xl). */
+  @media only screen and (min-width: 768px) {
+    .type-hero {
+      font-size: 42px;
+    }
+
+    .type-question {
+      font-size: 21px;
+    }
+  }
+
+  @media only screen and (min-width: 1024px) {
+    .type-hero {
+      font-size: 48px;
+    }
+
+    .type-lede {
+      font-size: 26px;
+      line-height: 1.45;
+    }
+  }
+
+  @media only screen and (min-width: 1280px) {
+    .type-hero {
+      font-size: 60px;
+    }
+  }
+
+  /* `.type-display` is desktop-first, matching the base heading scale it has to
+     out-specify (the global `h2` drops to 35px at 1024 / 27px at 768). */
+  @media only screen and (max-width: 1024px) {
+    .type-display {
+      font-size: 44px;
+    }
+  }
+
+  @media only screen and (max-width: 768px) {
+    .type-display {
+      font-size: 36px;
+    }
+  }
+
+  @media only screen and (max-width: 480px) {
+    .type-display {
+      font-size: 30px;
+    }
+  }
+}
+
 .rich-text a {
   color: #d71920;
   transition: color 400ms;

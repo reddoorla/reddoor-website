@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolvePadding } from "$lib/utils/slicePadding";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
@@ -9,6 +10,10 @@
   import { deriveItemTag, normalizeLabel } from "./headings";
 
   let { slice }: { slice: Content.AccordionSlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Defaults true, so an existing
+  // document that predates the field keeps the padding it shipped with.
+  const pad = $derived(resolvePadding(slice.primary));
 
   // TYPEGEN NOTE: `label` (both variations) and the whole "rail" variation
   // (which also carries `isAnimated`) were just added to model.json, so the
@@ -55,7 +60,12 @@
 <!-- The rail variation sits on the landing page's paper stock (reusing the
      shipped .bg-paper tile rather than adding another texture asset) with the
      board's 96px section padding; the default variation's shell is untouched. -->
-<SliceSection {slice} class={isRail ? "bg-paper w-full py-12 md:py-24" : "w-full py-7.5"}>
+<SliceSection
+  {slice}
+  class={isRail
+    ? `bg-paper w-full ${pad.padTop ? "pt-12 md:pt-24" : ""} ${pad.padBottom ? "pb-12 md:pb-24" : ""}`
+    : "w-full py-7.5"}
+>
   {#if isRail}
     <!-- Landing-page grid: the label sits in the narrow left rail (as this
          section's h2) so the question list's left edge matches every other
@@ -85,10 +95,7 @@
           <!-- 1px rule under EVERY row, last one included (board detail). -->
           <div class="border-b border-light">
             {#if canExpand}
-              <svelte:element
-                this={itemTag}
-                class="m-0 font-sans text-[18px] leading-[30px] font-light text-mid md:text-[21px]"
-              >
+              <svelte:element this={itemTag} class="m-0 type-question text-mid">
                 <button
                   id={buttonId(i)}
                   type="button"
@@ -143,7 +150,7 @@
             {:else}
               <svelte:element
                 this={itemTag}
-                class="m-0 py-5 font-sans text-[18px] leading-[30px] font-light wrap-break-word text-mid md:text-[21px]"
+                class="m-0 py-5 type-question wrap-break-word text-mid"
               >
                 {title}
               </svelte:element>
@@ -159,7 +166,7 @@
           <!-- Section heading (h2); the item titles below become its h3
                children. Omitted entirely when unset, so docs published before
                this field existed render byte-identical markup. -->
-          <h2 class="font-sans text-base font-bold leading-normal text-primary">
+          <h2 class="type-kicker text-primary">
             {label}
           </h2>
         {/if}
@@ -179,7 +186,7 @@
                 aria-controls={panelId(i)}
                 onclick={() => (open[i] = !open[i])}
               >
-                <span class="font-sans text-base font-bold leading-normal text-primary">
+                <span class="type-kicker text-primary">
                   {item.title}
                 </span>
                 <span

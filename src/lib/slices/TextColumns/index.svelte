@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolvePadding } from "$lib/utils/slicePadding";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
@@ -8,6 +9,10 @@
   import { deriveTitleTag } from "./titleTag";
 
   let { slice }: { slice: Content.TextColumnsSlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Defaults true, so an existing
+  // document that predates the field keeps the padding it shipped with.
+  const pad = $derived(resolvePadding(slice.primary));
 
   const isAnimated = $derived(slice.primary.isAnimated === null || slice.primary.isAnimated);
 
@@ -29,7 +34,7 @@
   );
 </script>
 
-<SliceSection {slice} class="w-full py-7.5">
+<SliceSection {slice} class="w-full {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom ? 'pb-7.5' : ''}">
   <!-- Narrowing on `slice.variation` (not a $derived boolean) is what types
        `slice.primary` per variation inside each branch — the iconColumns
        columns only carry `icon` / `subtitle` under this check. -->
@@ -107,7 +112,7 @@
             {#if slice.primary.eyebrow}
               <!-- Section heading (h2). Column titles below are its h3 children,
                    so the outline is masthead h1 → h2 → h3 with no skips. -->
-              <h2 class="font-sans text-base font-bold leading-normal text-primary">
+              <h2 class="type-kicker text-primary">
                 {slice.primary.eyebrow}
               </h2>
             {/if}

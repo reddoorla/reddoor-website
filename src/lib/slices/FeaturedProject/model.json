@@ -42,6 +42,33 @@
             "select": null
           }
         },
+        "hasTextureBleed": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTextureBleed",
+            "placeholder_false": "no texture bleed",
+            "placeholder_true": "paper texture bleeds over the top of this band",
+            "default_value": false
+          }
+        },
+        "hasTopPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTopPadding",
+            "placeholder_false": "no top padding",
+            "placeholder_true": "top padding",
+            "default_value": false
+          }
+        },
+        "hasBottomPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasBottomPadding",
+            "placeholder_false": "no bottom padding",
+            "placeholder_true": "bottom padding",
+            "default_value": false
+          }
+        },
         "isAnimated": {
           "type": "Boolean",
           "config": {

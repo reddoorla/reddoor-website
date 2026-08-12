@@ -18,13 +18,19 @@ const FILE_KEY = "HRxyQGlQwQDEqOuRlEaZoL";
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "assets");
 
 // name → Figma node id.
+//
+// Photography does NOT belong here — Figma only holds the board's placed copy,
+// which is already cropped and downscaled for the comp. `msot-web-mockup` used
+// to be exported from node 4803:855 and came out 1756x2210: a downscale of a
+// PORTRAIT mockup, half of which the 1018:658 plate then cropped away. It now
+// comes from the Dropbox original (6000x7552) via fetch-dropbox-assets.mjs.
+// Only screenshot-able UI (icons, flattened logo lockups) should be exported here.
 const PNG = {
   // Unlicensed iStock comp (id 2184775810) exported at the board's comp
   // resolution. Placeholder only — replace with a licensed hi-res before launch.
   "hero-PLACEHOLDER-istock-comp": "4799:479",
   "revogen-packaging-after": "4793:1421",
   "testimonial-albert-turgon": "4803:848",
-  "msot-web-mockup": "4803:855",
   "logo-revogen": "4802:534",
   "logo-preveta": "4802:535",
   "logo-msot": "4802:536",

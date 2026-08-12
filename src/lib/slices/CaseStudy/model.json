@@ -64,6 +64,24 @@
             "select": null
           }
         },
+        "hasTopPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTopPadding",
+            "placeholder_false": "no top padding",
+            "placeholder_true": "top padding",
+            "default_value": false
+          }
+        },
+        "hasBottomPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasBottomPadding",
+            "placeholder_false": "no bottom padding",
+            "placeholder_true": "bottom padding",
+            "default_value": false
+          }
+        },
         "isAnimated": {
           "type": "Boolean",
           "config": {

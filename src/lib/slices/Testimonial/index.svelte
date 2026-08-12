@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolvePadding } from "$lib/utils/slicePadding";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import { PrismicImage } from "@prismicio/svelte";
@@ -6,6 +7,10 @@
   import { resolveAvatarAlt } from "./avatarAlt";
 
   let { slice }: { slice: Content.TestimonialSlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Defaults true, so an existing
+  // document that predates the field keeps the padding it shipped with.
+  const pad = $derived(resolvePadding(slice.primary));
 
   // null = authored before the flag existed → treat as animated (repo convention).
   const isAnimated = $derived(slice.primary.isAnimated === null || slice.primary.isAnimated);
@@ -19,7 +24,12 @@
   );
 </script>
 
-<SliceSection {slice} class="bg-paper w-full pt-12 pb-10 md:pt-16 md:pb-12">
+<SliceSection
+  {slice}
+  class="bg-paper w-full {pad.padTop ? 'pt-12 md:pt-16' : ''} {pad.padBottom
+    ? 'pb-10 md:pb-12'
+    : ''}"
+>
   <!-- RailRow puts the (optional) label in the left rail and the content in the
        shared 760px column, so this quote's left edge lines up with every other
        section of the landing page. -->
@@ -35,7 +45,7 @@
             <!-- Pinned LP body type (Pragmatica Light 21/30). The global `p`
                  rule is 18/30 weight 200, so size/weight/leading all need
                  pinning; `font-sans` guards against a serif leak. -->
-            <p class="quote font-sans text-[21px] leading-[30px] font-light text-black">
+            <p class="quote type-quote text-black">
               {slice.primary.quote}
             </p>
           </blockquote>
@@ -57,12 +67,12 @@
             {/if}
             <div class="min-w-0">
               {#if slice.primary.name}
-                <p class="font-sans text-[24px] leading-[1.5] font-light text-primary">
+                <p class="type-name text-primary">
                   {slice.primary.name}
                 </p>
               {/if}
               {#if slice.primary.role}
-                <p class="font-sans text-[16px] leading-[1.5] font-extralight text-muted">
+                <p class="type-meta text-muted">
                   {slice.primary.role}
                 </p>
               {/if}

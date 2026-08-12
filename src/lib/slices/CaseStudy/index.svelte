@@ -6,8 +6,14 @@
   import { asLink, isFilled } from "@prismicio/client";
   import type { Content } from "@prismicio/client";
   import { normalizeVimeoId, resolveCaseStudyMedia } from "./media";
+  import { resolvePadding } from "$lib/utils/slicePadding";
 
   let { slice }: { slice: Content.CaseStudySlice } = $props();
+
+  // Author-controlled band spacing (MED-16). Fallback FALSE, unlike the other
+  // landing-page slices: this band ships flush in the comp, so a document that
+  // predates the field must keep rendering with no section padding.
+  const pad = $derived(resolvePadding(slice.primary, false));
 
   const isAnimated = $derived(slice.primary.isAnimated === null || slice.primary.isAnimated);
 
@@ -129,10 +135,7 @@
                 : ''}"
             ></span>
           </span>
-          <span
-            aria-hidden="true"
-            class="font-sans text-[14px] leading-6 font-light tracking-[1px] text-primary uppercase"
-          >
+          <span aria-hidden="true" class="type-eyebrow text-primary">
             {showingAfter ? "after" : "before"}
           </span>
         </button>
@@ -141,7 +144,10 @@
   {/if}
 {/snippet}
 
-<SliceSection {slice} class="relative w-full bg-white">
+<SliceSection
+  {slice}
+  class="relative w-full bg-white {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom ? 'pb-7.5' : ''}"
+>
   <!-- Text first in DOM so it stacks ABOVE the photo on small screens (no mobile
        frame exists in Figma, and at 375px the band is only ~216px tall — the
        overlay would not fit). From `lg` it lifts out of flow onto the photo's
@@ -161,10 +167,7 @@
           <!-- Besley 26/1.45. Every property the global `h2`/`h3` element rules set
              is pinned, font-family included, or Besley 60/300 (h2) or Pragmatica
              80/200 (h3) leaks in depending on which tag we land on. -->
-          <svelte:element
-            this={headingTag}
-            class="font-serif text-[22px] leading-normal font-normal text-black lg:-mt-1.25 lg:text-[26px] lg:leading-[1.45]"
-          >
+          <svelte:element this={headingTag} class="type-lede text-black lg:-mt-1.25">
             {slice.primary.heading}
           </svelte:element>
         {/if}

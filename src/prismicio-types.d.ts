@@ -1192,6 +1192,28 @@ export interface AccordionSliceRailPrimary {
   items: prismic.GroupField<Simplify<AccordionSliceRailPrimaryItemsItem>>;
 
   /**
+   * hasTopPadding field in *Accordion → Rail → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: accordion.rail.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *Accordion → Rail → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: accordion.rail.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
+
+  /**
    * isAnimated field in *Accordion → Rail → Primary*
    *
    * - **Field Type**: Boolean
@@ -1314,6 +1336,28 @@ export interface CaseStudySliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/fields/link
    */
   link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+
+  /**
+   * hasTopPadding field in *CaseStudy → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: case_study.default.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *CaseStudy → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: case_study.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * isAnimated field in *CaseStudy → Default → Primary*
@@ -1757,6 +1801,39 @@ export interface FeaturedProjectSliceDefaultPrimary {
   link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
 
   /**
+   * hasTextureBleed field in *FeaturedProject → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: featured_project.default.primary.hasTextureBleed
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTextureBleed: prismic.BooleanField;
+
+  /**
+   * hasTopPadding field in *FeaturedProject → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: featured_project.default.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *FeaturedProject → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: false
+   * - **API ID Path**: featured_project.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
+
+  /**
    * isAnimated field in *FeaturedProject → Default → Primary*
    *
    * - **Field Type**: Boolean
@@ -2023,6 +2100,28 @@ export interface LeadTextSliceRailPrimary {
   subBody: prismic.RichTextField;
 
   /**
+   * hasTopPadding field in *LeadText → Rail → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: lead_text.rail.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *LeadText → Rail → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: lead_text.rail.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
+
+  /**
    * isAnimated field in *LeadText → Rail → Primary*
    *
    * - **Field Type**: Boolean
@@ -2140,6 +2239,28 @@ export interface LogoGridSliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
    */
   logos: prismic.GroupField<Simplify<LogoGridSliceDefaultPrimaryLogosItem>>;
+
+  /**
+   * hasTopPadding field in *LogoGrid → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: logo_grid.default.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *LogoGrid → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: logo_grid.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * isAnimated field in *LogoGrid → Default → Primary*
@@ -2817,6 +2938,28 @@ export interface TestimonialSliceDefaultPrimary {
   avatar: prismic.ImageField<never>;
 
   /**
+   * hasTopPadding field in *Testimonial → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: testimonial.default.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *Testimonial → Default → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: testimonial.default.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
+
+  /**
    * isAnimated field in *Testimonial → Default → Primary*
    *
    * - **Field Type**: Boolean
@@ -3090,6 +3233,28 @@ export interface TextColumnsSliceServiceListPrimary {
   columns: prismic.GroupField<Simplify<TextColumnsSliceServiceListPrimaryColumnsItem>>;
 
   /**
+   * hasTopPadding field in *TextColumns → Service List → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: text_columns.serviceList.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *TextColumns → Service List → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: text_columns.serviceList.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
+
+  /**
    * isAnimated field in *TextColumns → Service List → Primary*
    *
    * - **Field Type**: Boolean
@@ -3170,6 +3335,28 @@ export interface TextColumnsSliceIconColumnsPrimary {
    * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
    */
   columns: prismic.GroupField<Simplify<TextColumnsSliceIconColumnsPrimaryColumnsItem>>;
+
+  /**
+   * hasTopPadding field in *TextColumns → Icon Columns → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: text_columns.iconColumns.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *TextColumns → Icon Columns → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: text_columns.iconColumns.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * isAnimated field in *TextColumns → Icon Columns → Primary*
@@ -3344,6 +3531,28 @@ export interface ValueBlockSliceExpandablePrimary {
    * - **Documentation**: https://prismic.io/docs/fields/text
    */
   readMoreLabel: prismic.KeyTextField;
+
+  /**
+   * hasTopPadding field in *ValueBlock → Expandable → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: value_block.expandable.primary.hasTopPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasTopPadding: prismic.BooleanField;
+
+  /**
+   * hasBottomPadding field in *ValueBlock → Expandable → Primary*
+   *
+   * - **Field Type**: Boolean
+   * - **Placeholder**: *None*
+   * - **Default Value**: true
+   * - **API ID Path**: value_block.expandable.primary.hasBottomPadding
+   * - **Documentation**: https://prismic.io/docs/fields/boolean
+   */
+  hasBottomPadding: prismic.BooleanField;
 
   /**
    * isAnimated field in *ValueBlock → Expandable → Primary*
