@@ -29,7 +29,22 @@ const PNG = {
   // Unlicensed iStock comp (id 2184775810) exported at the board's comp
   // resolution. Placeholder only — replace with a licensed hi-res before launch.
   "hero-PLACEHOLDER-istock-comp": "4799:479",
-  "revogen-packaging-after": "4793:1421",
+  // Revogen case study. `project 1` is the BEFORE — a photograph of the
+  // client's pre-rebrand collateral (RevoCen Biologics brochures and sell
+  // sheets, with a sticky note reading "OLD"). It exists NOWHERE ELSE: there is
+  // no RevoCen material anywhere in Dropbox, so unlike the client mockups this
+  // genuinely has to come from Figma.
+  //
+  // The other four are the after state, which the design runs as an
+  // auto-rotating slideshow rather than one still. Exported from Figma rather
+  // than from the Dropbox originals on purpose: each is a full 1440x831
+  // art-directed composition, and a slideshow only reads as one piece of work
+  // if every slide shares the same framing and backdrop.
+  "revogen-before": "4805:1102",
+  "revogen-after-1-phlex": "4807:1127",
+  "revogen-after-2-biostrandx": "4805:1115",
+  "revogen-after-3-brand": "4805:1118",
+  "revogen-after-4-mobile": "4805:1121",
   "testimonial-albert-turgon": "4803:848",
   "logo-revogen": "4802:534",
   "logo-preveta": "4802:535",
@@ -38,7 +53,6 @@ const PNG = {
   // The AATI cell is a lockup of two vectors; exporting the parent frame
   // flattens them into the single asset the logo grid expects.
   "logo-aati": "4802:655",
-  "logo-community-health-partners": "4802:539",
   "logo-caltex-medical": "4802:542",
   "logo-texas-organ-sharing-alliance": "4802:653",
   "logo-scfai": "4802:585",

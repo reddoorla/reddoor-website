@@ -163,6 +163,11 @@
       create: null,
     }) as unknown as Content.IndustryHeroSlice["primary"]["image"];
 
+  // An UNFILLED image field is `{}` in the API, not a url-less object — that is
+  // what `isFilled.image` tests for, so optional-image branches must be fed this
+  // rather than `img("")` to exercise their "absent" path.
+  const emptyImg = {} as ReturnType<typeof img>;
+
   const link = (text?: string) =>
     ({ link_type: "Web", url: "https://example.com", text }) as unknown as NonNullable<
       Content.FeaturedProjectSlice["primary"]["link"]
@@ -283,6 +288,11 @@
       services: "Brand, Packaging, Digital",
       heading: "Taking a biologics brand from overlooked to standing out.",
       after_image: img("Revogen packaging"),
+      // Two extra slides, so the fixture exercises the Slideshow branch (3
+      // slides => the component renders its prev/next, pause and nav-dot
+      // chrome) rather than the single-image branch, which has no controls for
+      // axe to audit.
+      after_images: [{ image: img("Revogen brand system") }, { image: img("Revogen mobile site") }],
       before_image: {} as unknown as Content.CaseStudySlice["primary"]["before_image"],
       vimeo_id: "",
       link: link(),
@@ -317,9 +327,38 @@
       logos: [
         // Linked, unlinked-with-alt, and unlinked-without-alt: the three naming
         // paths (link aria-label / field alt / sr-only fallback).
-        { logo: img("Revogen"), name: "Revogen", link: link() },
-        { logo: img("Preveta"), name: "Preveta", link: {} as ReturnType<typeof link> },
-        { logo: img(""), name: "Caltex Medical", link: {} as ReturnType<typeof link> },
+        //
+        // Only the first carries rollover art, on purpose: that exercises BOTH
+        // rollover branches in one fixture — a logo that activates a backdrop
+        // and a knockout swap, and logos that must stay inert because they have
+        // none — while keeping the section's own a11y surface under axe.
+        {
+          logo: img("Revogen"),
+          logo_negative: img("Revogen"),
+          active_background: img(""),
+          // Portrait crop present here and absent below, so the fixture covers
+          // both <picture> branches: one row that emits a <source> media query
+          // and one that falls through to the landscape <img> alone.
+          active_background_mobile: img(""),
+          name: "Revogen",
+          link: link(),
+        },
+        {
+          logo: img("Preveta"),
+          logo_negative: emptyImg,
+          active_background: emptyImg,
+          active_background_mobile: emptyImg,
+          name: "Preveta",
+          link: {} as ReturnType<typeof link>,
+        },
+        {
+          logo: img(""),
+          logo_negative: emptyImg,
+          active_background: emptyImg,
+          active_background_mobile: emptyImg,
+          name: "Caltex Medical",
+          link: {} as ReturnType<typeof link>,
+        },
       ],
       hasTopPadding: true,
       hasBottomPadding: true,

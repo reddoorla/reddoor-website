@@ -231,9 +231,23 @@ async function buildSlices(d, stage, projects) {
         services: d.caseStudy.services,
         heading: d.caseStudy.heading,
         after_image: await stage(d.caseStudy.afterImage, d.caseStudy.afterImageAlt),
-        before_image: await stage(d.caseStudy.beforeImage),
+        // Extra slides for the after slideshow. `after_image` is slide 1, so
+        // this group holds only the rest — see the slice's `afterSlides`.
+        after_images: await Promise.all(
+          (d.caseStudy.afterSlides ?? []).map(async (s) => ({
+            image: await stage(s.file, s.alt),
+          })),
+        ),
+        before_image: await stage(d.caseStudy.beforeImage, d.caseStudy.beforeImageAlt),
         vimeo_id: "",
-        link: project(d.caseStudy.link.uid),
+        // The band's stretched link was removed when the after state became a
+        // slideshow — it sat over the slideshow's own pause and prev/next
+        // controls. The slice no longer renders one.
+        //
+        // `{ link_type: "Any" }` is how Prismic represents an EMPTY link field.
+        // A bare `{}` is not: the API validates link_type against
+        // Web|Document|Media|Any and rejects the whole document without it.
+        link: { link_type: "Any" },
         isAnimated: true,
         hide: false,
       },
@@ -249,6 +263,23 @@ async function buildSlices(d, stage, projects) {
         logos: await Promise.all(
           d.logoGrid.logos.map(async (l) => ({
             logo: await stage(l.file, l.name),
+            // Rollover backdrop. Per-logo optional on purpose: Community Health
+            // Partners has no photography in Dropbox, and the slice treats a
+            // missing backdrop as "this logo does not light up" rather than
+            // letting one gap disable the other eight.
+            active_background: l.rollover
+              ? await stage(l.rollover, `${l.name} — project work`)
+              : undefined,
+            // Portrait re-frame of the same art, served below 768px. The band
+            // is full-bleed, so the landscape crop loses most of its subject on
+            // a phone; the slice picks between the two with a <picture> media
+            // query and falls back to the landscape one when this is absent.
+            active_background_mobile: l.rolloverMobile
+              ? await stage(l.rolloverMobile, `${l.name} — project work`)
+              : undefined,
+            // Knockout logo, only for brands whose backdrop is dark enough that
+            // the colour mark disappears against it. Currently just dōmaru.
+            logo_negative: l.negative ? await stage(l.negative, l.name) : undefined,
             name: l.name,
             link: l.project ? project(l.project) : undefined,
           })),
@@ -315,9 +346,12 @@ async function buildSlices(d, stage, projects) {
       primary: {
         label: d.faq.label,
         defaultOpen: false,
-        // Answers do not exist in the design — see data.json _contentGaps. The
-        // questions migrate with empty bodies so an editor can fill them in.
-        items: d.faq.questions.map((q) => ({ title: q, body: [] })),
+        // Answers are NOT in the Figma board — the design only ever drew the
+        // collapsed questions. They come from the QA copy doc (Tab 1 → Your
+        // FAQ), which is the agreed fallback when the board is silent. One
+        // rich-text paragraph per paragraph in the doc, so the disclosure keeps
+        // the copy's own breaks rather than running it into one block.
+        items: d.faq.questions.map((q) => ({ title: q.q, body: (q.a ?? []).flatMap(rt) })),
         hide: false,
       },
       items: [],
@@ -361,11 +395,13 @@ const readClient = prismic.createClient(
 
 // Resolve the project docs the page links to, up front — a missing one should
 // fail before anything is uploaded.
+// `caseStudy` no longer contributes one: its stretched link was removed when
+// the after state became a slideshow, so the key is absent from data.json.
 const linkedUids = [
-  d.caseStudy.link.uid,
+  d.caseStudy.link?.uid,
   d.featuredProject.link.uid,
   ...d.logoGrid.logos.map((l) => l.project).filter(Boolean),
-];
+].filter(Boolean);
 const projects = new Map();
 // This loop makes the script's first network call, so it is also where a bad
 // repository name, a missing token or a dead connection first surfaces. Report
@@ -458,6 +494,11 @@ try {
   });
 } catch (e) {
   console.error(`\n✗ MIGRATE FAILED: ${redact(e.message)}`);
+  // `message` is only ever "Validation failed" — the field paths that actually
+  // failed live on the error's response body, so surface it or the failure is
+  // undiagnosable. Redacted: the client echoes the request URL, which carries
+  // ?access_token=.
+  if (e.response) console.error(`  ${redact(JSON.stringify(e.response, null, 2)).slice(0, 4000)}`);
   console.error("  If this mentions unknown slices or fields, the models are not pushed yet:");
   console.error("  run `pnpm slicemachine`, log in, push the models, then re-run.");
   process.exitCode = 1;

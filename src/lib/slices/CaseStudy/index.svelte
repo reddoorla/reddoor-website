@@ -2,8 +2,9 @@
   import SliceSection from "$lib/components/SliceSection.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
-  import { PrismicImage, PrismicLink } from "@prismicio/svelte";
-  import { asLink, isFilled } from "@prismicio/client";
+  import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
+  import { PrismicImage } from "@prismicio/svelte";
+  import { isFilled } from "@prismicio/client";
   import type { Content } from "@prismicio/client";
   import { normalizeVimeoId, resolveCaseStudyMedia } from "./media";
   import { resolvePadding } from "$lib/utils/slicePadding";
@@ -41,18 +42,20 @@
     media.base === "before" ? slice.primary.before_image : slice.primary.after_image,
   );
 
-  // Gate on the resolved URL, not `isFilled` alone. A relationship whose target
-  // is unpublished stays "filled" (it keeps its id) but resolves to null, and
-  // this link is stretched over the entire band with `absolute inset-0 z-10` —
-  // so every click anywhere in the section would navigate back to the current
-  // page, and the copy is switched to `pointer-events-none` for nothing.
-  const linkHref = $derived(
-    isFilled.link(slice.primary.link) ? (asLink(slice.primary.link) ?? "") : "",
+  // The after state is a slideshow of the project's work, not one still: the
+  // main `after_image` first, then any extra slides. Filtered on `isFilled`
+  // because an editor can leave a group row half-added, and a blank slide would
+  // be a beat of empty band mid-rotation.
+  //
+  // Rendered through $lib/components/Slideshow — the shared component already
+  // carries reduced-motion handling, the WCAG 2.2.2 pause control, swipe and the
+  // looping track. It hides its own chrome when there is only one slide, so the
+  // single-image case needs no branch here.
+  const afterSlides = $derived(
+    [slice.primary.after_image, ...(slice.primary.after_images ?? []).map((s) => s.image)].filter(
+      (image) => isFilled.image(image),
+    ),
   );
-  const hasLink = $derived(linkHref !== "");
-  // The design draws no CTA, so the click target is the whole band and its
-  // accessible name has to be borrowed from the copy.
-  const linkName = $derived(slice.primary.heading || slice.primary.label || "View this case study");
 
   const mediaTitle = $derived(slice.primary.heading || slice.primary.label || "case study video");
 
@@ -105,10 +108,9 @@
           role="switch"
           aria-checked={showingAfter}
           onclick={(event) => {
-            // The stretched link is a SIBLING, so this cannot bubble into
-            // it; stopped anyway so a future wrapping <a> can't hijack the
-            // switch. `pointer-events-auto` is what actually keeps the
-            // button live inside the pointer-events-none text layer.
+            // Stopped so a future wrapping <a> cannot hijack the switch. There
+            // is no longer a stretched link over this band to bubble into — see
+            // the note at the end of this file for why it was removed.
             event.stopPropagation();
             showBefore = !showBefore;
           }}
@@ -144,6 +146,28 @@
   {/if}
 {/snippet}
 
+<!-- Declared at template top level, NOT inside <Slideshow>: a snippet written as
+     a direct child of a component is passed to that component as a prop, so
+     nesting it there would make it invisible to the `slide` binding below. -->
+{#snippet afterSlide(item: unknown, _index: number)}
+  <!-- `fallbackAlt=""` is load bearing: PrismicImage emits
+       `alt={alt ?? (field.alt || fallbackAlt)}`, so an image whose CMS alt text
+       is blank renders an <img> with NO alt attribute at all — an axe
+       `image-alt` violation. Empty alt (decorative) is the right degrade: the
+       label and lead line already name the case study, and a slideshow that
+       announced four near-identical packaging shots would be noise. -->
+  <PrismicImage
+    field={item as Content.CaseStudySlice["primary"]["after_image"]}
+    fallbackAlt=""
+    imgixParams={{ auto: ["format", "compress"] }}
+    widths={imageWidths}
+    sizes="100vw"
+    loading="lazy"
+    decoding="async"
+    class="h-full w-full object-cover object-[50%_35%]"
+  />
+{/snippet}
+
 <SliceSection
   {slice}
   class="relative w-full bg-white {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom ? 'pb-7.5' : ''}"
@@ -154,13 +178,14 @@
        quiet top band, which is the drawn desktop design — but only when there IS
        media: with no image and no video the band has no height of its own, so an
        absolute overlay would collapse the section onto the next slice. -->
+  <!-- No `pointer-events-none` now the stretched link is gone: the copy is
+       selectable again. This layer only covers the photo's top band, and the
+       Slideshow's controls sit at its bottom edge, so the two never overlap. -->
   {#if hasText}
     <div
       class="relative z-20 pt-7.5 pb-6 {media.mode === 'empty'
         ? 'lg:pb-7.5'
-        : 'lg:absolute lg:inset-x-0 lg:top-0 lg:pt-8.75 lg:pb-0'} {hasLink
-        ? 'pointer-events-none'
-        : ''}"
+        : 'lg:absolute lg:inset-x-0 lg:top-0 lg:pt-8.75 lg:pb-0'}"
     >
       <RailRow label={slice.primary.label} animateIn={isAnimated} rail={railExtra}>
         {#if slice.primary.heading}
@@ -188,21 +213,25 @@
             : 'opacity-0'}"
           aria-hidden={showingAfter ? undefined : "true"}
         >
-          <!-- `fallbackAlt=""` is load bearing: PrismicImage emits
-               `alt={alt ?? (field.alt || fallbackAlt)}`, so an image whose CMS
-               alt text is blank renders an <img> with NO alt attribute at all —
-               an axe `image-alt` violation. Empty alt (decorative) is the right
-               degrade here: the label + lead line already name the case study. -->
-          <PrismicImage
-            field={baseImage}
-            fallbackAlt=""
-            imgixParams={{ auto: ["format", "compress"] }}
-            widths={imageWidths}
-            sizes="100vw"
-            loading="lazy"
-            decoding="async"
-            class="h-full w-full object-cover object-[50%_35%]"
-          />
+          {#if media.base === "before"}
+            <!-- Degrade path: no after image was authored, so the BEFORE stands
+                 in as the base still and there is nothing to rotate. -->
+            <PrismicImage
+              field={baseImage}
+              fallbackAlt=""
+              imgixParams={{ auto: ["format", "compress"] }}
+              widths={imageWidths}
+              sizes="100vw"
+              loading="lazy"
+              decoding="async"
+              class="h-full w-full object-cover object-[50%_35%]"
+            />
+          {:else}
+            <!-- `aspectClass=""` overrides the component's `aspect-video`
+                 default: this band already has its own 1440/831 box, and a
+                 second aspect ratio inside it would letterbox every slide. -->
+            <Slideshow slides={afterSlides} aspectClass="" hasNavDots slide={afterSlide} />
+          {/if}
         </div>
       {/if}
 
@@ -241,18 +270,12 @@
     </div>
   {/if}
 
-  {#if hasLink}
-    <!-- Stretched link. It sits UNDER the text layer (z-10 vs z-20) while that
-         layer is pointer-events-none, so a click anywhere — copy included —
-         lands here, and the switch (pointer-events-auto, inside the higher
-         layer) still takes its own clicks. Tradeoff: the overlay copy stops
-         being selectable while a link is authored, the standard stretched-link
-         cost. Accessible name = the heading. -->
-    <PrismicLink
-      field={slice.primary.link}
-      class="absolute inset-0 z-10 rounded-xs focus-visible:-outline-offset-4 focus-visible:outline-2 focus-visible:outline-primary"
-    >
-      <span class="sr-only">{linkName}</span>
-    </PrismicLink>
-  {/if}
+  <!-- No stretched link over this band any more. It used to cover the whole
+       section (`absolute inset-0 z-10`) so a click anywhere reached the project.
+       The after state is now a Slideshow, whose prev/next and pause controls
+       live inside the media layer BENEATH that overlay — they would have been
+       unreachable, and an autoplaying carousel whose pause control cannot be
+       clicked fails WCAG 2.2.2. A link stretched over a carousel is the wrong
+       shape regardless; the board draws no CTA here, and the Revogen project is
+       still reachable from the logo grid and the portfolio. -->
 </SliceSection>

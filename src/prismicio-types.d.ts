@@ -1264,6 +1264,21 @@ type AccordionSliceVariation = AccordionSliceDefault | AccordionSliceRail;
 export type AccordionSlice = prismic.SharedSlice<"accordion", AccordionSliceVariation>;
 
 /**
+ * Item in *CaseStudy → Default → Primary → after slideshow (extra slides)*
+ */
+export interface CaseStudySliceDefaultPrimaryAfterImagesItem {
+  /**
+   * slide field in *CaseStudy → Default → Primary → after slideshow (extra slides)*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: optional — added after the main after image; 2+ slides auto-rotate
+   * - **API ID Path**: case_study.default.primary.after_images[].image
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  image: prismic.ImageField<never>;
+}
+
+/**
  * Primary content in *CaseStudy → Default → Primary*
  */
 export interface CaseStudySliceDefaultPrimary {
@@ -1306,6 +1321,16 @@ export interface CaseStudySliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
   after_image: prismic.ImageField<never>;
+
+  /**
+   * after slideshow (extra slides) field in *CaseStudy → Default → Primary*
+   *
+   * - **Field Type**: Group
+   * - **Placeholder**: *None*
+   * - **API ID Path**: case_study.default.primary.after_images[]
+   * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+   */
+  after_images: prismic.GroupField<Simplify<CaseStudySliceDefaultPrimaryAfterImagesItem>>;
 
   /**
    * before_image (optional — adds the before/after switch) field in *CaseStudy → Default → Primary*
@@ -2184,6 +2209,36 @@ export interface LogoGridSliceDefaultPrimaryLogosItem {
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
   logo: prismic.ImageField<never>;
+
+  /**
+   * logo (negative) field in *LogoGrid → Default → Primary → logos*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: optional — white/knockout version, used when this brand's background is dark
+   * - **API ID Path**: logo_grid.default.primary.logos[].logo_negative
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  logo_negative: prismic.ImageField<never>;
+
+  /**
+   * rollover background field in *LogoGrid → Default → Primary → logos*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: optional — fills the whole band while this logo is hovered
+   * - **API ID Path**: logo_grid.default.primary.logos[].active_background
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  active_background: prismic.ImageField<never>;
+
+  /**
+   * rollover background (portrait) field in *LogoGrid → Default → Primary → logos*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: optional — portrait re-frame of the above, used below 768px
+   * - **API ID Path**: logo_grid.default.primary.logos[].active_background_mobile
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  active_background_mobile: prismic.ImageField<never>;
 
   /**
    * name field in *LogoGrid → Default → Primary → logos*
@@ -3660,6 +3715,7 @@ declare module "@prismicio/client" {
       AccordionSliceDefault,
       AccordionSliceRail,
       CaseStudySlice,
+      CaseStudySliceDefaultPrimaryAfterImagesItem,
       CaseStudySliceDefaultPrimary,
       CaseStudySliceVariation,
       CaseStudySliceDefault,

@@ -41,6 +41,24 @@
             "thumbnails": []
           }
         },
+        "after_images": {
+          "type": "Group",
+          "config": {
+            "label": "after slideshow (extra slides)",
+            "repeat": true,
+            "fields": {
+              "image": {
+                "type": "Image",
+                "config": {
+                  "label": "slide",
+                  "placeholder": "optional — added after the main after image; 2+ slides auto-rotate",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              }
+            }
+          }
+        },
         "before_image": {
           "type": "Image",
           "config": {

@@ -10,7 +10,19 @@
   let { data }: { data: PageData } = $props();
 </script>
 
-<SliceZone slices={data.page.data.slices} {components} />
+<!-- The band rhythm for industry landing pages is a property of the PAGE TYPE,
+     not of each document: the Figma board fixes the vertical spacing between
+     bands, and an editor should not be able to get it wrong (or have to get it
+     right) one slice at a time. `data-band-rhythm` hands that context to the
+     rules in app.css, which derive each band's padding from the slice type and
+     its neighbours — see "Industry landing-page band rhythm" there.
+
+     `display: contents` so this wrapper is invisible to layout: the slices'
+     own `w-screen` / `w-full` sections keep resolving against the same parent
+     they did before, and nothing shifts on `page` documents. -->
+<div class="contents" data-band-rhythm={data.docType}>
+  <SliceZone slices={data.page.data.slices} {components} />
+</div>
 
 {#if data.docType === "page"}
   <!-- footer CTA (marketing pages only — industry landing pages carry their own cta_banner slice) -->

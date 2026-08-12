@@ -369,8 +369,13 @@ body::-webkit-scrollbar {
     line-height: 1.25;
   }
 
-  /* Besley lead line introducing a section (case_study, text_columns). */
-  .type-lede {
+  /* Besley lead line introducing a section (case_study, text_columns).
+     `.type-lede-block` is the same role for a CMS lede: RichTextBody accepts no
+     class, so the role cannot be put on the emitted <p> and has to reach it from
+     the wrapper. Matching the descendant here rather than restating the values
+     keeps one definition — the two must never drift apart. */
+  .type-lede,
+  .type-lede-block :is(p) {
     font-family: "Besley", serif;
     font-size: 22px;
     font-weight: 400;
@@ -444,7 +449,8 @@ body::-webkit-scrollbar {
       font-size: 48px;
     }
 
-    .type-lede {
+    .type-lede,
+    .type-lede-block :is(p) {
       font-size: 26px;
       line-height: 1.45;
     }
@@ -514,4 +520,123 @@ body::-webkit-scrollbar {
 
 .bob-always {
   animation: 1s infinite forwards pos-y-wiggle ease-out;
+}
+
+/* ─── Industry landing-page band rhythm (MED-16) ─────────────────────────────
+   The `RD-Sales-Funnel-LP` board fixes the vertical spacing of every band on
+   an industry landing page, and the brief is to match it exactly. Three ways
+   to do that were considered; this is the one that cannot be broken by an
+   editor, because there is nothing for an editor to set:
+
+     · per-document padding fields — expressive enough, but the same slice
+       variation needs different values at different points on the page, so it
+       becomes a number an author has to know and can get wrong;
+     · fixed padding per slice variation — cannot express the same variation
+       twice with different spacing (`lead_text/rail` is 60 in "the story" and
+       48 in "intro");
+     · this — derive the padding from the slice type and its NEIGHBOURS. The
+       distinction the board makes is positional, and document order already
+       encodes position, so reordering or deleting a slice re-resolves the
+       rhythm instead of stranding a wrong number on a document.
+
+   UNLAYERED on purpose. The slices emit their own Tailwind padding utilities
+   for the page/project documents they are also used on; utilities live in
+   `@layer utilities`, and unlayered rules outrank every layer, so these win
+   here without touching the shared components or their other call sites.
+
+   Numbers are the board's, measured at 1440 (frame geometry where the node
+   tree expands, ink bounds where the band is an unexpanded instance). Mobile
+   is roughly half — the board is drawn at one width only, and 168px of dead
+   space above a phone-width heading is not what it means. */
+[data-band-rhythm="industry"] > section[data-slice-type] {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* "the story" — lede + service list read as ONE block in the comp (488 tall,
+   60 top and bottom, and internally 148 lede + 20 + 200 list). The two slices'
+   facing edges carry that 20 between them and nothing more, which is what
+   removes the 60px seam our first pass shipped — note it is a GAP, not a
+   collapse: zeroing both edges runs the list into the lede. */
+[data-band-rhythm="industry"] > section[data-slice-type="lead_text"] {
+  padding-top: 30px;
+  padding-bottom: 10px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="text_columns"] {
+  padding-bottom: 30px;
+}
+
+/* "intro" — same pair again, but the board gives it 48 top / 96 bottom rather
+   than 60 / 60. The only thing distinguishing the two instances is what sits
+   above and below them, which is exactly what these selectors read. */
+[data-band-rhythm="industry"]
+  > section[data-slice-type="text_columns"]
+  + section[data-slice-type="lead_text"] {
+  padding-top: 24px;
+  padding-bottom: 15px;
+}
+[data-band-rhythm="industry"]
+  > section[data-slice-type="text_columns"]:has(+ section[data-slice-type="case_study"]) {
+  padding-bottom: 48px;
+}
+
+[data-band-rhythm="industry"] > section[data-slice-type="logo_grid"] {
+  padding-top: 64px;
+  padding-bottom: 72px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="testimonial"] {
+  padding-top: 32px;
+  padding-bottom: 24px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="value_block"] {
+  padding-top: 48px;
+  padding-bottom: 56px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="accordion"] {
+  padding-top: 48px;
+  padding-bottom: 56px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="cta_banner"] {
+  padding-top: 56px;
+  padding-bottom: 84px;
+}
+
+@media (min-width: 768px) {
+  [data-band-rhythm="industry"] > section[data-slice-type="lead_text"] {
+    padding-top: 60px;
+    padding-bottom: 20px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="text_columns"] {
+    padding-bottom: 60px;
+  }
+  [data-band-rhythm="industry"]
+    > section[data-slice-type="text_columns"]
+    + section[data-slice-type="lead_text"] {
+    padding-top: 48px;
+    padding-bottom: 30px;
+  }
+  [data-band-rhythm="industry"]
+    > section[data-slice-type="text_columns"]:has(+ section[data-slice-type="case_study"]) {
+    padding-bottom: 96px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="logo_grid"] {
+    padding-top: 128px;
+    padding-bottom: 144px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="testimonial"] {
+    padding-top: 64px;
+    padding-bottom: 48px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="value_block"] {
+    padding-top: 95px;
+    padding-bottom: 111px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="accordion"] {
+    padding-top: 96px;
+    padding-bottom: 112px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="cta_banner"] {
+    padding-top: 115px;
+    padding-bottom: 168px;
+  }
 }

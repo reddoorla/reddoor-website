@@ -82,17 +82,32 @@
        for the same reason). -->
   <RailRow label={eyebrow} labelAs="p" animateIn={isAnimated}>
     {#if isFilled.richText(primary.lede)}
-      <div class="lede">
+      <!-- `.lede` was an inert hook: nothing anywhere defined it, so this
+           rendered as the generic RichTextBody paragraph (pragmatica 18/30
+           weight 200) rather than the Besley lede this file's own header
+           describes. `.type-lede-block` is the shared role. -->
+      <div class="type-lede-block">
         <RichTextBody field={primary.lede} />
       </div>
     {/if}
 
     {#if hasBody}
-      <!-- Disclosure. The toggle precedes the panel it controls (as in the
-           Accordion slice), so the revealed copy follows the button in reading
-           order. NOTE the deliberate deviation from the comp: the board clips
-           the body to 3 lines + an ellipsis while collapsed, this hides it
-           outright. See the note in the review handoff — an undesigned call.
+      <!-- The board shows the body CLAMPED to 3 lines while collapsed (74px,
+           15px under the lede) with the toggle 20px below it — not hidden. An
+           earlier pass hid it outright and noted the deviation; that cost the
+           band 181px against the comp and, more to the point, gave the reader
+           nothing to decide whether "Read More" was worth pressing.
+
+           Because the copy is now always rendered, the panel is no longer
+           `inert` and the toggle follows the text it truncates, matching both
+           the board's order and the reading order. -->
+      <div id={panelId} class="more-body pt-3.75 {expanded ? '' : 'more-body--clamped'}">
+        <RichTextBody field={primary.body} />
+      </div>
+      <!-- Disclosure. The toggle FOLLOWS the copy it truncates, per the board
+           (Frame 44: description 0–241, button at 261) and per reading order —
+           the text is on the page either way now, so the button's job is to
+           unclamp it rather than to reveal it.
            Classes mirror DefaultButton's `red` (unfilled) branch exactly,
            including its scoped `padding: 10px 15px` / `font-size: 14px` /
            `line-height: normal` (hence `leading-[normal]`, NOT Tailwind's
@@ -112,26 +127,30 @@
       >
         {toggleLabel}
       </button>
-
-      <!-- Pure-CSS reveal: grid 0fr→1fr animates the height without JS and the
-           inner wrapper clips the overflow. `inert` while collapsed takes the
-           panel out of the tab order and the a11y tree, so the copy is genuinely
-           hidden rather than just clipped. Reduced motion → instant.
-           No role="region": unlike the Accordion (whose labelling button carries
-           a real item title) this one is labelled "Read More +", so a region
-           would add a landmark with a meaningless name. -->
-      <div
-        id={panelId}
-        class="grid transition-[grid-template-rows] duration-500 ease-out motion-reduce:transition-none"
-        style="grid-template-rows: {expanded ? '1fr' : '0fr'}"
-        inert={!expanded}
-      >
-        <div class="overflow-hidden">
-          <div class="more-body pt-5">
-            <RichTextBody field={primary.body} />
-          </div>
-        </div>
-      </div>
     {/if}
   </RailRow>
 </SliceSection>
+
+<style>
+  /* Collapsed body: the board's 3-line preview. `-webkit-line-clamp` is applied
+     to the WRAPPER, not to each paragraph — RichTextBody emits one <p> per
+     paragraph, and clamping each of them to 3 lines would show 3 lines of every
+     paragraph instead of the first 3 lines of the copy.
+
+     Unprefixed `line-clamp` is not yet universal, so the -webkit- trio stays;
+     it is the only interoperable way to clamp to a line count today. */
+  .more-body--clamped {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* -webkit-box makes the wrapper a flex-ish box whose children lose their own
+     margins' collapsing behaviour; zero the trailing margin so the clamped
+     block measures exactly 3 lines and the button sits 20px under it. */
+  .more-body--clamped :global(p:last-child) {
+    margin-bottom: 0;
+  }
+</style>

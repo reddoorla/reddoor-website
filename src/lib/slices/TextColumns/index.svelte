@@ -175,7 +175,10 @@
   .service-list :global(p) {
     margin: 0;
     border-top: 1px solid #bbbdbf; /* token: light */
-    padding-block: 15px;
+    /* 7.5 + 24 line-height + 7.5 + 1px rule = the board's 40px row pitch. Its
+       service lists are 5 rows of 40 = 200 tall; at the 15px this used to carry
+       the rows were 55 and the block ran 75px long. */
+    padding-block: 7.5px;
     font-family: "pragmatica", "helvetica", sans-serif;
     font-size: 14px;
     font-weight: 300;

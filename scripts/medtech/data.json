@@ -8,9 +8,8 @@
   ],
   "_contentGaps": [
     "hero.image is an UNLICENSED iStock comp (id 2184775810) exported at the board's 640px comp resolution. Staged as a clearly-named placeholder; a licensed hi-res must replace it before launch.",
-    "caseStudy.beforeImage is absent — the design has no before state and Nicole noted no decent photos of the old packaging exist. The slice hides its before/after toggle when the field is empty.",
-    "faq answers do not exist anywhere in the design; the 8 questions migrate with empty bodies and must be authored before publish.",
-    "Caltex and AATI hero/hover imagery and white logo variants are still outstanding per the Figma comments."
+    "Caltex and AATI white/knockout logo variants are still outstanding per the Figma comments. Rollover backdrops for both are now sourced from Dropbox; only the negative logos are missing, and logo_negative is optional.",
+    "logoGrid: the 6th logo is dōmaru Health Supply Co., not Community Health Partners. The board (logo soup 11) and the designer's prepared rollover set both use dōmaru and neither has CHP — CHP came from the QA copy doc's client list. Note dōmaru is filed under ZZ_Archived Clients in Dropbox; shipping it was an explicit call."
   ],
   "uid": "medtech",
   "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>), not on-page copy — the h1 comes from the hero slice. Site convention is \"<Page> | Reddoor Creative\"; meta_title carries the longer SEO string.",
@@ -90,13 +89,24 @@
     "label": "Case Study: Revogen",
     "services": "Brand, Packaging, Digital, Print, Environmental",
     "heading": "Taking a biologics brand from overlooked to standing out.",
-    "afterImage": "revogen-packaging-after.png",
-    "afterImageAlt": "Revogen Phlex packaging in gradient purple and blue",
-    "beforeImage": null,
-    "link": {
-      "type": "project",
-      "uid": "revogen"
-    }
+    "afterImage": "revogen-after-1-phlex.png",
+    "afterImageAlt": "Revogen PhleX packaging in gradient purple and blue",
+    "beforeImage": "revogen-before.png",
+    "afterSlides": [
+      {
+        "file": "revogen-after-2-biostrandx.png",
+        "alt": "Revogen BioStrandX packaging in gradient magenta"
+      },
+      {
+        "file": "revogen-after-3-brand.png",
+        "alt": "The rebuilt Revogen brand mark"
+      },
+      {
+        "file": "revogen-after-4-mobile.png",
+        "alt": "The Revogen site on a phone"
+      }
+    ],
+    "beforeImageAlt": "Revogen's pre-rebrand collateral: RevoCen Biologics brochures and sell sheets"
   },
   "logoGrid": {
     "label": "Clients: Join these brands in building trust",
@@ -106,47 +116,66 @@
       {
         "name": "Revogen",
         "file": "logo-revogen.png",
-        "project": "revogen"
+        "project": "revogen",
+        "rollover": "rollover-revogen.jpg",
+        "rolloverMobile": "rollover-revogen-mobile.jpg"
       },
       {
         "name": "Medical Solutions of Texas",
         "file": "logo-msot.png",
-        "project": "msot"
+        "project": "msot",
+        "rollover": "rollover-msot.jpg",
+        "rolloverMobile": "rollover-msot-mobile.jpg"
       },
       {
         "name": "Preveta",
         "file": "logo-preveta.png",
-        "project": null
+        "project": null,
+        "rollover": "rollover-preveta.jpg",
+        "rolloverMobile": "rollover-preveta-mobile.jpg"
       },
       {
         "name": "Strategy Advantage",
         "file": "logo-strategy-advantage.png",
-        "project": "strategy-advantage-website"
+        "project": "strategy-advantage-website",
+        "rollover": "rollover-strategy-advantage.jpg",
+        "rolloverMobile": "rollover-strategy-advantage-mobile.jpg"
       },
       {
         "name": "Alamo Anatomy Training Institute",
         "file": "logo-aati.png",
-        "project": null
+        "project": null,
+        "rollover": "rollover-aati.jpg",
+        "rolloverMobile": "rollover-aati-mobile.jpg"
       },
       {
-        "name": "Community Health Partners",
-        "file": "logo-community-health-partners.png",
+        "name": "dōmaru Health Supply Co.",
+        "file": "logo-domaru.png",
+        "negative": "logo-domaru-rev.png",
+        "rollover": "rollover-domaru.jpg",
+        "rolloverMobile": "rollover-domaru-mobile.jpg",
         "project": null
       },
       {
         "name": "Caltex Medical",
         "file": "logo-caltex-medical.png",
-        "project": null
+        "project": null,
+        "rollover": "rollover-caltex-medical.jpg",
+        "rolloverMobile": "rollover-caltex-medical-mobile.jpg"
       },
       {
         "name": "Texas Organ Sharing Alliance",
         "file": "logo-texas-organ-sharing-alliance.png",
-        "project": "the-texas-organ-sharing-alliance"
+        "project": "the-texas-organ-sharing-alliance",
+        "rollover": "rollover-texas-organ-sharing-alliance.jpg",
+        "rolloverMobile": "rollover-texas-organ-sharing-alliance-mobile.jpg"
       },
       {
         "name": "Southern California Food Allergy Institute",
         "file": "logo-scfai.png",
-        "project": "scfai"
+        "project": "scfai",
+        "rollover": "rollover-scfai.jpg",
+        "rolloverMobile": "rollover-scfai-mobile.jpg"
       }
     ]
   },
@@ -182,14 +211,72 @@
   "faq": {
     "label": "Frequently Asked Questions",
     "questions": [
-      "We need more sales, not a new logo. How does branding actually help us win deals?",
-      "How does pricing work?",
-      "We have a regulatory and QA team. Where do you fit?",
-      "Will a rebrand confuse the customers we already have?",
-      "What's the timeline, and how much of our time does it take?",
-      "Do we have to do all 3 phases?",
-      "Why not use a freelancer or handle this internally?",
-      "How do we get started?"
+      {
+        "q": "We need more sales, not a new logo. How does branding actually help us win deals?",
+        "a": [
+          "A logo by itself won’t do much. What moves a deal is clearing out the reasons a buyer screens you out before they ever talk to you: a site that looks behind the market, materials that contradict each other, collateral that reads like it came from a smaller company than you are.",
+          "Our Friction Audit finds those triggers and stacks you against the competitors you’re losing to.",
+          "The goal isn’t a prettier brand. It’s a clear, consistent brand that gives you that first impression credibility you need to help you shorten the sales cycle and stop losing deals because you don’t look credible."
+        ]
+      },
+      {
+        "q": "How does pricing work?",
+        "a": [
+          "3 phases, priced separately, so you’re never buying more than you need.",
+          "The Diagnosis: Friction Audit. $1,500. 7 days. You can stop here and keep the plan.",
+          "The Rebuild: Credibility Alignment. Scoped during the Diagnosis, since the number depends on how deep the problem runs and how big you are. Clients have paid between $10,000 and $40,000. Most land around $20,000.",
+          "The Rollout: Deploy Brand Touchpoints. $10,000 to $200,000. Wide, because it covers everything a business could use to market to a buyer: website, packaging, sales decks, tradeshow kits, etc. Your business may only need the sales deck, or it may need all of these things. We scope and budget it with you during the Rebuild, then we start with the pieces that return the most for what you can actually spend."
+        ]
+      },
+      {
+        "q": "We have a regulatory and QA team. Where do you fit?",
+        "a": [
+          "We stay on the brand side and build for your reviewers.",
+          "We don’t write or approve regulated claims. That’s your team’s call, and it should be.",
+          "What we do is build a system where the approved language is easy to use consistently. Your materials clear internal review faster, and they don’t drift the second a rep builds their own deck.",
+          "We’d rather be clear about that line than claim something we don’t own."
+        ]
+      },
+      {
+        "q": "Will a rebrand confuse the customers we already have?",
+        "a": [
+          "It’s the question we get most, and it’s fair.",
+          "It’s also why we start with an audit instead of a blank page. We find what equity is worth keeping (usually more than founders expect) and what’s actively costing you.",
+          "Most engagements end up as an evolution of what you already have. If your name and mark are valuable and doing real work, we’ll tell you."
+        ]
+      },
+      {
+        "q": "What's the timeline, and how much of our time does it take?",
+        "a": [
+          "The Friction Audit runs 7 days and needs about 3 hours from you: an hour on a pre-meeting questionnaire, an hour for the kickoff interview, an hour in the diagnosis meeting. The Rebuild takes 30 days. The Rollout takes 60. So roughly 90 days from the start of the Rebuild to a brand deployed across every touchpoint.",
+          "Your time lands in a handful of review sessions. We handle everything in between.",
+          "You don’t have an in-house creative team. That’s usually why you’re here. So we’re not going to hand you a project to manage."
+        ]
+      },
+      {
+        "q": "Do we have to do all 3 phases?",
+        "a": [
+          "We encourage every company to start with the audit.",
+          "Skipping it is like walking into an auto shop and telling the mechanic what to fix. Even if you’re right, they still have to get under the hood and understand what’s actually going on with your car.",
+          "The audit gets everyone on the same page about the problem, the goal, and what it’ll take to get there. If we finish the diagnosis and you don’t agree with it, you don’t pay.",
+          "After that, we come alongside you wherever you want us. Sometimes that means we do everything. Sometimes it means we just build the website."
+        ]
+      },
+      {
+        "q": "Why not use a freelancer or handle this internally?",
+        "a": [
+          "Freelancers are good at single assets. A logo, a landing page.",
+          "The thing costing you deals is bigger. Your touchpoints don’t agree with each other, and that inconsistency reads as operational inconsistency to a value-analysis committee.",
+          "It’s a systems problem. It’s also hard to see from inside, where nobody looks at the brand the way a first-time buyer does."
+        ]
+      },
+      {
+        "q": "How do we get started?",
+        "a": [
+          "A 30-minute, no-strings-attached conversation to see if we’re the right fit for each other.",
+          "We’ll walk you through the process and answer any questions you have. We want you to feel comfortable with everything before moving forward."
+        ]
+      }
     ]
   },
   "cta": {

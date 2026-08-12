@@ -44,6 +44,33 @@
                   "thumbnails": []
                 }
               },
+              "logo_negative": {
+                "type": "Image",
+                "config": {
+                  "label": "logo (negative)",
+                  "placeholder": "optional — white/knockout version, used when this brand's background is dark",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              },
+              "active_background": {
+                "type": "Image",
+                "config": {
+                  "label": "rollover background",
+                  "placeholder": "optional — fills the whole band while this logo is hovered",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              },
+              "active_background_mobile": {
+                "type": "Image",
+                "config": {
+                  "label": "rollover background (portrait)",
+                  "placeholder": "optional — portrait re-frame of the above, used below 768px",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              },
               "name": {
                 "type": "Text",
                 "config": {
