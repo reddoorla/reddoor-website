@@ -4,6 +4,13 @@
   import LeadText from "$lib/slices/LeadText/index.svelte";
   import TextColumns from "$lib/slices/TextColumns/index.svelte";
   import Accordion from "$lib/slices/Accordion/index.svelte";
+  import IndustryHero from "$lib/slices/IndustryHero/index.svelte";
+  import CaseStudy from "$lib/slices/CaseStudy/index.svelte";
+  import LogoGrid from "$lib/slices/LogoGrid/index.svelte";
+  import Testimonial from "$lib/slices/Testimonial/index.svelte";
+  import FeaturedProject from "$lib/slices/FeaturedProject/index.svelte";
+  import ValueBlock from "$lib/slices/ValueBlock/index.svelte";
+  import CtaBanner from "$lib/slices/CtaBanner/index.svelte";
 
   // Hydration marker for interaction tests: onMount only runs client-side after
   // hydration, so `html[data-hydrated]` is a deterministic "the page is now
@@ -61,6 +68,7 @@
     variation: "default",
     version: "initial",
     primary: {
+      label: "",
       defaultOpen: true,
       items: [
         {
@@ -79,6 +87,7 @@
     ...accordionOpen,
     id: "fixture-accordion-closed",
     primary: {
+      label: "",
       defaultOpen: false,
       hide: false,
       items: [
@@ -125,11 +134,281 @@
     variation: "default",
     version: "initial",
     primary: {
+      label: "",
       defaultOpen: false,
       items: [
         { title: "Repeated disclosure", body: rt("First.") },
         { title: "Repeated disclosure", body: rt("Second, same title.") },
       ],
+      hide: false,
+    },
+    items: [],
+  };
+
+  // ── Industry landing-page slices (the /medtech board) ──────────────────────
+  // These carry the page's own outline: the hero owns the h1, so the fixture
+  // page's own <h1> above is the only other one — axe sees hero h1 → section h2
+  // → column h3 with no skips, matching a real industry page.
+
+  // Prismic image fields need a url + dimensions to render at all; the host is
+  // never fetched during an axe scan, and alt text is what the gate checks.
+  const img = (alt: string) =>
+    ({
+      url: "https://images.prismic.io/reddoor-la/fixture.png?auto=format,compress",
+      alt,
+      copyright: null,
+      dimensions: { width: 1200, height: 800 },
+      edit: { x: 0, y: 0, zoom: 1, background: "transparent" },
+      id: "fixture-image",
+      create: null,
+    }) as unknown as Content.IndustryHeroSlice["primary"]["image"];
+
+  const link = (text?: string) =>
+    ({ link_type: "Web", url: "https://example.com", text }) as unknown as NonNullable<
+      Content.FeaturedProjectSlice["primary"]["link"]
+    >;
+
+  const heroSlice: Content.IndustryHeroSlice = {
+    id: "fixture-industry-hero",
+    slice_type: "industry_hero",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      image: img("Two surgeons reviewing a tablet in an operating room"),
+      headline: [
+        { type: "heading1", text: "From screened out to short list", spans: [] },
+      ] as unknown as RichTextField,
+      card_label: "Brand-Credibility Framework",
+      card_body: rt("Buyers trust you before your rep walks through the door."),
+      buttons: [{ link: link("Get Started") }],
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  const leadRail: Content.LeadTextSlice = {
+    id: "fixture-lead-rail",
+    slice_type: "lead_text",
+    slice_label: null,
+    variation: "rail",
+    version: "initial",
+    primary: {
+      eyebrow: "What we do for you:",
+      body: rt("Closing the Trust Gap for Your Brand"),
+      subBody: rt("We handle everything, from diagnosis to deployment."),
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  // Eyebrow-less on purpose: on a real page the LeadText above owns the section
+  // h2, so these column titles must come out as h3 — a level skip here fails the
+  // axe gate, which is exactly the regression this fixture locks.
+  const serviceList: Content.TextColumnsSlice = {
+    id: "fixture-service-list",
+    slice_type: "text_columns",
+    slice_label: null,
+    variation: "serviceList",
+    version: "initial",
+    primary: {
+      eyebrow: "",
+      hasTopRule: false,
+      desktopColumns: "3",
+      columns: [
+        {
+          title: "Brand Identity",
+          body: [
+            { type: "paragraph", text: "Brand Strategy", spans: [] },
+            { type: "paragraph", text: "Brand Positioning", spans: [] },
+          ] as unknown as RichTextField,
+        },
+        { title: "Digital Presence", body: rt("Website Design") },
+      ],
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  const iconColumns: Content.TextColumnsSlice = {
+    id: "fixture-icon-columns",
+    slice_type: "text_columns",
+    slice_label: null,
+    variation: "iconColumns",
+    version: "initial",
+    primary: {
+      eyebrow: "",
+      hasTopRule: true,
+      desktopColumns: "3",
+      columns: [
+        {
+          icon: img(""),
+          title: "The Diagnosis:",
+          subtitle: "Friction Audit",
+          body: rt("We audit your marketing deliverables against your competition."),
+        },
+        // Icon-less and subtitle-less: both are optional, and the column must
+        // still render a valid heading rather than an empty label row.
+        {
+          icon: img(""),
+          title: "The Rebuild:",
+          subtitle: "",
+          body: rt("A complete brand system."),
+        },
+      ],
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  // No before_image → the before/after switch must not render at all.
+  const caseStudy: Content.CaseStudySlice = {
+    id: "fixture-case-study",
+    slice_type: "case_study",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      label: "Case Study: Revogen",
+      services: "Brand, Packaging, Digital",
+      heading: "Taking a biologics brand from overlooked to standing out.",
+      after_image: img("Revogen packaging"),
+      before_image: {} as unknown as Content.CaseStudySlice["primary"]["before_image"],
+      vimeo_id: "",
+      link: link(),
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  // With before_image → exercises the switch, which is the slice's only control.
+  const caseStudyToggle: Content.CaseStudySlice = {
+    ...caseStudy,
+    id: "fixture-case-study-toggle",
+    primary: {
+      ...caseStudy.primary,
+      label: "Case Study: before and after",
+      before_image: img("Revogen packaging, before"),
+    },
+  };
+
+  const logoGrid: Content.LogoGridSlice = {
+    id: "fixture-logo-grid",
+    slice_type: "logo_grid",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      label: "Clients: Join these brands in building trust",
+      link: link("Our Work"),
+      logos: [
+        // Linked, unlinked-with-alt, and unlinked-without-alt: the three naming
+        // paths (link aria-label / field alt / sr-only fallback).
+        { logo: img("Revogen"), name: "Revogen", link: link() },
+        { logo: img("Preveta"), name: "Preveta", link: {} as ReturnType<typeof link> },
+        { logo: img(""), name: "Caltex Medical", link: {} as ReturnType<typeof link> },
+      ],
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  const testimonial: Content.TestimonialSlice = {
+    id: "fixture-testimonial",
+    slice_type: "testimonial",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      label: "What clients are saying:",
+      quote: "Their branding and web work took us to the next level.",
+      name: "Albert Turgon",
+      role: "COO of MSOT (Medical Solutions of Texas)",
+      avatar: img("Albert Turgon"),
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  const featuredProject: Content.FeaturedProjectSlice = {
+    id: "fixture-featured-project",
+    slice_type: "featured_project",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      image: img("The Medical Solutions of Texas website on a desktop display"),
+      title: "Medical Solutions of Texas",
+      services: "brand, digital",
+      link: link(),
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  const valueExpandable: Content.ValueBlockSlice = {
+    id: "fixture-value-expandable",
+    slice_type: "value_block",
+    slice_label: null,
+    variation: "expandable",
+    version: "initial",
+    primary: {
+      displayTitle: "On Your Behalf",
+      eyebrow: "About Us",
+      lede: rt("Reddoor's been at this for 20 years."),
+      body: rt("We're a nimble senior team, and we've stayed that way on purpose."),
+      readMoreLabel: "Read More +",
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  // Rail FAQ with empty answers — the design ships no answer copy, so the
+  // body-less branch is the state this will actually launch in.
+  const faqRail: Content.AccordionSlice = {
+    id: "fixture-accordion-rail",
+    slice_type: "accordion",
+    slice_label: null,
+    variation: "rail",
+    version: "initial",
+    primary: {
+      label: "Frequently Asked Questions",
+      defaultOpen: false,
+      items: [
+        { title: "How does pricing work?", body: rt("Three phases, quoted up front.") },
+        { title: "How do we get started?", body: [] as unknown as RichTextField },
+      ],
+      isAnimated: false,
+      hide: false,
+    },
+    items: [],
+  };
+
+  const ctaBanner: Content.CtaBannerSlice = {
+    id: "fixture-cta-banner",
+    slice_type: "cta_banner",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      heading: [
+        { type: "heading2", text: "Are you ready for instant credibility?", spans: [] },
+      ] as unknown as RichTextField,
+      buttonLabel: "Talk with a founder",
+      buttonLink: link(),
+      background: "paper-red",
+      hasTopPadding: true,
+      hasBottomPadding: true,
+      isAnimated: false,
       hide: false,
     },
     items: [],
@@ -187,4 +466,20 @@
   <Accordion slice={accordionOpen} />
   <Accordion slice={accordionClosed} />
   <Accordion slice={accordionDup} />
+
+  <!-- Industry landing-page slices, in board order so the rendered outline
+       matches a real /medtech page: the hero's h1, then each section's h2, then
+       column h3s. A level skip or a nested interactive here fails the axe gate. -->
+  <IndustryHero slice={heroSlice} />
+  <LeadText slice={leadRail} />
+  <TextColumns slice={serviceList} />
+  <TextColumns slice={iconColumns} />
+  <CaseStudy slice={caseStudy} />
+  <CaseStudy slice={caseStudyToggle} />
+  <LogoGrid slice={logoGrid} />
+  <Testimonial slice={testimonial} />
+  <FeaturedProject slice={featuredProject} />
+  <ValueBlock slice={valueExpandable} />
+  <Accordion slice={faqRail} />
+  <CtaBanner slice={ctaBanner} />
 </div>

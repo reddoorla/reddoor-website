@@ -23,6 +23,19 @@ const routes: prismic.ClientConfig["routes"] = [
     type: "page",
     path: "/:uid",
   },
+  // Industry landing pages (/medtech, ...) share the `/:uid` namespace with
+  // `page`. A uid collision resolves to the page — see the page-first lookup in
+  // `[[preview=preview]]/[uid]/+page.server.ts`.
+  //
+  // This entry can only exist while the `industry` type is live in the Prismic
+  // repo AND has at least one published document. `routes` is validated
+  // server-side on every request, so naming a type the API doesn't know makes it
+  // reject EVERY query ("[Link resolver error] Unknown type") and takes the whole
+  // build down — not just industry lookups.
+  {
+    type: "industry",
+    path: "/:uid",
+  },
   {
     type: "project",
     path: "/portfolio/:uid",

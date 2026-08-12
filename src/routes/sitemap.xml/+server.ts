@@ -9,12 +9,14 @@ export const prerender = true;
 export const GET: RequestHandler = async ({ fetch }) => {
   const client = createClient({ fetch });
 
-  const [pages, projects] = await Promise.all([
+  const [pages, industries, projects] = await Promise.all([
     client.getAllByType("page"),
+    client.getAllByType("industry"),
     client.getAllByType("project"),
   ]);
 
-  const pagePaths = pages
+  // `page` and `industry` share the /:uid namespace, so they share one listing.
+  const pagePaths = [...pages, ...industries]
     .filter((doc) => doc.uid && doc.uid !== "home")
     .map((doc) => ({
       url: `/${doc.uid}`,

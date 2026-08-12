@@ -80,6 +80,175 @@
         }
       },
       "items": {}
+    },
+    {
+      "id": "serviceList",
+      "name": "Service List",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Landing-page grid: ruled category lists. Each column's title is a red category row and every paragraph of its body becomes its own ruled row (14px uppercase). Leave the eyebrow empty when a LeadText above already labels the section.",
+      "imageUrl": "",
+      "primary": {
+        "eyebrow": {
+          "type": "Text",
+          "config": {
+            "label": "eyebrow",
+            "placeholder": "e.g. Our Solution"
+          }
+        },
+        "hasTopRule": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTopRule",
+            "placeholder_false": "no rule",
+            "placeholder_true": "rule",
+            "default_value": true
+          }
+        },
+        "desktopColumns": {
+          "type": "Select",
+          "config": {
+            "label": "desktopColumns",
+            "options": ["2", "3", "4"],
+            "default_value": "3"
+          }
+        },
+        "columns": {
+          "type": "Group",
+          "config": {
+            "label": "columns",
+            "fields": {
+              "title": {
+                "type": "Text",
+                "config": {
+                  "label": "title",
+                  "placeholder": ""
+                }
+              },
+              "body": {
+                "type": "StructuredText",
+                "config": {
+                  "label": "body",
+                  "placeholder": "",
+                  "allowTargetBlank": true,
+                  "multi": "paragraph,strong,em,hyperlink"
+                }
+              }
+            }
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    },
+    {
+      "id": "iconColumns",
+      "name": "Icon Columns",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Landing-page grid: columns of icon + two-line red label + small body, under an optional red rule. Leave the eyebrow empty when a LeadText above already labels the section.",
+      "imageUrl": "",
+      "primary": {
+        "eyebrow": {
+          "type": "Text",
+          "config": {
+            "label": "eyebrow",
+            "placeholder": "e.g. Our Solution"
+          }
+        },
+        "hasTopRule": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTopRule",
+            "placeholder_false": "no rule",
+            "placeholder_true": "rule",
+            "default_value": true
+          }
+        },
+        "desktopColumns": {
+          "type": "Select",
+          "config": {
+            "label": "desktopColumns",
+            "options": ["2", "3", "4"],
+            "default_value": "3"
+          }
+        },
+        "columns": {
+          "type": "Group",
+          "config": {
+            "label": "columns",
+            "fields": {
+              "icon": {
+                "type": "Image",
+                "config": {
+                  "label": "icon",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              },
+              "title": {
+                "type": "Text",
+                "config": {
+                  "label": "title",
+                  "placeholder": "bold first line — e.g. The Diagnosis:"
+                }
+              },
+              "subtitle": {
+                "type": "Text",
+                "config": {
+                  "label": "subtitle",
+                  "placeholder": "light second line — e.g. Friction Audit"
+                }
+              },
+              "body": {
+                "type": "StructuredText",
+                "config": {
+                  "label": "body",
+                  "placeholder": "",
+                  "allowTargetBlank": true,
+                  "multi": "paragraph,strong,em,hyperlink"
+                }
+              }
+            }
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
     }
   ]
 }

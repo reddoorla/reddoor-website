@@ -53,5 +53,63 @@
       }
     },
     "items": []
+  },
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "expandable",
+    "primary": {
+      "displayTitle": {
+        "__TYPE__": "FieldContent",
+        "value": "On Your Behalf",
+        "type": "Text"
+      },
+      "eyebrow": {
+        "__TYPE__": "FieldContent",
+        "value": "About Us",
+        "type": "Text"
+      },
+      "lede": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "Reddoor's been at this for 20 years. In that time we've helped more than 300 companies stand out, and we've never gotten comfortable with work that's merely \"fine.\" Clarity beats clever, every time."
+            }
+          }
+        ]
+      },
+      "body": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "We're a nimble senior team with people in San Antonio, Los Angeles, and Boise, and we've stayed that way on purpose. The people you meet in the first conversation are the people building your brand. Nothing gets handed down. We care about your company and about the people inside it who actually use what we make. The CMO we align with on strategy. The rep carrying your sell sheet into a hospital. Both have to be able to do their job with the work."
+            }
+          },
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "That's why every decision ties back to an outcome you can name. In your category that outcome is trust: clinicians who believe you on sight, procurement that's sold before the meeting starts, and deals you stop losing to the bigger name"
+            }
+          }
+        ]
+      },
+      "readMoreLabel": {
+        "__TYPE__": "FieldContent",
+        "value": "Read More +",
+        "type": "Text"
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
   }
 ]

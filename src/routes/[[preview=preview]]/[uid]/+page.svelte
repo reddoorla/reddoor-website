@@ -12,20 +12,22 @@
 
 <SliceZone slices={data.page.data.slices} {components} />
 
-<!-- footer -->
-<div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
-  <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
-    <h3 class="text-white md:w-3/5">
-      Isn’t it time to arm your brand with a clear story and compelling design?
-    </h3>
-    <div use:anim={{ delayMax: 1600 }}>
-      <a href="/contact">
-        <DefaultButton
-          class="mt-6 text-white border-white border-1 hover:bg-mid/10"
-          text="MEET WITH US"
-          filled={false}
-        />
-      </a>
-    </div>
-  </ContentWidth>
-</div>
+{#if data.docType === "page"}
+  <!-- footer CTA (marketing pages only — industry landing pages carry their own cta_banner slice) -->
+  <div class="w-screen py-40 md:h-[80vh] bg-paper-red flex flex-col items-center justify-center">
+    <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
+      <h3 class="text-white md:w-3/5">
+        Isn’t it time to arm your brand with a clear story and compelling design?
+      </h3>
+      <div use:anim={{ delayMax: 1600 }}>
+        <a href="/contact">
+          <DefaultButton
+            class="mt-6 text-white border-white border-1 hover:bg-mid/10"
+            text="MEET WITH US"
+            filled={false}
+          />
+        </a>
+      </div>
+    </ContentWidth>
+  </div>
+{/if}

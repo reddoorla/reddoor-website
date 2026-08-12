@@ -1,0 +1,37 @@
+<!--
+  Circle-arrow affordance for the industry landing pages (FeaturedProject).
+
+  Provenance: Figma file HRxyQGlQwQDEqOuRlEaZoL, node 4821:448 ("Group", inside
+  the frame "np_arrow-up-on-circle_3319175_000000 1" — Noun Project icon
+  #3319175). Exported 2026-08-11 with the Figma MCP download_assets tool. The
+  path data below is verbatim from that export and was NOT hand-authored;
+  Lucide's circle-arrow glyphs are a different drawing and must not be
+  substituted for it.
+
+  Two edits to the raw export, both non-geometric:
+    1. The export's surrounding comp chrome (a #404040 backing rect, the
+       1440-wide page rect and the #9F9A87 plate rect) was dropped.
+    2. Both fills were the literal #E7E8EB; they now inherit `currentColor`
+       from the root so the caption's text colour drives the icon.
+
+  The design rotates the source glyph 90° clockwise so the arrow points right.
+  That rotation is already baked into these coordinates (Figma exports the node
+  as rendered), so do NOT rotate this file again in CSS — a wrapper rotation
+  would also rotate the axis of the hover nudge.
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 49.4453 49.4453"
+  width="100%"
+  height="100%"
+  fill="currentColor"
+  aria-hidden="true"
+  focusable="false"
+>
+  <path
+    d="M49.4453 24.7226C49.4453 11.0899 38.3554 1.67657e-06 24.7227 1.08066e-06C11.09 4.84757e-07 2.62181e-05 11.0899 2.56222e-05 24.7226C2.50263e-05 38.3553 11.09 49.4453 24.7227 49.4453C38.3529 49.4453 49.4453 38.3553 49.4453 24.7226ZM2.53336 24.7226C2.53336 12.488 12.4881 2.53585 24.7227 2.53585C36.9573 2.53585 46.912 12.4881 46.912 24.7226C46.912 36.9572 36.9573 46.9094 24.7227 46.9094C12.4856 46.9119 2.53336 36.9572 2.53336 24.7226Z"
+  />
+  <path
+    d="M26.2115 11.9307L24.418 13.7217L34.1394 23.4556L12.247 23.4556L12.247 25.991L34.1369 25.991L24.418 35.7098L26.2115 37.5009L38.9863 24.726L26.2115 11.9307Z"
+  />
+</svg>

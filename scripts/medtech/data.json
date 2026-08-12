@@ -1,0 +1,179 @@
+{
+  "_source": "Figma RD-Sales-Funnel-LP, board \"Sales Funnel v2\" (node 4791:818), file HRxyQGlQwQDEqOuRlEaZoL. Copy transcribed verbatim except the edits listed in _copyEdits.",
+  "_copyEdits": [
+    "framework.eyebrow: Figma reads \"How Do it: Brand Credibility Framework\" (ungrammatical) → \"How We Do It: Brand Credibility Framework\".",
+    "featuredProject.title: Figma reads \"Medical Solution of texas\" → \"Medical Solutions of Texas\" (matches the client's real name and the testimonial role line).",
+    "Trailing spaces trimmed throughout; a U+200B zero-width-space spacer paragraph in the About body was dropped (it was a Figma authoring artifact, not content).",
+    "Service list and framework labels are stored in natural case — the components uppercase them in CSS."
+  ],
+  "_contentGaps": [
+    "hero.image is an UNLICENSED iStock comp (id 2184775810) exported at the board's 640px comp resolution. Staged as a clearly-named placeholder; a licensed hi-res must replace it before launch.",
+    "caseStudy.beforeImage is absent — the design has no before state and Nicole noted no decent photos of the old packaging exist. The slice hides its before/after toggle when the field is empty.",
+    "faq answers do not exist anywhere in the design; the 8 questions migrate with empty bodies and must be authored before publish.",
+    "Caltex and AATI hero/hover imagery and white logo variants are still outstanding per the Figma comments."
+  ],
+  "uid": "medtech",
+  "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>), not on-page copy — the h1 comes from the hero slice. Site convention is \"<Page> | Reddoor Creative\"; meta_title carries the longer SEO string.",
+  "title": "MedTech | Reddoor Creative",
+  "meta_title": "MedTech Brand Strategy & Design | Reddoor Creative",
+  "meta_description": "Reddoor's brand-credibility framework takes MedTech brands from screened out to short list — brand identity, digital presence and design systems that buyers and clinicians trust on sight.",
+
+  "hero": {
+    "headline": "We'll Take Your \nMedTech Brand from Screened Out to Short List",
+    "cardLabel": "Brand-Credibility Framework",
+    "cardBody": "Our framework means buyers trust you before your rep walks through the door. We diagnose, rebuild, and deploy everything your brand needs to compete on the national stage.",
+    "image": "hero-PLACEHOLDER-istock-comp.png",
+    "imageAlt": "Two surgeons in scrubs reviewing a tablet in an operating room",
+    "buttons": [{ "label": "Get Started", "url": "/contact" }]
+  },
+
+  "services": {
+    "eyebrow": "What we do for you:",
+    "lead": "Closing the Trust Gap for Your Brand",
+    "subBody": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep selling while we build a brand buyers trust before they've met you.",
+    "columns": [
+      {
+        "title": "Brand Identity",
+        "items": ["Brand Strategy", "Brand Positioning", "Brand Design", "Copywriting"]
+      },
+      {
+        "title": "Digital Presence",
+        "items": [
+          "Website Design",
+          "Website Development",
+          "AEO/SEO Development",
+          "AEO/SEO Deployment"
+        ]
+      },
+      {
+        "title": "Design System",
+        "items": [
+          "Packaging Design",
+          "Trade Show Kit Design",
+          "Social Media Launch Kits",
+          "Social Media Management"
+        ]
+      }
+    ]
+  },
+
+  "framework": {
+    "eyebrow": "How We Do It: Brand Credibility Framework",
+    "lead": "Creating instant credibility with buyers and clinicians doesn't happen instantly. In fact, it takes a tried and true process that we've been using for 20 years.",
+    "columns": [
+      {
+        "icon": "icon-diagnosis-audit.svg",
+        "iconAlt": "",
+        "title": "The Diagnosis:",
+        "subtitle": "Friction Audit",
+        "body": "We audit your marketing deliverables and stack them against your competition to pinpoint what's getting you cut in procurement vetting. We deliver a prioritized plan to fix it before it costs another deal."
+      },
+      {
+        "icon": "icon-rebuild.svg",
+        "iconAlt": "",
+        "title": "The Rebuild:",
+        "subtitle": "Closing the Trust Gap",
+        "body": "We turn the audit into a complete brand system that provides credibility, then prove it side by side against your competitors so your team can move forward with confidence."
+      },
+      {
+        "icon": "icon-rollout-launch.svg",
+        "iconAlt": "",
+        "title": "The Rollout:",
+        "subtitle": "Deploy Touch Points",
+        "body": "We deploy the approved system everywhere buyers meet you, from websites and sales decks to tradeshows and packaging. Every piece makes the case on its own, so the selling starts before the rep does."
+      }
+    ]
+  },
+
+  "caseStudy": {
+    "label": "Case Study: Revogen",
+    "services": "Brand, Packaging, Digital, Print, Environmental",
+    "heading": "Taking a biologics brand from overlooked to standing out.",
+    "afterImage": "revogen-packaging-after.png",
+    "afterImageAlt": "Revogen Phlex packaging in gradient purple and blue",
+    "beforeImage": null,
+    "link": { "type": "project", "uid": "revogen" }
+  },
+
+  "logoGrid": {
+    "label": "Clients: Join these brands in building trust",
+    "buttonLabel": "Our Work",
+    "buttonUrl": "/portfolio",
+    "logos": [
+      { "name": "Revogen", "file": "logo-revogen.png", "project": "revogen" },
+      { "name": "Medical Solutions of Texas", "file": "logo-msot.png", "project": "msot" },
+      { "name": "Preveta", "file": "logo-preveta.png", "project": null },
+      {
+        "name": "Strategy Advantage",
+        "file": "logo-strategy-advantage.png",
+        "project": "strategy-advantage-website"
+      },
+      { "name": "Alamo Anatomy Training Institute", "file": "logo-aati.png", "project": null },
+      {
+        "name": "Community Health Partners",
+        "file": "logo-community-health-partners.png",
+        "project": null
+      },
+      { "name": "Caltex Medical", "file": "logo-caltex-medical.png", "project": null },
+      {
+        "name": "Texas Organ Sharing Alliance",
+        "file": "logo-texas-organ-sharing-alliance.png",
+        "project": "the-texas-organ-sharing-alliance"
+      },
+      {
+        "name": "Southern California Food Allergy Institute",
+        "file": "logo-scfai.png",
+        "project": "scfai"
+      }
+    ]
+  },
+
+  "testimonial": {
+    "label": "What clients are saying:",
+    "quote": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
+    "name": "Albert Turgon",
+    "role": "COO of MSOT (Medical Solutions of Texas)",
+    "avatar": "testimonial-albert-turgon.png",
+    "avatarAlt": "Albert Turgon"
+  },
+
+  "featuredProject": {
+    "title": "Medical Solutions of Texas",
+    "services": "brand, digital",
+    "image": "msot-web-mockup.png",
+    "imageAlt": "The Medical Solutions of Texas website shown on a desktop display",
+    "link": { "type": "project", "uid": "msot" }
+  },
+
+  "about": {
+    "displayTitle": "On Your Behalf",
+    "eyebrow": "About Us",
+    "lede": "Reddoor's been at this for 20 years. In that time we've helped more than 300 companies stand out, and we've never gotten comfortable with work that's merely \"fine.\" Clarity beats clever, every time.",
+    "body": [
+      "We're a nimble senior team with people in San Antonio, Los Angeles, and Boise, and we've stayed that way on purpose. The people you meet in the first conversation are the people building your brand. Nothing gets handed down. We care about your company and about the people inside it who actually use what we make. The CMO we align with on strategy. The rep carrying your sell sheet into a hospital. Both have to be able to do their job with the work.",
+      "That's why every decision ties back to an outcome you can name. In your category that outcome is trust: clinicians who believe you on sight, procurement that's sold before the meeting starts, and deals you stop losing to the bigger name."
+    ],
+    "readMoreLabel": "Read More +"
+  },
+
+  "faq": {
+    "label": "Frequently Asked Questions",
+    "questions": [
+      "We need more sales, not a new logo. How does branding actually help us win deals?",
+      "How does pricing work?",
+      "We have a regulatory and QA team. Where do you fit?",
+      "Will a rebrand confuse the customers we already have?",
+      "What's the timeline, and how much of our time does it take?",
+      "Do we have to do all 3 phases?",
+      "Why not use a freelancer or handle this internally?",
+      "How do we get started?"
+    ]
+  },
+
+  "cta": {
+    "heading": "Are you ready for your brand to go from being overlooked to having instant credibility with your buyers?",
+    "buttonLabel": "Talk with a founder",
+    "buttonUrl": "/contact",
+    "background": "paper-red"
+  }
+}

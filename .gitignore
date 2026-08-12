@@ -23,3 +23,7 @@ coverage/
 *.log
 .vercel/
 .reddoor-a11y/
+
+# Figma-exported staging assets for the one-shot content migration —
+# regenerate with scripts/medtech/export-assets.mjs rather than committing ~11MB.
+scripts/medtech/assets/

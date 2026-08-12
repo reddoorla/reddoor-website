@@ -1,0 +1,89 @@
+{
+  "id": "case_study",
+  "type": "SharedSlice",
+  "name": "CaseStudy",
+  "description": "CaseStudy",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Full-bleed case-study photo band with an overlaid rail label, services list, before/after switch and a Besley lead line",
+      "imageUrl": "",
+      "primary": {
+        "label": {
+          "type": "Text",
+          "config": {
+            "label": "label",
+            "placeholder": "e.g. Case Study: Revogen"
+          }
+        },
+        "services": {
+          "type": "Text",
+          "config": {
+            "label": "services",
+            "placeholder": "Brand, Packaging, Digital, Print, Environmental"
+          }
+        },
+        "heading": {
+          "type": "Text",
+          "config": {
+            "label": "heading",
+            "placeholder": "e.g. Taking a biologics brand from overlooked to standing out."
+          }
+        },
+        "after_image": {
+          "type": "Image",
+          "config": {
+            "label": "after_image",
+            "constraint": {},
+            "thumbnails": []
+          }
+        },
+        "before_image": {
+          "type": "Image",
+          "config": {
+            "label": "before_image (optional — adds the before/after switch)",
+            "constraint": {},
+            "thumbnails": []
+          }
+        },
+        "vimeo_id": {
+          "type": "Text",
+          "config": {
+            "label": "vimeo_id (optional — replaces the after image, hides the switch)",
+            "placeholder": ""
+          }
+        },
+        "link": {
+          "type": "Link",
+          "config": {
+            "label": "link (optional — makes the whole band clickable)",
+            "placeholder": "",
+            "select": null
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}

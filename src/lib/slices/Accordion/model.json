@@ -12,6 +12,13 @@
       "description": "Collapsible disclosure items with a plus/minus toggle",
       "imageUrl": "",
       "primary": {
+        "label": {
+          "type": "Text",
+          "config": {
+            "label": "label",
+            "placeholder": "Optional section heading, e.g. Frequently Asked Questions"
+          }
+        },
         "defaultOpen": {
           "type": "Boolean",
           "config": {
@@ -43,6 +50,75 @@
                 }
               }
             }
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    },
+    {
+      "id": "rail",
+      "name": "Rail",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Landing-page grid: the label sits in the narrow left rail beside a flat list of question rows (1px rule under each, circled-arrow toggle) instead of the default's cards. Use on the industry landing pages so the FAQ's left edge matches every other section.",
+      "imageUrl": "",
+      "primary": {
+        "label": {
+          "type": "Text",
+          "config": {
+            "label": "label",
+            "placeholder": "e.g. Frequently Asked Questions"
+          }
+        },
+        "defaultOpen": {
+          "type": "Boolean",
+          "config": {
+            "label": "defaultOpen",
+            "placeholder_false": "collapsed",
+            "placeholder_true": "expanded",
+            "default_value": false
+          }
+        },
+        "items": {
+          "type": "Group",
+          "config": {
+            "label": "items",
+            "fields": {
+              "title": {
+                "type": "Text",
+                "config": {
+                  "label": "title",
+                  "placeholder": "e.g. How does pricing work?"
+                }
+              },
+              "body": {
+                "type": "StructuredText",
+                "config": {
+                  "label": "body",
+                  "placeholder": "Leave empty to render the question as plain text (no toggle)",
+                  "allowTargetBlank": true,
+                  "multi": "paragraph,strong,em,hyperlink"
+                }
+              }
+            }
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
           }
         },
         "hide": {

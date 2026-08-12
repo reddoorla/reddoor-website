@@ -113,5 +113,391 @@
       }
     },
     "items": []
+  },
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "serviceList",
+    "primary": {
+      "eyebrow": {
+        "__TYPE__": "FieldContent",
+        "value": "",
+        "type": "Text"
+      },
+      "hasTopRule": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "desktopColumns": {
+        "__TYPE__": "FieldContent",
+        "value": "3",
+        "type": "Select"
+      },
+      "columns": {
+        "__TYPE__": "GroupContentType",
+        "value": [
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Brand identity",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Brand Strategy"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Brand Positioning"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Brand Design"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "CopyWriting"
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Digital presence",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Website design"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Website development"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "aeo/seo development"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "aeo/seo deployment"
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Design system",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "packaging design"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "trade show kit design"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "social media launch kits"
+                      }
+                    },
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "social media management"
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  },
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "iconColumns",
+    "primary": {
+      "eyebrow": {
+        "__TYPE__": "FieldContent",
+        "value": "",
+        "type": "Text"
+      },
+      "hasTopRule": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "desktopColumns": {
+        "__TYPE__": "FieldContent",
+        "value": "3",
+        "type": "Select"
+      },
+      "columns": {
+        "__TYPE__": "GroupContentType",
+        "value": [
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "icon",
+                {
+                  "origin": {
+                    "id": "main",
+                    "url": "https://images.unsplash.com/photo-1587840171670-8b850147754e",
+                    "width": 512,
+                    "height": 512
+                  },
+                  "url": "https://images.unsplash.com/photo-1587840171670-8b850147754e",
+                  "width": 512,
+                  "height": 512,
+                  "edit": {
+                    "zoom": 1,
+                    "crop": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "background": "transparent"
+                  },
+                  "credits": null,
+                  "alt": null,
+                  "__TYPE__": "ImageContent",
+                  "thumbnails": {}
+                }
+              ],
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "The Diagnosis:",
+                  "type": "Text"
+                }
+              ],
+              [
+                "subtitle",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Friction Audit",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "We audit your marketing deliverables and stack them against your competition to pinpoint what's getting you cut in procurement vetting. We deliver a prioritized plan to fix it before it costs another deal."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "icon",
+                {
+                  "origin": {
+                    "id": "main",
+                    "url": "https://images.unsplash.com/photo-1593642633279-1796119d5482",
+                    "width": 512,
+                    "height": 512
+                  },
+                  "url": "https://images.unsplash.com/photo-1593642633279-1796119d5482",
+                  "width": 512,
+                  "height": 512,
+                  "edit": {
+                    "zoom": 1,
+                    "crop": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "background": "transparent"
+                  },
+                  "credits": null,
+                  "alt": null,
+                  "__TYPE__": "ImageContent",
+                  "thumbnails": {}
+                }
+              ],
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "The Rebuild:",
+                  "type": "Text"
+                }
+              ],
+              [
+                "subtitle",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Closing the Trust Gap",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "We turn the audit into a complete brand system that provides credibility, then prove it side by side against your competitors so your team can move forward with confidence."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "icon",
+                {
+                  "origin": {
+                    "id": "main",
+                    "url": "https://images.unsplash.com/photo-1607582278038-6bebbd4d7b72",
+                    "width": 512,
+                    "height": 512
+                  },
+                  "url": "https://images.unsplash.com/photo-1607582278038-6bebbd4d7b72",
+                  "width": 512,
+                  "height": 512,
+                  "edit": {
+                    "zoom": 1,
+                    "crop": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "background": "transparent"
+                  },
+                  "credits": null,
+                  "alt": null,
+                  "__TYPE__": "ImageContent",
+                  "thumbnails": {}
+                }
+              ],
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "The Rollout:",
+                  "type": "Text"
+                }
+              ],
+              [
+                "subtitle",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "deploy touch points",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "We deploy the approved system everywhere buyers meet you, from websites and sales decks to tradeshows and packaging. Every piece makes the case on its own, so the selling starts before the rep does."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
   }
 ]
