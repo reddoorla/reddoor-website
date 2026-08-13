@@ -11,6 +11,7 @@
     "logoGrid hover logos: the board swaps five brands to a WHITE KNOCKOUT on hover (logo soup 5 TOSA, 7 Strategy Advantage, 8 MSOT, 10 Caltex, 13 AATI) and keeps the COLOUR mark for three (4 Revogen, 6 Preveta, 12 SCFAI). All five knockouts are now shipped. Provenance: Strategy Advantage is Nicole's SA_Logo-REVERSE.png from Dropbox 'Logo Soup - Sales Funnel/01_client logos'; MSOT is the original transparent upload behind Figma node 4858:446 (TOSA now comes from Dropbox as a matched pair); AATI (4836:1261) and Caltex (4836:1226) are the fill=\"white\" vector layers, with AATI recomposed from its two SVGs at the frame's own geometry. Do NOT re-export those four as node renders — Figma flattens them onto the Logo Library's #404040 background and the alpha is lost.",
     "logoGrid: the 6th logo is dōmaru Health Supply Co., not Community Health Partners. The board (logo soup 11) and the designer's prepared rollover set both use dōmaru and neither has CHP — CHP came from the QA copy doc's client list. Note dōmaru is filed under ZZ_Archived Clients in Dropbox; shipping it was an explicit call.",
     "logoGrid: board frame 'logo soup 11' (domaru) shows NO logo overlay at all, unlike every other hover frame. Read as an unfinished frame — domaru ships the knockout it already had, consistent with the other eight.",
+    "logoGrid order follows the board row by row: row 1 is Revogen, Preveta, MSOT. An earlier pass had MSOT and Preveta transposed — the grid fills in array order, so the array IS the layout. Re-check against board frame 'logo soup 3' (4802:529) whenever a logo is added or removed.",
     "logoGrid hover sizing: the knockout is object-contain'd into the box the COLOUR mark sizes, so the pair must share a canvas aspect AND the same content/canvas padding fractions or the glyph changes size on hover. Re-check with sharp .trim() whenever a logo pair is replaced. TOSA now ships as Nicole's matched pair (TOSA_logo-horizontal + -rev, both 1728x800 -> 660x305), which is exact by construction and replaced an earlier hand-normalised knockout."
   ],
   "uid": "medtech",
@@ -88,7 +89,8 @@
     ]
   },
   "caseStudy": {
-    "label": "Case Study: Revogen",
+    "label": "Case Study",
+    "projectName": "Revogen",
     "services": "Brand, Packaging, Digital, Print, Environmental",
     "heading": "Taking a biologics brand from overlooked to standing out.",
     "afterImage": "revogen-after-1-phlex.png",
@@ -123,19 +125,19 @@
         "rolloverMobile": "rollover-revogen-mobile.jpg"
       },
       {
+        "name": "Preveta",
+        "file": "logo-preveta.png",
+        "project": null,
+        "rollover": "rollover-preveta.jpg",
+        "rolloverMobile": "rollover-preveta-mobile.jpg"
+      },
+      {
         "name": "Medical Solutions of Texas",
         "file": "logo-msot.png",
         "project": "msot",
         "rollover": "rollover-msot.jpg",
         "rolloverMobile": "rollover-msot-mobile.jpg",
         "negative": "logo-msot-rev.png"
-      },
-      {
-        "name": "Preveta",
-        "file": "logo-preveta.png",
-        "project": null,
-        "rollover": "rollover-preveta.jpg",
-        "rolloverMobile": "rollover-preveta-mobile.jpg"
       },
       {
         "name": "Strategy Advantage",

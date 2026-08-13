@@ -228,6 +228,7 @@ async function buildSlices(d, stage, projects) {
       variation: "default",
       primary: {
         label: d.caseStudy.label,
+        project_name: d.caseStudy.projectName,
         services: d.caseStudy.services,
         heading: d.caseStudy.heading,
         after_image: await stage(d.caseStudy.afterImage, d.caseStudy.afterImageAlt),

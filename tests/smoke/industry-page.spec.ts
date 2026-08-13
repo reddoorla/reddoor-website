@@ -104,6 +104,47 @@ test(`${PATH} has exactly one h1 and no heading-level jumps`, async ({ page }) =
   expect(jumps).toEqual([]);
 });
 
+// A CONTENT guard, not a markup one. Prismic fills a declared thumbnail the
+// instant its asset uploads, using a crop anchored top-left (`rect=0,0,w,h`) —
+// so an uncropped `mobile` thumbnail is indistinguishable from a deliberate one
+// as far as `isFilled` is concerned, and shipping it means the phone gets the
+// empty left third of a landscape photo. That regressed all nine backdrops
+// once: Caltex rendered as bare background with the iMac outside the frame.
+//
+// The rule this encodes is narrow and checkable: whatever field wins, a phone
+// must never be served Prismic's untouched auto-crop. It fails if someone
+// clears `active_background_mobile` before framing the `mobile` thumbnail —
+// which is precisely the order that breaks.
+test(`${PATH} never serves an untouched auto-crop as the phone backdrop`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+
+  const backdrops = page.locator('[data-slice-type="logo_grid"] picture img');
+  await backdrops.first().scrollIntoViewIfNeeded();
+
+  // Every backdrop is `absolute inset-0`, so they all enter the viewport at
+  // once — but they are `loading="lazy"`, and a cold dev server can take a
+  // while to serve them. Poll rather than assume a fixed wait.
+  await expect
+    .poll(
+      () =>
+        backdrops.evaluateAll(
+          (els) => els.filter((el) => !!(el as HTMLImageElement).currentSrc).length,
+        ),
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThan(0);
+
+  const autoCropped = await backdrops.evaluateAll((els) =>
+    els
+      .map((el) => (el as HTMLImageElement).currentSrc)
+      .filter((src) => /[?&]rect=0(?:,|%2C)0(?:,|%2C)/.test(src))
+      .map((src) => src.split("/").pop()?.split("?")[0] ?? src),
+  );
+
+  expect(autoCropped).toEqual([]);
+});
+
 test(`${PATH} ends on its own CTA slice, not the marketing footer CTA`, async ({ page }) => {
   await page.goto(PATH, { waitUntil: "domcontentloaded" });
 

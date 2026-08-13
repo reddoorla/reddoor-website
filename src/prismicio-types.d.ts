@@ -1286,11 +1286,21 @@ export interface CaseStudySliceDefaultPrimary {
    * label field in *CaseStudy → Default → Primary*
    *
    * - **Field Type**: Text
-   * - **Placeholder**: e.g. Case Study: Revogen
+   * - **Placeholder**: e.g. Case Study
    * - **API ID Path**: case_study.default.primary.label
    * - **Documentation**: https://prismic.io/docs/fields/text
    */
   label: prismic.KeyTextField;
+
+  /**
+   * project name field in *CaseStudy → Default → Primary*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: e.g. Revogen — rendered under the label, uppercased in CSS
+   * - **API ID Path**: case_study.default.primary.project_name
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  project_name: prismic.KeyTextField;
 
   /**
    * services field in *CaseStudy → Default → Primary*
@@ -2224,17 +2234,17 @@ export interface LogoGridSliceDefaultPrimaryLogosItem {
    * rollover background field in *LogoGrid → Default → Primary → logos*
    *
    * - **Field Type**: Image
-   * - **Placeholder**: optional — fills the whole band while this logo is hovered
+   * - **Placeholder**: optional — fills the whole band while this logo is hovered; drag the 'mobile' crop for the portrait view
    * - **API ID Path**: logo_grid.default.primary.logos[].active_background
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
-  active_background: prismic.ImageField<never>;
+  active_background: prismic.ImageField<"mobile">;
 
   /**
-   * rollover background (portrait) field in *LogoGrid → Default → Primary → logos*
+   * rollover background (portrait) — DEPRECATED field in *LogoGrid → Default → Primary → logos*
    *
    * - **Field Type**: Image
-   * - **Placeholder**: optional — portrait re-frame of the above, used below 768px
+   * - **Placeholder**: superseded by the 'mobile' crop on the field above; kept so already-published documents keep their portrait art
    * - **API ID Path**: logo_grid.default.primary.logos[].active_background_mobile
    * - **Documentation**: https://prismic.io/docs/fields/image
    */

@@ -57,16 +57,22 @@
                 "type": "Image",
                 "config": {
                   "label": "rollover background",
-                  "placeholder": "optional — fills the whole band while this logo is hovered",
+                  "placeholder": "optional — fills the whole band while this logo is hovered; its 'mobile' crop is used on phones only once the portrait field below is cleared",
                   "constraint": {},
-                  "thumbnails": []
+                  "thumbnails": [
+                    {
+                      "name": "mobile",
+                      "width": 1080,
+                      "height": 1920
+                    }
+                  ]
                 }
               },
               "active_background_mobile": {
                 "type": "Image",
                 "config": {
-                  "label": "rollover background (portrait)",
-                  "placeholder": "optional — portrait re-frame of the above, used below 768px",
+                  "label": "rollover background (portrait) — on the way out",
+                  "placeholder": "used on phones whenever it is filled. Prismic auto-fills the 'mobile' crop above with a top-left crop that usually loses the subject, so this wins until you clear it — crop 'mobile' first, then empty this field",
                   "constraint": {},
                   "thumbnails": []
                 }

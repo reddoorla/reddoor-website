@@ -5,7 +5,12 @@
     "primary": {
       "label": {
         "__TYPE__": "FieldContent",
-        "value": "Case Study: Revogen",
+        "value": "Case Study",
+        "type": "Text"
+      },
+      "project_name": {
+        "__TYPE__": "FieldContent",
+        "value": "Revogen",
         "type": "Text"
       },
       "services": {

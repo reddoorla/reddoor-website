@@ -16,7 +16,14 @@
           "type": "Text",
           "config": {
             "label": "label",
-            "placeholder": "e.g. Case Study: Revogen"
+            "placeholder": "e.g. Case Study"
+          }
+        },
+        "project_name": {
+          "type": "Text",
+          "config": {
+            "label": "project name",
+            "placeholder": "e.g. Revogen — rendered under the label, uppercased in CSS"
           }
         },
         "services": {

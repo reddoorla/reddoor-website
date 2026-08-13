@@ -153,4 +153,30 @@
   .more-body--clamped :global(p:last-child) {
     margin-bottom: 0;
   }
+
+  /* Paragraph spacing in the EXPANDED body only.
+     RichTextBody emits bare <p>s with no margin of their own, so the two
+     paragraphs of the About copy ran together — the sentence ended mid-line and
+     the next one started on the following line with no gap, reading as one
+     block (reported by Erik on the /medtech preview). 0.75rem is the Accordion's
+     own paragraph gap, which is what he asked this to match.
+
+     Deliberately NOT applied while clamped: the collapsed state is the board's
+     3-line preview, and a margin landing inside those 3 lines would change the
+     band's collapsed height. Scoping it to the unclamped state keeps the
+     collapsed geometry byte-identical to what shipped. */
+  .more-body:not(.more-body--clamped) :global(p:not(:last-child)) {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Board-black body copy, industry pages only.
+     The board (4803:870) sets both the Besley lede and the sans body in solid
+     black; the site's global `p` rule paints them #6D6E71. Pinned here rather
+     than on the shared `.type-lede-block` role in app.css, which every other
+     page uses — this is an industry-landing-page decision, not a site-wide
+     retype. */
+  .type-lede-block :global(p),
+  .more-body :global(p) {
+    color: #000;
+  }
 </style>

@@ -64,8 +64,12 @@
   // without this it would ship 54px of empty padding above the photo on mobile
   // and nothing on desktop.
   const hasText = $derived(
-    Boolean(slice.primary.label || slice.primary.heading || slice.primary.services) ||
-      media.showToggle,
+    Boolean(
+      slice.primary.label ||
+      slice.primary.project_name ||
+      slice.primary.heading ||
+      slice.primary.services,
+    ) || media.showToggle,
   );
 
   // Tops out at 2880 because that IS the source: the board frames are 1440x831
@@ -99,8 +103,25 @@
      offset — a rail label past roughly 30 characters wraps to a second line in
      the 240px rail, and the old hardcoded `top` put this 14px underneath it. -->
 {#snippet railExtra()}
-  {#if slice.primary.services || media.showToggle}
+  {#if slice.primary.project_name || slice.primary.services || media.showToggle}
     <div class="flex flex-col items-start gap-2.5">
+      <!-- The project name is its own line under the red label, NOT part of it
+           (board 4793:1447: "Case Study" in red bold over "REVOGEN" in black at
+           20/25). It was previously folded into the label as the single string
+           "Case Study: Revogen", which set the name at the label's size and in
+           the label's red.
+
+           A <p>, not a heading: the lead line beside it is already this band's
+           heading, and the name labels the rail column rather than introducing
+           content — same call the eyebrow makes. Uppercased in CSS so the
+           authored value stays natural-case (matching how the service list and
+           framework labels are stored). -->
+      {#if slice.primary.project_name}
+        <p class="font-sans text-xl leading-6.25 font-light text-black uppercase">
+          {slice.primary.project_name}
+        </p>
+      {/if}
+
       {#if slice.primary.services}
         <p class="font-sans text-base leading-normal font-light text-black">
           {slice.primary.services}

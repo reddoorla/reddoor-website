@@ -82,7 +82,14 @@
 
     {#if title || services || hasLink}
       <div class="absolute inset-x-0 bottom-0 px-5 lg:px-[3.7%]">
-        <div class="flex items-start gap-5 py-5">
+        <!-- `lg:pb-[3.7%]` deliberately mirrors the wrapper's `lg:px-[3.7%]`:
+             percentage padding resolves against the containing block's WIDTH, so
+             the gap under the caption is the same measurement as the gap to its
+             left, at every plate size (Nicole: "same amount of space on the
+             bottom as on the left side"). A fixed value would only match at one
+             width. Below lg the left inset is a flat 20px, which `py-5` already
+             matches on the bottom. -->
+        <div class="flex items-start gap-5 py-5 lg:pb-[3.7%]">
           <!-- lg:w-69.5 = the comp's fixed 278px text column; below lg it just
                takes the space the arrow leaves. -->
           <div class="flex min-w-0 flex-col gap-1 lg:w-69.5">

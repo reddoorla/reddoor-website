@@ -168,6 +168,17 @@
   // rather than `img("")` to exercise their "absent" path.
   const emptyImg = {} as ReturnType<typeof img>;
 
+  // The logo grid's rollover background declares a `mobile` THUMBNAIL, so its
+  // type is ImageField<"mobile"> — an image without that key does not satisfy
+  // it. Feeding the thumbnail here also means the fixture exercises the branch
+  // the site now takes in production (portrait crop from the thumbnail) rather
+  // than only the deprecated standalone field.
+  type RolloverBackground = Content.LogoGridSlice["primary"]["logos"][number]["active_background"];
+  const imgWithMobile = (alt: string) =>
+    ({ ...img(alt), mobile: img(alt) }) as unknown as RolloverBackground;
+  // Unfilled counterpart: same `{}` the API returns, typed to carry the thumbnail.
+  const emptyBg = {} as RolloverBackground;
+
   const link = (text?: string) =>
     ({ link_type: "Web", url: "https://example.com", text }) as unknown as NonNullable<
       Content.FeaturedProjectSlice["primary"]["link"]
@@ -284,7 +295,8 @@
     variation: "default",
     version: "initial",
     primary: {
-      label: "Case Study: Revogen",
+      label: "Case Study",
+      project_name: "Revogen",
       services: "Brand, Packaging, Digital",
       heading: "Taking a biologics brand from overlooked to standing out.",
       after_image: img("Revogen packaging"),
@@ -335,18 +347,19 @@
         {
           logo: img("Revogen"),
           logo_negative: img("Revogen"),
-          active_background: img(""),
-          // Portrait crop present here and absent below, so the fixture covers
-          // both <picture> branches: one row that emits a <source> media query
-          // and one that falls through to the landscape <img> alone.
-          active_background_mobile: img(""),
+          // Carries its `mobile` thumbnail, so this row emits the <source> media
+          // query; the row below has neither thumbnail nor legacy field and
+          // falls through to the landscape <img> alone — both <picture>
+          // branches covered.
+          active_background: imgWithMobile(""),
+          active_background_mobile: emptyImg,
           name: "Revogen",
           link: link(),
         },
         {
           logo: img("Preveta"),
           logo_negative: emptyImg,
-          active_background: emptyImg,
+          active_background: emptyBg,
           active_background_mobile: emptyImg,
           name: "Preveta",
           link: {} as ReturnType<typeof link>,
@@ -354,7 +367,7 @@
         {
           logo: img(""),
           logo_negative: emptyImg,
-          active_background: emptyImg,
+          active_background: emptyBg,
           active_background_mobile: emptyImg,
           name: "Caltex Medical",
           link: {} as ReturnType<typeof link>,

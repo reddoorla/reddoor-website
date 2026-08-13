@@ -46,7 +46,25 @@
         ...item,
         href: isFilled.link(item.link) ? (asLink(item.link) ?? "") : "",
         hasBackground: isFilled.image(item.active_background),
-        hasMobileBackground: isFilled.image(item.active_background_mobile),
+        // Portrait art for the phone. The `mobile` THUMBNAIL on the background
+        // field is where this is headed — one upload, both crops, framing
+        // dragged in Prismic instead of re-exported as a second file — but the
+        // standalone field WINS while it is filled, and that order matters:
+        //
+        // Prismic populates a declared thumbnail the moment the asset uploads,
+        // with a crop anchored TOP-LEFT (`rect=0,0,w,h`), not centred. So
+        // `isFilled` cannot tell "an author framed this" from "nobody has
+        // touched it" — both read as filled. Preferring the thumbnail therefore
+        // swapped every art-directed portrait for the empty left third of a
+        // landscape photo: Caltex rendered as bare background with the iMac
+        // outside the frame, Strategy Advantage as a glass wall and a chair.
+        //
+        // Clearing `active_background_mobile` on a row is what hands that row
+        // over to the thumbnail crop — deliberately a per-row switch, so the
+        // migration off this field can happen a brand at a time.
+        mobileBackground: isFilled.image(item.active_background_mobile)
+          ? item.active_background_mobile
+          : item.active_background?.mobile,
         hasNegative: isFilled.image(item.logo_negative),
       })),
   );
@@ -135,9 +153,12 @@
    * `width=` silently skipped this band's backdrops — the exact images the
    * audit existed to check. Same output, one spelling.
    *
-   * The ladder stops at 1920 because that IS the source (see
-   * fetch-dropbox-assets). A 2560 viewport wants 2560 and gets 75% of it; that
-   * needs 2x re-exports from the designer, not another entry here.
+   * The ladder used to stop at 1920 because that WAS the source, which left a
+   * 1440 viewport at DPR 2 served ~67% of the pixels it asks for. The backdrops
+   * are now staged from the designer's high-resolution originals at 3840
+   * (scripts/medtech/stage-hr-rollovers.mjs), so the ladder runs to the new
+   * ceiling: 2880 covers 1440@2x exactly and 3840 covers 1920@2x. Nothing above
+   * 3840 — imgix would enlarge past the source and return a bigger, softer file.
    */
   const srcset = (field: Content.LogoGridSliceDefaultPrimaryLogosItem["logo"], widths: number[]) =>
     widths
@@ -253,10 +274,10 @@
                `<picture>` is unstyled and unpositioned, so `absolute inset-0`
                on the inner <img> still resolves against the section. -->
           <picture>
-            {#if item.hasMobileBackground}
+            {#if isFilled.image(item.mobileBackground)}
               <source
                 media="(max-width: {MOBILE_BREAKPOINT - 0.02}px)"
-                srcset={srcset(item.active_background_mobile, [540, 720, 1080])}
+                srcset={srcset(item.mobileBackground, [540, 720, 1080])}
                 sizes="100vw"
               />
             {/if}
@@ -265,7 +286,7 @@
                 auto: ["format", "compress"],
                 w: 1280,
               }) ?? ""}
-              srcset={srcset(item.active_background, [960, 1280, 1920])}
+              srcset={srcset(item.active_background, [960, 1280, 1920, 2560, 2880, 3840])}
               sizes="100vw"
               alt=""
               loading="lazy"
@@ -319,9 +340,22 @@
                LogoSoup component already has. `focusin`/`focusout` bubble from
                the link inside, so keyboard users get the same rollover as mouse
                users without this element being focusable itself. -->
+            <!-- The lg box is 300x105 (max-w-75 on the wrapper below x h-26.25
+                 here), NOT the old 220x96. Both numbers come from the board:
+                 AATI is drawn 294 wide and MSOT 103.5 tall, so the old cap made
+                 those two unreachable no matter how the artwork was padded.
+
+                 The assets are normalised to this exact aspect (300:105) by
+                 scripts/medtech/normalize-logos.mjs, which pads each canvas so
+                 the artwork occupies the board's fraction of the box — that is
+                 what makes one uniform box reproduce nine different optical
+                 sizes. Change either number and the assets must be regenerated.
+
+                 Below lg the height binds and every logo scales down by the
+                 same factor, so the row stays in proportion. -->
             <li
               bind:this={rows[i]}
-              class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-24 {columnAlign[
+              class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-26.25 {columnAlign[
                 i % 3
               ]}"
               onmouseenter={() => activate(i)}
@@ -339,7 +373,7 @@
                 <PrismicLink
                   field={item.link}
                   aria-label={item.name || "View project"}
-                  class="relative flex h-full max-w-[220px] min-w-0 items-center transition-opacity duration-500 ease-fast-slow motion-reduce:transition-none {isActive &&
+                  class="relative flex h-full max-w-75 min-w-0 items-center transition-opacity duration-500 ease-fast-slow motion-reduce:transition-none {isActive &&
                   activeIndex !== i
                     ? 'opacity-0'
                     : 'opacity-100'}"
@@ -357,7 +391,7 @@
                    roughly between 1024px and 1086px, where the 3-up tracks
                    inside the wide rail column are narrower than 220px. -->
                 <span
-                  class="relative flex h-full max-w-[220px] min-w-0 items-center transition-opacity duration-500 ease-fast-slow motion-reduce:transition-none {isActive &&
+                  class="relative flex h-full max-w-75 min-w-0 items-center transition-opacity duration-500 ease-fast-slow motion-reduce:transition-none {isActive &&
                   activeIndex !== i
                     ? 'opacity-0'
                     : 'opacity-100'}"

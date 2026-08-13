@@ -66,6 +66,10 @@ const SVG = {
   "icon-arrow-circle": "4821:448",
 };
 
+// Case-insensitive: Figma has emitted both cases for the same fill.
+const BOARD_RED = /#E31937/gi;
+const SITE_RED = "#D71920";
+
 const PAT = process.env.FIGMA_PAT;
 if (!PAT) {
   console.error("Missing FIGMA_PAT (Figma → Settings → Personal access tokens).");
@@ -99,7 +103,26 @@ async function exportBatch(map, format, scale) {
       failed++;
       continue;
     }
-    const bytes = Buffer.from(await dl.arrayBuffer());
+    let bytes = Buffer.from(await dl.arrayBuffer());
+
+    // The board draws every red element in #E31937; the site's brand red is
+    // #D71920. Type and rules take the site token from CSS, but these icons are
+    // uploaded artwork — whatever hex the board baked in is what paints. Left
+    // alone, an icon and the label directly beneath it are two different reds
+    // (measured on the built page: 2,935px of #E31937 against 17,035px of
+    // #D71920 in the same section).
+    //
+    // Rewritten here rather than in the checked-in files so re-running the
+    // export cannot quietly reintroduce the board red.
+    if (format === "svg") {
+      const before = bytes.toString("utf8");
+      const after = before.replaceAll(BOARD_RED, SITE_RED);
+      if (after !== before) {
+        bytes = Buffer.from(after, "utf8");
+        console.log(`     ↳ recoloured ${BOARD_RED} → ${SITE_RED} (site brand red)`);
+      }
+    }
+
     await writeFile(path.join(OUT, `${name}.${format}`), bytes);
     console.log(`  ✓ ${name}.${format}  ${(bytes.length / 1024).toFixed(0)}KB`);
   }
