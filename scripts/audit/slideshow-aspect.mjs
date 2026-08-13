@@ -89,18 +89,25 @@ for (const doc of docs) {
 
       flagged++;
       // The majority ratio is the intended one; the odd slide out is the bug.
-      const tally = new Map();
-      for (const r of ratios) {
-        const key = r.ratio.toFixed(3);
-        tally.set(key, (tally.get(key) ?? 0) + 1);
-      }
-      const [majority] = [...tally.entries()].sort((a, b) => b[1] - a[1]);
+      //
+      // Clustered by the SAME fractional tolerance the flag itself uses, not by
+      // rounding to N decimals. Rounding marked /portfolio/toyota's 1800x1199
+      // as an outlier against its 1800x1200 neighbours — 0.09% apart, which is
+      // a rounding artifact in the export and invisible on screen, but it fell
+      // the other side of the third decimal place.
+      const cluster = (r) =>
+        ratios.filter((o) => Math.abs(o.ratio - r) / Math.min(o.ratio, r) <= TOLERANCE);
+      const majorityRatio = ratios
+        .map((r) => ({ ratio: r.ratio, size: cluster(r.ratio).length }))
+        .sort((a, b) => b.size - a.size)[0].ratio;
+      const majority = [majorityRatio.toFixed(3), cluster(majorityRatio).length];
+      const isOdd = (r) => Math.abs(r - majorityRatio) / Math.min(r, majorityRatio) > TOLERANCE;
       console.log(
         `${doc.type}/${doc.uid ?? doc.id} → slice[${i}] ${slice.slice_type}.${group.field}` +
           `  spread ${(((max - min) / min) * 100).toFixed(1)}%`,
       );
       for (const r of ratios) {
-        const odd = r.ratio.toFixed(3) !== majority[0];
+        const odd = isOdd(r.ratio);
         console.log(
           `   ${odd ? "✗" : " "} ${r.name.padEnd(46)} ${String(r.w).padStart(5)}x${String(r.h).padEnd(5)} ratio ${r.ratio.toFixed(4)}` +
             (odd ? `   ← odd one out (majority ${majority[0]})` : ""),
