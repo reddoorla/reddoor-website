@@ -54,7 +54,9 @@ const PNG = {
   // flattens them into the single asset the logo grid expects.
   "logo-aati": "4802:655",
   "logo-caltex-medical": "4802:542",
-  "logo-texas-organ-sharing-alliance": "4802:653",
+  // TOSA is NOT exported from Figma any more: Nicole supplied a matched
+  // colour/reverse pair in Dropbox "01_client logos", both 1728x800, so the
+  // hover swap is exact. See fetch-dropbox-assets.mjs.
   "logo-scfai": "4802:585",
 };
 const SVG = {

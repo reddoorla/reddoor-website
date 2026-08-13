@@ -163,6 +163,25 @@ const ASSETS = [
     width: 660,
     note: "hover knockout — the one Nicole supplied as a reverse",
   },
+
+  // TOSA ships as a matched PAIR, so both states come from here and the colour
+  // mark is NOT taken from Figma (export-assets no longer lists it). Both files
+  // are 1728x800, so the hover swap is pixel-identical by construction — which
+  // retires the hand-normalised knockout that previously had to be rebuilt to
+  // match a 360x187 Figma export.
+  {
+    from: "/Marketing/RD_website_design/RD_web_2026/Logo Soup - Sales Funnel/01_client logos/TOSA_logo-horizontal.png",
+    to: "logo-texas-organ-sharing-alliance.png",
+    aspect: null,
+    width: 660,
+  },
+  {
+    from: "/Marketing/RD_website_design/RD_web_2026/Logo Soup - Sales Funnel/01_client logos/TOSA_logo-horizontal-rev.png",
+    to: "logo-texas-organ-sharing-alliance-rev.png",
+    aspect: null,
+    width: 660,
+    note: "hover knockout — matched pair with the colour mark above",
+  },
 ];
 
 /**
