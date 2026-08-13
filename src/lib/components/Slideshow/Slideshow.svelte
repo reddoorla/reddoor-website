@@ -7,6 +7,7 @@
     slides,
     slide,
     aspectClass = "aspect-video",
+    aspectRatio = null,
     hasNavDots = false,
     interval = 5000,
     transitionMs = 1600,
@@ -15,6 +16,13 @@
     slides: unknown[];
     slide: Snippet<[unknown, number]>;
     aspectClass?: string;
+    /**
+     * Box shape as a number (width / height), for a caller that derives it from
+     * its own content rather than picking a utility class. Wins over
+     * `aspectClass` when set — Tailwind cannot generate a class for a value only
+     * known at runtime, so this has to be an inline style.
+     */
+    aspectRatio?: number | null;
     hasNavDots?: boolean;
     interval?: number;
     transitionMs?: number;
@@ -141,7 +149,10 @@
   </button>
 {/snippet}
 
-<div class="@container group w-full h-full relative overflow-hidden {aspectClass}">
+<div
+  class="@container group w-full h-full relative overflow-hidden {aspectRatio ? '' : aspectClass}"
+  style={aspectRatio ? `aspect-ratio: ${aspectRatio};` : undefined}
+>
   {#if isCarousel}
     <div
       use:swipe
