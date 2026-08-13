@@ -146,6 +146,72 @@
 
 <svelte:window bind:innerWidth={viewportWidth} />
 
+<!-- Top level, NOT nested inside SliceSection: a snippet declared as a direct
+     child of a component is handed to THAT component as a prop and would be
+     invisible here.
+
+     Both grid branches (linked and unlinked) render through this. They used to
+     carry their own copy of the markup and the copies drifted — the knockout
+     existed only in the linked branch, so AATI, Caltex and domaru silently kept
+     their colour mark on hover no matter what the CMS held. One renderer, one
+     behaviour. -->
+{#snippet logoPair(item: (typeof logos)[number], i: number, decorative: boolean)}
+  {@const swapClass = `block max-h-full w-auto max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
+    item.hasNegative && activeIndex === i ? "opacity-0" : "opacity-100"
+  }`}
+  <!-- The colour mark stays IN FLOW, so it is what sizes the box. -->
+  {#if decorative}
+    <!-- Linked: the <a>'s aria-label already names the brand, so the image must
+         be decorative or the name is announced twice. -->
+    <PrismicImage
+      field={item.logo}
+      alt=""
+      class={swapClass}
+      imgixParams={{ auto: ["format", "compress"] }}
+      widths={[220, 440, 660]}
+      sizes="220px"
+      loading="lazy"
+      decoding="async"
+    />
+  {:else}
+    <!-- Unlinked: nothing else names the brand, so keep the field's own alt and
+         let `fallbackAlt` cover an alt-less asset (an <img> with no alt at all
+         is an axe image-alt violation). -->
+    <PrismicImage
+      field={item.logo}
+      fallbackAlt=""
+      class={swapClass}
+      imgixParams={{ auto: ["format", "compress"] }}
+      widths={[220, 440, 660]}
+      sizes="220px"
+      loading="lazy"
+      decoding="async"
+    />
+  {/if}
+  {#if item.hasNegative}
+    <!-- Stacked and crossfaded rather than swapped on one <img>: swapping `src`
+         mid-hover blinks. `inset-0` + `object-contain` pins it to the box the
+         colour mark established, so when the two assets share an aspect ratio
+         the swap is pixel-identical and nothing shifts. A mismatched pair
+         letterboxes inside that box instead of resizing the row — wrong-looking,
+         but never a layout jump. Always decorative: the colour mark underneath
+         (or the link) already carries the name. -->
+    <PrismicImage
+      field={item.logo_negative}
+      alt=""
+      class="absolute inset-0 h-full w-full object-contain transition-opacity duration-300 motion-reduce:transition-none {activeIndex ===
+      i
+        ? 'opacity-100'
+        : 'opacity-0'}"
+      imgixParams={{ auto: ["format", "compress"] }}
+      widths={[220, 440, 660]}
+      sizes="220px"
+      loading="lazy"
+      decoding="async"
+    />
+  {/if}
+{/snippet}
+
 <SliceSection
   {slice}
   class="relative w-screen overflow-hidden bg-paper {pad.padTop
@@ -266,68 +332,30 @@
                     ? 'opacity-0'
                     : 'opacity-100'}"
                 >
-                  <PrismicImage
-                    field={item.logo}
-                    alt=""
-                    class="max-h-full w-auto max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none {item.hasNegative &&
-                    activeIndex === i
-                      ? 'opacity-0'
-                      : 'opacity-100'}"
-                    imgixParams={{ auto: ["format", "compress"] }}
-                    widths={[220, 440, 660]}
-                    sizes="220px"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  {#if item.hasNegative}
-                    <!-- Stacked and crossfaded rather than swapped on the same
-                       <img>: a knockout logo only exists for brands whose
-                       rollover art is dark, and swapping `src` mid-hover would
-                       blink. Both are decorative — the link is already named. -->
-                    <PrismicImage
-                      field={item.logo_negative}
-                      alt=""
-                      class="absolute inset-0 max-h-full w-auto max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none {activeIndex ===
-                      i
-                        ? 'opacity-100'
-                        : 'opacity-0'}"
-                      imgixParams={{ auto: ["format", "compress"] }}
-                      widths={[220, 440, 660]}
-                      sizes="220px"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  {/if}
+                  {@render logoPair(item, i, true)}
                 </PrismicLink>
               {:else}
-                <!-- `min-w-0` on both branches: a replaced flex item's automatic
-                   minimum size is min(intrinsic, max-width) = 220px, so without
-                   it the logo refuses to shrink and spills into the 40px column
-                   gutter roughly between 1024px and 1086px, where the 3-up
-                   tracks inside the wide rail column are narrower than 220px.
+                <!-- Same wrapper as the link branch, so the dimming and the
+                   knockout's positioning context behave identically whether or
+                   not a brand happens to have a project to link to.
 
-                   Alt text comes from the image field's own alt in Prismic;
-                   PrismicImage's `alt` prop only accepts "" (it marks an image
-                   decorative), so a per-item alt cannot be passed through it.
-                   `fallbackAlt=""` keeps an alt-less asset valid rather than
-                   throwing, and the modelled `name` then supplies the missing
-                   accessible name as sr-only text — nothing else in this grid
-                   names the brand. Only one of the two ever renders, so the
-                   logo is never announced twice. -->
-                <PrismicImage
-                  field={item.logo}
-                  fallbackAlt=""
-                  class="max-h-full w-auto max-w-[220px] min-w-0 object-contain transition-opacity duration-500 ease-fast-slow motion-reduce:transition-none {isActive &&
+                   `min-w-0`: a replaced flex item's automatic minimum size is
+                   min(intrinsic, max-width) = 220px, so without it the logo
+                   refuses to shrink and spills into the 40px column gutter
+                   roughly between 1024px and 1086px, where the 3-up tracks
+                   inside the wide rail column are narrower than 220px. -->
+                <span
+                  class="relative flex h-full max-w-[220px] min-w-0 items-center transition-opacity duration-500 ease-fast-slow motion-reduce:transition-none {isActive &&
                   activeIndex !== i
                     ? 'opacity-0'
                     : 'opacity-100'}"
-                  imgixParams={{ auto: ["format", "compress"] }}
-                  widths={[220, 440, 660]}
-                  sizes="220px"
-                  loading="lazy"
-                  decoding="async"
-                />
+                >
+                  {@render logoPair(item, i, false)}
+                </span>
                 {#if !item.logo.alt && item.name}
+                  <!-- The modelled name supplies the accessible name when the
+                     asset has no alt of its own — nothing else here names the
+                     brand. -->
                   <span class="sr-only">{item.name}</span>
                 {/if}
               {/if}
