@@ -68,7 +68,12 @@
       media.showToggle,
   );
 
-  const imageWidths = [640, 960, 1280, 1600, 1920, 2560];
+  // Tops out at 2880 because that IS the source: the board frames are 1440x831
+  // and export-assets pulls them at 2x. 2880 is what a 1440 viewport needs at
+  // DPR 2, so the common retina desktop is now served exactly rather than
+  // upscaled from 2560. Nothing above 2880 is listed — imgix would happily
+  // enlarge past the source and hand back a bigger, blurrier file.
+  const imageWidths = [640, 960, 1280, 1600, 1920, 2560, 2880];
 </script>
 
 <!--
@@ -182,8 +187,15 @@
        selectable again. This layer only covers the photo's top band, and the
        Slideshow's controls sit at its bottom edge, so the two never overlap. -->
   {#if hasText}
+    <!-- z-10, NOT z-20. The site nav is `fixed z-20` and the page content is
+         rendered AFTER it in the layout, so at an equal z-index this copy won
+         the tie and painted straight over the nav once the band scrolled up
+         under it. z-10 still clears the media box below (position:relative,
+         z-auto), so the overlay is unaffected — it just stops out-ranking the
+         chrome. CaseStudy was the only slice reaching z-20; fixing it here
+         beats restacking the nav on every page in the site. -->
     <div
-      class="relative z-20 pt-7.5 pb-6 {media.mode === 'empty'
+      class="relative z-10 pt-7.5 pb-6 {media.mode === 'empty'
         ? 'lg:pb-7.5'
         : 'lg:absolute lg:inset-x-0 lg:top-0 lg:pt-8.75 lg:pb-0'}"
     >
@@ -205,7 +217,14 @@
          rail label is primary red, which clears 4.5:1 on white (5.2:1) but not
          on #E7E8EB (4.2:1), and at `lg` that fill IS the text's background until
          the photo paints. -->
-    <div class="relative aspect-[1440/831] min-h-65 w-full overflow-hidden bg-white">
+    <!-- `max-h-svh` caps the band at one viewport. The 1440/831 ratio is
+         the board's, but it is a RATIO on a `w-full` box, so height grows with
+         width without limit: at 2560x1440 the band came out 1477px tall and the
+         slideshow ran off the bottom of the screen, taking its own nav dots and
+         pause control with it. Past ~1730px wide the cap takes over and the
+         images simply crop a little more, which `object-cover` already handles.
+         `svh` rather than `vh` so mobile browser chrome cannot push it over. -->
+    <div class="relative aspect-[1440/831] max-h-svh min-h-65 w-full overflow-hidden bg-white">
       {#if media.base !== "none"}
         <div
           class="absolute inset-0 transition-opacity duration-500 motion-reduce:transition-none {showingAfter

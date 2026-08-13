@@ -41,7 +41,15 @@ const MAINTENANCE_ENV = path.resolve(HERE, "../../../reddoor-maintenance/.env");
 // NOT pre-cropped — `object-cover` in the browser crops them per viewport. They
 // are only downscaled, and never upscaled past the source. The board draws these
 // as frames `logo soup 4`–`13`, one hover state per brand.
-const ROLLOVER_WIDTH = 2560;
+// 3840 = a 1920 viewport at DPR 2, the widest case worth serving. NOTE: the
+// designer's current exports are only 1920 wide, and the Math.min guard below
+// caps every fetch at the source — so today this changes nothing and the band is
+// NOT retina on a 2x display (a 1440 viewport at DPR 2 wants 2880 and gets
+// 1920, ~0.67x). Fixing that needs re-exports at 2x from
+// "Logo Soup - Sales Funnel"/02_project images, not a code change; the ladder in
+// LogoGrid/index.svelte deliberately stops at the source width so imgix is never
+// asked to enlarge past it. Raise both together when bigger art lands.
+const ROLLOVER_WIDTH = 3840;
 // The `-m` crops are a genuinely different framing for portrait, not a resize,
 // so they are a second asset rather than a smaller rendition of the first.
 // 1280 ≈ 3x a 430px viewport; the Math.min guard below caps at the source.
@@ -133,37 +141,131 @@ const ASSETS = [
     width: 660,
     note: "knockout — domaru is the only dark backdrop in the rollover set",
   },
+
+  // ─── hover knockouts ──────────────────────────────────────────────────────
+  // Five brands swap to a white mark on hover (see data.json _contentGaps).
+  // Only Strategy Advantage has a knockout in Dropbox — Nicole's
+  // "01_client logos" folder is otherwise the COLOUR set (its .svg files carry
+  // brand colours, e.g. CalTex Medical.svg is #231F20 + #EA7724), and TOSA is
+  // absent from it entirely.
+  //
+  // The other four (TOSA, MSOT, AATI, Caltex) come out of the Figma Logo
+  // Library, which IS the knockout set. They are the only assets here that are
+  // NOT reproducible by script, so they are the four exceptions in .gitignore.
+  // Re-derive them with download_assets on nodes 4822:974,
+  // 4858:446, 4836:1261 and 4836:1226 — taking `rawImages`/`svgAssets`, NOT the
+  // node `export`, which Figma flattens onto the library's #404040 background
+  // (every corner comes back alpha 255 and the logo ships as a dark slab).
+  {
+    from: "/Marketing/RD_website_design/RD_web_2026/Logo Soup - Sales Funnel/01_client logos/SA_Logo-REVERSE.png",
+    to: "logo-strategy-advantage-rev.png",
+    aspect: null,
+    width: 660,
+    note: "hover knockout — the one Nicole supplied as a reverse",
+  },
 ];
 
-let TOKEN = process.env.DROPBOX_ACCESS_TOKEN;
-if (!TOKEN) {
-  const env = await readFile(MAINTENANCE_ENV, "utf8").catch(() => "");
-  TOKEN = env
-    .split("\n")
-    .find((l) => l.startsWith("DROPBOX_ACCESS_TOKEN="))
-    ?.slice("DROPBOX_ACCESS_TOKEN=".length)
-    .trim()
-    .replace(/^["']|["']$/g, "");
+/**
+ * Credentials, in order of preference. Reads the maintenance .env (the fleet's
+ * shared store) and this repo's .env.local, so either can hold them.
+ */
+const ENV_FILES = [MAINTENANCE_ENV, path.resolve(HERE, "../../.env.local")];
+const envText = (await Promise.all(ENV_FILES.map((f) => readFile(f, "utf8").catch(() => "")))).join(
+  "\n",
+);
+/** Every value for `key` across the env files, in file order. */
+const allFromEnv = (key) =>
+  [
+    process.env[key],
+    ...envText
+      .split("\n")
+      .filter((l) => l.startsWith(`${key}=`))
+      .map((l) =>
+        l
+          .slice(key.length + 1)
+          .trim()
+          .replace(/^["']|["']$/g, ""),
+      ),
+  ].filter(Boolean);
+const fromEnv = (key) => allFromEnv(key)[0];
+
+/**
+ * PREFERRED: a refresh token. Dropbox access tokens minted in the app console
+ * are short-lived (~4h) and have expired mid-task twice, which is a bad way to
+ * find out. A refresh token does NOT expire, so with the app key/secret this
+ * mints a fresh access token on every run and the credential never goes stale.
+ *
+ * One-time setup (put the three values in reddoor-maintenance/.env):
+ *   1. Dropbox App Console → your app → Permissions: files.metadata.read +
+ *      files.content.read (add sharing.read to resolve shared-folder links).
+ *   2. Visit, with your app key:
+ *      https://www.dropbox.com/oauth2/authorize?client_id=APP_KEY&response_type=code&token_access_type=offline
+ *   3. Exchange the code it gives you for a refresh token:
+ *      curl -u APP_KEY:APP_SECRET https://api.dropbox.com/oauth2/token \
+ *           -d grant_type=authorization_code -d code=THE_CODE
+ *   4. Store DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN.
+ */
+const candidates = [];
+const refresh = fromEnv("DROPBOX_REFRESH_TOKEN");
+const appKey = fromEnv("DROPBOX_APP_KEY");
+const appSecret = fromEnv("DROPBOX_APP_SECRET");
+if (refresh && appKey && appSecret) {
+  const res = await fetch("https://api.dropbox.com/oauth2/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${appKey}:${appSecret}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: refresh }),
+  });
+  if (res.ok) candidates.push({ token: (await res.json()).access_token, how: "refresh token" });
+  else console.error(`  refresh-token exchange failed (HTTP ${res.status}); trying pasted tokens`);
 }
-if (!TOKEN) {
-  console.error("✗ No DROPBOX_ACCESS_TOKEN in the environment or", MAINTENANCE_ENV);
-  console.error("  Dropbox tokens generated in the app console expire after ~4h.");
+
+// Fallbacks: hand-pasted short-lived tokens, under either key we have used, from
+// either env file. EVERY one is a candidate rather than just the first match —
+// a long-dead DROPBOX_ACCESS_TOKEN sitting in the maintenance .env would
+// otherwise shadow the fresh token someone just pasted into .env.local, and the
+// run dies with a 401 that looks like the new token is the broken one.
+for (const key of ["DROPBOX_ACCESS_TOKEN", "DROPBOX"]) {
+  for (const token of allFromEnv(key)) candidates.push({ token, how: key });
+}
+
+if (!candidates.length) {
+  console.error("✗ No Dropbox credentials in the environment,", ENV_FILES.join(" or "));
+  console.error("  Set DROPBOX_REFRESH_TOKEN + DROPBOX_APP_KEY + DROPBOX_APP_SECRET (never");
+  console.error("  expires — see the comment above), or paste a short-lived DROPBOX_ACCESS_TOKEN.");
   process.exit(1);
 }
+// Try each credential and keep the first that actually authenticates, rather
+// than picking one and hoping. Expiry is the normal case here, not the
+// exception, so "some candidate works" is the only reliable selector.
+let TOKEN, identity;
+for (const { token, how } of candidates) {
+  const res = await fetch("https://api.dropboxapi.com/2/users/get_current_account", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: "null",
+  });
+  if (res.ok) {
+    TOKEN = token;
+    identity = await res.json();
+    console.log(`Dropbox: authenticated via ${how}`);
+    break;
+  }
+  const why = res.status === 401 ? "expired/invalid" : `HTTP ${res.status}`;
+  console.error(`  ${how}: ${why}`);
+}
+if (!TOKEN) {
+  console.error(`✗ Dropbox auth failed — all ${candidates.length} credential(s) rejected.`);
+  console.error("  Pasted tokens last ~4h; set up a refresh token (see the comment above).");
+  process.exit(1);
+}
+
 /** Dropbox errors echo the request, which carries the bearer token. */
 const redact = (s) => String(s).replaceAll(TOKEN, "<redacted>");
 
-const account = await fetch("https://api.dropboxapi.com/2/users/get_current_account", {
-  method: "POST",
-  headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-  body: "null",
-});
-if (!account.ok) {
-  console.error(`✗ Dropbox auth failed (HTTP ${account.status}).`);
-  console.error(`  ${redact((await account.text()).slice(0, 200))}`);
-  process.exit(1);
-}
-const { root_info: rootInfo, email } = await account.json();
+const { root_info: rootInfo, email } = identity;
 const rootHeader = rootInfo?.root_namespace_id
   ? {
       "Dropbox-API-Path-Root": JSON.stringify({

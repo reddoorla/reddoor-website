@@ -26,4 +26,19 @@ coverage/
 
 # Figma-exported staging assets for the one-shot content migration —
 # regenerate with scripts/medtech/export-assets.mjs rather than committing ~11MB.
-scripts/medtech/assets/
+# `/*` and not `/`: git cannot re-include a file whose parent DIRECTORY is
+# excluded, so ignoring the contents is what makes the exceptions below work.
+scripts/medtech/assets/*
+
+# …except these four hover knockouts (56KB total). Every other asset here is
+# reproducible — export-assets.mjs re-renders the Figma frames and
+# fetch-dropbox-assets.mjs re-pulls the photography — but these are not: a Figma
+# node render flattens them onto the Logo Library's #404040 board and loses the
+# alpha, so they were hand-derived from the raw uploads and vector layers behind
+# nodes 4822:974 / 4858:446 / 4836:1261 / 4836:1226. Losing them means redoing
+# that by hand. Drop these lines once the reverses exist in Dropbox
+# "Logo Soup - Sales Funnel/01_client logos" alongside SA_Logo-REVERSE.png.
+!scripts/medtech/assets/logo-aati-rev.png
+!scripts/medtech/assets/logo-caltex-medical-rev.png
+!scripts/medtech/assets/logo-msot-rev.png
+!scripts/medtech/assets/logo-texas-organ-sharing-alliance-rev.png
