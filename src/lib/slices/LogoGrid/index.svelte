@@ -129,8 +129,20 @@
    * imgix srcset for a field. Hand-rolled because this band needs a `<picture>`
    * (see the markup) and PrismicImage only ever renders a bare `<img>`.
    */
+  /*
+   * `width`, not the `w` alias. imgix accepts both, but every PrismicImage in
+   * the codebase emits `width=`, and an audit grepping the rendered srcsets for
+   * `width=` silently skipped this band's backdrops — the exact images the
+   * audit existed to check. Same output, one spelling.
+   *
+   * The ladder stops at 1920 because that IS the source (see
+   * fetch-dropbox-assets). A 2560 viewport wants 2560 and gets 75% of it; that
+   * needs 2x re-exports from the designer, not another entry here.
+   */
   const srcset = (field: Content.LogoGridSliceDefaultPrimaryLogosItem["logo"], widths: number[]) =>
-    widths.map((w) => `${asImageSrc(field, { auto: ["format", "compress"], w })} ${w}w`).join(", ");
+    widths
+      .map((w) => `${asImageSrc(field, { auto: ["format", "compress"], width: w })} ${w}w`)
+      .join(", ");
 
   const ctaHref = $derived(asLink(slice.primary.link) ?? "");
   // Link is authored with text (allowText); fall back to the design's copy so a

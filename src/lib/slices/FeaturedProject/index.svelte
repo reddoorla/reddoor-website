@@ -58,12 +58,17 @@
     <!-- `fallbackAlt=""` makes the photo decorative when no alt was authored:
          the link already carries the project name, so repeating it here would
          double-announce, and an <img> with NO alt attribute is an axe
-         `image-alt` violation. An authored alt still wins and is emitted. -->
+         `image-alt` violation. An authored alt still wins and is emitted.
+
+         Ladder tops out at 2400 = the source width (the Dropbox MSOT mockup,
+         cropped to this plate by fetch-dropbox-assets). The plate maxes at
+         1180px CSS, so DPR 2 wants 2360 and the old 1920 ceiling served 90%.
+         Nothing above 2400 is listed: imgix would enlarge past the source. -->
     <PrismicImage
       class="h-full w-full object-cover"
       field={slice.primary.image}
       imgixParams={{ auto: ["format", "compress"] }}
-      widths={[640, 960, 1280, 1600, 1920]}
+      widths={[640, 960, 1280, 1600, 1920, 2400]}
       sizes="(min-width: 1566px) 1180px, (min-width: 1024px) calc(92vw - 260px), 92vw"
       loading="lazy"
       decoding="async"

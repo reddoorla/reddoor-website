@@ -70,13 +70,19 @@
       <!-- `fallbackAlt=""`: PrismicImage takes its alt from the field, and an
            asset uploaded without alt text would otherwise render an <img> with
            no alt attribute at all — an axe `image-alt` failure. The background
-           photo is decorative, so empty alt is the correct degrade. -->
+           photo is decorative, so empty alt is the correct degrade.
+
+           The ladder tops out at 3058 = the staged source width. The band is
+           `100vw`, so a 1440 viewport at DPR 2 wants 2880 and was being served
+           2560 (89%). Never list a width above the source — imgix will happily
+           enlarge past it and hand back a bigger, softer file. Re-check against
+           the source when the licensed photo replaces the comp. -->
       <PrismicImage
         field={slice.primary.image}
         fallbackAlt=""
         class="h-full w-full object-cover"
         imgixParams={{ auto: ["format", "compress"] }}
-        widths={[640, 828, 1080, 1280, 1920, 2560]}
+        widths={[640, 828, 1080, 1280, 1920, 2560, 3058]}
         sizes="100vw"
         loading="eager"
         fetchpriority="high"
