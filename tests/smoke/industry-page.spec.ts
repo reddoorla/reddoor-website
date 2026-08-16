@@ -324,15 +324,28 @@ for (const vp of VIEWPORTS) {
   });
 }
 
-// The arrows must draw AFTER their step has arrived, not through its fade —
-// two animations running over each other read as a glitch rather than a
-// sequence. Each step now fades on its own trigger, so this is a per-step
-// claim: the ordering can hold for the first and break for the third.
+// Each step runs two beats: the arrow draws, THEN the copy under it fills in.
+// Both at once is what this replaced, and the difference only exists mid-flight
+// — once the page settles, a version that showed the copy first is pixel-for-
+// pixel identical. So it is sampled every frame.
 //
-// Sampled every frame, because the thing being asserted only exists mid-flight;
-// by the time the page settles, a version that drew too early looks identical.
-test(`${PATH} draws each arrow only after its own step has faded in`, async ({ page }) => {
+// This also pins the subtler half. The hidden state has to apply instantly
+// while only the reveal animates: when both carried the transition, the arrow
+// spent 860ms visibly un-drawing itself, and a step reaching the viewport
+// during that rewind flipped to `in` with the chevron still opaque — nothing
+// left to transition, so no transitionend, so the copy fell back to its timer
+// rather than following the arrow. `copyFollowedTheArrow` is what catches that:
+// the release has to coincide with the chevron landing, not arrive late.
+test(`${PATH} draws each arrow before its copy fills in`, async ({ page }) => {
   test.setTimeout(90_000);
+  // The suite runs reduced-motion, under which this sequence correctly does not
+  // exist at all: both the draw and the fill bail out and the step renders
+  // finished. Opt this one test back into motion, or it asserts nothing.
+  //
+  // (Playwright's `reducedMotion` DOES reach window.matchMedia on 1.62 —
+  // verified here. The note above stubReducedMotion says otherwise and is out
+  // of date; that stub is now belt-and-braces rather than load-bearing.)
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(PATH, { waitUntil: "domcontentloaded" });
 
@@ -340,16 +353,25 @@ test(`${PATH} draws each arrow only after its own step has faded in`, async ({ p
   await page.evaluate(() => {
     const w = window as unknown as Record<string, unknown>;
     w.__rec = {} as Record<number, unknown>;
+    const t0 = performance.now();
     const tick = () => {
+      const rec = w.__rec as Record<number, Record<string, unknown>>;
       document.querySelectorAll(".step").forEach((el, i) => {
-        const rec = w.__rec as Record<number, unknown>;
-        if (el.getAttribute("data-draw") !== "in" || rec[i]) return;
-        rec[i] = {
-          // The step's state at the exact frame its arrow starts.
-          computed: getComputedStyle(el).opacity,
-          target: (el as HTMLElement).style.opacity,
-          animated: el.hasAttribute("data-animate-in"),
-        };
+        const r = (rec[i] ??= { start: null, armed: null, released: null, copyEarly: false });
+        const now = performance.now() - t0;
+        const body = el.querySelector(".step-body") as HTMLElement | null;
+        const chevron = [...el.querySelectorAll(".step-arrow-head")].find(
+          (n) => getComputedStyle(n).display !== "none",
+        );
+        if (el.getAttribute("data-draw") === "in" && r.start === null) r.start = now;
+        if (r.start !== null && r.armed === null && chevron)
+          if (Number(getComputedStyle(chevron).opacity) === 1) r.armed = now;
+        // `data-copy` flips the moment the copy is released, whatever the fill
+        // then costs — so this measures the handoff, not the fade.
+        if (r.released === null && el.getAttribute("data-copy") === "in") r.released = now;
+        // Was the copy already fully on screen while the arrow was drawing?
+        if (r.start !== null && r.armed === null && body)
+          if (Number(getComputedStyle(body).opacity) === 1) r.copyEarly = true;
       });
       w.__raf = requestAnimationFrame(tick);
     };
@@ -362,24 +384,32 @@ test(`${PATH} draws each arrow only after its own step has faded in`, async ({ p
     await steps
       .nth(i)
       .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
-    // The fade is 2400ms; leave room for it plus the staggered draw.
-    await page.waitForTimeout(4500);
+    // Room for the staggered draw (~1.2s at the last step) and the 1s fill.
+    await page.waitForTimeout(4000);
   }
 
   const rec = (await page.evaluate(() => {
     const w = window as unknown as Record<string, unknown>;
     cancelAnimationFrame(w.__raf as number);
     return w.__rec;
-  })) as Record<number, { computed: string; target: string; animated: boolean }>;
+  })) as Record<
+    number,
+    { start: number | null; armed: number | null; released: number | null; copyEarly: boolean }
+  >;
 
   const verdicts = Array.from({ length: count }, (_, i) => {
     const r = rec[i];
-    if (!r) return `step ${i + 1}: arrow never drew`;
-    // An unanimated step (isAnimated off) has nothing to wait for.
-    if (!r.animated) return `step ${i + 1}: ok`;
-    return r.computed === "1" && r.target === "1"
-      ? `step ${i + 1}: ok`
-      : `step ${i + 1}: drew at opacity ${r.computed} (target ${r.target || "unset"})`;
+    const step = `step ${i + 1}`;
+    if (!r || r.start === null) return `${step}: arrow never drew`;
+    if (r.armed === null) return `${step}: chevron never landed`;
+    if (r.released === null) return `${step}: copy never appeared`;
+    if (r.copyEarly) return `${step}: copy was already visible during the draw`;
+    // One frame of slack: both are observed by sampling, not by the clock.
+    if (r.released < r.armed - 16) return `${step}: copy released before the chevron landed`;
+    // Following the arrow means landing with it, not on the 2500ms fallback.
+    if (r.released > r.armed + 600)
+      return `${step}: copy lagged the chevron by ${Math.round(r.released - r.armed)}ms`;
+    return `${step}: ok`;
   });
 
   expect(verdicts).toEqual(Array.from({ length: count }, (_, i) => `step ${i + 1}: ok`));

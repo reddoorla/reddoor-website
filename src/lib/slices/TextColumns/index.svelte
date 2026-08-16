@@ -4,7 +4,6 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
-  import { animateIn as anim } from "$lib/actions/animateIn";
   import type { Content } from "@prismicio/client";
   import { deriveTitleTag } from "./titleTag";
   import { stepNumber } from "./stepNumber";
@@ -23,13 +22,14 @@
   // rail label) is the section h2.
   const titleTag = $derived(deriveTitleTag(slice.variation, slice.primary.eyebrow));
 
-  // Draws a step's arrow in once that step has arrived: the rule extends from
-  // the number outward and the chevron lands as it gets there.
+  // A step arrives in two beats: the arrow draws itself — the number pops, the
+  // rule extends from it, the chevron lands — and only then does the copy under
+  // it fill in. The arrow is what announces "step N", so the words following it
+  // is the order that reads; both at once reads as one busy blur.
   //
-  // Per step, not per grid, because each step now fades in on its own (see the
-  // `animateItems` rail below) — on a phone they can be a long scroll apart, so
-  // one shared "drawn" flag would fire the third step's arrow while it was
-  // still off screen.
+  // Per step, not per grid: on a phone the steps are a long scroll apart, so a
+  // single shared flag would fire the third step's arrow while it was still off
+  // screen.
   //
   // The "not yet drawn" state is applied from JS rather than in the stylesheet
   // on purpose — authored as CSS, an arrow would sit at scale 0 and simply never
@@ -40,39 +40,39 @@
   // that only ever appears at runtime gets every `[data-draw]` rule stripped
   // from the bundle — the animation would silently never run.
   let drawState = $state<Record<number, "pending" | "in">>({});
+  // Second beat: the copy, revealed once this step's chevron has landed.
+  let bodyIn = $state<Record<number, boolean>>({});
 
   function drawIn(node: HTMLElement, index: number) {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     drawState[index] = "pending";
 
-    let raf: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onArrowEnd: ((e: TransitionEvent) => void) | undefined;
 
-    // The step fades and slides up first. Drawing the arrow through that reads
-    // as two animations fighting, so wait for that fade to land. Waiting on the
-    // element itself rather than on a guessed delay keeps the two in order at
-    // any scroll speed — the fade starts when the step enters the viewport,
-    // which no fixed delay can know.
+    const showBody = () => {
+      clearTimeout(timer);
+      if (onArrowEnd) node.removeEventListener("transitionend", onArrowEnd);
+      bodyIn[index] = true;
+    };
+
     const start = () => {
-      const fading = node.closest<HTMLElement>("[data-animate-in]");
-      // Both halves are needed. `style.opacity` is the target the action last
-      // set, so "1" is what says it has been revealed at all; the computed
-      // value says how far the transition has actually got. Checking only the
-      // computed one passes on the wrong 1: the step is server-rendered opaque
-      // and hidden at hydration, so before its fade-out has moved it still
-      // reads as fully opaque while being nowhere near arrived.
-      const arrived = () =>
-        !fading || (fading.style.opacity === "1" && Number(getComputedStyle(fading).opacity) === 1);
-      // The arrow stays invisible until this resolves, so it must not be able
-      // to hang: an interrupted transition would otherwise strand it.
-      const deadline = performance.now() + 4000;
-      const poll = () => {
-        if (arrived() || performance.now() > deadline) {
-          drawState[index] = "in";
-          return;
-        }
-        raf = requestAnimationFrame(poll);
+      drawState[index] = "in";
+      // Hand off on the chevron's own transition rather than on a second copy
+      // of its delay — the arrow's timings live in the stylesheet, and a
+      // duplicate here would drift the moment either is tuned. Delegated
+      // because the two chevrons swap at the breakpoint and the hidden one
+      // never transitions.
+      onArrowEnd = (e: TransitionEvent) => {
+        const target = e.target as Element | null;
+        if (e.propertyName === "opacity" && target?.classList?.contains("step-arrow-head"))
+          showBody();
       };
-      poll();
+      node.addEventListener("transitionend", onArrowEnd);
+      // The copy is invisible until this resolves, so it must not be able to
+      // hang. Transitions can be switched off under it (the reduced-motion
+      // block below does exactly that), and then no event ever arrives.
+      timer = setTimeout(showBody, 2500);
     };
 
     const io = new IntersectionObserver(
@@ -89,7 +89,8 @@
     return {
       destroy() {
         io.disconnect();
-        if (raf !== undefined) cancelAnimationFrame(raf);
+        clearTimeout(timer);
+        if (onArrowEnd) node.removeEventListener("transitionend", onArrowEnd);
       },
     };
   }
@@ -144,9 +145,11 @@
          only (not the rail). The `icon` field is still in the model but is no
          longer rendered — the board replaced the per-step icons with the numbers
          below, which are derived from position rather than authored. -->
-    <!-- `animateItems`: each step arrives on its own rather than the whole rail
-         fading as one block, which is the house style (see SliceSection's
-         `animate` note) and the only version that reads as a sequence. -->
+    <!-- `animateItems`: the rail label arrives on its own and the steps run
+         their own two-beat sequence, rather than the whole row fading as one
+         block. That is the house style (see SliceSection's `animate` note), and
+         a single fade over the lot cannot express a sequence — it would also
+         put the copy on screen before the arrow that introduces it. -->
     <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} animateItems>
       <div class={slice.primary.hasTopRule ? "border-t border-primary pt-2.5" : ""}>
         <!-- An <ol>, not a div: the numbering IS the content here, and without a
@@ -162,9 +165,9 @@
                anyone without JS. -->
           {#each slice.primary.columns as column, i (i)}
             <li
-              use:anim={{ enabled: isAnimated }}
               use:drawIn={i}
               data-draw={drawState[i] || undefined}
+              data-copy={bodyIn[i] ? "in" : undefined}
               class="step"
               style="--step-i:{i}"
             >
@@ -472,33 +475,60 @@
      the whole thing one step at a time.
 
      Mobile draws downward (scaleY), desktop rightward (scaleX) — matching
-     the direction each rail actually runs. */
+     the direction each rail actually runs.
+
+     The timings live on the `in` rules, NOT on these. A transition is chosen
+     from the style being transitioned TO, so putting them here would animate
+     the rewind as well: the arrow renders finished, and would then spend 860ms
+     visibly un-drawing itself. Worse than ugly — a step that came into view
+     during that rewind flipped to `in` while the chevron was still opaque,
+     leaving no opacity change to transition, no transitionend, and the copy
+     waiting on its fallback timer instead of on the arrow. */
   .step[data-draw] .step-num {
     opacity: 0;
     transform: scale(0.8);
-    transition:
-      opacity 300ms ease calc(var(--step-i) * 140ms),
-      transform 300ms var(--transition-fast-slow) calc(var(--step-i) * 140ms);
   }
   .step[data-draw] .step-arrow-line {
     transform: scaleY(0);
     transform-origin: top;
-    transition: transform 600ms var(--transition-fast-slow) calc(var(--step-i) * 140ms + 160ms);
   }
   .step[data-draw] .step-arrow-head {
     opacity: 0;
-    transition: opacity 240ms ease calc(var(--step-i) * 140ms + 620ms);
   }
 
   .step[data-draw="in"] .step-num {
     opacity: 1;
     transform: scale(1);
+    transition:
+      opacity 300ms ease calc(var(--step-i) * 140ms),
+      transform 300ms var(--transition-fast-slow) calc(var(--step-i) * 140ms);
   }
   .step[data-draw="in"] .step-arrow-line {
     transform: scaleY(1);
+    transition: transform 600ms var(--transition-fast-slow) calc(var(--step-i) * 140ms + 160ms);
   }
   .step[data-draw="in"] .step-arrow-head {
     opacity: 1;
+    transition: opacity 240ms ease calc(var(--step-i) * 140ms + 620ms);
+  }
+
+  /* Second beat: the copy fills in once the chevron above it has landed —
+     `data-copy` is set from the arrow's own transitionend, not a timer.
+     Same split as the arrow: hidden instantly, revealed with the transition.
+     Driven here rather than through the animateIn action because that action
+     animates its hide as well, and the copy is server-rendered opaque — it
+     would visibly fade OUT under the drawing arrow before fading back in. */
+  .step[data-draw] .step-body {
+    opacity: 0;
+    transform: translateY(25%);
+  }
+  .step[data-copy="in"] .step-body {
+    opacity: 1;
+    transform: none;
+    /* The fill used for the steps on the MSOT site. */
+    transition:
+      opacity 1000ms var(--transition-fast-slow),
+      transform 1000ms var(--transition-fast-slow);
   }
 
   @media (min-width: 768px) {
@@ -516,7 +546,8 @@
   @media (prefers-reduced-motion: reduce) {
     .step[data-draw] .step-num,
     .step[data-draw] .step-arrow-line,
-    .step[data-draw] .step-arrow-head {
+    .step[data-draw] .step-arrow-head,
+    .step[data-draw] .step-body {
       opacity: 1;
       transform: none;
       transition: none;
