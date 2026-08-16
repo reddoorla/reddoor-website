@@ -4,6 +4,7 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import type { Content } from "@prismicio/client";
   import { deriveTitleTag } from "./titleTag";
   import { stepNumber } from "./stepNumber";
@@ -22,9 +23,13 @@
   // rail label) is the section h2.
   const titleTag = $derived(deriveTitleTag(slice.variation, slice.primary.eyebrow));
 
-  // Draws the step arrows in as the rail reaches the viewport: the rule extends
-  // from the number outward and the chevron lands once it arrives, staggered a
-  // step at a time.
+  // Draws a step's arrow in once that step has arrived: the rule extends from
+  // the number outward and the chevron lands as it gets there.
+  //
+  // Per step, not per grid, because each step now fades in on its own (see the
+  // `animateItems` rail below) — on a phone they can be a long scroll apart, so
+  // one shared "drawn" flag would fire the third step's arrow while it was
+  // still off screen.
   //
   // The "not yet drawn" state is applied from JS rather than in the stylesheet
   // on purpose — authored as CSS, an arrow would sit at scale 0 and simply never
@@ -34,23 +39,59 @@
   // node directly: Svelte prunes CSS it cannot statically see, and an attribute
   // that only ever appears at runtime gets every `[data-draw]` rule stripped
   // from the bundle — the animation would silently never run.
-  let drawState = $state<"" | "pending" | "in">("");
+  let drawState = $state<Record<number, "pending" | "in">>({});
 
-  function drawIn(node: HTMLElement) {
+  function drawIn(node: HTMLElement, index: number) {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    drawState = "pending";
+    drawState[index] = "pending";
+
+    let raf: number | undefined;
+
+    // The step fades and slides up first. Drawing the arrow through that reads
+    // as two animations fighting, so wait for that fade to land. Waiting on the
+    // element itself rather than on a guessed delay keeps the two in order at
+    // any scroll speed — the fade starts when the step enters the viewport,
+    // which no fixed delay can know.
+    const start = () => {
+      const fading = node.closest<HTMLElement>("[data-animate-in]");
+      // Both halves are needed. `style.opacity` is the target the action last
+      // set, so "1" is what says it has been revealed at all; the computed
+      // value says how far the transition has actually got. Checking only the
+      // computed one passes on the wrong 1: the step is server-rendered opaque
+      // and hidden at hydration, so before its fade-out has moved it still
+      // reads as fully opaque while being nowhere near arrived.
+      const arrived = () =>
+        !fading || (fading.style.opacity === "1" && Number(getComputedStyle(fading).opacity) === 1);
+      // The arrow stays invisible until this resolves, so it must not be able
+      // to hang: an interrupted transition would otherwise strand it.
+      const deadline = performance.now() + 4000;
+      const poll = () => {
+        if (arrived() || performance.now() > deadline) {
+          drawState[index] = "in";
+          return;
+        }
+        raf = requestAnimationFrame(poll);
+      };
+      poll();
+    };
+
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
-          drawState = "in";
           io.disconnect(); // one-shot: it should not rewind on scroll-up
+          start();
         }
       },
       { threshold: 0.2 },
     );
     io.observe(node);
-    return { destroy: () => io.disconnect() };
+    return {
+      destroy() {
+        io.disconnect();
+        if (raf !== undefined) cancelAnimationFrame(raf);
+      },
+    };
   }
 
   // Full class strings (not interpolated) so Tailwind's content scanner keeps them.
@@ -103,23 +144,30 @@
          only (not the rail). The `icon` field is still in the model but is no
          longer rendered — the board replaced the per-step icons with the numbers
          below, which are derived from position rather than authored. -->
-    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated}>
+    <!-- `animateItems`: each step arrives on its own rather than the whole rail
+         fading as one block, which is the house style (see SliceSection's
+         `animate` note) and the only version that reads as a sequence. -->
+    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} animateItems>
       <div class={slice.primary.hasTopRule ? "border-t border-primary pt-2.5" : ""}>
         <!-- An <ol>, not a div: the numbering IS the content here, and without a
              list the sequence would exist only in the styling. That also lets the
              visible 01/02/03 be decorative — see the aria-hidden below. -->
-        <!-- `|| undefined` so the attribute is absent (not `data-draw=""`) before
-             the action runs — an empty value still matches `[data-draw]`, which
-             would hide every arrow during SSR and for anyone without JS. -->
-        <ol
-          use:drawIn
-          data-draw={drawState || undefined}
-          class="step-grid grid grid-cols-1 gap-x-5 gap-y-10 {columnsClass}"
-        >
-          <!-- Index-keyed for the same reason as above. `--step-i` drives the
-               per-step delay so the arrows draw in sequence rather than together. -->
+        <ol class="step-grid grid grid-cols-1 gap-x-5 gap-y-10 {columnsClass}">
+          <!-- Index-keyed for the same reason as above. `--step-i` keeps the
+               arrows sequential on desktop, where all three steps come into view
+               together and would otherwise draw at once. -->
+          <!-- `|| undefined` so the attribute is absent (not `data-draw=""`)
+               before the action runs — an empty value still matches
+               `[data-draw]`, which would hide the arrow during SSR and for
+               anyone without JS. -->
           {#each slice.primary.columns as column, i (i)}
-            <li class="step" style="--step-i:{i}">
+            <li
+              use:anim={{ enabled: isAnimated }}
+              use:drawIn={i}
+              data-draw={drawState[i] || undefined}
+              class="step"
+              style="--step-i:{i}"
+            >
               <!-- Number + arrow, hidden from assistive tech: the <ol> already
                    conveys the order, so announcing "01" would double it. -->
               <div class="step-head" aria-hidden="true">
@@ -425,40 +473,40 @@
 
      Mobile draws downward (scaleY), desktop rightward (scaleX) — matching
      the direction each rail actually runs. */
-  .step-grid[data-draw] .step-num {
+  .step[data-draw] .step-num {
     opacity: 0;
     transform: scale(0.8);
     transition:
       opacity 300ms ease calc(var(--step-i) * 140ms),
       transform 300ms var(--transition-fast-slow) calc(var(--step-i) * 140ms);
   }
-  .step-grid[data-draw] .step-arrow-line {
+  .step[data-draw] .step-arrow-line {
     transform: scaleY(0);
     transform-origin: top;
     transition: transform 600ms var(--transition-fast-slow) calc(var(--step-i) * 140ms + 160ms);
   }
-  .step-grid[data-draw] .step-arrow-head {
+  .step[data-draw] .step-arrow-head {
     opacity: 0;
     transition: opacity 240ms ease calc(var(--step-i) * 140ms + 620ms);
   }
 
-  .step-grid[data-draw="in"] .step-num {
+  .step[data-draw="in"] .step-num {
     opacity: 1;
     transform: scale(1);
   }
-  .step-grid[data-draw="in"] .step-arrow-line {
+  .step[data-draw="in"] .step-arrow-line {
     transform: scaleY(1);
   }
-  .step-grid[data-draw="in"] .step-arrow-head {
+  .step[data-draw="in"] .step-arrow-head {
     opacity: 1;
   }
 
   @media (min-width: 768px) {
-    .step-grid[data-draw] .step-arrow-line {
+    .step[data-draw] .step-arrow-line {
       transform: scaleX(0);
       transform-origin: left;
     }
-    .step-grid[data-draw="in"] .step-arrow-line {
+    .step[data-draw="in"] .step-arrow-line {
       transform: scaleX(1);
     }
   }
@@ -466,9 +514,9 @@
   /* The action already bails under reduced motion, so `data-draw` is never
      applied — this is belt-and-braces for a preference set after load. */
   @media (prefers-reduced-motion: reduce) {
-    .step-grid[data-draw] .step-num,
-    .step-grid[data-draw] .step-arrow-line,
-    .step-grid[data-draw] .step-arrow-head {
+    .step[data-draw] .step-num,
+    .step[data-draw] .step-arrow-line,
+    .step[data-draw] .step-arrow-head {
       opacity: 1;
       transform: none;
       transition: none;

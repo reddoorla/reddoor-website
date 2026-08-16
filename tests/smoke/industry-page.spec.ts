@@ -324,6 +324,67 @@ for (const vp of VIEWPORTS) {
   });
 }
 
+// The arrows must draw AFTER their step has arrived, not through its fade —
+// two animations running over each other read as a glitch rather than a
+// sequence. Each step now fades on its own trigger, so this is a per-step
+// claim: the ordering can hold for the first and break for the third.
+//
+// Sampled every frame, because the thing being asserted only exists mid-flight;
+// by the time the page settles, a version that drew too early looks identical.
+test(`${PATH} draws each arrow only after its own step has faded in`, async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+
+  // Sampling starts before the rail is reached so no transition is missed.
+  await page.evaluate(() => {
+    const w = window as unknown as Record<string, unknown>;
+    w.__rec = {} as Record<number, unknown>;
+    const tick = () => {
+      document.querySelectorAll(".step").forEach((el, i) => {
+        const rec = w.__rec as Record<number, unknown>;
+        if (el.getAttribute("data-draw") !== "in" || rec[i]) return;
+        rec[i] = {
+          // The step's state at the exact frame its arrow starts.
+          computed: getComputedStyle(el).opacity,
+          target: (el as HTMLElement).style.opacity,
+          animated: el.hasAttribute("data-animate-in"),
+        };
+      });
+      w.__raf = requestAnimationFrame(tick);
+    };
+    tick();
+  });
+
+  const steps = page.locator(".step");
+  const count = await steps.count();
+  for (let i = 0; i < count; i++) {
+    await steps
+      .nth(i)
+      .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+    // The fade is 2400ms; leave room for it plus the staggered draw.
+    await page.waitForTimeout(4500);
+  }
+
+  const rec = (await page.evaluate(() => {
+    const w = window as unknown as Record<string, unknown>;
+    cancelAnimationFrame(w.__raf as number);
+    return w.__rec;
+  })) as Record<number, { computed: string; target: string; animated: boolean }>;
+
+  const verdicts = Array.from({ length: count }, (_, i) => {
+    const r = rec[i];
+    if (!r) return `step ${i + 1}: arrow never drew`;
+    // An unanimated step (isAnimated off) has nothing to wait for.
+    if (!r.animated) return `step ${i + 1}: ok`;
+    return r.computed === "1" && r.target === "1"
+      ? `step ${i + 1}: ok`
+      : `step ${i + 1}: drew at opacity ${r.computed} (target ${r.target || "unset"})`;
+  });
+
+  expect(verdicts).toEqual(Array.from({ length: count }, (_, i) => `step ${i + 1}: ok`));
+});
+
 test(`${PATH} does not announce the decorative step numbers`, async ({ page }) => {
   await page.goto(PATH, { waitUntil: "domcontentloaded" });
 

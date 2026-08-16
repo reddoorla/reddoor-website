@@ -35,6 +35,12 @@ function resolveConfig(param: AnimateInParam): ResolvedConfig {
 }
 
 function applyHidden(node: HTMLElement, cfg: ResolvedConfig) {
+  // Marks the node as one this action drives, so an animation nested inside it
+  // can wait for this fade to finish rather than running underneath it. Only
+  // set where the action actually animates — a disabled or reduced-motion
+  // instance returns before here, and its absence is the "nothing to wait for"
+  // signal.
+  node.dataset.animateIn = "";
   node.style.opacity = "0";
   node.style.transform = `translateY(${cfg.translateY})`;
   node.style.transition =

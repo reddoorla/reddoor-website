@@ -8,6 +8,7 @@
   // The rail collapses above the content below `lg` — at that width a 240px
   // gutter would leave the content column unreadably narrow.
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import type { Snippet } from "svelte";
 
   interface Props {
@@ -18,6 +19,13 @@
     /** Widen the content column to the logo grid's 1004px. */
     wide?: boolean;
     animateIn?: boolean;
+    /** Animate the rail's own parts individually and leave the content column
+     *  to its children, instead of fading the whole row as one block. The
+     *  house style is per-element (see SliceSection's `animate` note); a row
+     *  whose content is a list wants each item to arrive on its own, which a
+     *  single fade over the lot cannot express. Off by default so the rows that
+     *  do read as one block keep doing so. */
+    animateItems?: boolean;
     class?: string;
     /** Extra rail content under the label (CaseStudy's services + before/after
      *  switch). It flows after the label rather than being positioned against
@@ -34,6 +42,7 @@
     labelAs = "h2",
     wide = false,
     animateIn = false,
+    animateItems = false,
     class: className = "",
     rail,
     children,
@@ -51,7 +60,7 @@
      anything width-y passed here lands on the same element — a `w-full` would sit
      alongside `w-[92%]` and be resolved by stylesheet order rather than intent
      (LogoGrid absolutely-positions its rail block against this box). -->
-<ContentWidth {animateIn} class="relative">
+<ContentWidth animateIn={animateIn && !animateItems} class="relative">
   <div
     class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {wide
       ? 'lg:grid-cols-[240px_minmax(0,1004px)]'
@@ -65,7 +74,11 @@
              pins font-family too, which is load bearing: this renders as an h2
              by default, and the global `h2` rule is Besley 60px whose family
              leaks in even when the size is overridden. -->
-        <svelte:element this={labelAs} class="type-kicker text-primary">
+        <svelte:element
+          this={labelAs}
+          use:anim={{ enabled: animateIn && animateItems }}
+          class="type-kicker text-primary"
+        >
           {railLabel}
         </svelte:element>
       {/if}
@@ -73,7 +86,10 @@
         <!-- `order-1` only bites below `lg`, where the `contents` wrapper has
              put this in the same flex line as the content column. The 10px
              offset from the label is the board's rail auto-layout gap. -->
-        <div class="order-1 lg:order-none {railLabel ? 'lg:mt-2.5' : ''}">
+        <div
+          use:anim={{ enabled: animateIn && animateItems }}
+          class="order-1 lg:order-none {railLabel ? 'lg:mt-2.5' : ''}"
+        >
           {@render rail()}
         </div>
       {/if}
