@@ -107,6 +107,43 @@ test("a server error is surfaced rather than reported as success", async ({ page
   await expect(page.getByRole("status")).toHaveCount(0);
 });
 
+test("opening the modal arrests scroll without shifting the page sideways", async ({ page }) => {
+  await stubInquiry(page);
+  await gotoHydrated(page);
+
+  // A wide element whose left edge would move if the reserved scrollbar space
+  // collapsed when the bar was hidden.
+  const probe = page.locator("h1").first();
+  const before = await probe.evaluate((el) => el.getBoundingClientRect().left);
+
+  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  const locked = await page.evaluate(() => ({
+    overflow: getComputedStyle(document.body).overflow,
+    gutter: document.documentElement.style.scrollbarGutter,
+  }));
+  expect(locked.overflow).toBe("hidden");
+  // The gutter is what holds the layout still; on engines without it the
+  // component pads the body instead, and the probe assertion below still binds.
+  expect(locked.gutter).toBe("stable");
+
+  const after = await probe.evaluate((el) => el.getBoundingClientRect().left);
+  expect(after).toBe(before);
+
+  // Scroll really is arrested.
+  const y0 = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(y0);
+
+  // …and everything is put back on close.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.body).overflow))
+    .not.toBe("hidden");
+});
+
 test("Escape closes the modal and returns focus to the trigger", async ({ page }) => {
   await stubInquiry(page);
   await gotoHydrated(page);

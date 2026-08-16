@@ -38,7 +38,7 @@
   // the preference. Guarded for SSR, where the component's script still runs.
   const motionDuration =
     typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? 200
+      ? 300
       : 0;
 
   function show(from: string) {
@@ -88,12 +88,40 @@
   // Lock the background while the overlay is up, and put it back exactly as it
   // was. Reading the value into a local (not reassigning the same reactive
   // state) keeps this out of the self-write trap that kills the effect scheduler.
+  //
+  // `overflow: hidden` alone removes the scrollbar, which widens the viewport by
+  // its width and jolts the whole page — including the fixed nav — sideways as
+  // the modal opens. `scrollbar-gutter: stable` keeps that space reserved while
+  // the bar is gone, so the scroll is arrested with nothing moving. Where it is
+  // unsupported (Safari < 18.2) fall back to padding the body by the measured
+  // scrollbar width, which fixes the page but not the fixed nav.
   $effect(() => {
     if (!open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const root = document.documentElement;
+    const body = document.body;
+    const prev = {
+      overflow: body.style.overflow,
+      gutter: root.style.scrollbarGutter,
+      padRight: body.style.paddingRight,
+    };
+    const canGutter = typeof CSS !== "undefined" && CSS.supports?.("scrollbar-gutter", "stable");
+
+    if (canGutter) {
+      root.style.scrollbarGutter = "stable";
+    } else {
+      // Measure BEFORE hiding the bar — afterwards the difference is zero.
+      const barWidth = window.innerWidth - root.clientWidth;
+      if (barWidth > 0) {
+        const current = parseFloat(getComputedStyle(body).paddingRight) || 0;
+        body.style.paddingRight = `${current + barWidth}px`;
+      }
+    }
+    body.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = previous;
+      body.style.overflow = prev.overflow;
+      root.style.scrollbarGutter = prev.gutter;
+      body.style.paddingRight = prev.padRight;
     };
   });
 

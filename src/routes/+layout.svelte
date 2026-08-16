@@ -210,8 +210,13 @@
         <!-- A styled anchor rather than <a><DefaultButton/></a>: the component's
              no-href branch renders a <button>, and a button inside a link is a
              nested-interactive a11y failure (and a double tab stop). -->
+        <!-- `/contact#inquire` rather than `/contact`: on industry pages the
+             InquiryModal intercepts this href and opens instead of navigating.
+             It stays a real destination so the CTA still works without JS, and
+             this branch is already gated on `isIndustryPage`, so no other page's
+             nav is affected. -->
         <a
-          href="/contact"
+          href="/contact#inquire"
           onclick={toggleOverlayOff}
           class="mt-2 rounded-sm border-1 border-primary bg-primary px-3.75 py-2.5 text-center text-[14px] font-extralight tracking-wider text-white transition-all duration-300 hover:bg-primary-dark"
         >
@@ -256,8 +261,10 @@
                 >
               {/each}
               {#if isIndustryPage}
+                <!-- See the overlay CTA above: opens the InquiryModal on
+                     industry pages, falls back to the contact form without JS. -->
                 <DefaultButton
-                  href="/contact"
+                  href="/contact#inquire"
                   text="Get Started"
                   filled={false}
                   class="border-white text-white hover:bg-white hover:text-black"
@@ -308,7 +315,9 @@
                 {/if}
               {/each}
               {#if isIndustryPage}
-                <DefaultButton href="/contact" text="Get Started" filled={false} red />
+                <!-- See the overlay CTA above: opens the InquiryModal on
+                     industry pages, falls back to the contact form without JS. -->
+                <DefaultButton href="/contact#inquire" text="Get Started" filled={false} red />
               {/if}
             </div>
 

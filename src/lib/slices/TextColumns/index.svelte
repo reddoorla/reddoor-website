@@ -22,6 +22,37 @@
   // rail label) is the section h2.
   const titleTag = $derived(deriveTitleTag(slice.variation, slice.primary.eyebrow));
 
+  // Draws the step arrows in as the rail reaches the viewport: the rule extends
+  // from the number outward and the chevron lands once it arrives, staggered a
+  // step at a time.
+  //
+  // The "not yet drawn" state is applied from JS rather than in the stylesheet
+  // on purpose — authored as CSS, an arrow would sit at scale 0 and simply never
+  // appear for anyone whose observer never runs. Rendering finished and then
+  // rewinding is the safe order.
+  // Held as state and bound to `data-draw` in the markup rather than set on the
+  // node directly: Svelte prunes CSS it cannot statically see, and an attribute
+  // that only ever appears at runtime gets every `[data-draw]` rule stripped
+  // from the bundle — the animation would silently never run.
+  let drawState = $state<"" | "pending" | "in">("");
+
+  function drawIn(node: HTMLElement) {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    drawState = "pending";
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          drawState = "in";
+          io.disconnect(); // one-shot: it should not rewind on scroll-up
+        }
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(node);
+    return { destroy: () => io.disconnect() };
+  }
+
   // Full class strings (not interpolated) so Tailwind's content scanner keeps them.
   const columnsClass = $derived(
     (
@@ -77,10 +108,18 @@
         <!-- An <ol>, not a div: the numbering IS the content here, and without a
              list the sequence would exist only in the styling. That also lets the
              visible 01/02/03 be decorative — see the aria-hidden below. -->
-        <ol class="step-grid grid grid-cols-1 gap-x-5 gap-y-10 {columnsClass}">
-          <!-- Index-keyed for the same reason as above. -->
+        <!-- `|| undefined` so the attribute is absent (not `data-draw=""`) before
+             the action runs — an empty value still matches `[data-draw]`, which
+             would hide every arrow during SSR and for anyone without JS. -->
+        <ol
+          use:drawIn
+          data-draw={drawState || undefined}
+          class="step-grid grid grid-cols-1 gap-x-5 gap-y-10 {columnsClass}"
+        >
+          <!-- Index-keyed for the same reason as above. `--step-i` drives the
+               per-step delay so the arrows draw in sequence rather than together. -->
           {#each slice.primary.columns as column, i (i)}
-            <li class="step">
+            <li class="step" style="--step-i:{i}">
               <!-- Number + arrow, hidden from assistive tech: the <ol> already
                    conveys the order, so announcing "01" would double it. -->
               <div class="step-head" aria-hidden="true">
@@ -319,6 +358,65 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
+
+  /* ---- arrow draw-in ---------------------------------------------------
+     Only ever active while `data-draw` is present, which `drawIn` adds from
+     JS — so the finished state above is what renders when the action never
+     runs, and this is purely additive. The number pops first, the rule
+     extends from it, and the chevron lands as it arrives; `--step-i` walks
+     the whole thing one step at a time.
+
+     Mobile draws downward (scaleY), desktop rightward (scaleX) — matching
+     the direction each rail actually runs. */
+  .step-grid[data-draw] .step-num {
+    opacity: 0;
+    transform: scale(0.8);
+    transition:
+      opacity 300ms ease calc(var(--step-i) * 140ms),
+      transform 300ms var(--transition-fast-slow) calc(var(--step-i) * 140ms);
+  }
+  .step-grid[data-draw] .step-arrow-line {
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 600ms var(--transition-fast-slow) calc(var(--step-i) * 140ms + 160ms);
+  }
+  .step-grid[data-draw] .step-arrow-head {
+    opacity: 0;
+    transition: opacity 240ms ease calc(var(--step-i) * 140ms + 620ms);
+  }
+
+  .step-grid[data-draw="in"] .step-num {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .step-grid[data-draw="in"] .step-arrow-line {
+    transform: scaleY(1);
+  }
+  .step-grid[data-draw="in"] .step-arrow-head {
+    opacity: 1;
+  }
+
+  @media (min-width: 768px) {
+    .step-grid[data-draw] .step-arrow-line {
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+    .step-grid[data-draw="in"] .step-arrow-line {
+      transform: scaleX(1);
+    }
+  }
+
+  /* The action already bails under reduced motion, so `data-draw` is never
+     applied — this is belt-and-braces for a preference set after load. */
+  @media (prefers-reduced-motion: reduce) {
+    .step-grid[data-draw] .step-num,
+    .step-grid[data-draw] .step-arrow-line,
+    .step-grid[data-draw] .step-arrow-head {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
   }
 
   /* Two-line 14/24 +1px uppercase red label: bold first line (title), light
