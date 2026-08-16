@@ -25,15 +25,14 @@
   }
 
   let {
-    title = "Let's Get Started!",
+    // Typographic apostrophe, as the board sets it.
+    title = "Let’s Get Started!",
     prompt = "Enter your email, then answer 5 questions to see if you're a good fit:",
     steps = [],
     class: className = "",
   }: Props = $props();
 
   let open = $state(false);
-  /** Which step tab is selected — also what gets forwarded to ingest. */
-  let active = $state(0);
   let email = $state("");
   let status = $state<"idle" | "sending" | "sent" | "error">("idle");
   let error = $state("");
@@ -43,12 +42,12 @@
   let openedAt = 0;
   // Honeypot. A real visitor never sees or fills this.
   let botField = $state("");
-  let tablist: HTMLDivElement | null = $state(null);
 
   const emailLooksValid = $derived(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
-  const activeStep = $derived(steps[active]);
+  /** The modal is one frame, and that frame is step one. */
+  const firstStep = $derived(steps[0]);
   /** Sent to ingest so a lead traces back to the step it came from. */
-  const stepLabel = $derived(activeStep?.title?.replace(/:$/, "") ?? "");
+  const stepLabel = $derived(firstStep?.title?.replace(/:$/, "") ?? "");
 
   // Svelte transitions are JS-driven, so the stylesheet's reduced-motion block
   // can't reach them — the fade/scale below would keep running for someone who
@@ -59,13 +58,7 @@
       ? 300
       : 0;
 
-  function show(from: string) {
-    // A trigger naming a step opens on it; a generic CTA opens on the first.
-    const wanted = from.trim().toLowerCase().replace(/:$/, "");
-    const found = steps.findIndex(
-      (s) => (s.title ?? "").trim().toLowerCase().replace(/:$/, "") === wanted,
-    );
-    active = found >= 0 ? found : 0;
+  function show() {
     // Reset per-open so a previous error or success never greets the next
     // visitor who opens it.
     status = "idle";
@@ -78,25 +71,6 @@
 
   function close() {
     open = false;
-  }
-
-  /**
-   * Roving arrow-key movement across the tabs (WAI-ARIA tabs pattern). Without
-   * it a `role="tablist"` is a broken promise: AT announces tabs but only Tab
-   * moves, which is not what a tablist tells the user to expect.
-   */
-  function onTabKeydown(e: KeyboardEvent) {
-    const last = steps.length - 1;
-    let next: number | null = null;
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = active === last ? 0 : active + 1;
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = active === 0 ? last : active - 1;
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = last;
-    if (next === null) return;
-    e.preventDefault();
-    active = next;
-    // Focus follows selection, which is the automatic-activation tab pattern.
-    queueMicrotask(() => tablist?.querySelectorAll<HTMLElement>('[role="tab"]')[next!]?.focus());
   }
 
   // Delegated so every CTA on the page works without each slice knowing the
@@ -118,10 +92,7 @@
       );
       if (!trigger) return;
       e.preventDefault();
-      show(
-        trigger.getAttribute("data-inquire-step") ??
-          (trigger.textContent ?? "").replace(/\s+/g, " ").trim(),
-      );
+      show();
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
@@ -234,49 +205,55 @@
       <h2 id="inquiry-title" class="inquiry-title">{title}</h2>
 
       {#if steps.length}
-        <!-- Real tabs: selecting a step swaps the copy below, so the tablist
-             pattern (and its arrow-key movement) is what a user is promised. -->
-        <div class="inquiry-steps" role="tablist" aria-label="Framework steps" bind:this={tablist}>
+        <!-- Not tabs. This is one frame that says "you are at step one" — the
+             other two are there to place it in the framework, not to be picked.
+             So: static markup, nothing focusable, no panel to control. An
+             earlier pass made these real tabs, which promised movement the
+             design never intended to offer.
+
+             `aria-hidden` because the copy below already names the step, and
+             the run of numbers and labels would otherwise be read out before
+             every visitor reached it. -->
+        <div class="inquiry-steps" aria-hidden="true">
           {#each steps as s, i (i)}
-            <button
-              type="button"
-              role="tab"
-              id={`inquiry-tab-${i}`}
-              aria-selected={active === i}
-              aria-controls="inquiry-panel"
-              tabindex={active === i ? 0 : -1}
-              class="inquiry-step"
-              class:is-active={active === i}
-              onclick={() => (active = i)}
-              onkeydown={onTabKeydown}
-            >
-              <!-- Decorative: the tab's own name already carries the step, and
-                   the number would otherwise be read before every label. -->
-              <span class="inquiry-step-num" aria-hidden="true">
+            <div class="inquiry-step" class:is-active={i === 0}>
+              <span class="inquiry-step-num">
                 <span class="inquiry-step-digits">{stepNumber(i)}</span>
-                {#if active === i}
-                  <svg class="inquiry-step-arrow" viewBox="0 0 16 9" fill="none">
-                    <path
-                      d="M1 1L8 8L15 1"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="square"
-                    />
-                  </svg>
+                {#if i === 0}
+                  <!-- The board drops the process rail's arrow out of the
+                       current step: a rule down to a chevron, not a loose
+                       chevron. Same join as the rail — the head is pulled back
+                       by its full depth so the rule ends at the vertex. -->
+                  <span class="inquiry-step-arrow">
+                    <span class="inquiry-step-arrow-line"></span>
+                    <svg class="inquiry-step-arrow-head" viewBox="0 0 16 9" fill="none">
+                      <path
+                        d="M1 1L8 8L15 1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="square"
+                      />
+                    </svg>
+                  </span>
                 {/if}
               </span>
               <span class="inquiry-step-label">
-                <span class="inquiry-step-title">{s.title}</span>
-                {#if active === i && s.subtitle}
+                <!-- Trailing colon trimmed for display only. The CMS titles read
+                     "The Diagnosis:" because the process rail sets them on their
+                     own line above the subtitle; here they sit inline and the
+                     board draws no colon. Presentation, not a copy edit — the
+                     text stays editable in Prismic. -->
+                <span class="inquiry-step-title">{s.title?.replace(/:$/, "")}</span>
+                {#if i === 0 && s.subtitle}
                   <span class="inquiry-step-sub">{s.subtitle}</span>
                 {/if}
               </span>
-            </button>
+            </div>
           {/each}
         </div>
       {/if}
 
-      <div id="inquiry-panel" role="tabpanel" aria-labelledby={`inquiry-tab-${active}`}>
+      <div>
         {#if status === "sent"}
           <!-- Announced: the form it replaces is gone from the DOM, so without a
                live region a screen-reader user gets no confirmation. -->
@@ -284,9 +261,9 @@
             Thanks — we've got it. We'll be in touch shortly.
           </p>
         {:else}
-          {#if activeStep?.body}
+          {#if firstStep?.body}
             <div class="inquiry-copy">
-              <RichTextBody field={activeStep.body} />
+              <RichTextBody field={firstStep.body} />
             </div>
           {/if}
 
@@ -426,12 +403,16 @@
     gap: 10px;
     cursor: pointer;
     text-align: left;
-    color: #d71920; /* token: primary */
+    /* The board's pale pink for the two steps you are not on. It only reads as
+       "not this one" because the active step sits beside it at full strength —
+       and it is legitimate here ONLY because this row is decorative: it names
+       no destination and controls nothing, the copy below says which step you
+       are on, and the whole block is aria-hidden. If these ever become real
+       controls again, this colour has to go back up — it is ~2.4:1 on white. */
+    color: #eba3a6;
   }
-  .inquiry-step:focus-visible {
-    outline: 2px solid #d71920;
-    outline-offset: 3px;
-    border-radius: 2px;
+  .inquiry-step.is-active {
+    color: #d71920; /* token: primary */
   }
 
   .inquiry-step-num {
@@ -447,13 +428,6 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 24px;
-    /* Dim the RING only, never the digits. Fading the whole element (as the
-       board does) drops the number to #eb8c90 — 2.41:1 on white, a contrast
-       failure the axe gate catches. The border carries the board's soft look
-       while the digits stay at full red (5.19:1), and selection is in any case
-       announced by aria-selected and shown by the weight change below, so the
-       ring is never the only signal. */
-    border-color: #eba3a6;
   }
   .is-active .inquiry-step-num {
     border-color: currentColor;
@@ -466,15 +440,34 @@
     letter-spacing: 1px;
     transform: translate(1.2px, 1px);
   }
-  /* The active step drops the same chevron the process rail uses. Absolute so
-     it does not add height and shuffle the tabs when selection moves. */
+  /* Absolute so the arrow hangs below the circle without adding height and
+     pushing the row's baseline off the label beside it. */
   .inquiry-step-arrow {
     position: absolute;
-    top: calc(100% + 6px);
+    top: 100%;
     left: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 16px;
+    height: 26px;
+    margin-left: -8px;
+  }
+  .inquiry-step-arrow-line {
+    flex: 1 1 auto;
+    width: 1.5px;
+    background: currentColor;
+  }
+  .inquiry-step-arrow-head {
+    flex: none;
     width: 16px;
     height: 9px;
-    margin-left: -8px;
+    /* Back by the box's full depth, so the rule runs under the head and stops
+       at the vertex rather than at the chevron's open ends — see the process
+       rail, where getting this wrong left a visible 8px gap. */
+    margin-top: -9px;
+    /* The mitred vertex overshoots its own viewBox by ~1px. Let it paint. */
+    overflow: visible;
   }
 
   .inquiry-step-label {
@@ -486,9 +479,6 @@
     letter-spacing: 1px;
     text-transform: uppercase;
   }
-  /* The board dims an inactive step to a pale pink. At 14px that lands near
-     2:1 on white, so the DIMMING LIVES ON THE RING ABOVE and the label instead
-     separates by weight — full-strength red either way, which is 5.19:1. */
   .inquiry-step-title {
     font-weight: 300;
   }

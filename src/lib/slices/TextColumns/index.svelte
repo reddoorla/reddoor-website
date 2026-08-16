@@ -4,6 +4,7 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
+  import { cascadeIn } from "$lib/actions/cascadeIn";
   import type { Content } from "@prismicio/client";
   import { deriveTitleTag } from "./titleTag";
   import { stepNumber } from "./stepNumber";
@@ -117,7 +118,9 @@
          owns the section h2) — RailRow then renders an empty rail, which is what
          keeps the columns aligned with every other section. RailRow wraps
          ContentWidth itself, so there is no ContentWidth here. -->
-    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated}>
+    <!-- `animateItems` so the label arrives on its own and each column cascades
+         its own rows, rather than the whole block fading as one. -->
+    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} animateItems>
       <!-- The board's services section leaves hasTopRule off: its rules are the
            per-row light ones below, not one red rule over the whole block. -->
       <div class={slice.primary.hasTopRule ? "border-t border-primary pt-2.5" : ""}>
@@ -125,7 +128,12 @@
           <!-- Key by index: `title` is optional + non-unique, so keying on it
                would throw each_key_duplicate on blank/repeated titles. -->
           {#each slice.primary.columns as column, i (i)}
-            <div class="service-list">
+            <!-- Each ruled row arrives on its own. Driven from the container
+                 because the rows are not all markup — RichTextBody renders one
+                 <p> per line, and there is nowhere to hang a per-row action.
+                 cascadeIn keeps animateIn's left-to-right term, so the rows
+                 cascade down a column while the columns cascade across. -->
+            <div class="service-list" use:cascadeIn={{ enabled: isAnimated }}>
               {#if column.title}
                 <svelte:element this={titleTag} class="service-row service-row--category">
                   {column.title}

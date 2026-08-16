@@ -4,6 +4,7 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
+  import { cascadeIn } from "$lib/actions/cascadeIn";
   import { CircleArrowDown, Plus, Minus } from "@lucide/svelte";
   import { untrack } from "svelte";
   import { isFilled, type Content } from "@prismicio/client";
@@ -76,88 +77,95 @@
          comp draws. RailRow's 1004px `wide` column is the closest sanctioned
          fit; the default 760px would wrap the longer questions to two lines and
          break the 70px row rhythm. -->
-    <RailRow {label} wide animateIn={isAnimated}>
-      {#each slice.primary.items as item, i (i)}
-        <!-- No body authored → no panel to reveal, so the question renders as
+    <!-- `animateItems` so the rail label arrives on its own; the rows below
+         cascade one at a time rather than the list fading as one block.
+         cascadeIn rather than a per-row action because the rows share a left
+         edge — animateIn derives its delay from `rect.left`, so a column of
+         them would all get the same delay and arrive together. -->
+    <RailRow {label} wide animateIn={isAnimated} animateItems>
+      <div use:cascadeIn={{ enabled: isAnimated }}>
+        {#each slice.primary.items as item, i (i)}
+          <!-- No body authored → no panel to reveal, so the question renders as
              plain text instead of a dead toggle that would announce "expanded"
              over nothing. The comp ships exactly this state (8 collapsed rows,
              no answers written yet); the row becomes a real disclosure the
              moment an answer is added. -->
-        {@const canExpand = isFilled.richText(item.body)}
-        <!-- A blank question drops the whole row (same rule TextColumns applies
+          {@const canExpand = isFilled.richText(item.body)}
+          <!-- A blank question drops the whole row (same rule TextColumns applies
              to a blank column title). The question is both the heading text and
              the button's accessible name, so a title-less row would ship an
              unnamed toggle (axe `button-name`) inside an empty heading (axe
              `empty-heading`); an answer with no question has nothing to
              disclose. Trimmed — whitespace is truthy but announces nothing. -->
-        {@const title = (item.title ?? "").trim()}
-        {#if title}
-          <!-- 1px rule under EVERY row, last one included (board detail). -->
-          <div class="border-b border-light">
-            {#if canExpand}
-              <svelte:element this={itemTag} class="m-0 type-question text-mid">
-                <button
-                  id={buttonId(i)}
-                  type="button"
-                  class="group flex w-full items-center gap-5 py-5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  aria-expanded={open[i]}
-                  aria-controls={panelId(i)}
-                  onclick={() => (open[i] = !open[i])}
-                >
-                  <span
-                    class="min-w-0 flex-1 wrap-break-word transition-colors group-hover:text-black motion-reduce:transition-none"
+          {@const title = (item.title ?? "").trim()}
+          {#if title}
+            <!-- 1px rule under EVERY row, last one included (board detail). -->
+            <div class="border-b border-light">
+              {#if canExpand}
+                <svelte:element this={itemTag} class="m-0 type-question text-mid">
+                  <button
+                    id={buttonId(i)}
+                    type="button"
+                    class="group flex w-full items-center gap-5 py-5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    aria-expanded={open[i]}
+                    aria-controls={panelId(i)}
+                    onclick={() => (open[i] = !open[i])}
                   >
-                    {title}
-                  </span>
-                  <!-- One glyph, rotated: down = collapsed, up = expanded. The
+                    <span
+                      class="min-w-0 flex-1 wrap-break-word transition-colors group-hover:text-black motion-reduce:transition-none"
+                    >
+                      {title}
+                    </span>
+                    <!-- One glyph, rotated: down = collapsed, up = expanded. The
                        bare `transition` is deliberate — v4's rotate-* sets the
                        standalone `rotate` property (not `transform`), and the
                        default property list is the only one covering both
                        `rotate` and `color`. -->
-                  <span
-                    class="shrink-0 text-light transition duration-300 ease-out group-hover:text-mid motion-reduce:transition-none {open[
-                      i
-                    ]
-                      ? 'rotate-180'
-                      : ''}"
-                    aria-hidden="true"
-                  >
-                    <CircleArrowDown size={30} strokeWidth={1} />
-                  </span>
-                </button>
-              </svelte:element>
+                    <span
+                      class="shrink-0 text-light transition duration-300 ease-out group-hover:text-mid motion-reduce:transition-none {open[
+                        i
+                      ]
+                        ? 'rotate-180'
+                        : ''}"
+                      aria-hidden="true"
+                    >
+                      <CircleArrowDown size={30} strokeWidth={1} />
+                    </span>
+                  </button>
+                </svelte:element>
 
-              <!-- Same pure-CSS reveal as the default variation: grid 0fr→1fr
+                <!-- Same pure-CSS reveal as the default variation: grid 0fr→1fr
                    animates height without JS, the inner wrapper clips, and
                    `inert` while collapsed pulls the panel out of the tab order
                    and the a11y tree. Reduced motion → instant. -->
-              <div
-                id={panelId(i)}
-                role="region"
-                aria-labelledby={buttonId(i)}
-                class="grid transition-[grid-template-rows] duration-500 ease-out motion-reduce:transition-none"
-                style="grid-template-rows: {open[i] ? '1fr' : '0fr'}"
-                inert={!open[i]}
-              >
-                <div class="overflow-hidden">
-                  <!-- Right inset clears the 30px icon + 20px gutter so the
+                <div
+                  id={panelId(i)}
+                  role="region"
+                  aria-labelledby={buttonId(i)}
+                  class="grid transition-[grid-template-rows] duration-500 ease-out motion-reduce:transition-none"
+                  style="grid-template-rows: {open[i] ? '1fr' : '0fr'}"
+                  inert={!open[i]}
+                >
+                  <div class="overflow-hidden">
+                    <!-- Right inset clears the 30px icon + 20px gutter so the
                        answer never runs under the toggle. -->
-                  <div class="acc-body pb-5 md:pr-12.5">
-                    <RichTextBody field={item.body} />
+                    <div class="acc-body pb-5 md:pr-12.5">
+                      <RichTextBody field={item.body} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            {:else}
-              <svelte:element
-                this={itemTag}
-                class="m-0 py-5 type-question wrap-break-word text-mid"
-              >
-                {title}
-              </svelte:element>
-            {/if}
-          </div>
-        {/if}
-      {/each}
+              {:else}
+                <svelte:element
+                  this={itemTag}
+                  class="m-0 py-5 type-question wrap-break-word text-mid"
+                >
+                  {title}
+                </svelte:element>
+              {/if}
+            </div>
+          {/if}
+        {/each}
+      </div>
     </RailRow>
   {:else}
     <ContentWidth>

@@ -23,6 +23,8 @@
   import SliceSection from "$lib/components/SliceSection.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
+  import { animateIn as anim } from "$lib/actions/animateIn";
+  import { cascadeIn } from "$lib/actions/cascadeIn";
 
   let { slice }: { slice: Content.LogoGridSlice } = $props();
 
@@ -305,14 +307,19 @@
   <!-- Above the backdrop. `relative` (not just z-10) so it establishes its own
        paint order against the absolutely-positioned images. -->
   <div class="relative z-10">
-    <RailRow wide animateIn={isAnimated}>
+    <!-- `animateItems`: the label/CTA block arrives on its own and the logos
+         cascade one at a time, rather than the whole band fading as one. -->
+    <RailRow wide animateIn={isAnimated} animateItems>
       <!-- Label + CTA belong together in the left rail, and RailRow renders only
          a bare label there — so the pair lives here and is lifted into the (then
          empty) rail column on lg. RailRow's ContentWidth is `relative`, and its
          content-box left edge IS the rail's left edge, so `left-0` lands exactly
          on the 240px rail track. Below lg it stays in flow above the grid, which
          is RailRow's own stacking order. -->
-      <div class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-[240px]">
+      <div
+        use:anim={{ enabled: isAnimated }}
+        class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-[240px]"
+      >
         {#if slice.primary.label}
           <!-- Section heading. `font-sans` + every size property is pinned: the
              global `h2` element rule is Besley 60px and leaks its family in
@@ -327,7 +334,14 @@
       </div>
 
       {#if logos.length}
+        <!-- Fade only, no rise: these <li> are what the mobile rollover
+             observer watches (rootMargin -50%/-50%), and translating them
+             would move the box it measures mid-cascade. The opacity goes on
+             the <li> and not its child for the mirror-image reason — the link
+             inside carries the rollover's own opacity, and an inline value
+             there would win permanently and freeze the dimming. -->
         <ul
+          use:cascadeIn={{ enabled: isAnimated, translateY: "0" }}
           class="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 md:gap-y-20 lg:grid-cols-3 lg:gap-x-10 xl:gap-y-[150px]"
         >
           <!-- Keyed by index: `name` is optional and non-unique (the same client

@@ -107,43 +107,45 @@ test("a server error is surfaced rather than reported as success", async ({ page
   await expect(page.getByRole("status")).toHaveCount(0);
 });
 
-test("the step tabs switch the copy and follow arrow keys", async ({ page }) => {
+// The modal is ONE frame that says "you are at step one". The other two steps
+// are drawn to place it in the framework, not to be picked. An earlier pass
+// built them as a real tablist, which promised keyboard movement and panel
+// switching the design never intended — this locks them back down to scenery.
+test("the step row is decorative, not a set of controls", async ({ page }) => {
   await stubInquiry(page);
   await gotoHydrated(page);
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
 
-  const tabs = page.getByRole("tab");
-  await expect(tabs).toHaveCount(3);
-  // Opened from a trigger naming step 1.
-  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel")).toContainText("We audit your marketing deliverables");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".inquiry-step")).toHaveCount(3);
+  // No tab semantics anywhere, and nothing in the row is reachable by keyboard.
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  await expect(page.getByRole("tabpanel")).toHaveCount(0);
+  await expect(dialog.locator(".inquiry-steps button, .inquiry-steps a")).toHaveCount(0);
+  // Hidden from AT: the copy below already names the step, so the run of
+  // numbers and labels would only be read out in front of it.
+  await expect(dialog.locator(".inquiry-steps")).toHaveAttribute("aria-hidden", "true");
 
-  // Clicking a tab swaps the panel copy.
-  await tabs.nth(2).click();
-  await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
-  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "false");
-  await expect(page.getByRole("tabpanel")).toContainText("We deploy the approved system");
+  // Only step one is drawn as current: its subtitle and its chevron.
+  await expect(dialog.locator(".inquiry-step.is-active")).toHaveCount(1);
+  await expect(dialog.locator(".inquiry-step-arrow")).toHaveCount(1);
+  await expect(dialog.locator(".inquiry-step-sub")).toHaveCount(1);
 
-  // A tablist promises arrow-key movement; roving tabindex must follow.
-  await tabs.nth(2).focus();
-  await page.keyboard.press("ArrowRight"); // wraps to the first
-  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-  await expect(tabs.nth(0)).toBeFocused();
-  await expect(tabs.nth(1)).toHaveAttribute("tabindex", "-1");
+  // And the frame always shows step one's copy.
+  await expect(dialog).toContainText("We audit your marketing deliverables");
 });
 
-test("the selected step is what gets submitted", async ({ page }) => {
+test("the first step is what gets submitted", async ({ page }) => {
   const calls = await stubInquiry(page);
   await gotoHydrated(page);
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
 
-  await page.getByRole("tab").nth(1).click();
   await page.locator("#inquiry-email").fill("buyer@example.com");
   await page.getByRole("button", { name: "Inquire Now" }).click();
 
   await expect(page.getByRole("status")).toContainText("Thanks");
-  // Trailing colon trimmed — the CMS title is "The Rebuild:".
-  expect(calls[0].step).toBe("The Rebuild");
+  // Trailing colon trimmed — the CMS title is "The Diagnosis:".
+  expect(calls[0].step).toBe("The Diagnosis");
 });
 
 test("opening the modal arrests scroll without shifting the page sideways", async ({ page }) => {
@@ -216,7 +218,48 @@ test("the open modal has no axe violations", async ({ page }) => {
 
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    // KNOWN, ACCEPTED DEVIATION — not a blanket exemption, and not a bug to
+    // "fix" by quietly darkening the pink.
+    //
+    // The board draws the two steps you are NOT on in a pale pink that measures
+    // 2.03:1 on white (axe, 2026-08-16), against the 4.5:1 that WCAG 1.4.3
+    // requires. That was raised twice and the design was confirmed both times,
+    // so the colour stands and the exclusion is written down here rather than
+    // being hidden by nudging the value until the gate went quiet.
+    //
+    // What makes it defensible rather than merely permitted: the row is
+    // decorative. It controls nothing, links nowhere, takes no focus, and is
+    // aria-hidden, and the copy directly beneath it names the step in
+    // full-strength text. What it is NOT is exempt — a sighted visitor with low
+    // contrast sensitivity will not read "02 THE REBUILD".
+    //
+    // Narrow on purpose: only this row is skipped, so any other contrast
+    // regression anywhere in the modal still fails. If these ever become
+    // interactive again, delete this line first — the colour has to go with it.
+    .exclude(".inquiry-steps")
     .analyze();
 
   expect(results.violations).toEqual([]);
+});
+
+// The exclusion above must stay honest: if the row somehow starts passing, the
+// colour has drifted off the board and someone should know.
+test("the dimmed steps are the board's pink, and still the known contrast gap", async ({
+  page,
+}) => {
+  await stubInquiry(page);
+  await gotoHydrated(page);
+  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+  await expect
+    .poll(() =>
+      page.locator(".inquiry-wrap").evaluate((el) => Number(getComputedStyle(el).opacity)),
+    )
+    .toBe(1);
+
+  const colors = await page
+    .locator(".inquiry-step")
+    .evaluateAll((els) => els.map((el) => getComputedStyle(el).color));
+
+  // Step one at full red; the other two dimmed to the board's pink.
+  expect(colors).toEqual(["rgb(215, 25, 32)", "rgb(235, 163, 166)", "rgb(235, 163, 166)"]);
 });
