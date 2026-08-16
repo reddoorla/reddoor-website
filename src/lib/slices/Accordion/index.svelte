@@ -4,7 +4,7 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
-  import { cascadeIn } from "$lib/actions/cascadeIn";
+  import { animateIn as anim } from "$lib/actions/animateIn";
   import { CircleArrowDown, Plus, Minus } from "@lucide/svelte";
   import { untrack } from "svelte";
   import { isFilled, type Content } from "@prismicio/client";
@@ -77,13 +77,12 @@
          comp draws. RailRow's 1004px `wide` column is the closest sanctioned
          fit; the default 760px would wrap the longer questions to two lines and
          break the 70px row rhythm. -->
-    <!-- `animateItems` so the rail label arrives on its own; the rows below
-         cascade one at a time rather than the list fading as one block.
-         cascadeIn rather than a per-row action because the rows share a left
-         edge — animateIn derives its delay from `rect.left`, so a column of
-         them would all get the same delay and arrive together. -->
+    <!-- `animateItems` so the rail label arrives on its own and each row below
+         carries its own `use:anim` — one scroll trigger per row, so they arrive
+         as the reader reaches them rather than on a stagger played back from
+         the top of the list. -->
     <RailRow {label} wide animateIn={isAnimated} animateItems>
-      <div use:cascadeIn={{ enabled: isAnimated }}>
+      <div>
         {#each slice.primary.items as item, i (i)}
           <!-- No body authored → no panel to reveal, so the question renders as
              plain text instead of a dead toggle that would announce "expanded"
@@ -100,7 +99,7 @@
           {@const title = (item.title ?? "").trim()}
           {#if title}
             <!-- 1px rule under EVERY row, last one included (board detail). -->
-            <div class="border-b border-light">
+            <div use:anim={{ enabled: isAnimated }} class="border-b border-light">
               {#if canExpand}
                 <svelte:element this={itemTag} class="m-0 type-question text-mid">
                   <button

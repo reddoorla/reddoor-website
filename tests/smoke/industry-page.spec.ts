@@ -183,16 +183,44 @@ test(`${PATH} renders the framework as a numbered list, not icons`, async ({ pag
 // `headInk` guards the obvious false positive — an arrowhead that never painted
 // also leaves exactly one run.
 //
-// Only the join is captured, not the whole arrow. A screenshot clip has to sit
-// inside the viewport, and on mobile a step whose copy runs long makes the rail
-// taller than the space beneath it — clamping the clip then cut the chevron off
-// the bottom of the shot and reported it as never painted.
-const LEAD = 20; // px of rule to capture running into the vertex
+// Captured as an ELEMENT screenshot of the arrow, never as a page clip. Page
+// coordinates cannot be trusted here: the slices above carry lazily-loaded
+// media, and their reflow drags the rail down between computing a clip and
+// taking the shot — far enough that the shot lands on empty paper, or that
+// scrollIntoView is simply undone and the arrow is below the fold again.
+// Screenshotting the element sidesteps all of it. Playwright scrolls it into
+// view itself, the image IS the element's box, and every coordinate below is a
+// fraction of that box rather than a position on the page.
+/**
+ * Loads every lazy image and waits for the page to stop growing.
+ *
+ * This is the root cause of a whole family of flakes in here, and it is worth
+ * paying once rather than defending against downstream: the slices above the
+ * rail load their media lazily, so the page keeps getting taller while a
+ * measurement is in flight. Scroll positions go stale, clips land on empty
+ * paper, and an element scrolled into view is below the fold again a moment
+ * later. Force the loading first and the rail stops moving.
+ */
+async function settle(page: import("@playwright/test").Page) {
+  await page.evaluate(async () => {
+    const step = Math.round(window.innerHeight * 0.8);
+    for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+      window.scrollTo({ top: y, behavior: "instant" });
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+  await page.waitForLoadState("networkidle");
+  await page
+    .waitForFunction(() => [...document.images].every((img) => img.complete), null, {
+      timeout: 30_000,
+    })
+    .catch(() => {});
+}
 
 async function measureArrow(page: import("@playwright/test").Page, index: number, axis: "x" | "y") {
   const arrow = page.locator('[data-slice-variation="iconColumns"] .step-arrow').nth(index);
   const chevron = arrow.locator(".step-arrow-head:visible");
-  await chevron.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
 
   // Each chevron fades in on its own stagger, so waiting on the first step's
   // opacity is not enough: measuring step 3 while it is still at 20% reads its
@@ -203,39 +231,21 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
     })
     .toBe(1);
 
-  // …then for the page to stop moving under it. The slices above this one carry
-  // lazily-loaded media, so scrolling the rail into view starts a fresh round of
-  // image loads whose reflow drags the rail away — far enough that the clip
-  // computed from the old position lands on empty paper, or off-viewport
-  // entirely. Settle first, THEN re-scroll, THEN shoot, with nothing awaited in
-  // between that could let the page move again.
-  await expect
-    .poll(
-      async () => {
-        const before = await chevron.boundingBox();
-        await page.waitForTimeout(200);
-        const after = await chevron.boundingBox();
-        return !!before && !!after && before.x === after.x && before.y === after.y;
-      },
-      { timeout: 15_000 },
-    )
-    .toBe(true);
+  // Sizes, not positions — these hold however far the page has drifted.
+  const size = await arrow.evaluate((el) => {
+    const head = [...el.querySelectorAll(".step-arrow-head")].find(
+      (n) => getComputedStyle(n).display !== "none",
+    )!;
+    const a = el.getBoundingClientRect();
+    const h = head.getBoundingClientRect();
+    return { w: a.width, h: a.height, chevW: h.width, chevH: h.height };
+  });
+  const shot = await arrow.screenshot();
 
-  await chevron.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
-  const c = (await chevron.boundingBox())!;
-  const pad = 4;
-  const clip =
-    axis === "x"
-      ? { x: c.x - LEAD, y: c.y - pad, width: c.width + LEAD + pad, height: c.height + pad * 2 }
-      : { x: c.x - pad, y: c.y - LEAD, width: c.width + pad * 2, height: c.height + LEAD + pad };
-  const shot = await page.screenshot({ clip });
-
-  // Nothing below re-reads the page. Every coordinate is derived from the clip,
-  // which was built from `c` an instant before the shot — re-measuring the
-  // element afterwards means image and geometry can come from different layouts,
-  // and the centre-line walk then samples a row the rule isn't on.
+  // Nothing below re-reads the page — every coordinate is a fraction of the
+  // element's own box, so image and geometry cannot come from different layouts.
   return page.evaluate(
-    async ({ b64, clip, chev, pad, lead, axis }) => {
+    async ({ b64, size, axis }) => {
       const img = new Image();
       img.src = "data:image/png;base64," + b64;
       await img.decode();
@@ -245,9 +255,9 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
       const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      // Scale, not devicePixelRatio: the shot is clipped in CSS px but rendered
-      // at whatever the context's scale factor is.
-      const s = canvas.width / clip.width;
+      // Scale, not devicePixelRatio: the element is measured in CSS px but
+      // rendered at whatever the context's scale factor is.
+      const s = canvas.width / size.w;
       // Red dominance rather than an exact match — a 1.5px stroke lands on the
       // device grid partially covered, so its pixels are blends toward paper.
       const ink = (x: number, y: number) => {
@@ -256,10 +266,21 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
         return px[i] - px[i + 1] > 45 && px[i] - px[i + 2] > 30;
       };
       const along = axis === "x";
-      // Where the chevron sits inside the window, by construction of the clip.
+      // Where the chevron sits inside the arrow: hard against the leading end,
+      // centred on the other axis — which is what the flex row/column does.
       const box = along
-        ? { x: lead, y: pad, w: chev.width, h: chev.height }
-        : { x: pad, y: lead, w: chev.width, h: chev.height };
+        ? {
+            x: size.w - size.chevW,
+            y: (size.h - size.chevH) / 2,
+            w: size.chevW,
+            h: size.chevH,
+          }
+        : {
+            x: (size.w - size.chevW) / 2,
+            y: size.h - size.chevH,
+            w: size.chevW,
+            h: size.chevH,
+          };
       // The rule, the chevron's vertex and the arrow all share a centre line.
       const fixed = Math.round((along ? box.y + box.h / 2 : box.x + box.w / 2) * s);
       // The window IS the join, so walk all of it.
@@ -291,21 +312,16 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
 
       return { segments, gap: +gap.toFixed(2), headInk };
     },
-    {
-      b64: shot.toString("base64"),
-      clip,
-      chev: { width: c.width, height: c.height },
-      pad,
-      lead: LEAD,
-      axis,
-    },
+    { b64: shot.toString("base64"), size, axis },
   );
 }
 
 for (const vp of VIEWPORTS) {
   test(`${PATH} draws each step arrow as one unbroken stroke (${vp.name})`, async ({ page }) => {
+    test.setTimeout(90_000);
     await page.setViewportSize({ width: vp.width, height: vp.height });
     await page.goto(PATH, { waitUntil: "domcontentloaded" });
+    await settle(page);
 
     const grid = page.locator('[data-slice-variation="iconColumns"] ol');
     await grid.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));

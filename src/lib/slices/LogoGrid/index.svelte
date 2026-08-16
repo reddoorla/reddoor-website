@@ -24,7 +24,6 @@
   import RailRow from "$lib/components/RailRow.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
-  import { cascadeIn } from "$lib/actions/cascadeIn";
 
   let { slice }: { slice: Content.LogoGridSlice } = $props();
 
@@ -334,14 +333,7 @@
       </div>
 
       {#if logos.length}
-        <!-- Fade only, no rise: these <li> are what the mobile rollover
-             observer watches (rootMargin -50%/-50%), and translating them
-             would move the box it measures mid-cascade. The opacity goes on
-             the <li> and not its child for the mirror-image reason — the link
-             inside carries the rollover's own opacity, and an inline value
-             there would win permanently and freeze the dimming. -->
         <ul
-          use:cascadeIn={{ enabled: isAnimated, translateY: "0" }}
           class="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 md:gap-y-20 lg:grid-cols-3 lg:gap-x-10 xl:gap-y-[150px]"
         >
           <!-- Keyed by index: `name` is optional and non-unique (the same client
@@ -367,8 +359,18 @@
 
                  Below lg the height binds and every logo scales down by the
                  same factor, so the row stays in proportion. -->
+            <!-- Each logo carries its own scroll trigger, so the grid fills as
+                 the reader reaches it rather than arriving as one block.
+
+                 Fade only, no rise: this <li> is what the mobile rollover
+                 observer watches (rootMargin -50%/-50%), and translating it
+                 would move the box being measured. The opacity sits here and
+                 not on the link inside for the mirror-image reason — that link
+                 carries the rollover's own opacity, and an inline value there
+                 would win permanently and freeze the dimming. -->
             <li
               bind:this={rows[i]}
+              use:anim={{ enabled: isAnimated, translateY: "0" }}
               class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-26.25 {columnAlign[
                 i % 3
               ]}"
