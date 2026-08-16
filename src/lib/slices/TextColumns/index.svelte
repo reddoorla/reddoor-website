@@ -123,16 +123,38 @@
               <!-- Number + arrow, hidden from assistive tech: the <ol> already
                    conveys the order, so announcing "01" would double it. -->
               <div class="step-head" aria-hidden="true">
-                <span class="step-num">{stepNumber(i)}</span>
+                <!-- Inner span so the numerals can be centred on their own ink
+                     rather than on their metrics — see .step-num-digits. -->
+                <span class="step-num"><span class="step-num-digits">{stepNumber(i)}</span></span>
                 <span class="step-arrow">
                   <span class="step-arrow-line"></span>
                   <!-- The board exports this arrow as one fixed-length vector.
                        Here the line has to stretch to the column (and, on mobile,
                        to however tall the copy runs), so it is a flexed rule plus
-                       this fixed chevron — same 1.5px stroke and geometry. -->
-                  <svg class="step-arrow-head" viewBox="0 0 16 9" fill="none">
+                       a fixed chevron — same 1.5px stroke and geometry.
+
+                       Two chevrons rather than one rotated one. `rotate()` moves
+                       the glyph but not the layout box it is centred in, so the
+                       rule could only be joined to the vertex by guesswork — and
+                       it was: the rule was stopping 8px short. Each of these
+                       instead puts its vertex on the box's leading edge, so a
+                       negative margin of exactly the box's depth runs the rule
+                       under the head and ends it at the point. -->
+                  <svg class="step-arrow-head step-arrow-head--down" viewBox="0 0 16 9" fill="none">
                     <path
                       d="M1 1L8 8L15 1"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="square"
+                    />
+                  </svg>
+                  <svg
+                    class="step-arrow-head step-arrow-head--right"
+                    viewBox="0 0 9 16"
+                    fill="none"
+                  >
+                    <path
+                      d="M1 1L8 8L1 15"
                       stroke="currentColor"
                       stroke-width="1.5"
                       stroke-linecap="square"
@@ -303,14 +325,31 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 24px;
-    letter-spacing: 1px;
-    /* The +1px tracking is trailing, which visually pushes the digits left of
-       centre inside a circle. Give the space back. */
-    text-indent: 1px;
   }
-  /* No padding at either end: on the board the rule runs straight out of the
-     circle and straight into the head, reading as one arrow. Any gap here makes
-     the three parts look like separate objects. */
+  /* Centring a circle's label on its metrics is not the same as centring it on
+     what you can see, and at 30px the difference reads. Two corrections, both
+     measured off the rendered ink at 4x rather than guessed:
+
+     - Horizontally the box is centred on the numerals' ADVANCE widths, which
+       include the trailing 1px of tracking and each glyph's side bearings — so
+       the ink they draw lands left of centre by 0.75px to 1.75px depending on
+       the pair ("1" carries the most bearing, so "01" is the worst).
+     - Vertically the digits sit high, because a font's ascent and descent are
+       not symmetric about the baseline; metric centring leaves them about a
+       pixel above the circle's middle.
+
+     One translate for both, chosen to minimise the worst case rather than to
+     perfect any single numeral — per-numeral nudges would need magic values per
+     digit pair, and the numbering is derived from position, so it does not stop
+     at 03. This holds 01/02/03 within ~0.6px of centre at both breakpoints. */
+  .step-num-digits {
+    letter-spacing: 1px;
+    transform: translate(1.2px, 1px);
+  }
+  /* On the board the rule runs straight out of the circle and straight into the
+     vertex, reading as one arrow — so no padding at either end, and the head
+     overlaps the rule rather than following it. Any gap and the three parts read
+     as separate objects, which is exactly how this first shipped. */
   .step-arrow {
     display: flex;
     flex: 1 1 auto;
@@ -326,13 +365,20 @@
   }
   .step-arrow-head {
     flex: none;
+    color: inherit;
+    /* The mitred vertex overshoots its own viewBox by ~1px. Let it paint. */
+    overflow: visible;
+  }
+  .step-arrow-head--down {
+    display: block;
     width: 16px;
     height: 9px;
-    /* Pull the head back onto the line so the strokes meet — the path is inset
-       1px inside its own viewBox, which would otherwise read as a gap. */
-    margin-top: -2px;
-    /* Authored pointing down for the mobile rail; the desktop rule turns it. */
-    color: inherit;
+    /* Back by the box's full depth, so the rule runs under the head and stops
+       at the vertex rather than at the chevron's open ends. */
+    margin-top: -9px;
+  }
+  .step-arrow-head--right {
+    display: none;
   }
   @media (min-width: 768px) {
     .step {
@@ -353,11 +399,15 @@
       width: auto;
       height: 1.5px;
     }
-    .step-arrow-head {
-      /* Same overlap as the vertical rail, turned with it. */
-      margin-top: 0;
-      margin-left: -2px;
-      transform: rotate(-90deg);
+    .step-arrow-head--down {
+      display: none;
+    }
+    .step-arrow-head--right {
+      display: block;
+      width: 9px;
+      height: 16px;
+      /* Same join as the vertical rail, on the other axis. */
+      margin-left: -9px;
     }
   }
   .step-body {

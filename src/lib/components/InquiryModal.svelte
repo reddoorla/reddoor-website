@@ -253,7 +253,7 @@
               <!-- Decorative: the tab's own name already carries the step, and
                    the number would otherwise be read before every label. -->
               <span class="inquiry-step-num" aria-hidden="true">
-                {stepNumber(i)}
+                <span class="inquiry-step-digits">{stepNumber(i)}</span>
                 {#if active === i}
                   <svg class="inquiry-step-arrow" viewBox="0 0 16 9" fill="none">
                     <path
@@ -447,8 +447,6 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 24px;
-    letter-spacing: 1px;
-    text-indent: 1px;
     /* Dim the RING only, never the digits. Fading the whole element (as the
        board does) drops the number to #eb8c90 — 2.41:1 on white, a contrast
        failure the axe gate catches. The border carries the board's soft look
@@ -459,6 +457,14 @@
   }
   .is-active .inquiry-step-num {
     border-color: currentColor;
+  }
+  /* Same circle, same correction as the process rail — see .step-num-digits in
+     slices/TextColumns. Centring on the numerals' advance widths puts their ink
+     up and to the left of the circle's middle; this puts it back. Measured off
+     the rendered ink, not guessed. */
+  .inquiry-step-digits {
+    letter-spacing: 1px;
+    transform: translate(1.2px, 1px);
   }
   /* The active step drops the same chevron the process rail uses. Absolute so
      it does not add height and shuffle the tabs when selection moves. */

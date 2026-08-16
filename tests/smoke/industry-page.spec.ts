@@ -172,6 +172,158 @@ test(`${PATH} renders the framework as a numbered list, not icons`, async ({ pag
   await expect(steps.locator(".step-num")).toHaveText(["01", "02", "03"]);
 });
 
+// Whether the arrow is joined is a claim about rendered INK, not about the box
+// model — which is exactly why the first attempt at this shipped broken. The
+// chevron was one SVG rotated 90°, and `rotate()` moves the glyph inside a box
+// whose layout size does not change; the rule was pulled back onto the box and
+// still stopped ~8px short of the vertex, so every step read as a rule and a
+// detached chevron. No layout assertion would have caught it.
+//
+// So: walk the ink across the join and require it to be a single unbroken run.
+// `headInk` guards the obvious false positive — an arrowhead that never painted
+// also leaves exactly one run.
+//
+// Only the join is captured, not the whole arrow. A screenshot clip has to sit
+// inside the viewport, and on mobile a step whose copy runs long makes the rail
+// taller than the space beneath it — clamping the clip then cut the chevron off
+// the bottom of the shot and reported it as never painted.
+const LEAD = 20; // px of rule to capture running into the vertex
+
+async function measureArrow(page: import("@playwright/test").Page, index: number, axis: "x" | "y") {
+  const arrow = page.locator('[data-slice-variation="iconColumns"] .step-arrow').nth(index);
+  const chevron = arrow.locator(".step-arrow-head:visible");
+  await chevron.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+
+  // Each chevron fades in on its own stagger, so waiting on the first step's
+  // opacity is not enough: measuring step 3 while it is still at 20% reads its
+  // stroke as paper and reports a gap that isn't there. Wait per step.
+  await expect
+    .poll(() => chevron.evaluate((el) => Number(getComputedStyle(el).opacity)), {
+      timeout: 15_000,
+    })
+    .toBe(1);
+
+  // …then for the page to stop moving under it. The slices above this one carry
+  // lazily-loaded media, so scrolling the rail into view starts a fresh round of
+  // image loads whose reflow drags the rail away — far enough that the clip
+  // computed from the old position lands on empty paper, or off-viewport
+  // entirely. Settle first, THEN re-scroll, THEN shoot, with nothing awaited in
+  // between that could let the page move again.
+  await expect
+    .poll(
+      async () => {
+        const before = await chevron.boundingBox();
+        await page.waitForTimeout(200);
+        const after = await chevron.boundingBox();
+        return !!before && !!after && before.x === after.x && before.y === after.y;
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+
+  await chevron.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+  const c = (await chevron.boundingBox())!;
+  const pad = 4;
+  const clip =
+    axis === "x"
+      ? { x: c.x - LEAD, y: c.y - pad, width: c.width + LEAD + pad, height: c.height + pad * 2 }
+      : { x: c.x - pad, y: c.y - LEAD, width: c.width + pad * 2, height: c.height + LEAD + pad };
+  const shot = await page.screenshot({ clip });
+
+  // Nothing below re-reads the page. Every coordinate is derived from the clip,
+  // which was built from `c` an instant before the shot — re-measuring the
+  // element afterwards means image and geometry can come from different layouts,
+  // and the centre-line walk then samples a row the rule isn't on.
+  return page.evaluate(
+    async ({ b64, clip, chev, pad, lead, axis }) => {
+      const img = new Image();
+      img.src = "data:image/png;base64," + b64;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      // Scale, not devicePixelRatio: the shot is clipped in CSS px but rendered
+      // at whatever the context's scale factor is.
+      const s = canvas.width / clip.width;
+      // Red dominance rather than an exact match — a 1.5px stroke lands on the
+      // device grid partially covered, so its pixels are blends toward paper.
+      const ink = (x: number, y: number) => {
+        if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
+        const i = (y * canvas.width + x) * 4;
+        return px[i] - px[i + 1] > 45 && px[i] - px[i + 2] > 30;
+      };
+      const along = axis === "x";
+      // Where the chevron sits inside the window, by construction of the clip.
+      const box = along
+        ? { x: lead, y: pad, w: chev.width, h: chev.height }
+        : { x: pad, y: lead, w: chev.width, h: chev.height };
+      // The rule, the chevron's vertex and the arrow all share a centre line.
+      const fixed = Math.round((along ? box.y + box.h / 2 : box.x + box.w / 2) * s);
+      // The window IS the join, so walk all of it.
+      const from = 0;
+      const to = along ? canvas.width : canvas.height;
+
+      let segments = 0;
+      let gap = 0;
+      let run = false;
+      let lastInk = -1;
+      for (let t = from; t < to; t++) {
+        const hit = along
+          ? ink(t, fixed) || ink(t, fixed - 1) || ink(t, fixed + 1)
+          : ink(fixed, t) || ink(fixed - 1, t) || ink(fixed + 1, t);
+        if (hit) {
+          if (!run) {
+            segments++;
+            if (lastInk >= 0) gap = Math.max(gap, (t - lastInk - 1) / s);
+          }
+          lastInk = t;
+        }
+        run = hit;
+      }
+
+      let headInk = 0;
+      for (let y = Math.round(box.y * s); y < Math.round((box.y + box.h) * s); y++)
+        for (let x = Math.round(box.x * s); x < Math.round((box.x + box.w) * s); x++)
+          if (ink(x, y)) headInk++;
+
+      return { segments, gap: +gap.toFixed(2), headInk };
+    },
+    {
+      b64: shot.toString("base64"),
+      clip,
+      chev: { width: c.width, height: c.height },
+      pad,
+      lead: LEAD,
+      axis,
+    },
+  );
+}
+
+for (const vp of VIEWPORTS) {
+  test(`${PATH} draws each step arrow as one unbroken stroke (${vp.name})`, async ({ page }) => {
+    await page.setViewportSize({ width: vp.width, height: vp.height });
+    await page.goto(PATH, { waitUntil: "domcontentloaded" });
+
+    const grid = page.locator('[data-slice-variation="iconColumns"] ol');
+    await grid.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+
+    // measureArrow waits for each step's own chevron to finish arriving —
+    // measuring before that reads the rule on its own, which looks like a
+    // flawless join.
+    //
+    // Mobile stacks the rail and points the arrows down; desktop turns the row.
+    const axis = vp.name === "desktop" ? "x" : "y";
+    for (let i = 0; i < 3; i++) {
+      const { segments, gap, headInk } = await measureArrow(page, i, axis);
+      expect(headInk, `step ${i + 1}: the chevron never painted`).toBeGreaterThan(0);
+      expect({ step: i + 1, segments, gap }).toEqual({ step: i + 1, segments: 1, gap: 0 });
+    }
+  });
+}
+
 test(`${PATH} does not announce the decorative step numbers`, async ({ page }) => {
   await page.goto(PATH, { waitUntil: "domcontentloaded" });
 
