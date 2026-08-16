@@ -308,6 +308,9 @@
        centre inside a circle. Give the space back. */
     text-indent: 1px;
   }
+  /* No padding at either end: on the board the rule runs straight out of the
+     circle and straight into the head, reading as one arrow. Any gap here makes
+     the three parts look like separate objects. */
   .step-arrow {
     display: flex;
     flex: 1 1 auto;
@@ -315,7 +318,6 @@
     align-items: center;
     /* Keeps the rail readable on a step whose copy is only a line or two. */
     min-height: 40px;
-    padding-block: 8px;
   }
   .step-arrow-line {
     flex: 1 1 auto;
@@ -326,6 +328,9 @@
     flex: none;
     width: 16px;
     height: 9px;
+    /* Pull the head back onto the line so the strokes meet — the path is inset
+       1px inside its own viewBox, which would otherwise read as a gap. */
+    margin-top: -2px;
     /* Authored pointing down for the mobile rail; the desktop rule turns it. */
     color: inherit;
   }
@@ -343,14 +348,15 @@
     .step-arrow {
       flex-direction: row;
       min-height: 0;
-      padding-block: 0;
-      padding-inline: 8px 0;
     }
     .step-arrow-line {
       width: auto;
       height: 1.5px;
     }
     .step-arrow-head {
+      /* Same overlap as the vertical rail, turned with it. */
+      margin-top: 0;
+      margin-left: -2px;
       transform: rotate(-90deg);
     }
   }

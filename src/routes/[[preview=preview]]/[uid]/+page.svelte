@@ -1,5 +1,6 @@
 <script lang="ts">
   import { SliceZone } from "@prismicio/svelte";
+  import type { Content } from "@prismicio/client";
   import type { PageData } from "./$types";
 
   import { components } from "$lib/slices";
@@ -9,6 +10,21 @@
   import { animateIn as anim } from "$lib/actions/animateIn";
 
   let { data }: { data: PageData } = $props();
+
+  // The modal's step tabs are the framework steps, read off the rendered slice
+  // rather than duplicated: the numbering, names and copy stay in Prismic, and
+  // an editor reordering the group reorders the tabs with it.
+  const steps = $derived(
+    (
+      data.page.data.slices.find(
+        (s) => s.slice_type === "text_columns" && s.variation === "iconColumns",
+      ) as Extract<Content.TextColumnsSlice, { variation: "iconColumns" }> | undefined
+    )?.primary.columns.map((c) => ({
+      title: c.title ?? "",
+      subtitle: c.subtitle ?? "",
+      body: c.body,
+    })) ?? [],
+  );
 </script>
 
 <!-- The band rhythm for industry landing pages is a property of the PAGE TYPE,
@@ -30,7 +46,7 @@
        than off to /contact (MED-16 follow-up). Mounted once here and driven by
        delegation: any link whose href is `#inquire` opens it, so no slice needs
        to know the modal exists and content controls which CTAs use it. -->
-  <InquiryModal />
+  <InquiryModal {steps} />
 {/if}
 
 {#if data.docType === "page"}

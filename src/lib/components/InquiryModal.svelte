@@ -1,25 +1,39 @@
 <script lang="ts">
   import { fade, scale } from "svelte/transition";
   import { trapFocus } from "$lib/actions/trapFocus";
+  import RichTextBody from "$lib/components/RichTextBody.svelte";
+  import type { RichTextField } from "@prismicio/client";
+  import { stepNumber } from "$lib/slices/TextColumns/stepNumber";
+
+  export type InquiryStep = {
+    title: string;
+    subtitle?: string;
+    body?: RichTextField;
+  };
 
   interface Props {
     /** Heading, per the board. */
     title?: string;
     /** The line above the field. */
     prompt?: string;
+    /**
+     * The framework steps, shown as tabs. Passed in from the page so the names,
+     * order and copy stay in Prismic rather than being duplicated here.
+     */
+    steps?: InquiryStep[];
     class?: string;
   }
 
   let {
     title = "Let's Get Started!",
     prompt = "Enter your email, then answer 5 questions to see if you're a good fit:",
+    steps = [],
     class: className = "",
   }: Props = $props();
 
   let open = $state(false);
-  // Which control opened it (a step name, or a CTA's label) — forwarded to
-  // ingest so a lead can be traced back to the section that produced it.
-  let step = $state("");
+  /** Which step tab is selected — also what gets forwarded to ingest. */
+  let active = $state(0);
   let email = $state("");
   let status = $state<"idle" | "sending" | "sent" | "error">("idle");
   let error = $state("");
@@ -29,8 +43,12 @@
   let openedAt = 0;
   // Honeypot. A real visitor never sees or fills this.
   let botField = $state("");
+  let tablist: HTMLDivElement | null = $state(null);
 
   const emailLooksValid = $derived(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
+  const activeStep = $derived(steps[active]);
+  /** Sent to ingest so a lead traces back to the step it came from. */
+  const stepLabel = $derived(activeStep?.title?.replace(/:$/, "") ?? "");
 
   // Svelte transitions are JS-driven, so the stylesheet's reduced-motion block
   // can't reach them — the fade/scale below would keep running for someone who
@@ -42,7 +60,12 @@
       : 0;
 
   function show(from: string) {
-    step = from;
+    // A trigger naming a step opens on it; a generic CTA opens on the first.
+    const wanted = from.trim().toLowerCase().replace(/:$/, "");
+    const found = steps.findIndex(
+      (s) => (s.title ?? "").trim().toLowerCase().replace(/:$/, "") === wanted,
+    );
+    active = found >= 0 ? found : 0;
     // Reset per-open so a previous error or success never greets the next
     // visitor who opens it.
     status = "idle";
@@ -55,6 +78,25 @@
 
   function close() {
     open = false;
+  }
+
+  /**
+   * Roving arrow-key movement across the tabs (WAI-ARIA tabs pattern). Without
+   * it a `role="tablist"` is a broken promise: AT announces tabs but only Tab
+   * moves, which is not what a tablist tells the user to expect.
+   */
+  function onTabKeydown(e: KeyboardEvent) {
+    const last = steps.length - 1;
+    let next: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = active === last ? 0 : active + 1;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = active === 0 ? last : active - 1;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = last;
+    if (next === null) return;
+    e.preventDefault();
+    active = next;
+    // Focus follows selection, which is the automatic-activation tab pattern.
+    queueMicrotask(() => tablist?.querySelectorAll<HTMLElement>('[role="tab"]')[next!]?.focus());
   }
 
   // Delegated so every CTA on the page works without each slice knowing the
@@ -141,7 +183,7 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
-          step,
+          step: stepLabel,
           botField,
           ts: openedAt,
           sourceUrl: location.href,
@@ -191,56 +233,105 @@
 
       <h2 id="inquiry-title" class="inquiry-title">{title}</h2>
 
-      {#if step}
-        <p class="inquiry-step">{step}</p>
-      {/if}
-
-      {#if status === "sent"}
-        <!-- Announced: the form it replaces is gone from the DOM, so without a
-             live region a screen-reader user gets no confirmation. -->
-        <p class="inquiry-sent" role="status">Thanks — we've got it. We'll be in touch shortly.</p>
-      {:else}
-        <p class="inquiry-prompt">{prompt}</p>
-
-        <form class="inquiry-form" onsubmit={submit} novalidate>
-          <!-- Honeypot: off-screen, not display:none (some bots skip hidden
-               fields), and hidden from AT + the tab order. -->
-          <div class="inquiry-hp" aria-hidden="true">
-            <label for="inquiry-company">Company</label>
-            <input
-              id="inquiry-company"
-              type="text"
-              tabindex="-1"
-              autocomplete="off"
-              bind:value={botField}
-            />
-          </div>
-
-          <label class="inquiry-label" for="inquiry-email">Email address</label>
-          <div class="inquiry-row">
-            <input
-              id="inquiry-email"
-              class="inquiry-input"
-              type="email"
-              inputmode="email"
-              autocomplete="email"
-              placeholder="you@domain.com"
-              required
-              data-autofocus
-              aria-describedby={status === "error" ? "inquiry-error" : undefined}
-              aria-invalid={status === "error" ? "true" : undefined}
-              bind:value={email}
-            />
-            <button type="submit" class="inquiry-submit" disabled={status === "sending"}>
-              {status === "sending" ? "Sending…" : "Inquire Now"}
+      {#if steps.length}
+        <!-- Real tabs: selecting a step swaps the copy below, so the tablist
+             pattern (and its arrow-key movement) is what a user is promised. -->
+        <div class="inquiry-steps" role="tablist" aria-label="Framework steps" bind:this={tablist}>
+          {#each steps as s, i (i)}
+            <button
+              type="button"
+              role="tab"
+              id={`inquiry-tab-${i}`}
+              aria-selected={active === i}
+              aria-controls="inquiry-panel"
+              tabindex={active === i ? 0 : -1}
+              class="inquiry-step"
+              class:is-active={active === i}
+              onclick={() => (active = i)}
+              onkeydown={onTabKeydown}
+            >
+              <!-- Decorative: the tab's own name already carries the step, and
+                   the number would otherwise be read before every label. -->
+              <span class="inquiry-step-num" aria-hidden="true">
+                {stepNumber(i)}
+                {#if active === i}
+                  <svg class="inquiry-step-arrow" viewBox="0 0 16 9" fill="none">
+                    <path
+                      d="M1 1L8 8L15 1"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="square"
+                    />
+                  </svg>
+                {/if}
+              </span>
+              <span class="inquiry-step-label">
+                <span class="inquiry-step-title">{s.title}</span>
+                {#if active === i && s.subtitle}
+                  <span class="inquiry-step-sub">{s.subtitle}</span>
+                {/if}
+              </span>
             </button>
-          </div>
-
-          {#if status === "error"}
-            <p id="inquiry-error" class="inquiry-error" role="alert">{error}</p>
-          {/if}
-        </form>
+          {/each}
+        </div>
       {/if}
+
+      <div id="inquiry-panel" role="tabpanel" aria-labelledby={`inquiry-tab-${active}`}>
+        {#if status === "sent"}
+          <!-- Announced: the form it replaces is gone from the DOM, so without a
+               live region a screen-reader user gets no confirmation. -->
+          <p class="inquiry-sent" role="status">
+            Thanks — we've got it. We'll be in touch shortly.
+          </p>
+        {:else}
+          {#if activeStep?.body}
+            <div class="inquiry-copy">
+              <RichTextBody field={activeStep.body} />
+            </div>
+          {/if}
+
+          <p class="inquiry-prompt">{prompt}</p>
+
+          <form class="inquiry-form" onsubmit={submit} novalidate>
+            <!-- Honeypot: off-screen, not display:none (some bots skip hidden
+                 fields), and hidden from AT + the tab order. -->
+            <div class="inquiry-hp" aria-hidden="true">
+              <label for="inquiry-company">Company</label>
+              <input
+                id="inquiry-company"
+                type="text"
+                tabindex="-1"
+                autocomplete="off"
+                bind:value={botField}
+              />
+            </div>
+
+            <label class="inquiry-label" for="inquiry-email">Email address</label>
+            <div class="inquiry-row">
+              <input
+                id="inquiry-email"
+                class="inquiry-input"
+                type="email"
+                inputmode="email"
+                autocomplete="email"
+                placeholder="you@domain.com"
+                required
+                data-autofocus
+                aria-describedby={status === "error" ? "inquiry-error" : undefined}
+                aria-invalid={status === "error" ? "true" : undefined}
+                bind:value={email}
+              />
+              <button type="submit" class="inquiry-submit" disabled={status === "sending"}>
+                {status === "sending" ? "Sending…" : "Inquire Now"}
+              </button>
+            </div>
+
+            {#if status === "error"}
+              <p id="inquiry-error" class="inquiry-error" role="alert">{error}</p>
+            {/if}
+          </form>
+        {/if}
+      </div>
     </div>
   </div>
 {/if}
@@ -250,7 +341,7 @@
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: rgb(0 0 0 / 0.55);
+    background: rgb(38 38 38 / 0.88);
   }
   .inquiry-wrap {
     position: fixed;
@@ -268,24 +359,26 @@
     position: relative;
     pointer-events: auto;
     width: 100%;
-    max-width: 635px; /* the board's popup width */
+    max-width: 640px; /* the board's popup width */
     max-height: calc(100vh - 40px);
     overflow-y: auto;
-    padding: 40px;
-    border-radius: 8px;
+    /* The board's card: generous padding and a soft radius. */
+    padding: 46px 52px 52px;
+    border-radius: 24px;
     background: #fff;
     font-family: "pragmatica", "helvetica", sans-serif;
   }
   @media (max-width: 640px) {
     .inquiry {
-      padding: 28px 20px;
+      padding: 32px 24px 36px;
+      border-radius: 16px;
     }
   }
 
   .inquiry-close {
     position: absolute;
-    top: 14px;
-    right: 14px;
+    top: 16px;
+    right: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -303,35 +396,117 @@
     height: 16px;
   }
 
-  /* Besley 44 — the board's popup headline. Family pinned because the global
-     `h2` rule would otherwise supply its own size here. */
+  /* Besley 54 — the board's popup headline. Family and size pinned because the
+     global `h2` rule would otherwise supply its own. */
   .inquiry-title {
-    margin: 0;
+    margin: 0 0 34px;
     font-family: "besley", "georgia", serif;
-    font-size: 44px;
+    font-size: 54px;
     font-weight: 400;
-    line-height: 1.15;
+    line-height: 1.08;
     color: #d71920; /* token: primary */
   }
   @media (max-width: 640px) {
     .inquiry-title {
-      font-size: 32px;
+      margin-bottom: 24px;
+      font-size: 34px;
     }
   }
 
-  /* Which step opened it — the board's 14/24 +1px uppercase label. */
+  /* ---- step tabs -------------------------------------------------------- */
+  .inquiry-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 26px;
+    margin-bottom: 30px;
+  }
   .inquiry-step {
-    margin: 14px 0 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    text-align: left;
+    color: #d71920; /* token: primary */
+  }
+  .inquiry-step:focus-visible {
+    outline: 2px solid #d71920;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .inquiry-step-num {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 400;
     line-height: 24px;
     letter-spacing: 1px;
+    text-indent: 1px;
+    /* Dim the RING only, never the digits. Fading the whole element (as the
+       board does) drops the number to #eb8c90 — 2.41:1 on white, a contrast
+       failure the axe gate catches. The border carries the board's soft look
+       while the digits stay at full red (5.19:1), and selection is in any case
+       announced by aria-selected and shown by the weight change below, so the
+       ring is never the only signal. */
+    border-color: #eba3a6;
+  }
+  .is-active .inquiry-step-num {
+    border-color: currentColor;
+  }
+  /* The active step drops the same chevron the process rail uses. Absolute so
+     it does not add height and shuffle the tabs when selection moves. */
+  .inquiry-step-arrow {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    width: 16px;
+    height: 9px;
+    margin-left: -8px;
+  }
+
+  .inquiry-step-label {
+    display: flex;
+    flex-direction: column;
+    padding-top: 3px;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    color: #d71920; /* token: primary */
+  }
+  /* The board dims an inactive step to a pale pink. At 14px that lands near
+     2:1 on white, so the DIMMING LIVES ON THE RING ABOVE and the label instead
+     separates by weight — full-strength red either way, which is 5.19:1. */
+  .inquiry-step-title {
+    font-weight: 300;
+  }
+  .is-active .inquiry-step-title {
+    font-weight: 700;
+  }
+  .inquiry-step-sub {
+    font-weight: 300;
+  }
+
+  /* ---- panel ------------------------------------------------------------ */
+  .inquiry-copy :global(p) {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 200;
+    line-height: 1.55;
+    color: #000;
+  }
+  .inquiry-copy :global(p:last-child) {
+    margin-bottom: 0;
   }
 
   .inquiry-prompt {
-    margin: 18px 0 0;
+    margin: 26px 0 0;
     font-size: 16px;
     font-weight: 200;
     line-height: 1.5;
@@ -339,7 +514,7 @@
   }
 
   .inquiry-form {
-    margin-top: 20px;
+    margin-top: 14px;
   }
   /* Visible-label equivalent: the placeholder alone is not a label, and it
      disappears the moment the field has content. */
@@ -355,7 +530,7 @@
   }
   .inquiry-row {
     display: flex;
-    gap: 10px;
+    gap: 12px;
   }
   @media (max-width: 520px) {
     .inquiry-row {
@@ -382,13 +557,12 @@
   }
   .inquiry-submit {
     flex: none;
-    padding: 12px 20px;
+    padding: 12px 22px;
     border: 1px solid #d71920;
     border-radius: 4px;
     background: #d71920; /* token: primary */
     color: #fff;
-    font-size: 14px;
-    letter-spacing: 0.08em;
+    font-size: 15px;
     white-space: nowrap;
     cursor: pointer;
     transition: background-color 300ms;
@@ -409,7 +583,7 @@
     color: #aa1419; /* token: primary-dark — 5.9:1 on white */
   }
   .inquiry-sent {
-    margin: 18px 0 0;
+    margin: 0;
     font-size: 16px;
     font-weight: 200;
     line-height: 1.5;

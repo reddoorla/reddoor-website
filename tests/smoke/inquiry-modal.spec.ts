@@ -107,6 +107,45 @@ test("a server error is surfaced rather than reported as success", async ({ page
   await expect(page.getByRole("status")).toHaveCount(0);
 });
 
+test("the step tabs switch the copy and follow arrow keys", async ({ page }) => {
+  await stubInquiry(page);
+  await gotoHydrated(page);
+  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+
+  const tabs = page.getByRole("tab");
+  await expect(tabs).toHaveCount(3);
+  // Opened from a trigger naming step 1.
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel")).toContainText("We audit your marketing deliverables");
+
+  // Clicking a tab swaps the panel copy.
+  await tabs.nth(2).click();
+  await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "false");
+  await expect(page.getByRole("tabpanel")).toContainText("We deploy the approved system");
+
+  // A tablist promises arrow-key movement; roving tabindex must follow.
+  await tabs.nth(2).focus();
+  await page.keyboard.press("ArrowRight"); // wraps to the first
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(0)).toBeFocused();
+  await expect(tabs.nth(1)).toHaveAttribute("tabindex", "-1");
+});
+
+test("the selected step is what gets submitted", async ({ page }) => {
+  const calls = await stubInquiry(page);
+  await gotoHydrated(page);
+  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+
+  await page.getByRole("tab").nth(1).click();
+  await page.locator("#inquiry-email").fill("buyer@example.com");
+  await page.getByRole("button", { name: "Inquire Now" }).click();
+
+  await expect(page.getByRole("status")).toContainText("Thanks");
+  // Trailing colon trimmed — the CMS title is "The Rebuild:".
+  expect(calls[0].step).toBe("The Rebuild");
+});
+
 test("opening the modal arrests scroll without shifting the page sideways", async ({ page }) => {
   await stubInquiry(page);
   await gotoHydrated(page);

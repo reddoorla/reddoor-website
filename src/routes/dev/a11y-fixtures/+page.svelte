@@ -277,6 +277,13 @@
           subtitle: "",
           body: rt("A complete brand system."),
         },
+        // Third step so the fixture matches the published page's three, which
+        // is what the modal's tablist is exercised against.
+        {
+          title: "The Rollout:",
+          subtitle: "Deploy Touch Points",
+          body: rt("We deploy the approved system everywhere buyers meet you."),
+        },
       ],
       hasTopPadding: true,
       hasBottomPadding: true,
@@ -559,5 +566,13 @@
        modal renders nothing, so the axe gate on load is unaffected; the smoke
        spec opens it and re-scans. -->
   <a href="/contact#inquire" data-inquire-step="The Diagnosis">Open the inquiry modal</a>
-  <InquiryModal />
+  <!-- Steps mirror the iconColumns fixture above, which is what the real page
+       feeds it — the tablist only exists when there are steps to show. -->
+  <InquiryModal
+    steps={iconColumns.primary.columns.map((c) => ({
+      title: c.title ?? "",
+      subtitle: c.subtitle ?? "",
+      body: c.body,
+    }))}
+  />
 </div>
