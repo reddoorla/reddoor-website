@@ -4,9 +4,9 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
-  import { PrismicImage } from "@prismicio/svelte";
-  import { isFilled, type Content } from "@prismicio/client";
+  import type { Content } from "@prismicio/client";
   import { deriveTitleTag } from "./titleTag";
+  import { stepNumber } from "./stepNumber";
 
   let { slice }: { slice: Content.TextColumnsSlice } = $props();
 
@@ -67,41 +67,55 @@
       </div>
     </RailRow>
   {:else if slice.variation === "iconColumns"}
-    <!-- Landing-page grid: icon + two-line red label + small body per column,
-         under a red rule that spans the content column only (not the rail). -->
+    <!-- Landing-page process rail: numbered step + arrow, two-line red label and
+         small body per column, under a red rule that spans the content column
+         only (not the rail). The `icon` field is still in the model but is no
+         longer rendered — the board replaced the per-step icons with the numbers
+         below, which are derived from position rather than authored. -->
     <RailRow label={slice.primary.eyebrow} animateIn={isAnimated}>
       <div class={slice.primary.hasTopRule ? "border-t border-primary pt-2.5" : ""}>
-        <div class="grid grid-cols-1 gap-x-5 gap-y-10 {columnsClass}">
+        <!-- An <ol>, not a div: the numbering IS the content here, and without a
+             list the sequence would exist only in the styling. That also lets the
+             visible 01/02/03 be decorative — see the aria-hidden below. -->
+        <ol class="step-grid grid grid-cols-1 gap-x-5 gap-y-10 {columnsClass}">
           <!-- Index-keyed for the same reason as above. -->
           {#each slice.primary.columns as column, i (i)}
-            <!-- 20px between icon, label and body, per the board. -->
-            <div class="flex flex-col gap-5">
-              {#if isFilled.image(column.icon)}
-                <!-- Decorative: the label directly below names the column, so an
-                     alt would just repeat it. -->
-                <PrismicImage
-                  field={column.icon}
-                  alt=""
-                  class="h-7.5 w-7.5 object-contain"
-                  imgixParams={{ auto: ["format", "compress"] }}
-                  widths={[30, 60, 90]}
-                  sizes="30px"
-                  loading="lazy"
-                  decoding="async"
-                />
-              {/if}
-              {#if column.title || column.subtitle}
-                <svelte:element this={titleTag} class="icon-label">
-                  {#if column.title}<span class="icon-label-lead">{column.title}</span>{/if}
-                  {#if column.subtitle}<span class="icon-label-sub">{column.subtitle}</span>{/if}
-                </svelte:element>
-              {/if}
-              <div class="col-body">
-                <RichTextBody field={column.body} />
+            <li class="step">
+              <!-- Number + arrow, hidden from assistive tech: the <ol> already
+                   conveys the order, so announcing "01" would double it. -->
+              <div class="step-head" aria-hidden="true">
+                <span class="step-num">{stepNumber(i)}</span>
+                <span class="step-arrow">
+                  <span class="step-arrow-line"></span>
+                  <!-- The board exports this arrow as one fixed-length vector.
+                       Here the line has to stretch to the column (and, on mobile,
+                       to however tall the copy runs), so it is a flexed rule plus
+                       this fixed chevron — same 1.5px stroke and geometry. -->
+                  <svg class="step-arrow-head" viewBox="0 0 16 9" fill="none">
+                    <path
+                      d="M1 1L8 8L15 1"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="square"
+                    />
+                  </svg>
+                </span>
               </div>
-            </div>
+              <!-- 20px between label and body, per the board. -->
+              <div class="step-body">
+                {#if column.title || column.subtitle}
+                  <svelte:element this={titleTag} class="icon-label">
+                    {#if column.title}<span class="icon-label-lead">{column.title}</span>{/if}
+                    {#if column.subtitle}<span class="icon-label-sub">{column.subtitle}</span>{/if}
+                  </svelte:element>
+                {/if}
+                <div class="col-body">
+                  <RichTextBody field={column.body} />
+                </div>
+              </div>
+            </li>
           {/each}
-        </div>
+        </ol>
       </div>
     </RailRow>
   {:else}
@@ -210,7 +224,104 @@
   }
 
   /* ---- iconColumns variation -------------------------------------------
-     Two-line 14/24 +1px uppercase red label: bold first line (title), light
+     The numbered process rail. Mobile stacks the number + arrow into a vertical
+     rail down the left with the copy beside it; from md the head turns and sits
+     above the copy as a row, which is the board's desktop frame. Both share one
+     chevron that just rotates.
+
+     Colour lives on `.step-head` and everything under it draws with
+     `currentColor`, so the rule, the ring and the chevron can never drift apart. */
+  .step-grid {
+    /* The <ol> is a grid, so the markers would sit outside the tracks. */
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    column-gap: 15px;
+  }
+  .step-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #d71920; /* token: primary — the board's #E31937 maps to this */
+  }
+  .step-num {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    /* Board: Pragmatica Book 14/24 +1px. Pinned rather than left to inherit —
+       this sits inside a slice whose other labels are 300 and whose global `li`
+       rules would otherwise supply the family. */
+    font-family: "pragmatica", "helvetica", sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 24px;
+    letter-spacing: 1px;
+    /* The +1px tracking is trailing, which visually pushes the digits left of
+       centre inside a circle. Give the space back. */
+    text-indent: 1px;
+  }
+  .step-arrow {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    /* Keeps the rail readable on a step whose copy is only a line or two. */
+    min-height: 40px;
+    padding-block: 8px;
+  }
+  .step-arrow-line {
+    flex: 1 1 auto;
+    width: 1.5px;
+    background: currentColor;
+  }
+  .step-arrow-head {
+    flex: none;
+    width: 16px;
+    height: 9px;
+    /* Authored pointing down for the mobile rail; the desktop rule turns it. */
+    color: inherit;
+  }
+  @media (min-width: 768px) {
+    .step {
+      display: flex;
+      flex-direction: column;
+      /* 20px between the head, the label and the body, per the board. */
+      gap: 20px;
+    }
+    .step-head {
+      flex-direction: row;
+      align-items: center;
+    }
+    .step-arrow {
+      flex-direction: row;
+      min-height: 0;
+      padding-block: 0;
+      padding-inline: 8px 0;
+    }
+    .step-arrow-line {
+      width: auto;
+      height: 1.5px;
+    }
+    .step-arrow-head {
+      transform: rotate(-90deg);
+    }
+  }
+  .step-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Two-line 14/24 +1px uppercase red label: bold first line (title), light
      second line (subtitle). One heading element so the outline stays clean;
      the lines are stacked blocks rather than a <br>. */
   .icon-label {

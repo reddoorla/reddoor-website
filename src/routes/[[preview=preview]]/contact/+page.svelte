@@ -91,7 +91,12 @@
           Thanks — your message is on its way. We'll be in touch shortly.
         </p>
       {:else}
+        <!-- `inquire` is the no-JS destination for the industry landing pages'
+             CTAs: they link to /contact#inquire, and the inquiry modal
+             intercepts that click when JS is available. Without JS the link
+             still lands on a real, working form instead of doing nothing. -->
         <form
+          id="inquire"
           class="h-full w-full mt-8 md:mt-0 md:w-2/3 flex flex-col gap-2 items-start md:pr-24"
           method="POST"
           use:enhance={() => {

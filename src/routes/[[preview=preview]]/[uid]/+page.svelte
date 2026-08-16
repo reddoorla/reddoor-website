@@ -5,6 +5,7 @@
   import { components } from "$lib/slices";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
+  import InquiryModal from "$lib/components/InquiryModal.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
 
   let { data }: { data: PageData } = $props();
@@ -23,6 +24,14 @@
 <div class="contents" data-band-rhythm={data.docType}>
   <SliceZone slices={data.page.data.slices} {components} />
 </div>
+
+{#if data.docType === "industry"}
+  <!-- Industry landing pages route every CTA into one email-capture modal rather
+       than off to /contact (MED-16 follow-up). Mounted once here and driven by
+       delegation: any link whose href is `#inquire` opens it, so no slice needs
+       to know the modal exists and content controls which CTAs use it. -->
+  <InquiryModal />
+{/if}
 
 {#if data.docType === "page"}
   <!-- footer CTA (marketing pages only — industry landing pages carry their own cta_banner slice) -->

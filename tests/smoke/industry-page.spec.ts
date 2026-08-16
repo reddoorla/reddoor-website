@@ -156,3 +156,32 @@ test(`${PATH} ends on its own CTA slice, not the marketing footer CTA`, async ({
   );
   await expect(page.locator('[data-slice-type="cta_banner"]')).toBeVisible();
 });
+
+test(`${PATH} renders the framework as a numbered list, not icons`, async ({ page }) => {
+  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+
+  const framework = page.locator('[data-slice-variation="iconColumns"]');
+  const steps = framework.locator("ol > li");
+  await expect(steps).toHaveCount(3);
+
+  // The board replaced the per-step icons with numbers; a leftover <img> would
+  // mean the slice is still rendering the (still-modelled) `icon` field.
+  await expect(framework.locator("img")).toHaveCount(0);
+
+  // Numbers are derived from position, so this also pins that ordering.
+  await expect(steps.locator(".step-num")).toHaveText(["01", "02", "03"]);
+});
+
+test(`${PATH} does not announce the decorative step numbers`, async ({ page }) => {
+  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+
+  // The <ol> already conveys the sequence. If the number + arrow were exposed
+  // too, every step would be read as "01 The Diagnosis" inside an
+  // already-numbered list. Asserted on the head rather than the rendered text
+  // because aria-hidden content still shows up in textContent.
+  const heads = page.locator('[data-slice-variation="iconColumns"] ol > li .step-head');
+  await expect(heads).toHaveCount(3);
+  for (let i = 0; i < 3; i++) {
+    await expect(heads.nth(i)).toHaveAttribute("aria-hidden", "true");
+  }
+});

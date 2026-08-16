@@ -181,7 +181,7 @@
       "name": "Icon Columns",
       "docURL": "...",
       "version": "initial",
-      "description": "Landing-page grid: columns of icon + two-line red label + small body, under an optional red rule. Leave the eyebrow empty when a LeadText above already labels the section.",
+      "description": "Landing-page process rail: numbered steps (the number comes from the column's position — there is no field for it) with a two-line red label + small body, under an optional red rule. Leave the eyebrow empty when a LeadText above already labels the section.",
       "imageUrl": "",
       "primary": {
         "eyebrow": {
@@ -213,14 +213,6 @@
           "config": {
             "label": "columns",
             "fields": {
-              "icon": {
-                "type": "Image",
-                "config": {
-                  "label": "icon",
-                  "constraint": {},
-                  "thumbnails": []
-                }
-              },
               "title": {
                 "type": "Text",
                 "config": {

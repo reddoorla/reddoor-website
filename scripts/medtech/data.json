@@ -28,7 +28,7 @@
     "buttons": [
       {
         "label": "Get Started",
-        "url": "/contact"
+        "url": "/contact#inquire"
       }
     ]
   },
@@ -291,7 +291,7 @@
   "cta": {
     "heading": "Are you ready for your brand to go from being overlooked to having instant credibility with your buyers?",
     "buttonLabel": "Talk with a founder",
-    "buttonUrl": "/contact",
+    "buttonUrl": "/contact#inquire",
     "background": "paper-red"
   }
 }

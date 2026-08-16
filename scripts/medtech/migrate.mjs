@@ -209,14 +209,15 @@ async function buildSlices(d, stage, projects) {
         eyebrow: "",
         hasTopRule: true,
         desktopColumns: "3",
-        columns: await Promise.all(
-          d.framework.columns.map(async (c) => ({
-            icon: await stage(c.icon, c.iconAlt),
-            title: c.title,
-            subtitle: c.subtitle,
-            body: rt(c.body),
-          })),
-        ),
+        // No icon: the board replaced the per-step icons with numbers derived
+        // from each column's position, so the field is gone from the model and
+        // sending it here would now fail the local model check. `data.json`
+        // keeps its `icon` keys as a record of what the first cut used.
+        columns: d.framework.columns.map((c) => ({
+          title: c.title,
+          subtitle: c.subtitle,
+          body: rt(c.body),
+        })),
         isAnimated: true,
         hide: false,
       },

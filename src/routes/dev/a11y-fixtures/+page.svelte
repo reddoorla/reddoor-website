@@ -11,6 +11,7 @@
   import FeaturedProject from "$lib/slices/FeaturedProject/index.svelte";
   import ValueBlock from "$lib/slices/ValueBlock/index.svelte";
   import CtaBanner from "$lib/slices/CtaBanner/index.svelte";
+  import InquiryModal from "$lib/components/InquiryModal.svelte";
 
   // Hydration marker for interaction tests: onMount only runs client-side after
   // hydration, so `html[data-hydrated]` is a deterministic "the page is now
@@ -265,15 +266,13 @@
       desktopColumns: "3",
       columns: [
         {
-          icon: img(""),
           title: "The Diagnosis:",
           subtitle: "Friction Audit",
           body: rt("We audit your marketing deliverables against your competition."),
         },
-        // Icon-less and subtitle-less: both are optional, and the column must
-        // still render a valid heading rather than an empty label row.
+        // Subtitle-less: it is optional, and the column must still render a
+        // valid heading rather than an empty label row.
         {
-          icon: img(""),
           title: "The Rebuild:",
           subtitle: "",
           body: rt("A complete brand system."),
@@ -553,4 +552,12 @@
   <ValueBlock slice={valueExpandable} />
   <Accordion slice={faqRail} />
   <CtaBanner slice={ctaBanner} />
+
+  <!-- Inquiry modal (industry pages). The live /medtech document still points
+       its CTAs at /contact until the content migration runs, so the trigger has
+       to exist here for the modal to be reachable in a test at all. The closed
+       modal renders nothing, so the axe gate on load is unaffected; the smoke
+       spec opens it and re-scans. -->
+  <a href="/contact#inquire" data-inquire-step="The Diagnosis">Open the inquiry modal</a>
+  <InquiryModal />
 </div>

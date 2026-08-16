@@ -2234,17 +2234,17 @@ export interface LogoGridSliceDefaultPrimaryLogosItem {
    * rollover background field in *LogoGrid → Default → Primary → logos*
    *
    * - **Field Type**: Image
-   * - **Placeholder**: optional — fills the whole band while this logo is hovered; drag the 'mobile' crop for the portrait view
+   * - **Placeholder**: optional — fills the whole band while this logo is hovered; its 'mobile' crop is used on phones only once the portrait field below is cleared
    * - **API ID Path**: logo_grid.default.primary.logos[].active_background
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
   active_background: prismic.ImageField<"mobile">;
 
   /**
-   * rollover background (portrait) — DEPRECATED field in *LogoGrid → Default → Primary → logos*
+   * rollover background (portrait) — on the way out field in *LogoGrid → Default → Primary → logos*
    *
    * - **Field Type**: Image
-   * - **Placeholder**: superseded by the 'mobile' crop on the field above; kept so already-published documents keep their portrait art
+   * - **Placeholder**: used on phones whenever it is filled. Prismic auto-fills the 'mobile' crop above with a top-left crop that usually loses the subject, so this wins until you clear it — crop 'mobile' first, then empty this field
    * - **API ID Path**: logo_grid.default.primary.logos[].active_background_mobile
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
@@ -3129,16 +3129,6 @@ export interface TextColumnsSliceServiceListPrimaryColumnsItem {
  */
 export interface TextColumnsSliceIconColumnsPrimaryColumnsItem {
   /**
-   * icon field in *TextColumns → Icon Columns → Primary → columns*
-   *
-   * - **Field Type**: Image
-   * - **Placeholder**: *None*
-   * - **API ID Path**: text_columns.iconColumns.primary.columns[].icon
-   * - **Documentation**: https://prismic.io/docs/fields/image
-   */
-  icon: prismic.ImageField<never>;
-
-  /**
    * title field in *TextColumns → Icon Columns → Primary → columns*
    *
    * - **Field Type**: Text
@@ -3450,7 +3440,7 @@ export interface TextColumnsSliceIconColumnsPrimary {
  * Icon Columns variation for TextColumns Slice
  *
  * - **API ID**: `iconColumns`
- * - **Description**: Landing-page grid: columns of icon + two-line red label + small body, under an optional red rule. Leave the eyebrow empty when a LeadText above already labels the section.
+ * - **Description**: Landing-page process rail: numbered steps (the number comes from the column's position — there is no field for it) with a two-line red label + small body, under an optional red rule. Leave the eyebrow empty when a LeadText above already labels the section.
  * - **Documentation**: https://prismic.io/docs/slices
  */
 export type TextColumnsSliceIconColumns = prismic.SharedSliceVariation<
