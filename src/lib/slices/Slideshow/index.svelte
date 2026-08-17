@@ -6,12 +6,20 @@
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
   import { isFilled } from "@prismicio/client";
   import SliceSection from "$lib/components/SliceSection.svelte";
+  import { slideshowAspect } from "./aspect";
 
   let { slice }: { slice: SlideshowSlice } = $props();
 
   const backgroundColorString = $derived(`bg-${slice.primary.backgroundcolor}`);
   const hasImages = $derived(slice.primary.images.length > 0);
   const hasText = $derived(!!slice.primary.label || isFilled.richText(slice.primary.body));
+
+  // Box shape comes from the slides, not from a guess. Every published
+  // slideshow on this site runs between 1.29 and 1.62, so the old hardcoded
+  // `aspect-video` (1.78) pillarboxed all of them — see ./aspect.ts. Computed
+  // from Prismic's stored dimensions, which are present during SSR, so the box
+  // is the right shape on first paint and nothing shifts on hydration.
+  const aspectRatio = $derived(slideshowAspect(slice.primary.images));
 </script>
 
 <!-- Gated on having ANY content (a truly empty just-added slice renders
@@ -49,6 +57,7 @@
           <Slideshow
             slides={slice.primary.images}
             hasNavDots={!!slice.primary.hasNavDots}
+            {aspectRatio}
             aspectClass="aspect-video"
           >
             {#snippet slide(media)}
