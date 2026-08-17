@@ -21,7 +21,14 @@ export type TurnstileApi = {
   // internal failure) — hence the `!== undefined` guard before `remove` at the call site.
   render: (
     el: HTMLElement,
-    opts: { sitekey: string; callback?: (token: string) => void },
+    opts: {
+      sitekey: string;
+      callback?: (token: string) => void;
+      // Fired on challenge failure — including a sitekey that doesn't allow
+      // this hostname, which is a live possibility for the GHL sitekey the
+      // inquiry flow borrows. Returning true suppresses Turnstile's own retry.
+      "error-callback"?: (code?: string) => boolean | void;
+    },
   ) => string | undefined;
   remove: (widgetId: string) => void;
   reset: (widgetId?: string) => void;

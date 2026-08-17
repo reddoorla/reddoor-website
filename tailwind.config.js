@@ -17,6 +17,24 @@ export default {
       black: "#000",
       white: "#fff",
       light: "#BBBDBF",
+      // Two grays introduced by the industry landing pages.
+      //
+      // `muted` is body text. The board specifies #8B8C8D, which is 3.36:1 on
+      // white at 14px — under the 4.5:1 WCAG AA floor. Note the binding
+      // constraint is NOT white: `muted` also lands on the `.bg-paper`
+      // watercolour texture (Testimonial), whose median luminance is 0.9216,
+      // and every ratio there is ~0.34 lower than on white. #6E6F72 is the
+      // nearest value on the board's cool axis that clears AA against paper
+      // (4.65:1, and 5.02:1 on white); it is not perceptibly different from the
+      // comp. Size any future adjustment against paper, not white — a value
+      // tuned to white alone lands just under the floor on the textured bands.
+      // axe cannot catch this: `.bg-paper` paints a background-image, so the
+      // rule falls back to the transparent background-color and reports white.
+      //
+      // `band` is a foreground: the FeaturedProject caption arrow. It is only
+      // ever drawn over the card's own dark scrim, never as a fill.
+      muted: "#6E6F72",
+      band: "#E7E8EB",
       mid: "#6c6d70",
       gray: "#C2D1D9",
       dark: "#424B5A",

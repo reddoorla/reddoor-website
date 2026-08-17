@@ -1,0 +1,88 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "label": {
+        "__TYPE__": "FieldContent",
+        "value": "Case Study",
+        "type": "Text"
+      },
+      "project_name": {
+        "__TYPE__": "FieldContent",
+        "value": "Revogen",
+        "type": "Text"
+      },
+      "services": {
+        "__TYPE__": "FieldContent",
+        "value": "Brand, Packaging, Digital, Print, Environmental",
+        "type": "Text"
+      },
+      "heading": {
+        "__TYPE__": "FieldContent",
+        "value": "Taking a biologics brand from overlooked to standing out.",
+        "type": "Text"
+      },
+      "after_image": {
+        "origin": {
+          "id": "main",
+          "url": "https://images.unsplash.com/photo-1600857062241-98e5dba7f214",
+          "width": 4000,
+          "height": 2670
+        },
+        "url": "https://images.unsplash.com/photo-1600857062241-98e5dba7f214",
+        "width": 4000,
+        "height": 2670,
+        "edit": {
+          "zoom": 1,
+          "crop": {
+            "x": 0,
+            "y": 0
+          },
+          "background": "transparent"
+        },
+        "credits": null,
+        "alt": "Revogen packaging photographed on a pale studio backdrop",
+        "__TYPE__": "ImageContent",
+        "thumbnails": {}
+      },
+      "before_image": {
+        "origin": {
+          "id": "main",
+          "url": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88",
+          "width": 4000,
+          "height": 2667
+        },
+        "url": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88",
+        "width": 4000,
+        "height": 2667,
+        "edit": {
+          "zoom": 1,
+          "crop": {
+            "x": 0,
+            "y": 0
+          },
+          "background": "transparent"
+        },
+        "credits": null,
+        "alt": "The previous Revogen packaging on a pale studio backdrop",
+        "__TYPE__": "ImageContent",
+        "thumbnails": {}
+      },
+      "vimeo_id": {
+        "__TYPE__": "FieldContent",
+        "value": "",
+        "type": "Text"
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

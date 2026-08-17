@@ -1,0 +1,297 @@
+{
+  "_source": "Figma RD-Sales-Funnel-LP, board \"Sales Funnel v2\" (node 4791:818), file HRxyQGlQwQDEqOuRlEaZoL. Copy transcribed verbatim except the edits listed in _copyEdits.",
+  "_copyEdits": [
+    "framework.eyebrow: Figma reads \"How Do it: Brand Credibility Framework\" (ungrammatical) → \"How We Do It: Brand Credibility Framework\".",
+    "featuredProject.title: Figma reads \"Medical Solution of texas\" → \"Medical Solutions of Texas\" (matches the client's real name and the testimonial role line).",
+    "Trailing spaces trimmed throughout; a U+200B zero-width-space spacer paragraph in the About body was dropped (it was a Figma authoring artifact, not content).",
+    "Service list and framework labels are stored in natural case — the components uppercase them in CSS."
+  ],
+  "_contentGaps": [
+    "hero.image is an UNLICENSED iStock comp (id 2184775810) exported at the board's 640px comp resolution. Staged as a clearly-named placeholder; a licensed hi-res must replace it before launch.",
+    "logoGrid hover logos: the board swaps five brands to a WHITE KNOCKOUT on hover (logo soup 5 TOSA, 7 Strategy Advantage, 8 MSOT, 10 Caltex, 13 AATI) and keeps the COLOUR mark for three (4 Revogen, 6 Preveta, 12 SCFAI). All five knockouts are now shipped. Provenance: Strategy Advantage is Nicole's SA_Logo-REVERSE.png from Dropbox 'Logo Soup - Sales Funnel/01_client logos'; MSOT is the original transparent upload behind Figma node 4858:446 (TOSA now comes from Dropbox as a matched pair); AATI (4836:1261) and Caltex (4836:1226) are the fill=\"white\" vector layers, with AATI recomposed from its two SVGs at the frame's own geometry. Do NOT re-export those four as node renders — Figma flattens them onto the Logo Library's #404040 background and the alpha is lost.",
+    "logoGrid: the 6th logo is dōmaru Health Supply Co., not Community Health Partners. The board (logo soup 11) and the designer's prepared rollover set both use dōmaru and neither has CHP — CHP came from the QA copy doc's client list. Note dōmaru is filed under ZZ_Archived Clients in Dropbox; shipping it was an explicit call.",
+    "logoGrid: board frame 'logo soup 11' (domaru) shows NO logo overlay at all, unlike every other hover frame. Read as an unfinished frame — domaru ships the knockout it already had, consistent with the other eight.",
+    "logoGrid order follows the board row by row: row 1 is Revogen, Preveta, MSOT. An earlier pass had MSOT and Preveta transposed — the grid fills in array order, so the array IS the layout. Re-check against board frame 'logo soup 3' (4802:529) whenever a logo is added or removed.",
+    "logoGrid hover sizing: the knockout is object-contain'd into the box the COLOUR mark sizes, so the pair must share a canvas aspect AND the same content/canvas padding fractions or the glyph changes size on hover. Re-check with sharp .trim() whenever a logo pair is replaced. TOSA now ships as Nicole's matched pair (TOSA_logo-horizontal + -rev, both 1728x800 -> 660x305), which is exact by construction and replaced an earlier hand-normalised knockout."
+  ],
+  "uid": "medtech",
+  "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>), not on-page copy — the h1 comes from the hero slice. Site convention is \"<Page> | Reddoor Creative\"; meta_title carries the longer SEO string.",
+  "title": "MedTech | Reddoor Creative",
+  "meta_title": "MedTech Brand Strategy & Design | Reddoor Creative",
+  "meta_description": "Reddoor's brand-credibility framework takes MedTech brands from screened out to short list — brand identity, digital presence and design systems that buyers and clinicians trust on sight.",
+  "hero": {
+    "headline": "We'll Take Your \nMedTech Brand from Screened Out to Short List",
+    "cardLabel": "Brand-Credibility Framework",
+    "cardBody": "Our framework means buyers trust you before your rep walks through the door. We diagnose, rebuild, and deploy everything your brand needs to compete on the national stage.",
+    "image": "hero-PLACEHOLDER-istock-comp.png",
+    "imageAlt": "Two surgeons in scrubs reviewing a tablet in an operating room",
+    "buttons": [
+      {
+        "label": "Get Started",
+        "url": "/contact#inquire"
+      }
+    ]
+  },
+  "services": {
+    "eyebrow": "What we do for you:",
+    "lead": "Closing the Trust Gap for Your Brand",
+    "subBody": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep selling while we build a brand buyers trust before they've met you.",
+    "columns": [
+      {
+        "title": "Brand Identity",
+        "items": ["Brand Strategy", "Brand Positioning", "Brand Design", "Copywriting"]
+      },
+      {
+        "title": "Digital Presence",
+        "items": [
+          "Website Design",
+          "Website Development",
+          "AEO/SEO Development",
+          "AEO/SEO Deployment"
+        ]
+      },
+      {
+        "title": "Design System",
+        "items": [
+          "Packaging Design",
+          "Trade Show Kit Design",
+          "Social Media Launch Kits",
+          "Social Media Management"
+        ]
+      }
+    ]
+  },
+  "framework": {
+    "eyebrow": "How We Do It: Brand Credibility Framework",
+    "lead": "Creating instant credibility with buyers and clinicians doesn't happen instantly. In fact, it takes a tried and true process that we've been using for 20 years.",
+    "columns": [
+      {
+        "icon": "icon-diagnosis-audit.svg",
+        "iconAlt": "",
+        "title": "The Diagnosis:",
+        "subtitle": "Friction Audit",
+        "body": "We audit your marketing deliverables and stack them against your competition to pinpoint what's getting you cut in procurement vetting. We deliver a prioritized plan to fix it before it costs another deal."
+      },
+      {
+        "icon": "icon-rebuild.svg",
+        "iconAlt": "",
+        "title": "The Rebuild:",
+        "subtitle": "Closing the Trust Gap",
+        "body": "We turn the audit into a complete brand system that provides credibility, then prove it side by side against your competitors so your team can move forward with confidence."
+      },
+      {
+        "icon": "icon-rollout-launch.svg",
+        "iconAlt": "",
+        "title": "The Rollout:",
+        "subtitle": "Deploy Touch Points",
+        "body": "We deploy the approved system everywhere buyers meet you, from websites and sales decks to tradeshows and packaging. Every piece makes the case on its own, so the selling starts before the rep does."
+      }
+    ]
+  },
+  "caseStudy": {
+    "label": "Case Study",
+    "projectName": "Revogen",
+    "services": "Brand, Packaging, Digital, Print, Environmental",
+    "heading": "Taking a biologics brand from overlooked to standing out.",
+    "afterImage": "revogen-after-1-phlex.png",
+    "afterImageAlt": "Revogen PhleX packaging in gradient purple and blue",
+    "beforeImage": "revogen-before.png",
+    "afterSlides": [
+      {
+        "file": "revogen-after-2-biostrandx.png",
+        "alt": "Revogen BioStrandX packaging in gradient magenta"
+      },
+      {
+        "file": "revogen-after-3-brand.png",
+        "alt": "The rebuilt Revogen brand mark"
+      },
+      {
+        "file": "revogen-after-4-mobile.png",
+        "alt": "The Revogen site on a phone"
+      }
+    ],
+    "beforeImageAlt": "Revogen's pre-rebrand collateral: RevoCen Biologics brochures and sell sheets"
+  },
+  "logoGrid": {
+    "label": "Clients: Join these brands in building trust",
+    "buttonLabel": "Our Work",
+    "buttonUrl": "/portfolio",
+    "logos": [
+      {
+        "name": "Revogen",
+        "file": "logo-revogen.png",
+        "project": "revogen",
+        "rollover": "rollover-revogen.jpg",
+        "rolloverMobile": "rollover-revogen-mobile.jpg"
+      },
+      {
+        "name": "Preveta",
+        "file": "logo-preveta.png",
+        "project": null,
+        "rollover": "rollover-preveta.jpg",
+        "rolloverMobile": "rollover-preveta-mobile.jpg"
+      },
+      {
+        "name": "Medical Solutions of Texas",
+        "file": "logo-msot.png",
+        "project": "msot",
+        "rollover": "rollover-msot.jpg",
+        "rolloverMobile": "rollover-msot-mobile.jpg",
+        "negative": "logo-msot-rev.png"
+      },
+      {
+        "name": "Strategy Advantage",
+        "file": "logo-strategy-advantage.png",
+        "project": "strategy-advantage-website",
+        "rollover": "rollover-strategy-advantage.jpg",
+        "rolloverMobile": "rollover-strategy-advantage-mobile.jpg",
+        "negative": "logo-strategy-advantage-rev.png"
+      },
+      {
+        "name": "Alamo Anatomy Training Institute",
+        "file": "logo-aati.png",
+        "project": null,
+        "rollover": "rollover-aati.jpg",
+        "rolloverMobile": "rollover-aati-mobile.jpg",
+        "negative": "logo-aati-rev.png"
+      },
+      {
+        "name": "dōmaru Health Supply Co.",
+        "file": "logo-domaru.png",
+        "negative": "logo-domaru-rev.png",
+        "rollover": "rollover-domaru.jpg",
+        "rolloverMobile": "rollover-domaru-mobile.jpg",
+        "project": null
+      },
+      {
+        "name": "Caltex Medical",
+        "file": "logo-caltex-medical.png",
+        "project": null,
+        "rollover": "rollover-caltex-medical.jpg",
+        "rolloverMobile": "rollover-caltex-medical-mobile.jpg",
+        "negative": "logo-caltex-medical-rev.png"
+      },
+      {
+        "name": "Texas Organ Sharing Alliance",
+        "file": "logo-texas-organ-sharing-alliance.png",
+        "project": "the-texas-organ-sharing-alliance",
+        "rollover": "rollover-texas-organ-sharing-alliance.jpg",
+        "rolloverMobile": "rollover-texas-organ-sharing-alliance-mobile.jpg",
+        "negative": "logo-texas-organ-sharing-alliance-rev.png"
+      },
+      {
+        "name": "Southern California Food Allergy Institute",
+        "file": "logo-scfai.png",
+        "project": "scfai",
+        "rollover": "rollover-scfai.jpg",
+        "rolloverMobile": "rollover-scfai-mobile.jpg"
+      }
+    ]
+  },
+  "testimonial": {
+    "label": "What clients are saying:",
+    "quote": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
+    "name": "Albert Turgon",
+    "role": "COO of MSOT (Medical Solutions of Texas)",
+    "avatar": "testimonial-albert-turgon.png",
+    "avatarAlt": "Albert Turgon"
+  },
+  "featuredProject": {
+    "title": "Medical Solutions of Texas",
+    "services": "brand, digital",
+    "image": "msot-web-mockup.jpg",
+    "imageAlt": "The Medical Solutions of Texas website shown on a desktop display",
+    "link": {
+      "type": "project",
+      "uid": "msot"
+    },
+    "hasTextureBleed": true
+  },
+  "about": {
+    "displayTitle": "On Your Behalf",
+    "eyebrow": "About Us",
+    "lede": "Reddoor's been at this for 20 years. In that time we've helped more than 300 companies stand out, and we've never gotten comfortable with work that's merely \"fine.\" Clarity beats clever, every time.",
+    "body": [
+      "We're a nimble senior team with people in San Antonio, Los Angeles, and Boise, and we've stayed that way on purpose. The people you meet in the first conversation are the people building your brand. Nothing gets handed down. We care about your company and about the people inside it who actually use what we make. The CMO we align with on strategy. The rep carrying your sell sheet into a hospital. Both have to be able to do their job with the work.",
+      "That's why every decision ties back to an outcome you can name. In your category that outcome is trust: clinicians who believe you on sight, procurement that's sold before the meeting starts, and deals you stop losing to the bigger name."
+    ],
+    "readMoreLabel": "Read More +"
+  },
+  "faq": {
+    "label": "Frequently Asked Questions",
+    "questions": [
+      {
+        "q": "We need more sales, not a new logo. How does branding actually help us win deals?",
+        "a": [
+          "A logo by itself won’t do much. What moves a deal is clearing out the reasons a buyer screens you out before they ever talk to you: a site that looks behind the market, materials that contradict each other, collateral that reads like it came from a smaller company than you are.",
+          "Our Friction Audit finds those triggers and stacks you against the competitors you’re losing to.",
+          "The goal isn’t a prettier brand. It’s a clear, consistent brand that gives you that first impression credibility you need to help you shorten the sales cycle and stop losing deals because you don’t look credible."
+        ]
+      },
+      {
+        "q": "How does pricing work?",
+        "a": [
+          "3 phases, priced separately, so you’re never buying more than you need.",
+          "The Diagnosis: Friction Audit. $1,500. 7 days. You can stop here and keep the plan.",
+          "The Rebuild: Credibility Alignment. Scoped during the Diagnosis, since the number depends on how deep the problem runs and how big you are. Clients have paid between $10,000 and $40,000. Most land around $20,000.",
+          "The Rollout: Deploy Brand Touchpoints. $10,000 to $200,000. Wide, because it covers everything a business could use to market to a buyer: website, packaging, sales decks, tradeshow kits, etc. Your business may only need the sales deck, or it may need all of these things. We scope and budget it with you during the Rebuild, then we start with the pieces that return the most for what you can actually spend."
+        ]
+      },
+      {
+        "q": "We have a regulatory and QA team. Where do you fit?",
+        "a": [
+          "We stay on the brand side and build for your reviewers.",
+          "We don’t write or approve regulated claims. That’s your team’s call, and it should be.",
+          "What we do is build a system where the approved language is easy to use consistently. Your materials clear internal review faster, and they don’t drift the second a rep builds their own deck.",
+          "We’d rather be clear about that line than claim something we don’t own."
+        ]
+      },
+      {
+        "q": "Will a rebrand confuse the customers we already have?",
+        "a": [
+          "It’s the question we get most, and it’s fair.",
+          "It’s also why we start with an audit instead of a blank page. We find what equity is worth keeping (usually more than founders expect) and what’s actively costing you.",
+          "Most engagements end up as an evolution of what you already have. If your name and mark are valuable and doing real work, we’ll tell you."
+        ]
+      },
+      {
+        "q": "What's the timeline, and how much of our time does it take?",
+        "a": [
+          "The Friction Audit runs 7 days and needs about 3 hours from you: an hour on a pre-meeting questionnaire, an hour for the kickoff interview, an hour in the diagnosis meeting. The Rebuild takes 30 days. The Rollout takes 60. So roughly 90 days from the start of the Rebuild to a brand deployed across every touchpoint.",
+          "Your time lands in a handful of review sessions. We handle everything in between.",
+          "You don’t have an in-house creative team. That’s usually why you’re here. So we’re not going to hand you a project to manage."
+        ]
+      },
+      {
+        "q": "Do we have to do all 3 phases?",
+        "a": [
+          "We encourage every company to start with the audit.",
+          "Skipping it is like walking into an auto shop and telling the mechanic what to fix. Even if you’re right, they still have to get under the hood and understand what’s actually going on with your car.",
+          "The audit gets everyone on the same page about the problem, the goal, and what it’ll take to get there. If we finish the diagnosis and you don’t agree with it, you don’t pay.",
+          "After that, we come alongside you wherever you want us. Sometimes that means we do everything. Sometimes it means we just build the website."
+        ]
+      },
+      {
+        "q": "Why not use a freelancer or handle this internally?",
+        "a": [
+          "Freelancers are good at single assets. A logo, a landing page.",
+          "The thing costing you deals is bigger. Your touchpoints don’t agree with each other, and that inconsistency reads as operational inconsistency to a value-analysis committee.",
+          "It’s a systems problem. It’s also hard to see from inside, where nobody looks at the brand the way a first-time buyer does."
+        ]
+      },
+      {
+        "q": "How do we get started?",
+        "a": [
+          "A 30-minute, no-strings-attached conversation to see if we’re the right fit for each other.",
+          "We’ll walk you through the process and answer any questions you have. We want you to feel comfortable with everything before moving forward."
+        ]
+      }
+    ]
+  },
+  "cta": {
+    "heading": "Are you ready for your brand to go from being overlooked to having instant credibility with your buyers?",
+    "buttonLabel": "Talk with a founder",
+    "buttonUrl": "/contact#inquire",
+    "background": "paper-red"
+  }
+}

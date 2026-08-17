@@ -314,6 +314,175 @@ body::-webkit-scrollbar {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Type scale for the industry landing pages (RD-Sales-Funnel-LP, board v2).
+
+   Why a layer instead of utilities on each element: the board reuses the same
+   handful of type roles across ~10 slices, and before this every one of them
+   pinned its own `text-[Npx] leading-[N] font-N` string. They drifted almost
+   immediately — the before/after switch label ended up 14px/24px/300 against
+   `.label`'s 14px/25px/200, close enough to look deliberate and different
+   enough to be wrong.
+
+   `@layer components`, deliberately: it beats the bare `h1`–`h6`/`p` rules in
+   `@layer base` (which set family, size, weight AND line-height, and would
+   otherwise leak Besley 60px into anything that lands on an <h2>), while still
+   losing to `@layer utilities` so a one-off `md:text-[19px]` still works.
+
+   Every role pins font-family explicitly. That is load bearing, not belt-and-
+   braces: the element rules set it, so a role used on a different tag than the
+   one it was designed against silently changes typeface without it.
+
+   Sizes are the board's, and the responsive steps mirror the breakpoints the
+   base heading scale already uses (1600 / 1024 / 768) so the two stay in step.
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* Red rail kicker naming a section. The most repeated role on the page —
+     RailRow, and the ValueBlock/Accordion eyebrows. Colour is NOT set here:
+     the rail is `text-primary`, but the same type is used in black elsewhere. */
+  .type-kicker {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: normal;
+  }
+
+  /* Masthead headline (industry_hero h1). Mobile-first, on Tailwind's own
+     breakpoints (md/lg/xl) rather than the base scale's max-width steps — this
+     is a straight lift of the utility string it replaces, and the two disagree
+     between 1280 and 1600 if you mix the conventions. */
+  .type-hero {
+    font-family: "Besley", serif;
+    font-size: 34px;
+    font-weight: 400;
+    line-height: 1.35;
+  }
+
+  /* Band title over a full-width rule (value_block/expandable), board 4803:876.
+     Besley 60/1.25. The board has no mobile frame, so the smaller steps are a
+     proportional scale-down — carried over verbatim from the local copy this
+     replaces, so hoisting it changes nothing visually. */
+  .type-display {
+    font-family: "Besley", serif;
+    font-size: 60px;
+    font-weight: 400;
+    line-height: 1.25;
+  }
+
+  /* Besley lead line introducing a section (case_study, text_columns).
+     `.type-lede-block` is the same role for a CMS lede: RichTextBody accepts no
+     class, so the role cannot be put on the emitted <p> and has to reach it from
+     the wrapper. Matching the descendant here rather than restating the values
+     keeps one definition — the two must never drift apart. */
+  .type-lede,
+  .type-lede-block :is(p) {
+    font-family: "Besley", serif;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: normal;
+  }
+
+  /* Pull-quote body (testimonial). */
+  .type-quote {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 21px;
+    font-weight: 300;
+    line-height: 30px;
+  }
+
+  /* Credited name under a quote (testimonial). */
+  .type-name {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  /* Attribution / secondary metadata under a quote or card. */
+  .type-meta {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 200;
+    line-height: 1.5;
+  }
+
+  /* Caption over media (featured_project). */
+  .type-caption {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1.4;
+  }
+
+  /* Small uppercase control/state label — the before/after switch, button
+     text. Supersedes the near-miss copies of `.label` that were drifting. */
+  .type-eyebrow {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 24px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Disclosure question (accordion). */
+  .type-question {
+    font-family: pragmatica, helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 30px;
+  }
+
+  /* Mobile-first steps (Tailwind md/lg/xl). */
+  @media only screen and (min-width: 768px) {
+    .type-hero {
+      font-size: 42px;
+    }
+
+    .type-question {
+      font-size: 21px;
+    }
+  }
+
+  @media only screen and (min-width: 1024px) {
+    .type-hero {
+      font-size: 48px;
+    }
+
+    .type-lede,
+    .type-lede-block :is(p) {
+      font-size: 26px;
+      line-height: 1.45;
+    }
+  }
+
+  @media only screen and (min-width: 1280px) {
+    .type-hero {
+      font-size: 60px;
+    }
+  }
+
+  /* `.type-display` is desktop-first, matching the base heading scale it has to
+     out-specify (the global `h2` drops to 35px at 1024 / 27px at 768). */
+  @media only screen and (max-width: 1024px) {
+    .type-display {
+      font-size: 44px;
+    }
+  }
+
+  @media only screen and (max-width: 768px) {
+    .type-display {
+      font-size: 36px;
+    }
+  }
+
+  @media only screen and (max-width: 480px) {
+    .type-display {
+      font-size: 30px;
+    }
+  }
+}
+
 .rich-text a {
   color: #d71920;
   transition: color 400ms;
@@ -351,4 +520,123 @@ body::-webkit-scrollbar {
 
 .bob-always {
   animation: 1s infinite forwards pos-y-wiggle ease-out;
+}
+
+/* ─── Industry landing-page band rhythm (MED-16) ─────────────────────────────
+   The `RD-Sales-Funnel-LP` board fixes the vertical spacing of every band on
+   an industry landing page, and the brief is to match it exactly. Three ways
+   to do that were considered; this is the one that cannot be broken by an
+   editor, because there is nothing for an editor to set:
+
+     · per-document padding fields — expressive enough, but the same slice
+       variation needs different values at different points on the page, so it
+       becomes a number an author has to know and can get wrong;
+     · fixed padding per slice variation — cannot express the same variation
+       twice with different spacing (`lead_text/rail` is 60 in "the story" and
+       48 in "intro");
+     · this — derive the padding from the slice type and its NEIGHBOURS. The
+       distinction the board makes is positional, and document order already
+       encodes position, so reordering or deleting a slice re-resolves the
+       rhythm instead of stranding a wrong number on a document.
+
+   UNLAYERED on purpose. The slices emit their own Tailwind padding utilities
+   for the page/project documents they are also used on; utilities live in
+   `@layer utilities`, and unlayered rules outrank every layer, so these win
+   here without touching the shared components or their other call sites.
+
+   Numbers are the board's, measured at 1440 (frame geometry where the node
+   tree expands, ink bounds where the band is an unexpanded instance). Mobile
+   is roughly half — the board is drawn at one width only, and 168px of dead
+   space above a phone-width heading is not what it means. */
+[data-band-rhythm="industry"] > section[data-slice-type] {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* "the story" — lede + service list read as ONE block in the comp (488 tall,
+   60 top and bottom, and internally 148 lede + 20 + 200 list). The two slices'
+   facing edges carry that 20 between them and nothing more, which is what
+   removes the 60px seam our first pass shipped — note it is a GAP, not a
+   collapse: zeroing both edges runs the list into the lede. */
+[data-band-rhythm="industry"] > section[data-slice-type="lead_text"] {
+  padding-top: 30px;
+  padding-bottom: 10px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="text_columns"] {
+  padding-bottom: 30px;
+}
+
+/* "intro" — same pair again, but the board gives it 48 top / 96 bottom rather
+   than 60 / 60. The only thing distinguishing the two instances is what sits
+   above and below them, which is exactly what these selectors read. */
+[data-band-rhythm="industry"]
+  > section[data-slice-type="text_columns"]
+  + section[data-slice-type="lead_text"] {
+  padding-top: 24px;
+  padding-bottom: 15px;
+}
+[data-band-rhythm="industry"]
+  > section[data-slice-type="text_columns"]:has(+ section[data-slice-type="case_study"]) {
+  padding-bottom: 48px;
+}
+
+[data-band-rhythm="industry"] > section[data-slice-type="logo_grid"] {
+  padding-top: 64px;
+  padding-bottom: 72px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="testimonial"] {
+  padding-top: 32px;
+  padding-bottom: 24px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="value_block"] {
+  padding-top: 48px;
+  padding-bottom: 56px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="accordion"] {
+  padding-top: 48px;
+  padding-bottom: 56px;
+}
+[data-band-rhythm="industry"] > section[data-slice-type="cta_banner"] {
+  padding-top: 56px;
+  padding-bottom: 84px;
+}
+
+@media (min-width: 768px) {
+  [data-band-rhythm="industry"] > section[data-slice-type="lead_text"] {
+    padding-top: 60px;
+    padding-bottom: 20px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="text_columns"] {
+    padding-bottom: 60px;
+  }
+  [data-band-rhythm="industry"]
+    > section[data-slice-type="text_columns"]
+    + section[data-slice-type="lead_text"] {
+    padding-top: 48px;
+    padding-bottom: 30px;
+  }
+  [data-band-rhythm="industry"]
+    > section[data-slice-type="text_columns"]:has(+ section[data-slice-type="case_study"]) {
+    padding-bottom: 96px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="logo_grid"] {
+    padding-top: 128px;
+    padding-bottom: 144px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="testimonial"] {
+    padding-top: 64px;
+    padding-bottom: 48px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="value_block"] {
+    padding-top: 95px;
+    padding-bottom: 111px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="accordion"] {
+    padding-top: 96px;
+    padding-bottom: 112px;
+  }
+  [data-band-rhythm="industry"] > section[data-slice-type="cta_banner"] {
+    padding-top: 115px;
+    padding-bottom: 168px;
+  }
 }

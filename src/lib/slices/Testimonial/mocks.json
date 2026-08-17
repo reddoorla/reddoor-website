@@ -1,0 +1,60 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "label": {
+        "__TYPE__": "FieldContent",
+        "value": "",
+        "type": "Text"
+      },
+      "quote": {
+        "__TYPE__": "FieldContent",
+        "value": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
+        "type": "Text"
+      },
+      "name": {
+        "__TYPE__": "FieldContent",
+        "value": "Albert Turgon",
+        "type": "Text"
+      },
+      "role": {
+        "__TYPE__": "FieldContent",
+        "value": "COO of MSOT (Medical Solutions of Texas)",
+        "type": "Text"
+      },
+      "avatar": {
+        "origin": {
+          "id": "main",
+          "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a",
+          "width": 400,
+          "height": 400
+        },
+        "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a",
+        "width": 400,
+        "height": 400,
+        "edit": {
+          "zoom": 1,
+          "crop": {
+            "x": 0,
+            "y": 0
+          },
+          "background": "transparent"
+        },
+        "credits": null,
+        "alt": null,
+        "__TYPE__": "ImageContent",
+        "thumbnails": {}
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

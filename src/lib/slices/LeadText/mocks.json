@@ -29,5 +29,47 @@
       }
     },
     "items": []
+  },
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "rail",
+    "primary": {
+      "eyebrow": {
+        "__TYPE__": "FieldContent",
+        "value": "What we do for you:",
+        "type": "Text"
+      },
+      "body": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "Closing the Trust Gap for Your Brand"
+            }
+          }
+        ]
+      },
+      "subBody": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep selling while we build a brand buyers trust before they've met you."
+            }
+          }
+        ]
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
   }
 ]

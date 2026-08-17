@@ -1,0 +1,132 @@
+{
+  "id": "case_study",
+  "type": "SharedSlice",
+  "name": "CaseStudy",
+  "description": "CaseStudy",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Full-bleed case-study photo band with an overlaid rail label, services list, before/after switch and a Besley lead line",
+      "imageUrl": "",
+      "primary": {
+        "label": {
+          "type": "Text",
+          "config": {
+            "label": "label",
+            "placeholder": "e.g. Case Study"
+          }
+        },
+        "project_name": {
+          "type": "Text",
+          "config": {
+            "label": "project name",
+            "placeholder": "e.g. Revogen — rendered under the label, uppercased in CSS"
+          }
+        },
+        "services": {
+          "type": "Text",
+          "config": {
+            "label": "services",
+            "placeholder": "Brand, Packaging, Digital, Print, Environmental"
+          }
+        },
+        "heading": {
+          "type": "Text",
+          "config": {
+            "label": "heading",
+            "placeholder": "e.g. Taking a biologics brand from overlooked to standing out."
+          }
+        },
+        "after_image": {
+          "type": "Image",
+          "config": {
+            "label": "after_image",
+            "constraint": {},
+            "thumbnails": []
+          }
+        },
+        "after_images": {
+          "type": "Group",
+          "config": {
+            "label": "after slideshow (extra slides)",
+            "repeat": true,
+            "fields": {
+              "image": {
+                "type": "Image",
+                "config": {
+                  "label": "slide",
+                  "placeholder": "optional — added after the main after image; 2+ slides auto-rotate",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              }
+            }
+          }
+        },
+        "before_image": {
+          "type": "Image",
+          "config": {
+            "label": "before_image (optional — adds the before/after switch)",
+            "constraint": {},
+            "thumbnails": []
+          }
+        },
+        "vimeo_id": {
+          "type": "Text",
+          "config": {
+            "label": "vimeo_id (optional — replaces the after image, hides the switch)",
+            "placeholder": ""
+          }
+        },
+        "link": {
+          "type": "Link",
+          "config": {
+            "label": "link (optional — makes the whole band clickable)",
+            "placeholder": "",
+            "select": null
+          }
+        },
+        "hasTopPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTopPadding",
+            "placeholder_false": "no top padding",
+            "placeholder_true": "top padding",
+            "default_value": false
+          }
+        },
+        "hasBottomPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasBottomPadding",
+            "placeholder_false": "no bottom padding",
+            "placeholder_true": "bottom padding",
+            "default_value": false
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}
