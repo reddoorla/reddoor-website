@@ -122,6 +122,12 @@ test("the step row is decorative, not a set of controls", async ({ page }) => {
   await expect(page.getByRole("tab")).toHaveCount(0);
   await expect(page.getByRole("tabpanel")).toHaveCount(0);
   await expect(dialog.locator(".inquiry-steps button, .inquiry-steps a")).toHaveCount(0);
+  // Nor does it invite a click it cannot answer. The `cursor: pointer` these
+  // carried as tabs outlived the tabs themselves, which reads as three broken
+  // buttons to anyone who moves a mouse across the row.
+  for (const el of await dialog.locator(".inquiry-step").all()) {
+    await expect(el).toHaveCSS("cursor", "auto");
+  }
   // Hidden from AT: the copy below already names the step, so the run of
   // numbers and labels would only be read out in front of it.
   await expect(dialog.locator(".inquiry-steps")).toHaveAttribute("aria-hidden", "true");

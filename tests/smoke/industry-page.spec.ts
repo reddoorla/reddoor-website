@@ -316,6 +316,123 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
   );
 }
 
+/**
+ * How far the numerals' INK sits from the true centre of their circle, in CSS
+ * px. Positive x = right of centre.
+ *
+ * Two things this has to get right, both of which produced false passes while
+ * the numerals were visibly off:
+ *   - `element.screenshot()` rounds its clip outward to whole device pixels, so
+ *     the element's centre is NOT at image-width/2. On a fractionally-positioned
+ *     box that bias is up to 0.75px — the size of the defect. Hence an integer
+ *     clip chosen here, with the centre taken from the element's own box.
+ *   - the arrow rule starts flush against the circle and bleeds into the clip,
+ *     so the ink bounds run to the frame edge. Hence the disc mask.
+ */
+async function measureDigits(page: import("@playwright/test").Page, index: number) {
+  const el = page.locator('[data-slice-variation="iconColumns"] .step-num').nth(index);
+  await el.evaluate((n) => n.scrollIntoView({ block: "center", behavior: "instant" }));
+  await expect
+    .poll(() => el.evaluate((n) => Number(getComputedStyle(n).opacity)), { timeout: 15_000 })
+    .toBe(1);
+
+  // Land the circle on a whole CSS pixel first. Glyph edges snap to the device
+  // grid, so a circle sitting on a half pixel reads up to a quarter pixel off
+  // however perfect the CSS is — the modal's identical circles swing between
+  // 0.0 and -0.5 with nothing but the window height. That is the rasteriser,
+  // not the correction, and it would make this test a coin flip.
+  const frac = (await el.boundingBox())!.y % 1;
+  if (frac) await page.evaluate((f) => window.scrollBy(0, f), frac);
+
+  const box = (await el.boundingBox())!;
+  const pad = 6;
+  const clip = {
+    x: Math.floor(box.x) - pad,
+    y: Math.floor(box.y) - pad,
+    width: Math.ceil(box.width) + pad * 2,
+    height: Math.ceil(box.height) + pad * 2,
+  };
+  const shot = await page.screenshot({ clip });
+
+  return page.evaluate(
+    async ({ b64, clip, box }) => {
+      const img = new Image();
+      img.src = "data:image/png;base64," + b64;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+      const s = canvas.width / clip.width;
+      const cx = (box.x + box.width / 2 - clip.x) * s;
+      const cy = (box.y + box.height / 2 - clip.y) * s;
+      // Well inside the 13.5px ring, and wider than any two-digit numeral.
+      const r2 = (12 * s) ** 2;
+
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      let ink = 0;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 > r2) continue;
+          const i = (y * canvas.width + x) * 4;
+          // Red dominance, same rule the arrow uses: a numeral's edge pixels are
+          // blends toward paper, so an exact match would shrink the bounds.
+          if (px[i] - px[i + 1] < 45 || px[i] - px[i + 2] < 30) continue;
+          ink++;
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x + 1);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y + 1);
+        }
+      }
+      if (!ink) return { ink: 0, dx: 0, dy: 0 };
+      return {
+        ink,
+        dx: +(((minX + maxX) / 2 - cx) / s).toFixed(2),
+        dy: +(((minY + maxY) / 2 - cy) / s).toFixed(2),
+      };
+    },
+    { b64: shot.toString("base64"), clip, box },
+  );
+}
+
+// The numerals are centred on their own ink, not on their advance widths — the
+// two differ by up to 1.5px at this size, which is plainly visible inside a 30px
+// ring. This is the check that was missing when a single averaged nudge shipped:
+// it held 01 within half a pixel while pushing 02 and 03 the other way, and
+// nothing in the suite could tell.
+test.describe("step numerals", () => {
+  // At the default 1x the ink bounds quantise to whole pixels, so the sharpest
+  // question this could answer is "within half a pixel" — and the defect it
+  // guards against was 0.69px. 4x gives it four times the resolving power.
+  test.use({ deviceScaleFactor: 4 });
+
+  for (const vp of VIEWPORTS) {
+    test(`${PATH} centres each step numeral on its ink (${vp.name})`, async ({ page }) => {
+      test.setTimeout(90_000);
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto(PATH, { waitUntil: "domcontentloaded" });
+      await settle(page);
+
+      for (let i = 0; i < 3; i++) {
+        const { ink, dx, dy } = await measureDigits(page, i);
+        expect(ink, `step ${i + 1}: no numeral painted`).toBeGreaterThan(0);
+        // The worst circle currently reads 0.06px. 0.25px leaves room for the
+        // rasteriser's own eighth-pixel wobble and still fails on the 0.69px
+        // this replaced.
+        expect(Math.abs(dx), `step ${i + 1}: numeral is ${dx}px off centre`).toBeLessThan(0.25);
+        expect(Math.abs(dy), `step ${i + 1}: numeral sits ${dy}px off centre`).toBeLessThan(0.25);
+      }
+    });
+  }
+});
+
 for (const vp of VIEWPORTS) {
   test(`${PATH} draws each step arrow as one unbroken stroke (${vp.name})`, async ({ page }) => {
     test.setTimeout(90_000);

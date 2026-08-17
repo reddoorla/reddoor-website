@@ -7,7 +7,7 @@
   import { cascadeIn } from "$lib/actions/cascadeIn";
   import type { Content } from "@prismicio/client";
   import { deriveTitleTag } from "./titleTag";
-  import { stepNumber } from "./stepNumber";
+  import { stepNumber, numeralNudge } from "./stepNumber";
 
   let { slice }: { slice: Content.TextColumnsSlice } = $props();
 
@@ -183,8 +183,15 @@
                    conveys the order, so announcing "01" would double it. -->
               <div class="step-head" aria-hidden="true">
                 <!-- Inner span so the numerals can be centred on their own ink
-                     rather than on their metrics — see .step-num-digits. -->
-                <span class="step-num"><span class="step-num-digits">{stepNumber(i)}</span></span>
+                     rather than on their metrics — see .step-num-digits. The
+                     nudge is per-numeral because `01` and `02` do not need the
+                     same one; `numeralNudge` explains why. -->
+                <span class="step-num"
+                  ><span
+                    class="step-num-digits"
+                    style="--digit-nudge:{numeralNudge(stepNumber(i))}px">{stepNumber(i)}</span
+                  ></span
+                >
                 <span class="step-arrow">
                   <span class="step-arrow-line"></span>
                   <!-- The board exports this arrow as one fixed-length vector.
@@ -386,24 +393,27 @@
     line-height: 24px;
   }
   /* Centring a circle's label on its metrics is not the same as centring it on
-     what you can see, and at 30px the difference reads. Two corrections, both
-     measured off the rendered ink at 4x rather than guessed:
+     what you can see, and at 30px the difference reads. Three corrections, each
+     one measured — at 4x off the rendered ink, and against the font's own
+     metrics via canvas TextMetrics, which agree to within 0.05px:
 
-     - Horizontally the box is centred on the numerals' ADVANCE widths, which
-       include the trailing 1px of tracking and each glyph's side bearings — so
-       the ink they draw lands left of centre by 0.75px to 1.75px depending on
-       the pair ("1" carries the most bearing, so "01" is the worst).
-     - Vertically the digits sit high, because a font's ascent and descent are
-       not symmetric about the baseline; metric centring leaves them about a
-       pixel above the circle's middle.
+     - Tracking is added after the LAST digit as well, so the box the browser
+       centres is 1px wider than the numerals draw. The negative margin takes
+       that pixel back off the end; without it every numeral reads 0.5px left.
+     - What remains is the first glyph's left bearing against the last glyph's
+       right bearing — zero for most numerals, a full pixel for `01`. Hence a
+       per-numeral `--digit-nudge` rather than one average: the single 1.2px
+       this used to carry was too much for `02`/`03` (0.7px right of centre)
+       and too little for `01`.
+     - Vertically the digits sit 0.75px high, because a font's ascent and
+       descent are not symmetric about the baseline. That one IS uniform — every
+       numeral shares a baseline and a cap height.
 
-     One translate for both, chosen to minimise the worst case rather than to
-     perfect any single numeral — per-numeral nudges would need magic values per
-     digit pair, and the numbering is derived from position, so it does not stop
-     at 03. This holds 01/02/03 within ~0.6px of centre at both breakpoints. */
+     Holds 01/02/03 within 0.06px of centre at both breakpoints. */
   .step-num-digits {
     letter-spacing: 1px;
-    transform: translate(1.2px, 1px);
+    margin-right: -1px;
+    transform: translate(var(--digit-nudge, 0px), 0.75px);
   }
   /* On the board the rule runs straight out of the circle and straight into the
      vertex, reading as one arrow — so no padding at either end, and the head

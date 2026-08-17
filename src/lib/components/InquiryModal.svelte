@@ -3,7 +3,7 @@
   import { trapFocus } from "$lib/actions/trapFocus";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import type { RichTextField } from "@prismicio/client";
-  import { stepNumber } from "$lib/slices/TextColumns/stepNumber";
+  import { stepNumber, numeralNudge } from "$lib/slices/TextColumns/stepNumber";
 
   export type InquiryStep = {
     title: string;
@@ -218,7 +218,10 @@
           {#each steps as s, i (i)}
             <div class="inquiry-step" class:is-active={i === 0}>
               <span class="inquiry-step-num">
-                <span class="inquiry-step-digits">{stepNumber(i)}</span>
+                <span
+                  class="inquiry-step-digits"
+                  style="--digit-nudge:{numeralNudge(stepNumber(i))}px">{stepNumber(i)}</span
+                >
                 {#if i === 0}
                   <!-- The board drops the process rail's arrow out of the
                        current step: a rule down to a chevron, not a loose
@@ -390,7 +393,7 @@
     }
   }
 
-  /* ---- step tabs -------------------------------------------------------- */
+  /* ---- step row (decorative, nothing here is clickable) ----------------- */
   .inquiry-steps {
     display: flex;
     flex-wrap: wrap;
@@ -401,7 +404,6 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    cursor: pointer;
     text-align: left;
     /* The board's pale pink for the two steps you are not on. It only reads as
        "not this one" because the active step sits beside it at full strength —
@@ -433,12 +435,14 @@
     border-color: currentColor;
   }
   /* Same circle, same correction as the process rail — see .step-num-digits in
-     slices/TextColumns. Centring on the numerals' advance widths puts their ink
-     up and to the left of the circle's middle; this puts it back. Measured off
-     the rendered ink, not guessed. */
+     slices/TextColumns for the full reasoning. Short version: kill the tracking
+     that lands after the last digit, nudge by the numeral's own bearings
+     (`--digit-nudge`, set in the markup), and drop the ink 0.75px to sit on the
+     circle's middle instead of its metrics. */
   .inquiry-step-digits {
     letter-spacing: 1px;
-    transform: translate(1.2px, 1px);
+    margin-right: -1px;
+    transform: translate(var(--digit-nudge, 0px), 0.75px);
   }
   /* Absolute so the arrow hangs below the circle without adding height and
      pushing the row's baseline off the label beside it. */
