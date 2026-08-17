@@ -17,6 +17,11 @@ import { readFile, glob } from "node:fs/promises";
 import path from "node:path";
 
 const SLICES = ["TextColumns"];
+// Custom types hand-edited on this branch — `updateCustomType` fires the same
+// full-types re-emit as `updateSlice`, from the customtypes/<id>/index.json on
+// disk. (Push to the Prismic repo is still Slice Machine's interactive job;
+// this only keeps the local .d.ts honest.)
+const CUSTOM_TYPES = ["industry"];
 const LIBRARY_ID = "./src/lib/slices";
 
 // @slicemachine/manager is a transitive dependency of slice-machine-ui, so
@@ -51,5 +56,18 @@ for (const name of SLICES) {
     process.exitCode = 1;
   } else {
     console.log(`✓ ${name} — types re-emitted`);
+  }
+}
+
+for (const id of CUSTOM_TYPES) {
+  const model = JSON.parse(
+    await readFile(path.resolve(process.cwd(), "customtypes", id, "index.json"), "utf8"),
+  );
+  const { errors } = await manager.customTypes.updateCustomType({ model });
+  if (errors?.length) {
+    console.error(`✗ ${id}:`, errors);
+    process.exitCode = 1;
+  } else {
+    console.log(`✓ ${id} — types re-emitted`);
   }
 }

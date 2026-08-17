@@ -1,9 +1,14 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { fade, scale } from "svelte/transition";
   import { trapFocus } from "$lib/actions/trapFocus";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import type { RichTextField } from "@prismicio/client";
   import { stepNumber, numeralNudge } from "$lib/slices/TextColumns/stepNumber";
+  import { questionsFor, SMS_CONSENT, type InquiryAnswers } from "$lib/ghl/questions";
+  import { fireInquiryForm, fireInquirySurvey, capturePageContext } from "$lib/ghl/submit";
+  import { primeGhlTurnstile, type GhlTurnstile } from "$lib/ghl/turnstile";
+  import { DEFAULT_INQUIRY_FORM_ID, DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 
   export type InquiryStep = {
     title: string;
@@ -16,11 +21,22 @@
     title?: string;
     /** The line above the field. */
     prompt?: string;
+    /** Shown once the application is in. */
+    thanks?: string;
     /**
      * The framework steps, shown as tabs. Passed in from the page so the names,
      * order and copy stay in Prismic rather than being duplicated here.
      */
     steps?: InquiryStep[];
+    /**
+     * GHL wiring, from the industry document's Inquiry tab. Blank falls back to
+     * the A-101 application funnel, so the flow works before the tab is filled
+     * in — and a future industry page can point at its own form/survey.
+     */
+    formId?: string;
+    surveyId?: string;
+    /** The page uid; becomes the default utm_campaign on the CRM side. */
+    campaign?: string;
     class?: string;
   }
 
@@ -28,7 +44,11 @@
     // Typographic apostrophe, as the board sets it.
     title = "Let’s Get Started!",
     prompt = "Enter your email, then answer 5 questions to see if you're a good fit:",
+    thanks = "Thanks — your application is in. We'll review it and be in touch shortly.",
     steps = [],
+    formId = "",
+    surveyId = "",
+    campaign = "",
     class: className = "",
   }: Props = $props();
 
@@ -43,11 +63,53 @@
   // Honeypot. A real visitor never sees or fills this.
   let botField = $state("");
 
+  // ---- the two-form flow -------------------------------------------------
+  // Frame one is the email capture (the CRM's "Application Step 1" form);
+  // frames two onward are the five-question survey plus its contact slide.
+  // The email goes up the moment frame one submits, so a visitor who bails
+  // mid-questions is still a captured lead — that is the point of splitting
+  // the flow in two.
+  type Frame = "email" | "question" | "contact" | "sent";
+  let frame = $state<Frame>("email");
+  let qIndex = $state(0);
+  let answers = $state<InquiryAnswers>({});
+  let fullName = $state("");
+  let phone = $state("");
+  let smsConsent = $state(false);
+  /** Field-level messages for the contact frame; keyed by input. */
+  let contactErrors = $state<{ name?: string; phone?: string; consent?: string }>({});
+  /** Focus lands here when a wizard frame changes — see goTo(). */
+  let frameHeading = $state<HTMLElement>();
+  /** The thank-you paragraph; focused on entry so a screen reader announces it. */
+  let sentEl = $state<HTMLElement>();
+  // Bumped on every fresh open. A submit captures the current value before it
+  // awaits; if a close→reopen starts a new session mid-flight, the stale
+  // continuation sees the mismatch and refuses to touch the new session's state.
+  // Plain (not $state) — it gates control flow, it is never rendered.
+  let session = 0;
+
+  const resolvedSurveyId = $derived(surveyId.trim() || DEFAULT_INQUIRY_SURVEY_ID);
+  /**
+   * undefined when the document points at a survey this build has no question
+   * set for: step one still captures the email, and the flow ends at the
+   * thank-you rather than submitting answers a different survey would misfile.
+   */
+  const questions = $derived(questionsFor(resolvedSurveyId));
+  const question = $derived(questions?.[qIndex]);
+
+  /** Turnstile priming for the CRM fires; undefined until the modal opens. */
+  let ghlTs: GhlTurnstile | undefined;
+
   const emailLooksValid = $derived(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
   /** The modal is one frame, and that frame is step one. */
   const firstStep = $derived(steps[0]);
-  /** Sent to ingest so a lead traces back to the step it came from. */
-  const stepLabel = $derived(firstStep?.title?.replace(/:$/, "") ?? "");
+  /** The section the opening CTA named via data-inquire-step, if any. */
+  let triggerStep = $state<string | undefined>();
+  /** Sent to ingest so a lead traces back to the CTA/section it came from —
+   *  the trigger's own step when it gave one, else the first framework step. */
+  const stepLabel = $derived((triggerStep ?? firstStep?.title)?.replace(/:$/, "") ?? "");
+  const campaignSlug = () =>
+    campaign || location.pathname.split("/").filter(Boolean).pop() || "industry";
 
   // Svelte transitions are JS-driven, so the stylesheet's reduced-motion block
   // can't reach them — the fade/scale below would keep running for someone who
@@ -58,19 +120,79 @@
       ? 300
       : 0;
 
-  function show() {
-    // Reset per-open so a previous error or success never greets the next
-    // visitor who opens it.
+  function show(step?: string) {
+    // A visitor who closed the modal mid-questions resumes where they were:
+    // their email is already captured and re-asking five answered questions is
+    // how applications get abandoned. Everything else — a fresh open, a
+    // finished application, a lingering error on frame one — resets so a
+    // previous visitor's state never greets the next.
+    if (frame === "question" || frame === "contact") {
+      // Resuming — but never clear a still-in-flight submit, or its guard drops
+      // and the visitor could fire a second one on reopen.
+      if (status !== "sending") {
+        status = "idle";
+        error = "";
+      }
+      open = true;
+      return;
+    }
+    // Fresh session: invalidate any submit still in flight from the last one.
+    session++;
+    triggerStep = step;
     status = "idle";
     error = "";
     email = "";
     botField = "";
+    frame = "email";
+    qIndex = 0;
+    answers = {};
+    fullName = "";
+    phone = "";
+    smsConsent = false;
+    contactErrors = {};
     openedAt = Date.now();
     open = true;
   }
 
   function close() {
     open = false;
+  }
+
+  let ghlTsEl = $state<HTMLDivElement>();
+
+  // Mint CRM-verifiable Turnstile tokens while the modal is up. Primed on open
+  // (the challenge takes a moment — starting it at submit time would stall the
+  // visitor), torn down on close. Failure is fine: fires go tokenless.
+  $effect(() => {
+    if (!open) return;
+    const el = ghlTsEl;
+    if (!el) return;
+    const ts = primeGhlTurnstile(el);
+    ghlTs = ts;
+    return () => {
+      ghlTs = undefined;
+      ts.destroy();
+    };
+  });
+
+  /** Move between frames, landing focus on the new frame's heading — without
+   *  it a keyboard or screen-reader user is left on a button that vanished. */
+  async function goTo(next: Frame, index = qIndex) {
+    frame = next;
+    qIndex = index;
+    status = "idle";
+    error = "";
+    await tick();
+    frameHeading?.focus();
+  }
+
+  /** Enter the thank-you frame, moving focus to its message so a screen-reader
+   *  user is told the application landed rather than left on a vanished button. */
+  async function goSent() {
+    status = "sent";
+    frame = "sent";
+    await tick();
+    sentEl?.focus();
   }
 
   // Delegated so every CTA on the page works without each slice knowing the
@@ -92,7 +214,10 @@
       );
       if (!trigger) return;
       e.preventDefault();
-      show();
+      // A CTA may name the section it sits in via data-inquire-step so the lead
+      // traces back to where it was opened; absent that, stepLabel falls back to
+      // the first framework step.
+      show(trigger.getAttribute("data-inquire-step") || undefined);
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
@@ -138,39 +263,197 @@
     };
   });
 
-  async function submit(e: SubmitEvent) {
-    e.preventDefault();
-    if (status === "sending") return;
-    if (!emailLooksValid) {
-      status = "error";
-      error = "Please provide a valid email address.";
-      return;
-    }
-    status = "sending";
-    error = "";
+  // Returns the outcome rather than writing status/error itself — the caller
+  // owns those writes and gates them on its session, so a late resolution from
+  // a closed-and-reopened modal cannot stamp an error onto a fresh session.
+  async function postIngest(
+    payload: Record<string, unknown>,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
       const res = await fetch("/api/inquiry", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
           step: stepLabel,
           botField,
           ts: openedAt,
           sourceUrl: location.href,
+          ...payload,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        status = "error";
-        error = data?.error ?? "Something went wrong. Please try again.";
-        return;
+        return { ok: false, error: data?.error ?? "Something went wrong. Please try again." };
       }
-      status = "sent";
+      return { ok: true };
     } catch {
-      status = "error";
-      error = "Something went wrong. Please try again.";
+      return { ok: false, error: "Something went wrong. Please try again." };
     }
+  }
+
+  async function submitEmail(e: SubmitEvent) {
+    e.preventDefault();
+    if (status === "sending") return;
+    if (!emailLooksValid) {
+      status = "error";
+      error = "Please provide a valid email address.";
+      await tick();
+      document.getElementById("inquiry-email")?.focus();
+      return;
+    }
+    // Snapshot everything the deferred work needs BEFORE any await, and tag the
+    // session, so a close→reopen mid-flight can neither corrupt the CRM fire's
+    // email nor write frame/status onto whatever replaced this session.
+    const mySession = session;
+    const capturedEmail = email.trim();
+    const capturedOpenedAt = openedAt;
+    const page = capturePageContext();
+    const campaign = campaignSlug();
+    const ts = ghlTs;
+    status = "sending";
+    error = "";
+
+    const res = await postIngest({ email: capturedEmail });
+    if (!res.ok) {
+      if (session === mySession) {
+        status = "error";
+        error = res.error;
+        await tick();
+        document.getElementById("inquiry-email")?.focus();
+      }
+      return;
+    }
+
+    // Ingest holds the lead now, so fire the CRM sync for the captured email
+    // regardless of whether this session is still the live one. A token not
+    // minted within its budget is simply left off (the fire is best-effort).
+    void (ts?.take(2500) ?? Promise.resolve(undefined)).then((token) =>
+      fireInquiryForm({
+        formId: formId.trim() || DEFAULT_INQUIRY_FORM_ID,
+        email: capturedEmail,
+        campaign,
+        page,
+        openedAt: capturedOpenedAt,
+        token,
+      }),
+    );
+
+    // A close→reopen during the POST starts a new session; leave its frame alone.
+    if (session !== mySession) return;
+    if (questions?.length) {
+      await goTo("question", 0);
+    } else {
+      await goSent();
+    }
+  }
+
+  function toggleOption(tag: string, option: string, checked: boolean) {
+    const current = (answers[tag] as string[] | undefined) ?? [];
+    answers[tag] = checked ? [...current, option] : current.filter((o) => o !== option);
+  }
+
+  function isChecked(tag: string, option: string): boolean {
+    const v = answers[tag];
+    return Array.isArray(v) ? v.includes(option) : v === option;
+  }
+
+  async function nextQuestion(e: SubmitEvent) {
+    e.preventDefault();
+    if (!questions) return;
+    if (qIndex < questions.length - 1) {
+      await goTo("question", qIndex + 1);
+    } else {
+      await goTo("contact");
+    }
+  }
+
+  async function back() {
+    if (frame === "contact") {
+      await goTo("question", (questions?.length ?? 1) - 1);
+    } else if (qIndex > 0) {
+      await goTo("question", qIndex - 1);
+    }
+  }
+
+  async function submitApplication(e: SubmitEvent) {
+    e.preventDefault();
+    if (status === "sending") return;
+
+    const errs: typeof contactErrors = {};
+    if (!fullName.trim()) errs.name = "Please tell us your name.";
+    if (phone.replace(/\D/g, "").length < 10)
+      errs.phone = "Please provide a ten-digit phone number.";
+    if (!smsConsent) errs.consent = "The application needs your consent to text this number.";
+    contactErrors = errs;
+    if (Object.keys(errs).length) {
+      // Take focus to the first field at fault (each carries aria-invalid +
+      // aria-describedby), so a keyboard/SR user hears the error rather than
+      // the submit failing in silence.
+      await tick();
+      const firstId = errs.name ? "inquiry-name" : errs.phone ? "inquiry-phone" : "inquiry-consent";
+      document.getElementById(firstId)?.focus();
+      return;
+    }
+
+    // Snapshot before awaiting (see submitEmail): guards the session and pins
+    // the values the deferred CRM fire sends.
+    const mySession = session;
+    const capturedEmail = email.trim();
+    const capturedName = fullName.trim();
+    const capturedPhone = phone.trim();
+    const capturedOpenedAt = openedAt;
+    const page = capturePageContext();
+    const campaign = campaignSlug();
+    const ts = ghlTs;
+    status = "sending";
+    error = "";
+
+    // Empty answers dropped: the questions are optional, and the CRM's own
+    // widget omits unanswered fields rather than submitting empty strings.
+    const pruned: InquiryAnswers = {};
+    for (const [tag, v] of Object.entries(answers)) {
+      if (Array.isArray(v) ? v.length : v.trim()) pruned[tag] = v;
+    }
+    // Human-shaped copy of the answers for the ingest message — built here,
+    // beside the wizard that rendered them, so labels can't drift from what
+    // the visitor actually saw.
+    const answerLines = (questions ?? []).map((q) => ({
+      label: q.heading,
+      value: answers[q.tag] ?? "",
+    }));
+
+    const res = await postIngest({
+      email: capturedEmail,
+      name: capturedName,
+      phone: capturedPhone,
+      smsConsent: true,
+      answers: answerLines,
+    });
+    if (!res.ok) {
+      if (session === mySession) {
+        status = "error";
+        error = res.error;
+      }
+      return;
+    }
+
+    void (ts?.take(2500) ?? Promise.resolve(undefined)).then((token) =>
+      fireInquirySurvey({
+        surveyId: resolvedSurveyId,
+        email: capturedEmail,
+        fullName: capturedName,
+        phone: capturedPhone,
+        answers: pruned,
+        campaign,
+        page,
+        openedAt: capturedOpenedAt,
+        token,
+      }),
+    );
+
+    // Advance only if this is still the live session AND still on the contact
+    // frame — a Back during a slow submit must not be yanked to the thank-you.
+    if (session === mySession && frame === "contact") await goSent();
   }
 </script>
 
@@ -204,7 +487,7 @@
 
       <h2 id="inquiry-title" class="inquiry-title">{title}</h2>
 
-      {#if steps.length}
+      {#if steps.length && frame === "email"}
         <!-- Not tabs. This is one frame that says "you are at step one" — the
              other two are there to place it in the framework, not to be picked.
              So: static markup, nothing focusable, no panel to control. An
@@ -257,13 +540,13 @@
       {/if}
 
       <div>
-        {#if status === "sent"}
-          <!-- Announced: the form it replaces is gone from the DOM, so without a
-               live region a screen-reader user gets no confirmation. -->
-          <p class="inquiry-sent" role="status">
-            Thanks — we've got it. We'll be in touch shortly.
-          </p>
-        {:else}
+        {#if frame === "sent"}
+          <!-- role="status" alone isn't enough: it's inserted already holding
+               its text, and a live region only announces text added AFTER it
+               exists — so goSent() also moves focus here (tabindex=-1) to
+               guarantee the confirmation is read. -->
+          <p class="inquiry-sent" role="status" tabindex="-1" bind:this={sentEl}>{thanks}</p>
+        {:else if frame === "email"}
           {#if firstStep?.body}
             <div class="inquiry-copy">
               <RichTextBody field={firstStep.body} />
@@ -272,7 +555,7 @@
 
           <p class="inquiry-prompt">{prompt}</p>
 
-          <form class="inquiry-form" onsubmit={submit} novalidate>
+          <form class="inquiry-form" onsubmit={submitEmail} novalidate>
             <!-- Honeypot: off-screen, not display:none (some bots skip hidden
                  fields), and hidden from AT + the tab order. -->
             <div class="inquiry-hp" aria-hidden="true">
@@ -301,7 +584,10 @@
                 aria-invalid={status === "error" ? "true" : undefined}
                 bind:value={email}
               />
-              <button type="submit" class="inquiry-submit" disabled={status === "sending"}>
+              <!-- aria-busy, not disabled: disabling the button the visitor just
+                   activated drops focus to <body>, and on the error path they'd
+                   never get it back. The submitEmail guard blocks a re-submit. -->
+              <button type="submit" class="inquiry-submit" aria-busy={status === "sending"}>
                 {status === "sending" ? "Sending…" : "Inquire Now"}
               </button>
             </div>
@@ -310,8 +596,178 @@
               <p id="inquiry-error" class="inquiry-error" role="alert">{error}</p>
             {/if}
           </form>
+        {:else if frame === "question" && question && questions}
+          <!-- Visible progress is decorative (and would be announced twice);
+               the heading below carries "Question N of 5" for AT instead. -->
+          <div class="inquiry-progress" aria-hidden="true">
+            <span class="inquiry-progress-text">Question {qIndex + 1} of {questions.length}</span>
+            <span class="inquiry-progress-track">
+              <span
+                class="inquiry-progress-fill"
+                style="width:{((qIndex + 1) / questions.length) * 100}%"
+              ></span>
+            </span>
+          </div>
+
+          <form class="inquiry-quiz" onsubmit={nextQuestion} novalidate>
+            {#if question.kind === "text"}
+              <h3
+                class="inquiry-q-heading"
+                id="inquiry-q-heading"
+                tabindex="-1"
+                bind:this={frameHeading}
+              >
+                <span class="inquiry-label">Question {qIndex + 1} of {questions.length}:</span>
+                {question.heading}
+              </h3>
+              <input
+                class="inquiry-input inquiry-q-text"
+                type={question.inputType === "url" ? "url" : "text"}
+                inputmode={question.inputType === "url" ? "url" : undefined}
+                autocomplete={question.inputType === "url" ? "url" : undefined}
+                placeholder={question.placeholder}
+                aria-labelledby="inquiry-q-heading"
+                value={(answers[question.tag] as string) ?? ""}
+                oninput={(e) => (answers[question.tag] = e.currentTarget.value)}
+              />
+            {:else}
+              <!-- A heading + role="group" rather than fieldset/legend: nesting
+                   the focus-target heading inside a <legend> makes the whole
+                   question (plus the hint) the group's accessible name, so a
+                   screen reader announces the question two or three times. Here
+                   the heading is a normal focus target and the group borrows it
+                   as its name via aria-labelledby (plus the hint for checkboxes). -->
+              <h3
+                class="inquiry-q-heading"
+                id="inquiry-q-heading"
+                tabindex="-1"
+                bind:this={frameHeading}
+              >
+                <span class="inquiry-label">Question {qIndex + 1} of {questions.length}:</span>
+                {question.heading}
+              </h3>
+              {#if question.kind === "checkbox"}
+                <p class="inquiry-q-hint" id="inquiry-q-hint">Select all that apply.</p>
+              {/if}
+              <div
+                class="inquiry-options"
+                role="group"
+                aria-labelledby={question.kind === "checkbox"
+                  ? "inquiry-q-heading inquiry-q-hint"
+                  : "inquiry-q-heading"}
+              >
+                {#each question.options as opt (opt)}
+                  <label class="inquiry-option" class:is-selected={isChecked(question.tag, opt)}>
+                    <input
+                      type={question.kind}
+                      name={question.tag}
+                      value={opt}
+                      checked={isChecked(question.tag, opt)}
+                      onchange={(e) =>
+                        question.kind === "checkbox"
+                          ? toggleOption(question.tag, opt, e.currentTarget.checked)
+                          : (answers[question.tag] = opt)}
+                    />
+                    <span>{opt}</span>
+                  </label>
+                {/each}
+              </div>
+            {/if}
+
+            <div class="inquiry-nav">
+              {#if qIndex > 0}
+                <button type="button" class="inquiry-ghost" onclick={back}>Back</button>
+              {/if}
+              <button type="submit" class="inquiry-submit">Next</button>
+            </div>
+          </form>
+        {:else if frame === "contact"}
+          <form class="inquiry-quiz" onsubmit={submitApplication} novalidate>
+            <h3 class="inquiry-q-heading" tabindex="-1" bind:this={frameHeading}>
+              Last step — how do we reach you?
+            </h3>
+
+            <div class="inquiry-fields">
+              <div>
+                <label class="inquiry-field-label" for="inquiry-name">Name</label>
+                <input
+                  id="inquiry-name"
+                  class="inquiry-input inquiry-wide"
+                  type="text"
+                  autocomplete="name"
+                  placeholder="Full Name"
+                  required
+                  aria-invalid={contactErrors.name ? "true" : undefined}
+                  aria-describedby={contactErrors.name ? "inquiry-name-error" : undefined}
+                  bind:value={fullName}
+                />
+                {#if contactErrors.name}
+                  <p id="inquiry-name-error" class="inquiry-error">{contactErrors.name}</p>
+                {/if}
+              </div>
+
+              <div>
+                <label class="inquiry-field-label" for="inquiry-phone">Cell number</label>
+                <input
+                  id="inquiry-phone"
+                  class="inquiry-input inquiry-wide"
+                  type="tel"
+                  inputmode="tel"
+                  autocomplete="tel"
+                  placeholder="+1 (555) 000-0000"
+                  required
+                  aria-invalid={contactErrors.phone ? "true" : undefined}
+                  aria-describedby={contactErrors.phone ? "inquiry-phone-error" : undefined}
+                  bind:value={phone}
+                />
+                {#if contactErrors.phone}
+                  <p id="inquiry-phone-error" class="inquiry-error">{contactErrors.phone}</p>
+                {/if}
+              </div>
+
+              <div>
+                <label class="inquiry-consent" class:is-selected={smsConsent}>
+                  <input
+                    id="inquiry-consent"
+                    type="checkbox"
+                    required
+                    aria-invalid={contactErrors.consent ? "true" : undefined}
+                    aria-describedby={contactErrors.consent ? "inquiry-consent-error" : undefined}
+                    bind:checked={smsConsent}
+                  />
+                  <span>{SMS_CONSENT.label}</span>
+                </label>
+                {#if contactErrors.consent}
+                  <p id="inquiry-consent-error" class="inquiry-error">{contactErrors.consent}</p>
+                {/if}
+              </div>
+            </div>
+
+            {#if status === "error"}
+              <p class="inquiry-error" role="alert">{error}</p>
+            {/if}
+
+            <div class="inquiry-nav">
+              <!-- Disabled while sending so a Back cannot reset the in-flight
+                   guard and let a second application submit through. -->
+              <button
+                type="button"
+                class="inquiry-ghost"
+                onclick={back}
+                disabled={status === "sending"}
+              >
+                Back
+              </button>
+              <button type="submit" class="inquiry-submit" aria-busy={status === "sending"}>
+                {status === "sending" ? "Sending…" : "Submit Application"}
+              </button>
+            </div>
+          </form>
         {/if}
       </div>
+
+      <!-- Invisible-Turnstile mount for the CRM fires; draws nothing. -->
+      <div class="inquiry-ts" bind:this={ghlTsEl} aria-hidden="true"></div>
     </div>
   </div>
 {/if}
@@ -568,11 +1024,14 @@
     cursor: pointer;
     transition: background-color 300ms;
   }
-  .inquiry-submit:hover:not(:disabled) {
+  .inquiry-submit:hover:not([aria-busy="true"]) {
     background: #aa1419; /* token: primary-dark */
     border-color: #aa1419;
   }
-  .inquiry-submit:disabled {
+  /* The busy look rides aria-busy rather than :disabled — the button stays
+     focusable through the send so focus is never dropped (the handler guards
+     the re-submit). */
+  .inquiry-submit[aria-busy="true"] {
     opacity: 0.7;
     cursor: default;
   }
@@ -590,6 +1049,15 @@
     line-height: 1.5;
     color: #000;
   }
+  /* Focus moves here on entry; the ring would read as a stray artifact on a
+     confirmation message, so suppress it (mouse) but keep it for keyboard. */
+  .inquiry-sent:focus {
+    outline: none;
+  }
+  .inquiry-sent:focus-visible {
+    outline: 2px solid #d71920;
+    outline-offset: 4px;
+  }
 
   .inquiry-hp {
     position: absolute;
@@ -599,9 +1067,168 @@
     overflow: hidden;
   }
 
+  /* ---- question frames --------------------------------------------------- */
+  .inquiry-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .inquiry-progress-text {
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #6e6f72; /* token: muted */
+  }
+  .inquiry-progress-track {
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    background: #f0d4d5; /* the board's pale pink, on a non-text element */
+    overflow: hidden;
+  }
+  .inquiry-progress-fill {
+    display: block;
+    height: 100%;
+    background: #d71920; /* token: primary */
+    transition: width 300ms;
+  }
+
+  .inquiry-q-heading {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1.35;
+    color: #000;
+  }
+  .inquiry-q-heading:focus {
+    /* Focus lands here so AT reads the new frame; a visitor who got here by
+       mouse shouldn't see a ring appear on a heading they never tabbed to. */
+    outline: none;
+  }
+  .inquiry-q-heading:focus-visible {
+    outline: 2px solid #d71920;
+    outline-offset: 4px;
+  }
+  .inquiry-q-hint {
+    margin: 0 0 16px;
+    font-size: 14px;
+    font-weight: 200;
+    color: #6e6f72; /* token: muted */
+  }
+
+  .inquiry-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .inquiry-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #bbbdbf; /* token: light */
+    border-radius: 4px;
+    font-size: 15px;
+    font-weight: 200;
+    line-height: 1.4;
+    color: #000;
+    cursor: pointer;
+    transition: border-color 300ms;
+  }
+  .inquiry-option:hover {
+    border-color: #6e6f72;
+  }
+  .inquiry-option.is-selected {
+    border-color: #d71920;
+  }
+  .inquiry-option input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: #d71920;
+  }
+  /* The ring belongs on the card the visitor sees, not the 16px control. */
+  .inquiry-option:has(input:focus-visible) {
+    outline: 2px solid #d71920;
+    outline-offset: 1px;
+  }
+
+  .inquiry-q-text,
+  .inquiry-wide {
+    width: 100%;
+  }
+
+  .inquiry-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .inquiry-field-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #6e6f72; /* token: muted */
+  }
+  .inquiry-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 200;
+    line-height: 1.45;
+    color: #000;
+    cursor: pointer;
+  }
+  .inquiry-consent input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: #d71920;
+  }
+  .inquiry-consent:has(input:focus-visible) {
+    outline: 2px solid #d71920;
+    outline-offset: 2px;
+  }
+
+  .inquiry-nav {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 22px;
+  }
+  .inquiry-ghost {
+    padding: 12px 22px;
+    border: 1px solid #bbbdbf; /* token: light */
+    border-radius: 4px;
+    background: #fff;
+    color: #000;
+    font-size: 15px;
+    cursor: pointer;
+    transition: border-color 300ms;
+  }
+  .inquiry-ghost:hover {
+    border-color: #000;
+  }
+
+  /* Zero-footprint mount for the invisible CRM Turnstile. */
+  .inquiry-ts {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .inquiry-close,
-    .inquiry-submit {
+    .inquiry-submit,
+    .inquiry-option,
+    .inquiry-ghost,
+    .inquiry-progress-fill {
       transition: none;
     }
   }

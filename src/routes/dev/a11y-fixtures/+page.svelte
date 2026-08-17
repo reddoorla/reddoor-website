@@ -566,6 +566,11 @@
        modal renders nothing, so the axe gate on load is unaffected; the smoke
        spec opens it and re-scans. -->
   <a href="/contact#inquire" data-inquire-step="The Diagnosis">Open the inquiry modal</a>
+  <!-- data-inquire-step differs from steps[0] ("The Diagnosis") so a test can
+       prove the sent step comes from the attribute, not the steps[0] fallback. -->
+  <a href="/contact#inquire" data-inquire-step="The Rollout">Open inquiry from the rollout step</a>
+  <!-- No data-inquire-step: exercises the steps[0] fallback. -->
+  <a href="/contact#inquire">Open inquiry with no step attribute</a>
   <!-- Steps mirror the iconColumns fixture above, which is what the real page
        feeds it — the tablist only exists when there are steps to show. -->
   <InquiryModal

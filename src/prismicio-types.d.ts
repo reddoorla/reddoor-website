@@ -153,6 +153,59 @@ interface IndustryDocumentData {
    * - **Documentation**: https://prismic.io/docs/slices
    */
   slices: prismic.SliceZone<IndustryDocumentDataSlicesSlice>; /**
+   * Modal Title field in *Industry*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: Let’s Get Started! (default when blank)
+   * - **API ID Path**: industry.inquiry_title
+   * - **Tab**: Inquiry
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  inquiry_title: prismic.KeyTextField;
+
+  /**
+   * Prompt Above the Email Field field in *Industry*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: Enter your email, then answer 5 questions… (default when blank)
+   * - **API ID Path**: industry.inquiry_prompt
+   * - **Tab**: Inquiry
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  inquiry_prompt: prismic.KeyTextField;
+
+  /**
+   * Thank-You Message field in *Industry*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: Shown after the application is submitted (default when blank)
+   * - **API ID Path**: industry.inquiry_thanks
+   * - **Tab**: Inquiry
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  inquiry_thanks: prismic.KeyTextField;
+
+  /**
+   * GHL Form ID (email capture) field in *Industry*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: e.g. MgcBOjbMGpQByfbVnUe7 — from the form's embed URL (default when blank)
+   * - **API ID Path**: industry.inquiry_form_id
+   * - **Tab**: Inquiry
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  inquiry_form_id: prismic.KeyTextField;
+
+  /**
+   * GHL Survey ID (five questions) field in *Industry*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: e.g. VfiN5rugWcATPw47P20U — the questions themselves are code, keyed to this ID
+   * - **API ID Path**: industry.inquiry_survey_id
+   * - **Tab**: Inquiry
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  inquiry_survey_id: prismic.KeyTextField; /**
    * Meta Title field in *Industry*
    *
    * - **Field Type**: Text

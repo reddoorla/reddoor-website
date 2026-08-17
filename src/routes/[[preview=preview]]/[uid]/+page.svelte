@@ -25,6 +25,14 @@
       body: c.body,
     })) ?? [],
   );
+
+  // The Inquiry tab on the industry type: per-document copy + CRM wiring for
+  // the modal. Every field is optional — blanks fall back to the component's
+  // defaults (the A-101 funnel), so the flow works before the tab is filled in
+  // and before the updated type is even pushed.
+  const inquiry = $derived(
+    data.docType === "industry" ? (data.page.data as Content.IndustryDocumentData) : undefined,
+  );
 </script>
 
 <!-- The band rhythm for industry landing pages is a property of the PAGE TYPE,
@@ -42,11 +50,20 @@
 </div>
 
 {#if data.docType === "industry"}
-  <!-- Industry landing pages route every CTA into one email-capture modal rather
-       than off to /contact (MED-16 follow-up). Mounted once here and driven by
-       delegation: any link whose href is `#inquire` opens it, so no slice needs
-       to know the modal exists and content controls which CTAs use it. -->
-  <InquiryModal {steps} />
+  <!-- Industry landing pages route every CTA into one two-form modal (email
+       capture, then the five-question application) rather than off to /contact
+       (MED-16 follow-up). Mounted once here and driven by delegation: any link
+       whose href is `#inquire` opens it, so no slice needs to know the modal
+       exists and content controls which CTAs use it. -->
+  <InquiryModal
+    {steps}
+    title={inquiry?.inquiry_title || undefined}
+    prompt={inquiry?.inquiry_prompt || undefined}
+    thanks={inquiry?.inquiry_thanks || undefined}
+    formId={inquiry?.inquiry_form_id || undefined}
+    surveyId={inquiry?.inquiry_survey_id || undefined}
+    campaign={data.page.uid}
+  />
 {/if}
 
 {#if data.docType === "page"}

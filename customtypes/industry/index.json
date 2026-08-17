@@ -64,6 +64,43 @@
         }
       }
     },
+    "Inquiry": {
+      "inquiry_title": {
+        "type": "Text",
+        "config": {
+          "label": "Modal Title",
+          "placeholder": "Let’s Get Started! (default when blank)"
+        }
+      },
+      "inquiry_prompt": {
+        "type": "Text",
+        "config": {
+          "label": "Prompt Above the Email Field",
+          "placeholder": "Enter your email, then answer 5 questions… (default when blank)"
+        }
+      },
+      "inquiry_thanks": {
+        "type": "Text",
+        "config": {
+          "label": "Thank-You Message",
+          "placeholder": "Shown after the application is submitted (default when blank)"
+        }
+      },
+      "inquiry_form_id": {
+        "type": "Text",
+        "config": {
+          "label": "GHL Form ID (email capture)",
+          "placeholder": "e.g. MgcBOjbMGpQByfbVnUe7 — from the form's embed URL (default when blank)"
+        }
+      },
+      "inquiry_survey_id": {
+        "type": "Text",
+        "config": {
+          "label": "GHL Survey ID (five questions)",
+          "placeholder": "e.g. VfiN5rugWcATPw47P20U — the questions themselves are code, keyed to this ID"
+        }
+      }
+    },
     "SEO & Metadata": {
       "meta_title": {
         "type": "Text",
