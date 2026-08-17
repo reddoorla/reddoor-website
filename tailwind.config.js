@@ -1,29 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./src/**/*.{html,js,svelte,ts}"],
-  safelist: [
-    "justify-center",
-    "justify-start",
-    "justify-end",
-    "justify-between",
-    "justify-around",
-    "sm:justify-center",
-    "sm:justify-start",
-    "sm:justify-end",
-    "hidden",
-    "aspect-square",
-    "aspect-video",
-    "aspect-[16/9]",
-    "aspect-[4/3]",
-    "translate-y-1",
-    "w-[360px]",
-    "md:w-1/2",
-    "h-[40vw]",
-    "bg-red",
-    "bg-gray",
-    "text-red",
-    "text-dark",
-  ],
+  // NOTE: no `safelist` here — Tailwind v4 ignores that legacy key entirely.
+  // CMS-composed classes are declared via `@source inline(...)` in app.css.
   theme: {
     screens: {
       sm: "560px",
@@ -46,6 +25,10 @@ export default {
       "primary-dark": "#aa1419",
     },
     extend: {
+      fontFamily: {
+        sans: ["pragmatica", "helvetica", "sans-serif"],
+        serif: ["Besley", "serif"],
+      },
       transitionTimingFunction: {
         "in-expo": "cubic-bezier(0.95, 0.05, 0.795, 0.035)",
         "out-expo": "cubic-bezier(0.19, 1, 0.22, 1)",

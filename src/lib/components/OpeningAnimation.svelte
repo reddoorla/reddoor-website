@@ -10,7 +10,10 @@
   import printedReddoorLogo from "$lib/assets/icons/logos/reddoor_logo.png";
   import { isInHero } from "$lib/stores/isInHero.svelte";
   import drawnLogo from "$lib/assets/icons/logos/staticReddoor.png";
+  import { trapFocus } from "$lib/actions/trapFocus";
   import { untrack } from "svelte";
+  import { ArrowDown, Menu, X } from "@lucide/svelte";
+  import { whenPageReady } from "@reddoorla/maintenance/client";
 
   const NAV_LINKS = [
     { label: "Portfolio", href: "/portfolio" },
@@ -23,11 +26,13 @@
   const MASK_GROWTH = 14;
   const MASK_MAX = MASK_BASE + MASK_GROWTH;
   const HERO_EXIT_PCT = 99;
+  const HERO_BLUR_THRESHOLD = 3;
   const COMPELLING_DESKTOP_PCT = 30;
   const COMPELLING_MOBILE_PCT = 10;
   const MOBILE_BREAKPOINT_PX = 768;
   const ROTATE_INTERVAL_MS = 5000;
   const INTRO_FADE_MS = 400;
+  const INTRO_MAX_HOLD_MS = 2000;
   const HEADLINE_INTRO = "Arm your brand with";
 
   type Props = { slides: OpeningAnimationDocumentDataSlidesItem[] };
@@ -47,6 +52,7 @@
   let scrollFrame = 0;
 
   const isScrolledPastHero = $derived(percentageScrolled >= HERO_EXIT_PCT);
+  const isHeroBgBlurred = $derived(percentageScrolled < HERO_BLUR_THRESHOLD);
 
   let currentImageIndex = $state(0);
   const safeIndex = $derived(slides.length ? currentImageIndex % slides.length : 0);
@@ -107,7 +113,15 @@
     // on viewport state changes and tear down the listener it just registered.
     untrack(() => updateScroll());
 
-    const transitionTimer = setTimeout(() => (transitioning = false), INTRO_FADE_MS);
+    // Lift the intro cover when the first slide (the only eager image) has
+    // settled instead of a blind timer: INTRO_FADE_MS stays as the floor so
+    // fast loads feel identical, INTRO_MAX_HOLD_MS caps a stalled slide.
+    // Reads mq.matches (not the reducedMotion state) so this effect doesn't
+    // gain a reactive dependency and tear down its listeners on mq changes.
+    let cancelled = false;
+    whenPageReady({ minMs: mq.matches ? 0 : INTRO_FADE_MS, maxMs: INTRO_MAX_HOLD_MS }).then(() => {
+      if (!cancelled) transitioning = false;
+    });
 
     return () => {
       // Reset the global flag so the layout nav reappears on the next page —
@@ -115,7 +129,7 @@
       isInHero.value = false;
       window.removeEventListener("scroll", handleScroll);
       mq.removeEventListener("change", handleMQ);
-      clearTimeout(transitionTimer);
+      cancelled = true;
       if (scrollFrame) cancelAnimationFrame(scrollFrame);
     };
   });
@@ -139,13 +153,20 @@
 <svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
 {#if transitioning}
-  <div class="bg-white w-screen h-dvh fixed top-0 left-0 z-50" transition:fade></div>
+  <div
+    class="bg-white w-screen h-dvh fixed top-0 left-0 z-50"
+    transition:fade={{ duration: reducedMotion ? 0 : 400 }}
+  ></div>
 {/if}
 
 {#if isOverlayVisible}
   <div
     class="w-screen h-lvh fixed inset-0 bg-paper z-50 overflow-hidden"
     transition:fly={{ y: "-100%" }}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Menu"
+    use:trapFocus={{ onEscape: () => (isOverlayVisible = false) }}
   >
     <div class="flex items-start justify-between px-6 md:px-20 py-2.5">
       <a
@@ -160,8 +181,9 @@
         class="text-black opacity-95 hover:opacity-100 transition mt-3"
         onclick={() => (isOverlayVisible = false)}
         aria-label="Close menu"
+        data-autofocus
       >
-        <i class="fa-sharp fa-thin fa-xmark fa-2xl"></i>
+        <X class="size-[2em]" strokeWidth={1} />
       </button>
     </div>
 
@@ -200,10 +222,11 @@
         </h1>
         <h1 class="text-white text-left w-fit">a clear story...</h1>
       </div>
-      <i
-        class="fa-light fa-arrow-down fa-2xl opacity-50 absolute bottom-12 text-white bob-always"
+      <ArrowDown
+        class="size-[2em] opacity-50 absolute bottom-12 text-white bob-always"
+        strokeWidth={1.5}
         aria-hidden="true"
-      ></i>
+      />
     </ContentWidth>
 
     <div class="fixed top-0 left-0 w-screen h-dvh overflow-hidden z-20">
@@ -216,7 +239,7 @@
           out:fade
           aria-label="Open menu"
         >
-          <i class="fa-sharp fa-bars fa-xl text-white"></i>
+          <Menu class="size-[1.5em] text-white" strokeWidth={2} />
         </button>
       </ContentWidth>
       <div class="fixed top-0 left-0 w-lvw h-dvh z-20" style="clip-path: url(#mask-path);">
@@ -225,12 +248,17 @@
             field={viewportWidth < MOBILE_BREAKPOINT_PX && slide.background_image_mobile_crop
               ? slide.background_image_mobile_crop
               : slide.background_image}
+            alt={(slide.project_name ? slide.project_name + " — project background" : "") as ""}
             loading={index === 0 ? "eager" : "lazy"}
             fetchpriority={index === 0 ? "high" : "auto"}
-            class="absolute h-full w-full object-cover will-change-[opacity] transition-opacity duration-1000 ease-fast-slow {index ===
+            sizes="100vw"
+            widths={[640, 828, 1080, 1280, 1920, 2560]}
+            imgixParams={{ auto: ["format", "compress"] }}
+            class="absolute h-full w-full object-cover will-change-[opacity,filter] transition-all duration-1200 ease-fast-slow {index ===
             safeIndex
               ? 'opacity-100'
-              : ' delay-1000 opacity-0'}"
+              : ' delay-1000 opacity-0'} 
+              {isHeroBgBlurred ? 'blur' : ''}"
           />
         {/each}
 
@@ -334,10 +362,11 @@
       <div class="absolute w-fit lg:w-1/2 right-0 top-1/2 lg:-translate-x-12 translate-y-20 h-full">
         <h1 class="text-white text-left w-fit">{HEADLINE_INTRO}</h1>
       </div>
-      <i
-        class="fa-light fa-arrow-down fa-2xl opacity-50 absolute bottom-12 text-white bob-always"
+      <ArrowDown
+        class="size-[2em] opacity-50 absolute bottom-12 text-white bob-always"
+        strokeWidth={1.5}
         aria-hidden="true"
-      ></i>
+      />
     </ContentWidth>
   </div>
 

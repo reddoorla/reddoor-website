@@ -11,12 +11,6 @@ const ALLOWED_CONSOLE_PATTERNS: RegExp[] = [
   /vimeo/i,
   // Turnstile (Cloudflare) telemetry occasionally surfaces in console.
   /turnstile|challenges\.cloudflare/i,
-  // Font Awesome kit script injects icon SVGs at runtime; nothing we ship.
-  /fontawesome/i,
-  // Font Awesome's injected SVGs sometimes carry an invalid preserveAspectRatio
-  // value ("xMinYMin none") — Chromium logs a parser error attributed to the
-  // page itself (no URL), so this has to be matched on text.
-  /<svg> attribute preserveAspectRatio: Trailing garbage/,
 ];
 
 function attachConsoleWatcher(page: Page, extraAllowed: RegExp[] = []) {
@@ -73,6 +67,43 @@ test("portfolio detail page loads with no console errors", async ({ page }) => {
   expect(errors, `console errors on ${firstProjectHref}`).toEqual([]);
 });
 
+test("layout survives a missing screen.orientation (old iOS Safari)", async ({ browser }) => {
+  // On some iOS Safari versions `screen.orientation` is undefined. The layout's
+  // LandscapeModal read `screen.orientation.type` unguarded, so it threw inside
+  // a Svelte $effect — which kills the effect scheduler for the whole page.
+  // Simulate that environment (landscape phone, orientation API absent) and
+  // assert the page still mounts cleanly with no thrown error.
+  const context = await browser.newContext({
+    viewport: { width: 844, height: 390 }, // a phone held in landscape
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 13_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/604.1",
+  });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      try {
+        Object.defineProperty(window.screen, "orientation", {
+          configurable: true,
+          get: () => undefined,
+        });
+      } catch {
+        /* platform won't let us override it; test still loads the page */
+      }
+    });
+    const errors = attachConsoleWatcher(page);
+    const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    // The footer is SSR markup, so its visibility says nothing about hydration.
+    // Wait for the layout's onMount hydration marker — by then the $effect that
+    // reads screen.orientation has run (effects flush before onMount), so any
+    // throw has already been captured.
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 10_000 });
+    expect(errors, "no error from unguarded screen.orientation access").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("404 page renders the custom error component", async ({ page }) => {
   // The browser logs a top-level "Failed to load resource: 404" for the page
   // itself — that's expected on a 404 route, not a bug. Allow it locally.
@@ -100,14 +131,19 @@ test("/twenty-for-twenty supports anchor links to specific cards", async ({ page
   expect(scrollY1, "card-2 hash should produce non-zero scroll").toBeGreaterThan(100);
 
   // Outbound: scroll 1 viewport further into the card stack — hash should
-  // advance to a card number higher than 2.
+  // advance to a card number higher than 2. The scroll handler writes the hash
+  // via replaceState on frame timing, so poll instead of a fixed settle.
   await page.evaluate((dy) => window.scrollBy(0, dy), viewportHeight);
-  // Give the scroll handler a moment to fire replaceState.
-  await page.waitForTimeout(200);
-  const hashAfter = await page.evaluate(() => location.hash);
-  const matchAfter = hashAfter.match(/^#(\d+)/);
-  expect(matchAfter, `hash "${hashAfter}" should match #NN…`).not.toBeNull();
-  expect(Number(matchAfter![1]), "hash should advance past card 2").toBeGreaterThan(2);
+  await expect
+    .poll(
+      async () => {
+        const hash = await page.evaluate(() => location.hash);
+        const m = hash.match(/^#(\d+)/);
+        return m ? Number(m[1]) : -1;
+      },
+      { message: "hash should advance past card 2", timeout: 10_000 },
+    )
+    .toBeGreaterThan(2);
 
   // Bogus hash should not throw and should not scroll to a card position.
   // Navigate away first so the next goto is a full inbound navigation, then

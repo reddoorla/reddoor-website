@@ -1,0 +1,121 @@
+name: lighthouse
+
+# Gates PRs on Lighthouse scores for REAL prod-built routes, by auditing the
+# Netlify deploy preview (the repo-root lighthouserc.json / fleet nightly only
+# ever audits /dev/a11y-fixtures in dev mode — see the 2026-06-23 morning brief,
+# HIGH-1). a11y + best-practices are hard gates; performance is warn-only for now
+# (mobile perf is ~60 until the image pipeline lands — MED-1). Thresholds and the
+# rationale live in .github/lighthouse/lighthouserc.json.
+on:
+  pull_request:
+
+# A newer push to the PR supersedes any in-flight Lighthouse run.
+concurrency:
+  group: lighthouse-${{ github.event.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: read # to poll Netlify's per-commit deploy check runs
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+
+      - name: Lighthouse the Netlify deploy preview (real routes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          BASE="https://deploy-preview-${{ github.event.number }}--reddoorla.netlify.app"
+
+          # HTTP 200 alone is NOT a readiness signal: on a PR update the PREVIOUS
+          # commit's preview is already live at the same alias, so LHCI can score
+          # the old build (this happened 2026-06-23; MED-1 in the 07-16 brief).
+          # Netlify's GitHub App attaches check runs ("Header rules - reddoorla",
+          # "Pages changed - reddoorla", …) to the exact head SHA when the deploy
+          # for THAT commit finishes — wait for one of those to complete instead.
+          echo "Waiting for Netlify's deploy check runs on $HEAD_SHA"
+          # Require completed AND success/neutral: a completed-but-FAILED deploy
+          # check must keep the gate closed (the stale preview is still serving),
+          # not green-light auditing the previous commit's build.
+          DEPLOY_DONE=0
+          API_FAILS=0
+          for i in $(seq 1 90); do
+            if RESP="$(gh api "repos/${{ github.repository }}/commits/$HEAD_SHA/check-runs" \
+              --jq '[.check_runs[] | select(.name | endswith("- reddoorla")) | select(.status == "completed") | select(.conclusion == "success" or .conclusion == "neutral")] | length' \
+              2>/dev/null)"; then
+              DEPLOY_DONE="$RESP"
+            else
+              # A Checks-API problem is not "deploy not done" — surface it so a
+              # 15-minute stall doesn't get blamed on Netlify.
+              API_FAILS=$((API_FAILS + 1))
+              echo "::warning::check-runs poll failed (attempt $i/90, ${API_FAILS} API failures so far) — retrying"
+            fi
+            if [ "${DEPLOY_DONE:-0}" -gt 0 ]; then
+              echo "Netlify deploy for $HEAD_SHA is complete and healthy (after ~$((i * 10))s)."
+              break
+            fi
+            sleep 10
+          done
+          if [ "${DEPLOY_DONE:-0}" -eq 0 ]; then
+            if [ "$API_FAILS" -ge 45 ]; then
+              echo "::error::GitHub Checks API failed ${API_FAILS}/90 polls — cannot determine deploy state for $HEAD_SHA."
+            else
+              echo "::error::Netlify never reported a successful deploy check for $HEAD_SHA (15 min) — refusing to audit a preview that may be stale or broken."
+            fi
+            exit 1
+          fi
+
+          # Belt and braces: the alias itself must answer before LHCI starts
+          # (edge propagation can trail the deploy by a moment).
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null "$BASE/"; then
+              echo "Preview is reachable."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Netlify deploy preview never became reachable at $BASE (5 min)."
+              exit 1
+            fi
+            sleep 10
+          done
+
+          # Derive a real, currently-published detail page from the live /portfolio
+          # so the LCP hero is sampled without hardcoding a uid that could be unpublished.
+          # Fetch with retries so a transient network blip isn't conflated with
+          # "no detail page"; then HARD-FAIL on a genuinely empty scrape (MED-2):
+          # the detail page carries the Vimeo carve-out — letting it silently drop
+          # out of the matrix turns a markup refactor into an untested page class.
+          PAGE=""
+          for i in $(seq 1 5); do
+            if PAGE="$(curl -fsS "$BASE/portfolio")"; then
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "::error::Could not fetch $BASE/portfolio after 5 attempts — cannot derive a detail page."
+              exit 1
+            fi
+            sleep 5
+          done
+          DETAIL="$(printf '%s' "$PAGE" | grep -oE '/portfolio/[a-z0-9][a-z0-9-]*' | head -n1 || true)"
+          if [ -z "$DETAIL" ]; then
+            echo "::error::No /portfolio/<uid> detail link found on $BASE/portfolio — the detail-page class would silently exit the audit matrix."
+            exit 1
+          fi
+
+          URLS=( "$BASE/" "$BASE/portfolio" "$BASE$DETAIL" )
+          echo "Auditing: ${URLS[*]}"
+
+          ARGS=()
+          for u in "${URLS[@]}"; do ARGS+=( "--collect.url=$u" ); done
+
+          npx -y @lhci/cli@0.15 autorun \
+            --config=./.github/lighthouse/lighthouserc.json \
+            "${ARGS[@]}"

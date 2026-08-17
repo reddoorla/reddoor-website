@@ -44,6 +44,11 @@
       class="absolute bg-light h-[2px] {isPlaceholder ? '' : 'hidden'}"
       style="transform: rotate(-{rotationAngle}deg); width:{crossLength}"
     ></div>
-    <h6 class="absolute bottom-4 z-20">{label}</h6>
+    {#if label}
+      <!-- Image caption, not a section heading: a non-heading <p> keeps it out of
+           the document outline (heading-order). Weight 200 (body) preserves the
+           established look (h6 and p are both 18px/30px; only the weight differs). -->
+      <p class="font-extralight absolute bottom-4 z-20">{label}</p>
+    {/if}
   </div>
 </div>

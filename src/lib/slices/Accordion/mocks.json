@@ -1,0 +1,49 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "defaultOpen": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "items": {
+        "__TYPE__": "GroupContentType",
+        "value": [
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "About Canvas Worldwide",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "We worked with a great team at Innocean Worldwide USA to create a visionary brand identity for CANVAS Worldwide from scratch — a stand-alone global media agency. CANVAS is a joint venture between INNOCEAN Worldwide and Horizon Media, representing the ability to generate custom-designed solutions for the ever-changing advertising landscape while embodying a spirit of creativity and curiosity."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

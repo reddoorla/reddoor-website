@@ -9,7 +9,9 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
   let page;
 
   try {
-    page = await client.getByUID("page", params.uid);
+    // fetchLinks resolves each ContentWidthMedia item's `gallery` relationship so a
+    // slideshow item can render its gallery's images (one level: gallery.images).
+    page = await client.getByUID("page", params.uid, { fetchLinks: ["gallery.images"] });
   } catch {
     throw error(404, {
       message: "Page Not Found",
@@ -29,7 +31,11 @@ export const entries: EntryGenerator = async () => {
   const client = createClient();
   const pages = await client.getAllByType("page");
 
-  return pages.map((page) => {
-    return { uid: page.uid };
-  });
+  // "home" is served at `/` — prerendering /home too ships a duplicate page
+  // (SEO dup; the sitemap already excludes it). Null uids can't be routed.
+  return pages
+    .filter((page) => page.uid && page.uid !== "home")
+    .map((page) => {
+      return { uid: page.uid };
+    });
 };

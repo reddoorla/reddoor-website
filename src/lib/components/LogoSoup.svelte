@@ -4,6 +4,7 @@
   import ContentWidth from "./ContentWidth/ContentWidth.svelte";
   import { fade } from "svelte/transition";
   import { animateIn as anim } from "$lib/actions/animateIn";
+  import { ArrowLeft, ArrowRight } from "@lucide/svelte";
 
   interface Props {
     data: { logoSoup: { data: LogoSoupDocumentData } };
@@ -28,10 +29,33 @@
   const isMobile = $derived(viewportWidth > 0 && viewportWidth < 768);
   const brands = $derived<LogoSoupDocumentDataBrandsItem[]>(isMobile ? featuredBrands : allBrands);
 
+  // Cached geometry: reading layout (getBoundingClientRect/offsetHeight) inside
+  // the scroll handler forces a synchronous reflow on every scroll frame. The
+  // section's absolute top and height only change with viewport/content
+  // changes — measure on those, and derive the scroll-relative top from
+  // the (already reactive) scrollY arithmetically.
+  let sectionAbsTop = 0;
+  let sectionHeight = 0;
+  function measure() {
+    if (!section) return;
+    sectionAbsTop = section.getBoundingClientRect().top + window.scrollY;
+    sectionHeight = section.offsetHeight;
+  }
+
+  $effect(() => {
+    void viewportHeight;
+    void viewportWidth; // re-measure when the viewport changes
+    if (!section) return;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(section);
+    ro.observe(document.body); // content loading above the section shifts its absolute top
+    return () => ro.disconnect();
+  });
+
   function handleScroll() {
     if (!isMobile || !section) return;
-    const sectionTop = section.getBoundingClientRect().top;
-    const sectionHeight = section.offsetHeight;
+    const sectionTop = sectionAbsTop - scrollY;
 
     let scrollProgress = 0;
     if (sectionTop < 0) scrollProgress = (Math.abs(sectionTop) + viewportHeight) / sectionHeight;
@@ -66,12 +90,12 @@
   function calculateScrollPositionForBrand(index: number) {
     if (!isMobile || !section) return 0;
 
-    const sectionHeight = section.offsetHeight;
-    const sectionTop = section.getBoundingClientRect().top;
-    const currentAbsolutePosition = window.scrollY + sectionTop;
-
-    const targetProgress = (index + 2) / (brands.length + 2);
-    return currentAbsolutePosition + targetProgress * sectionHeight - viewportHeight;
+    // Aim for the MIDDLE of brand `index`'s scroll band (+0.5): landing exactly
+    // on the band boundary lets floating-point noise floor into the previous
+    // band, which is what the old `i + 1` call-site offset was compensating
+    // for — one brand too far.
+    const targetProgress = (index + 2.5) / (brands.length + 2);
+    return sectionAbsTop + targetProgress * sectionHeight - viewportHeight;
   }
 
   const nextBrand = () => {
@@ -99,70 +123,91 @@
     {showImage && brandIndex > -1 ? '' : 'opacity-0'}
     {viewportHeight * 16 > viewportWidth * 9 ? 'h-lvh min-w-full' : 'w-screen min-h-full'}"
       >
-        {#each brands as brand, i (brand.name || i)}
+        <!-- All five brand eaches key by index: `name` is an optional, non-unique
+             KeyText, and a duplicate (same client twice, copied row) keyed on it
+             throws each_key_duplicate in production. The list is static per page
+             load, so index keys are stable. -->
+        {#each brands as brand, i (i)}
           <PrismicImage
             field={isMobile && brand.active_background_mobile_crop
               ? brand.active_background_mobile_crop
               : brand.active_background}
+            alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
         {showImage && brandIndex === i ? '' : 'opacity-0'}"
+            imgixParams={{ auto: ["format", "compress"] }}
+            widths={[640, 960, 1280, 1920, 2560]}
+            sizes="100vw"
+            loading="lazy"
+            decoding="async"
           />
         {/each}
       </div>
       <ContentWidth class="h-full py-32 flex flex-row justify-end relative">
         <div use:anim class="absolute left-0 top-40">
-          <h6
-            class="transition duration-300 ease-fast-slow {showImage && brandIndex > -1
+          <h4
+            class="text-lg font-bold leading-7.5 transition duration-300 ease-fast-slow {showImage &&
+            brandIndex > -1
               ? 'text-white'
               : 'text-red'}"
           >
             Join these brands <br /> in fighting mediocrity.
-          </h6>
+          </h4>
         </div>
 
         <div class="w-3/5 h-full flex flex-row justify-between items-center flex-wrap gap-12">
-          {#each brands as brand, i (brand.name || i)}
-            <div use:anim class="w-1/4 relative">
-              <button
-                type="button"
-                class="block w-full text-left bg-transparent border-0 p-0 cursor-pointer"
-                onmouseenter={() => {
-                  showImage = true;
-                  brandIndex = i;
-                }}
-                onmouseleave={() => {
-                  showImage = false;
-                  brandIndex = -1;
-                }}
-                onfocus={() => {
-                  showImage = true;
-                  brandIndex = i;
-                }}
-                onblur={() => {
-                  showImage = false;
-                  brandIndex = -1;
-                }}
-                aria-label="Preview {brand.name}"
-              >
-                <PrismicLink field={brand.project_link}>
+          {#each brands as brand, i (i)}
+            <div
+              use:anim
+              class="w-1/4 relative"
+              role="presentation"
+              onmouseenter={() => {
+                showImage = true;
+                brandIndex = i;
+              }}
+              onmouseleave={() => {
+                showImage = false;
+                brandIndex = -1;
+              }}
+              onfocusin={() => {
+                showImage = true;
+                brandIndex = i;
+              }}
+              onfocusout={() => {
+                showImage = false;
+                brandIndex = -1;
+              }}
+            >
+              <div class="w-full text-left">
+                <PrismicLink field={brand.project_link} aria-label={brand.name || "View project"}>
                   <PrismicImage
                     field={brand.logo_negative}
+                    alt=""
                     class="h-full absolute transition-opacity duration-300 ease-fast-slow {showImage &&
                     brandIndex === i
                       ? ''
                       : 'opacity-0'}"
-                    loading="eager"
+                    imgixParams={{ auto: ["compress"] }}
+                    widths={[120, 240, 360]}
+                    sizes="(min-width: 768px) 25vw, 50vw"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <PrismicImage
                     field={brand.logo_color}
+                    alt=""
                     class="h-full transition-opacity duration-300 ease-fast-slow {showImage &&
                     brandIndex > -1
                       ? 'opacity-0'
                       : ''}"
-                    loading="eager"
+                    imgixParams={{ auto: ["compress"] }}
+                    widths={[120, 240, 360]}
+                    sizes="(min-width: 768px) 25vw, 50vw"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </PrismicLink>
-              </button>
+              </div>
             </div>
           {/each}
         </div>
@@ -211,7 +256,7 @@
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
               >
-                <i class="fa-sharp fa-regular fa-arrow-left fa-2xl"></i>
+                <ArrowLeft class="size-[2em]" strokeWidth={1.75} />
               </button>
               <button
                 onclick={nextBrand}
@@ -220,7 +265,7 @@
                   ? 'text-white hover:text-primary'
                   : 'text-primary hover:text-white'} bump"
               >
-                <i class="fa-sharp fa-regular fa-arrow-right fa-2xl"></i>
+                <ArrowRight class="size-[2em]" strokeWidth={1.75} />
               </button>
             </div>
           </div>
@@ -235,37 +280,48 @@
         {mobileScrollActive ? '' : 'opacity-0'}
         {viewportHeight * 16 > viewportWidth * 9 ? 'h-lvh min-w-full' : 'w-screen min-h-full'}"
       >
-        {#each brands as brand, i (brand.name || i)}
+        {#each brands as brand, i (i)}
           <PrismicImage
             field={brand.active_background}
+            alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
             {mobileScrollActive && brandIndex === i ? '' : 'opacity-0'}"
+            imgixParams={{ auto: ["format", "compress"] }}
+            widths={[640, 960, 1280, 1920, 2560]}
+            sizes="100vw"
+            loading="lazy"
+            decoding="async"
           />
         {/each}
       </div>
 
       <div class="absolute bottom-0 left-0 w-screen h-lvh bg-black opacity-25"></div>
       <div class="h-lvh w-screen flex flex-col items-center justify-evenly absolute top-0 left-0">
-        <h6
-          class="text-center mb-12 transition duration-300 ease-fast-slow {mobileScrollActive
+        <h4
+          class="text-lg font-bold leading-7.5 text-center mb-12 transition duration-300 ease-fast-slow {mobileScrollActive
             ? 'text-white'
             : 'text-red'}"
         >
           Join these brands <br /> in fighting mediocrity.
-        </h6>
+        </h4>
 
         <!-- Mobile logo display -->
         <div class="relative h-24 w-full flex justify-center items-center mb-16">
-          {#each brands as brand, i (brand.name || i)}
+          {#each brands as brand, i (i)}
             <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <PrismicLink field={brand.project_link}>
+              <PrismicLink field={brand.project_link} aria-label={brand.name || "View project"}>
                 <PrismicImage
                   field={brand.logo_negative}
+                  alt=""
                   class="h-24 w-auto transition-opacity duration-300 ease-fast-slow object-contain {mobileScrollActive &&
                   brandIndex === i
                     ? ''
                     : 'opacity-0'}"
-                  loading="eager"
+                  imgixParams={{ auto: ["compress"] }}
+                  widths={[120, 240, 360]}
+                  sizes="(min-width: 768px) 25vw, 50vw"
+                  loading="lazy"
+                  decoding="async"
                 />
               </PrismicLink>
             </div>
@@ -303,13 +359,17 @@
         <!-- Progress indicator -->
         <div class="absolute bottom-1/2 translate-y-1/2 left-6 flex justify-center">
           <div class="flex flex-col gap-2">
-            {#each brands as brand, i (brand.name || i)}
+            {#each brands as brand, i (i)}
               <button
-                onclick={() => navigateToBrand(i + 1)}
+                onclick={() => navigateToBrand(i)}
                 aria-label="Jump to {brand.name}"
-                class="w-1.5 h-1.5 rounded-full transition-all duration-300 z-20
-                {i === brandIndex ? 'bg-white scale-125' : 'bg-white/50 scale-100'}"
+                class="grid place-items-center min-w-6 min-h-6 z-20"
               >
+                <span
+                  aria-hidden="true"
+                  class="w-1.5 h-1.5 rounded-full transition-all duration-300
+                  {i === brandIndex ? 'bg-white scale-125' : 'bg-white/50 scale-100'}"
+                ></span>
               </button>
             {/each}
           </div>

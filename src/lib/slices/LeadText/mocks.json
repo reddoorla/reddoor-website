@@ -1,0 +1,33 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "eyebrow": {
+        "__TYPE__": "FieldContent",
+        "value": "The Challenge",
+        "type": "Text"
+      },
+      "body": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "As a brand-new global media agency, CANVAS Worldwide wanted to “do business differently”; they needed an identity on a tight timeline to communicate that message from day one. People needed to see the brand as a fresh, creative, innovative new player who they feel intrigued, inspired, and curious to explore."
+            }
+          }
+        ]
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

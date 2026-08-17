@@ -2,6 +2,28 @@
 
 @config '../tailwind.config.js';
 
+/* Safelist for classes composed at runtime from CMS values — slice code builds
+   them from Prismic selects (`"bg-" + slice.primary.background`), so the
+   scanner finds no literal occurrence in src. Tailwind v4 IGNORES the legacy
+   `safelist` config key; `@source inline()` is the v4 mechanism. (Until now
+   these survived only because the oxide scanner happened to tokenize the old
+   safelist strings inside tailwind.config.js itself.) The bg-/text- sets cover
+   every option of the five background selects; the rest is ported verbatim
+   from the old safelist. bg-paper{,-red} are custom app.css classes and need
+   no safelisting. */
+@source inline("bg-{white,gray,red}");
+@source inline("text-{red,dark,white}");
+@source inline("{sm:,}justify-{center,start,end}");
+@source inline("justify-{between,around}");
+@source inline("hidden");
+@source inline("aspect-{square,video}");
+@source inline("aspect-[16/9]");
+@source inline("aspect-[4/3]");
+@source inline("translate-y-1");
+@source inline("w-[360px]");
+@source inline("md:w-1/2");
+@source inline("h-[40vw]");
+
 :root {
   --transition-fast-slow: cubic-bezier(0.5, 0, 0, 1);
 }
@@ -24,21 +46,32 @@
   }
 }
 
-html {
-  scroll-behavior: smooth;
+/* Smooth scrolling, gated on prefers-reduced-motion: reduced-motion users (and
+   Playwright, which emulates reduced motion) get instant, deterministic scrolls
+   instead of a long animated scrollIntoView. */
+@media (prefers-reduced-motion: no-preference) {
+  html,
+  body {
+    scroll-behavior: smooth;
+  }
 }
-body {
-  font-family: "pragmatica", "helvetica", sans-serif;
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.5, 0, 0, 1);
-  transition-duration: 500ms;
-  max-width: 100vw;
-  overflow-x: clip;
-  scrollbar-width: none !important;
-  overflow-y: auto;
-  color: #6d6e71;
-  background-color: white;
-  scroll-behavior: smooth;
+/* Bare-element defaults live in `@layer base` so Tailwind utilities (which sit
+   in `@layer utilities`) always win over them — unlayered element rules would
+   otherwise beat every utility regardless of specificity. This is the same
+   setup as the newer sites; it lets us drive typography from Tailwind classes. */
+@layer base {
+  body {
+    font-family: "pragmatica", "helvetica", sans-serif;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.5, 0, 0, 1);
+    transition-duration: 500ms;
+    max-width: 100vw;
+    overflow-x: clip;
+    scrollbar-width: none !important;
+    overflow-y: auto;
+    color: #6d6e71;
+    background-color: white;
+  }
 }
 
 body::-webkit-scrollbar {
@@ -50,13 +83,25 @@ body::-webkit-scrollbar {
 }
 
 .bg-paper {
+  /* url() fallback first; browsers that support image-set() use the next-gen
+     formats and ignore this line. */
   background-image: url("/waterColorBg.jpg");
+  background-image: image-set(
+    url("/waterColorBg.avif") type("image/avif"),
+    url("/waterColorBg.webp") type("image/webp"),
+    url("/waterColorBg.jpg") type("image/jpeg")
+  );
   background-size: 300px;
   background-position: center;
 }
 
 .bg-paper-red {
   background-image: url("/waterColorBgRed.jpg");
+  background-image: image-set(
+    url("/waterColorBgRed.avif") type("image/avif"),
+    url("/waterColorBgRed.webp") type("image/webp"),
+    url("/waterColorBgRed.jpg") type("image/jpeg")
+  );
   background-size: 300px;
   background-position: center;
 }
@@ -87,60 +132,72 @@ body::-webkit-scrollbar {
   filter: blur(0);
 }
 
-a {
-  transition: color 600ms;
-  cursor: pointer;
+@layer base {
+  a {
+    transition: color 600ms;
+    cursor: pointer;
+  }
+
+  button {
+    transition: background-color 600ms;
+    cursor: pointer;
+  }
+
+  h1 {
+    font-size: 80px;
+    font-style: normal;
+    font-weight: 200;
+    line-height: normal;
+  }
+
+  h2 {
+    font-family: "Besley", serif;
+    font-size: 60px;
+    font-style: normal;
+    font-weight: 300;
+    line-height: 125%;
+  }
+
+  h3 {
+    font-size: 80px;
+    font-style: normal;
+    font-weight: 200;
+    line-height: 90px;
+  }
+
+  h4 {
+    font-size: 50px;
+    font-style: normal;
+    font-weight: 200;
+    line-height: 66px;
+  }
+
+  h5 {
+    font-size: 30px;
+    font-style: normal;
+    font-weight: 200;
+    line-height: 46px;
+  }
+
+  h6 {
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 30px;
+  }
 }
 
-button {
-  transition: background-color 600ms;
-  cursor: pointer;
+@layer base {
+  p {
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 200;
+    line-height: 30px;
+  }
 }
 
-h1 {
-  font-size: 80px;
-  font-style: normal;
-  font-weight: 200;
-  line-height: normal;
-}
-
-h2 {
-  font-family: "Besley", serif;
-  font-size: 60px;
-  font-style: normal;
-  font-weight: 300;
-  line-height: 125%;
-}
-
-h3 {
-  font-size: 80px;
-  font-style: normal;
-  font-weight: 200;
-  line-height: 90px;
-}
-
-h4 {
-  font-size: 50px;
-  font-style: normal;
-  font-weight: 200;
-  line-height: 66px;
-}
-
-h5 {
-  font-size: 30px;
-  font-style: normal;
-  font-weight: 200;
-  line-height: 46px;
-}
-
-h6 {
-  font-size: 18px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 30px;
-}
-
-p,
+/* Rich-text emphasis stays unlayered: these are class-scoped CMS styles that
+   should keep winning over utilities, same as before. */
 .rich-text em,
 .rich-text i {
   font-size: 18px;
@@ -162,98 +219,99 @@ p,
   font-weight: 300;
 }
 
-button {
-  cursor: pointer;
-}
-
 .label {
   font-size: 14px;
   line-height: 25px;
   font-weight: 200;
 }
 
-@media only screen and (max-width: 1600px) {
-  h1 {
-    font-size: 70px;
-    line-height: 80px;
+/* Responsive heading scale — also inside `@layer base` so Tailwind responsive
+   utilities (e.g. `max-md:text-[…]`) can override it too. */
+@layer base {
+  @media only screen and (max-width: 1600px) {
+    h1 {
+      font-size: 70px;
+      line-height: 80px;
+    }
+  }
+
+  @media only screen and (max-width: 1340px) {
+    h1 {
+      font-size: 54px;
+      line-height: 64px;
+    }
+  }
+
+  @media only screen and (max-width: 1024px) {
+    h1 {
+      font-size: 80px;
+      line-height: 90px;
+    }
+
+    h2 {
+      font-size: 35px;
+      line-height: 45px;
+    }
+
+    h3 {
+      font-size: 60px;
+      line-height: 70px;
+    }
+
+    h4 {
+      font-size: 45px;
+      line-height: 60px;
+    }
+    h5 {
+      font-size: 22px;
+      line-height: 32px;
+    }
+  }
+
+  @media only screen and (max-width: 768px) {
+    h1 {
+      font-size: 54px;
+      line-height: 64px; /* 121.212% */
+    }
+
+    h2 {
+      font-size: 27px;
+      line-height: 35px;
+    }
+
+    h4 {
+      font-size: 40px;
+      line-height: 50px;
+    }
+  }
+
+  @media only screen and (max-width: 560px) {
+    h1 {
+      font-size: 44px;
+      line-height: 54px;
+    }
+  }
+
+  @media only screen and (max-width: 480px) {
+    h1 {
+      font-size: 36px;
+      line-height: 44px;
+    }
+
+    h3 {
+      font-size: 36px;
+      line-height: 48px;
+    }
   }
 }
 
-@media only screen and (max-width: 1340px) {
-  h1 {
-    font-size: 54px;
-    line-height: 64px;
+/* In @layer base (not unlayered + !important) so `placeholder:*` utilities can
+   override it — e.g. the portfolio search box's `placeholder:text-light/60`,
+   which the old !important rule silently defeated. */
+@layer base {
+  ::placeholder {
+    color: #6d6e7140;
   }
-}
-
-@media only screen and (max-width: 1024px) {
-  h1 {
-    font-size: 80px;
-    line-height: 90px;
-  }
-
-  h2 {
-    font-size: 35px;
-    line-height: 45px;
-  }
-
-  h3 {
-    font-size: 60px;
-    line-height: 70px;
-  }
-
-  h4 {
-    font-size: 45px;
-    line-height: 60px;
-  }
-  h5 {
-    font-size: 22px;
-    line-height: 32px;
-  }
-}
-
-@media only screen and (max-width: 768px) {
-  h1 {
-    font-size: 54px;
-    line-height: 64px; /* 121.212% */
-  }
-
-  h2 {
-    font-size: 27px;
-    line-height: 35px;
-  }
-
-  h4 {
-    font-size: 40px;
-    line-height: 50px;
-  }
-}
-
-@media only screen and (max-width: 560px) {
-  h1 {
-    font-size: 44px;
-    line-height: 54px;
-  }
-}
-
-@media only screen and (max-width: 480px) {
-  h1 {
-    font-size: 36px;
-    line-height: 44px;
-  }
-
-  h3 {
-    font-size: 36px;
-    line-height: 48px;
-  }
-}
-
-::placeholder {
-  color: #6d6e7140 !important;
-}
-
-input[type="textarea"]::placeholder {
-  margin-top: 0;
 }
 
 .rich-text a {

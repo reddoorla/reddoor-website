@@ -1,0 +1,53 @@
+{
+  "id": "lead_text",
+  "type": "SharedSlice",
+  "name": "LeadText",
+  "description": "LeadText",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Eyebrow label above a serif lead paragraph",
+      "imageUrl": "",
+      "primary": {
+        "eyebrow": {
+          "type": "Text",
+          "config": {
+            "label": "eyebrow",
+            "placeholder": "e.g. The Challenge"
+          }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "label": "body",
+            "placeholder": "",
+            "allowTargetBlank": true,
+            "multi": "paragraph,strong,em,hyperlink"
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}

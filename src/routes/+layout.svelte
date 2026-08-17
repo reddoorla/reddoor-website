@@ -1,7 +1,9 @@
 <script lang="ts">
   import { PrismicPreview } from "@prismicio/svelte/kit";
+  import { Menu, X } from "@lucide/svelte";
   import { page } from "$app/state";
   import { repositoryName } from "$lib/prismicio";
+  import { SITE_URL } from "$lib/site";
 
   import "../app.css";
 
@@ -12,10 +14,18 @@
 
   import { isInHero } from "$lib/stores/isInHero.svelte";
   import LandscapeModal from "$lib/components/LandscapeModal.svelte";
+  import { trapFocus } from "$lib/actions/trapFocus";
 
-  import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.gif";
+  import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.webp";
   import scriptReddoor from "$lib/assets/icons/logos/staticReddoor.png";
   import type { Snippet } from "svelte";
+  import { onMount } from "svelte";
+
+  // Hydration marker for the smoke suite (same pattern as /dev/a11y-fixtures):
+  // onMount runs client-side after the initial effect flush, so tests can wait
+  // on `html[data-hydrated]` instead of guessing with fixed timeouts. Costs one
+  // attribute set; no behavioral effect.
+  onMount(() => document.documentElement.setAttribute("data-hydrated", "true"));
 
   const NAV_LINKS = [
     { label: "Portfolio", href: "/portfolio" },
@@ -41,7 +51,7 @@
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Reddoor Creative",
-    url: "https://www.reddoorla.com",
+    url: "https://reddoorla.com",
     sameAs: [
       "https://www.linkedin.com/company/reddoor-creative",
       "https://www.instagram.com/reddoorla/",
@@ -69,10 +79,17 @@
 
   // Every load resolves meta_image to a URL string (Prismic URLs are absolute;
   // imported-asset paths are root-relative). OG/Twitter need an absolute URL.
+  // Prerendered pages report `page.url.origin` as the `sveltekit-prerender`
+  // placeholder, so a root-relative asset must resolve against the canonical
+  // origin (SITE_URL) instead — otherwise the baked-in og:image points at a
+  // non-existent host. Real request origins (SSR pages, previews, dev) are used
+  // as-is so each host advertises its own image.
   const metaImageUrl = $derived.by(() => {
     const img = page.data.meta_image;
     if (typeof img !== "string" || !img) return undefined;
-    return img.startsWith("http") ? img : new URL(img, page.url.origin).href;
+    if (img.startsWith("http")) return img;
+    const origin = page.url.origin.includes("sveltekit-prerender") ? SITE_URL : page.url.origin;
+    return new URL(img, origin).href;
   });
 
   function disableScrollRestoration() {
@@ -101,18 +118,18 @@
 <svelte:window bind:scrollY />
 
 <svelte:head>
-  <title>{page.data.title ?? "Reddoor"}</title>
+  <!-- `||`, not `??`: an empty CMS title field arrives as "" and must still fall back. -->
+  <title>{page.data.title || "Reddoor"}</title>
   {#if page.data.meta_description}
     <meta name="description" content={page.data.meta_description} />
   {/if}
   {#if page.data.meta_title}
-    <meta name="og:title" content={page.data.meta_title} />
+    <meta property="og:title" content={page.data.meta_title} />
   {/if}
   {#if metaImageUrl}
-    <meta name="og:image" content={metaImageUrl} />
+    <meta property="og:image" content={metaImageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
   {/if}
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- JSON-LD assembled via concatenation so the Svelte ESLint parser doesn't see a literal </script> tag -->
   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html "<" +
@@ -122,10 +139,23 @@
     "script>"}
 </svelte:head>
 
+<!-- Keyboard bypass-block (WCAG 2.4.1): first focusable element on every page,
+     visually hidden until focused, jumps focus past the nav to <main>. -->
+<a
+  href="#main-content"
+  class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-primary focus:px-4 focus:py-2 focus:text-white focus:no-underline"
+>
+  Skip to main content
+</a>
+
 {#if isOverlayVisible}
   <div
     class="w-screen h-lvh fixed inset-0 bg-paper z-30 overflow-hidden"
     transition:fly={{ y: "-100%" }}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Menu"
+    use:trapFocus={{ onEscape: toggleOverlayOff }}
   >
     <div class="flex items-start justify-between px-6 md:px-20 py-2.5">
       <a
@@ -140,8 +170,9 @@
         class="text-black opacity-95 hover:opacity-100 transition mt-3"
         onclick={toggleOverlayOff}
         aria-label="Close menu"
+        data-autofocus
       >
-        <i class="fa-sharp fa-thin fa-xmark fa-2xl"></i>
+        <X class="size-[2em]" strokeWidth={1} />
       </button>
     </div>
 
@@ -168,7 +199,13 @@
 {/if}
 <LandscapeModal />
 {#key data.pathname}
-  <main out:fade={{ duration: 500 }} in:fade={{ delay: 700, duration: 700 }}>
+  <main
+    id="main-content"
+    tabindex="-1"
+    class="focus:outline-none"
+    out:fade={{ duration: 500 }}
+    in:fade={{ delay: 700, duration: 700 }}
+  >
     {#if !showNav && !isInHero.value}
       <div
         class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
@@ -200,7 +237,7 @@
               aria-label="Open menu"
             >
               {#if !isOverlayVisible}
-                <i class="fa-sharp fa-thi fa-bars fa-2xl"></i>
+                <Menu class="size-[2em]" strokeWidth={1} />
               {/if}
             </button>
           </div>
@@ -241,7 +278,7 @@
               aria-label="Open menu"
             >
               {#if !isOverlayVisible}
-                <i class="fa-sharp fa-bars fa-2xl"></i>
+                <Menu class="size-[2em]" strokeWidth={2} />
               {/if}
             </button>
           </div>
@@ -258,7 +295,12 @@
         <div class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5">
           <div class="flex flex-col gap-1">
             <a href="/" class="translate-x-[-8%] w-3/5 md:w-full"
-              ><img src={rotatingReddoor} alt="reddoor drawn in multiple styles" /></a
+              ><img
+                src={rotatingReddoor}
+                alt="reddoor drawn in multiple styles"
+                loading="lazy"
+                decoding="async"
+              /></a
             >
             <a href="/portfolio" class="text-primary underline">Portfolio</a>
             <a href="/about" class="text-primary underline">About</a>
@@ -291,4 +333,6 @@
   </main>
 {/key}
 
-<PrismicPreview {repositoryName} />
+{#if data.isPreviewSession}
+  <PrismicPreview {repositoryName} />
+{/if}

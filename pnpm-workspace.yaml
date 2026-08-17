@@ -1,0 +1,38 @@
+allowBuilds:
+  "@scarf/scarf": false
+  esbuild: true
+  protobufjs: true
+  sharp: true
+
+# pnpm 11 enables a 24h supply-chain release-age cooldown BY DEFAULT (pnpm 10 had none). With our
+# Renovate automation that breaks CI on every same-day bump and holds us ~24h behind latest, so we
+# disable it to preserve pnpm 10 behavior (no security regression vs. what we ran before).
+#
+# To opt into the cooldown later: set minimumReleaseAge to e.g. 1440 (minutes), add
+#   minimumReleaseAgeExclude: ['@reddoorla/*']
+# so our own freshly-published packages install immediately, and set Renovate's minimumReleaseAge
+# to >= the cooldown in the org preset so it never proposes deps younger than the window.
+minimumReleaseAge: 0
+
+# Two sharp majors were being installed: 0.34.5 (via @reddoorla/maintenance, runtime)
+# and 0.33.5 (via @zerodevx/svelte-img → vite-imagetools → imagetools-core ^0.33.1,
+# build-time). The disjoint caret ranges can't dedupe, so both native libvips dylibs
+# land on disk (and macOS logs a "GNotificationCenterDelegate implemented in both …"
+# duplicate-class warning on every run). Force a single sharp; imagetools-core 6.x
+# transforms fine on 0.34.
+#
+# Transitive-dependency security pins (same idiom as reddoor-starter #53 /
+# reddoor-maintenance). Cleared 2026-07-15:
+#   - uuid <11.1.1: missing buffer bounds check in v3/v5/v6 (GHSA-w5hq-g745-h8pq) — dev-only,
+#     via the slice-machine chain
+#   - cookie <0.7.0: out-of-bounds chars in name/path/domain (GHSA-pxg6-pf52-xh8x) — the one
+#     runtime-scope alert, via @sveltejs/kit
+#   - qs: already resolves ≥6.15.2 here; capped anyway for fleet consistency (GHSA-q8mj-m7cp-5q26)
+#   - file-type <21.3.1: ReDoS in the MKV parser (GHSA-894g-fhgh-hgpp) — dev-only, via the
+#     slice-machine chain; Dependabot auto-dismissed it, pinned anyway for a clean-zero audit
+overrides:
+  sharp: "0.35.3"
+  qs@<6.15.2: ">=6.15.2 <7"
+  uuid@<11.1.1: ">=11.1.1"
+  cookie@<0.7.0: ">=0.7.0 <1"
+  file-type@<21.3.1: ">=21.3.1"

@@ -13,7 +13,6 @@ yarn.lock
 test-results
 playwright-report
 .playwright
-scripts/padding-snapshot.json
 
 # canonical entries from @reddoorla/maintenance sync-configs
 dist/

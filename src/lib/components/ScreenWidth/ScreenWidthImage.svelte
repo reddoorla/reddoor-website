@@ -2,8 +2,9 @@
   import placeholder from "../../assets/images/background_placeholder.svg";
   import { PrismicImage } from "@prismicio/svelte";
   import Img from "$lib/components/Img.svelte";
+  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
   import type { Snippet } from "svelte";
-  import type { ImageField } from "@prismicio/client";
+  import { isFilled, type ImageField } from "@prismicio/client";
 
   interface Props {
     src?: string;
@@ -35,11 +36,9 @@
 
   let viewportHeight = $state(1024);
   let viewportWidth = $state(768);
-  let showVideo = $state(true);
-
-  const handleVideoError = () => {
-    showVideo = false;
-  };
+  // The old `lazy` prop + bespoke IntersectionObserver are gone: VimeoEmbed
+  // always gates background embeds on engagement + proximity (and skips them
+  // entirely under prefers-reduced-motion), which supersedes both.
 </script>
 
 <svelte:window bind:innerHeight={viewportHeight} bind:innerWidth={viewportWidth} />
@@ -69,22 +68,31 @@
         "
       />
     {:else}
-      <PrismicImage {field} class="absolute h-full w-full object-cover -z-10" />
+      <PrismicImage
+        {field}
+        class="absolute h-full w-full object-cover -z-10"
+        imgixParams={{ auto: ["format", "compress"] }}
+        widths={[640, 960, 1280, 1920, 2560]}
+        sizes="100vw"
+        loading="lazy"
+        decoding="async"
+      />
     {/if}
 
-    <!-- Video - only show if vimeoId exists and hasn't failed -->
     {#if vimeoId}
-      <iframe
-        title="background video"
-        src={`https://player.vimeo.com/video/${vimeoId}?background=1&muted=1&loop=1&autoplay=1`}
+      <!-- hasPoster mirrors the fallback-image branches above: img, bare src,
+           or a filled Prismic field. The home hero passes none of these, so it
+           is poster-less: VimeoEmbed still engagement-gates the src (no cookie),
+           but reveals on mount instead of over a poster. -->
+      <VimeoEmbed
+        {vimeoId}
+        background
+        hasPoster={!!img || (!field && !!src) || isFilled.image(field)}
+        allow="autoplay; fullscreen"
         class="aspect-video absolute {viewportHeight * 16 > viewportWidth * 9
           ? 'h-screen min-w-full'
-          : 'w-screen min-h-full'} contrast-[1.15] -z-10
-        {showVideo ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300"
-        frameborder="0"
-        allowfullscreen
-        onerror={handleVideoError}
-      ></iframe>
+          : 'w-screen min-h-full'} contrast-[1.15] -z-10"
+      />
     {/if}
 
     {#if darken}
