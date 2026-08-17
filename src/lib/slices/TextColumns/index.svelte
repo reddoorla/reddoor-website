@@ -398,21 +398,26 @@
      metrics via canvas TextMetrics, which agree to within 0.05px:
 
      - Tracking is added after the LAST digit as well, so the box the browser
-       centres is 1px wider than the numerals draw. The negative margin takes
-       that pixel back off the end; without it every numeral reads 0.5px left.
-     - What remains is the first glyph's left bearing against the last glyph's
-       right bearing — zero for most numerals, a full pixel for `01`. Hence a
+       centres runs a pixel past the numerals and they read 0.5px left.
+     - Then the first glyph's left bearing against the last glyph's right
+       bearing — ~0 for most numerals, a full pixel for `01`. Hence a
        per-numeral `--digit-nudge` rather than one average: the single 1.2px
        this used to carry was too much for `02`/`03` (0.7px right of centre)
-       and too little for `01`.
+       and too little for `01`. `numeralNudge` folds both terms into one number.
      - Vertically the digits sit 0.75px high, because a font's ascent and
        descent are not symmetric about the baseline. That one IS uniform — every
        numeral shares a baseline and a cap height.
 
-     Holds 01/02/03 within 0.06px of centre at both breakpoints. */
+     All of it rides on the transform and none of it on the box, which is not a
+     style preference: cancelling the tracking with `margin-right: -1px` leaves
+     the box on a half pixel, and Firefox pixel-snaps a transformed element's
+     layout position — it rounds that half pixel away and then adds the
+     transform, landing 0.48px right of where Chromium and WebKit put it.
+
+     Holds 01/02/03 within 0.2px of centre in all three engines, at both
+     breakpoints. */
   .step-num-digits {
     letter-spacing: 1px;
-    margin-right: -1px;
     transform: translate(var(--digit-nudge, 0px), 0.75px);
   }
   /* On the board the rule runs straight out of the circle and straight into the

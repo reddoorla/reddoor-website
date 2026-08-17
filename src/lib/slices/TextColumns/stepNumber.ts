@@ -27,22 +27,34 @@ const BEARING: Record<string, { left: number; right: number }> = {
 };
 const BEARING_DEFAULT = { left: 0.63, right: 0.61 };
 
+/** Tracking on the numerals, in px — must match `letter-spacing` in the CSS. */
+const TRACKING = 1;
+
 /**
  * How far to nudge a step numeral so it looks centred in its circle.
  *
  * A flex-centred box centres the numerals' ADVANCE — their slots — but the eye
- * centres their INK, and the two differ by the first glyph's left bearing
- * against the last glyph's right bearing. Half that difference is the
- * correction, and it is zero for every numeral that neither starts nor ends in
- * a `1`, which is why `02`-`09` need nothing at all and `01` needs a full pixel.
+ * centres their INK. Two things separate the two:
  *
- * This assumes the caller has already cancelled the trailing letter-spacing
- * (see `.step-num-digits`) — tracking is added after the LAST digit too, which
- * would otherwise widen the box past the ink by another half pixel.
+ * - Tracking is added after the LAST digit as well, so the box runs a full
+ *   `TRACKING` past the final glyph and the numerals read half of it left.
+ *   Every numeral pays this equally.
+ * - Then the first glyph's left bearing against the last glyph's right bearing,
+ *   halved. That term is ~0 for any numeral that neither starts nor ends in a
+ *   `1`, which is why `01` needs a full pixel more than `02`-`09`, and `10`
+ *   needs a nudge back the other way.
+ *
+ * Returned as ONE number, deliberately: the correction has to reach the page as
+ * a single transform. Splitting it — cancelling the tracking with a negative
+ * margin and transforming the rest — measures correctly in Chromium and WebKit
+ * but not in Firefox, which pixel-snaps a transformed element's layout position
+ * and so rounds away the half pixel the margin introduced, then applies the
+ * transform on top of the rounded value. Measured: identical to Chromium for a
+ * transform alone and for a margin alone, 0.48px adrift for the two together.
  */
 export function numeralNudge(numeral: string): number {
   if (!numeral) return 0;
   const first = BEARING[numeral[0]] ?? BEARING_DEFAULT;
   const last = BEARING[numeral[numeral.length - 1]] ?? BEARING_DEFAULT;
-  return Math.round(((last.right - first.left) / 2) * 100) / 100;
+  return Math.round(((last.right - first.left + TRACKING) / 2) * 100) / 100;
 }

@@ -435,13 +435,14 @@
     border-color: currentColor;
   }
   /* Same circle, same correction as the process rail — see .step-num-digits in
-     slices/TextColumns for the full reasoning. Short version: kill the tracking
-     that lands after the last digit, nudge by the numeral's own bearings
-     (`--digit-nudge`, set in the markup), and drop the ink 0.75px to sit on the
-     circle's middle instead of its metrics. */
+     slices/TextColumns for the full reasoning. Short version: `--digit-nudge`
+     (set in the markup) carries the trailing tracking and the numeral's own
+     bearings in one number, and 0.75px drops the ink onto the circle's middle
+     instead of its metrics. Both on the transform, none on the box — Firefox
+     snaps a transformed element's layout position, so a half-pixel box offset
+     comes back as a whole one. */
   .inquiry-step-digits {
     letter-spacing: 1px;
-    margin-right: -1px;
     transform: translate(var(--digit-nudge, 0px), 0.75px);
   }
   /* Absolute so the arrow hangs below the circle without adding height and
