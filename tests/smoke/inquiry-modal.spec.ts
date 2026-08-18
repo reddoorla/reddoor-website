@@ -19,12 +19,15 @@ async function gotoHydrated(page: import("@playwright/test").Page) {
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
 }
 
-// Nothing here should ever reach central ingest OR the CRM. Every test stubs
-// both endpoints; a test that forgets would surface as a real submission (a
-// real LEAD, on the CRM side), so the default is a hard failure rather than a
-// pass-through. Turnstile's api.js is aborted for the same reason plus
-// determinism: with it gone the modal's token minting fails fast and the CRM
-// fires go out tokenless and immediately.
+// Nothing here should ever reach central ingest. /api/inquiry is the modal's
+// ONLY network call now — the CRM sync moved server-side behind that endpoint —
+// so stubbing it is what keeps a test from producing a real lead. What the CRM
+// receives is covered by src/lib/ghl/client.test.ts against a fetch stub; these
+// tests own the browser's half of the contract: that the payload the endpoint
+// needs actually goes up, in the right shapes.
+//
+// Turnstile's api.js is still aborted for determinism — the modal itself no
+// longer mints CRM tokens, but nothing here should hit Cloudflare either.
 async function stubInquiry(
   page: import("@playwright/test").Page,
   response: { status: number; body: Record<string, unknown> } = {
@@ -42,19 +45,18 @@ async function stubInquiry(
     });
   });
 
-  // Raw multipart bodies: the CRM fire is FormData, so assertions grep the
-  // encoded parts rather than parsing JSON.
-  const fires: { url: string; body: string }[] = [];
   await page.route("**/challenges.cloudflare.com/**", (route) => route.abort());
-  await page.route("**/backend.leadconnectorhq.com/**", async (route) => {
-    fires.push({
-      url: route.request().url(),
-      body: route.request().postDataBuffer()?.toString("utf8") ?? "",
-    });
-    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+
+  // A guard, not a fixture: the browser must never call the CRM directly again.
+  // If the old widget fire is ever reintroduced, this fails the suite loudly
+  // instead of quietly submitting a real lead from CI.
+  const strayCrmCalls: string[] = [];
+  await page.route("**/*.leadconnectorhq.com/**", async (route) => {
+    strayCrmCalls.push(route.request().url());
+    await route.abort();
   });
 
-  return { calls, fires };
+  return { calls, strayCrmCalls };
 }
 
 /**
@@ -72,50 +74,6 @@ async function throughStepOne(page: import("@playwright/test").Page, email = "bu
     dialog.getByRole("heading", { name: /What problems are you experiencing\?/ }),
   ).toBeVisible();
   return dialog;
-}
-
-/**
- * Pull the JSON `formData` part out of a captured multipart CRM body. The other
- * parts (locationId, formId/surveyId, token) are asserted from the raw body or
- * the URL; this is the structured payload whose value *shapes* actually matter —
- * a substring grep passes even if a checkbox answer went up as a bare string.
- */
-function formDataJson(body: string): Record<string, unknown> {
-  const m = body.match(/name="formData"\r?\n\r?\n([\s\S]*?)\r?\n--/);
-  if (!m) throw new Error("no formData part found in the multipart CRM body");
-  return JSON.parse(m[1]) as Record<string, unknown>;
-}
-
-/**
- * Stand in for Cloudflare's api.js with a widget that actually mints a token, so
- * the SUCCESS path of the CRM fire can be exercised — every other test aborts
- * api.js and takes the tokenless degrade. Defined via addInitScript so
- * `window.turnstile` exists before the component's loadTurnstile() runs (it
- * short-circuits on the global, and never requests the real script). `reset`
- * re-mints so a second fire in the same session also carries a token.
- */
-async function primeTurnstileSuccess(
-  page: import("@playwright/test").Page,
-  token = "FAKE-TS-TOKEN",
-) {
-  await page.addInitScript((tok) => {
-    let cb: ((t: string) => void) | undefined;
-    const stub = {
-      render(_el: unknown, opts: { callback?: (t: string) => void }) {
-        cb = opts.callback;
-        // Async, like the real challenge — the flow parks or awaits it either way.
-        setTimeout(() => cb?.(tok), 0);
-        return "widget-1";
-      },
-      reset() {
-        setTimeout(() => cb?.(tok), 0);
-      },
-      remove() {
-        cb = undefined;
-      },
-    };
-    (window as unknown as Record<string, unknown>).turnstile = stub;
-  }, token);
 }
 
 test("the modal is closed until a CTA is clicked", async ({ page }) => {
@@ -137,10 +95,8 @@ test("an #inquire link opens the modal and focuses the email field", async ({ pa
   await expect(page.locator("#inquiry-email")).toBeFocused();
 });
 
-test("submitting the email advances to the questions and fires both endpoints", async ({
-  page,
-}) => {
-  const { calls, fires } = await stubInquiry(page);
+test("submitting the email advances to the questions and posts the lead", async ({ page }) => {
+  const { calls, strayCrmCalls } = await stubInquiry(page);
   await gotoHydrated(page);
 
   await throughStepOne(page);
@@ -156,20 +112,23 @@ test("submitting the email advances to the questions and fires both endpoints", 
   // would be screened out server-side.
   expect(calls[0].botField).toBe("");
 
-  // The CRM fire follows off the await path; poll rather than assume ordering.
-  await expect.poll(() => fires.length).toBe(1);
-  expect(fires[0].url).toContain("/forms/submit");
-  expect(fires[0].url).toContain("formId=MgcBOjbMGpQByfbVnUe7");
-  expect(fires[0].body).toContain("buyer@example.com");
-  // The whole point of the custom flow: the submission carries our attribution.
-  expect(fires[0].body).toContain("utm_source");
-  expect(fires[0].body).toContain("reddoorla-website");
+  // Everything the server-side CRM sync needs rides on this one POST. The API
+  // cannot write real attribution, so the landing URL and referrer are what the
+  // CRM's attribution note is composed from — if they stop going up, the note
+  // silently becomes useless.
+  expect(calls[0].sourceUrl).toContain("/dev/a11y-fixtures");
+  expect(typeof calls[0].referrer).toBe("string");
+  expect(calls[0].campaign).toBeTruthy();
+  // The survey id selects BOTH the question set shown and the custom fields the
+  // server is willing to write, so a wrong/missing one silently drops answers.
+  expect(calls[0].surveyId).toBe("VfiN5rugWcATPw47P20U");
+
+  // The browser must not talk to the CRM any more.
+  expect(strayCrmCalls).toEqual([]);
 });
 
-test("an invalid email is rejected client-side and never reaches either endpoint", async ({
-  page,
-}) => {
-  const { calls, fires } = await stubInquiry(page);
+test("an invalid email is rejected client-side and never reaches the server", async ({ page }) => {
+  const { calls, strayCrmCalls } = await stubInquiry(page);
   await gotoHydrated(page);
 
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
@@ -178,16 +137,17 @@ test("an invalid email is rejected client-side and never reaches either endpoint
 
   await expect(page.getByRole("alert")).toContainText("valid email");
   expect(calls).toHaveLength(0);
-  expect(fires).toHaveLength(0);
+  expect(strayCrmCalls).toEqual([]);
   // The field is marked invalid and points at the message, so the error is
   // reachable by screen reader rather than colour-only.
   await expect(page.locator("#inquiry-email")).toHaveAttribute("aria-invalid", "true");
 });
 
-test("a server error is surfaced, and the CRM is not fired for an uncaptured lead", async ({
-  page,
-}) => {
-  const { fires } = await stubInquiry(page, { status: 502, body: { error: "Ingest is down." } });
+test("a server error is surfaced and the visitor is not advanced", async ({ page }) => {
+  const { strayCrmCalls } = await stubInquiry(page, {
+    status: 502,
+    body: { error: "Ingest is down." },
+  });
   await gotoHydrated(page);
 
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
@@ -196,15 +156,17 @@ test("a server error is surfaced, and the CRM is not fired for an uncaptured lea
 
   await expect(page.getByRole("alert")).toContainText("Ingest is down.");
   await expect(page.getByRole("status")).toHaveCount(0);
-  // No ingest copy of the lead → no CRM fire either. The CRM is the sync, not
-  // the system of record, and must never hold the only copy.
-  expect(fires).toHaveLength(0);
+  // Ingest is the system of record: when it rejects the lead the endpoint never
+  // reaches its CRM sync at all, so nothing is left holding the only copy.
+  // The visitor stays on the email frame rather than being marched onward.
+  await expect(page.locator("#inquiry-email")).toBeVisible();
+  expect(strayCrmCalls).toEqual([]);
 });
 
 test("the full application: five questions, contact details, both submissions", async ({
   page,
 }) => {
-  const { calls, fires } = await stubInquiry(page);
+  const { calls, strayCrmCalls } = await stubInquiry(page);
   await gotoHydrated(page);
   const dialog = await throughStepOne(page);
 
@@ -258,44 +220,36 @@ test("the full application: five questions, contact details, both submissions", 
   expect(answers[1].value).toBe("https://buyer.example.com");
   expect(answers[4].value).toBe("$30,000 - 50,000");
 
-  // Two CRM fires: the form on step one, the survey on completion.
-  await expect.poll(() => fires.length).toBe(2);
-  const survey = fires[1];
-  expect(survey.url).toContain("/surveys/submit");
-  expect(survey.url).toContain("surveyId=VfiN5rugWcATPw47P20U");
-
-  // Parse the multipart body and assert the ACTUAL value shapes the CRM stores.
-  // A substring grep would pass even if a checkbox answer went up as a bare
-  // string, or the consent flag as the wrong type — and GHL maps by exact
-  // value, so a shape drift silently unmaps the answer from the contact record.
-  const fd = formDataJson(survey.body);
-  // Checkbox answers submit as arrays, in the order they were ticked…
-  expect(fd["vlLzA6TsJhHkmvmf6ArR"]).toEqual([
+  // `fields` is the same answers keyed by CRM FIELD ID — the payload the server
+  // turns into the contact's custom fields. Asserted by value shape, not by
+  // substring: the CRM matches option strings byte-for-byte and stores checkbox
+  // answers as arrays, so a checkbox arriving as a bare string would silently
+  // unmap the answer from the contact record while any grep still passed.
+  const fields = application.fields as Record<string, string | string[]>;
+  // Checkboxes as arrays, in the order they were ticked…
+  expect(fields["vlLzA6TsJhHkmvmf6ArR"]).toEqual([
     "Outdated sales and marketing materials",
     "Use DIY tools with little or no success",
   ]);
-  expect(fd["K0obgvYezsY9MX088GFN"]).toEqual(["Confidence to compete in new markets"]);
+  expect(fields["K0obgvYezsY9MX088GFN"]).toEqual(["Confidence to compete in new markets"]);
   // …radios as a single string, not a one-element array…
-  expect(fd["iRpYADswmWvMc0hnWtrT"]).toBe("My business partner");
-  expect(fd["xW6eFrHUFBNQCijp1mOM"]).toBe("$30,000 - 50,000");
-  // …free text as a string…
-  expect(fd["website"]).toBe("https://buyer.example.com");
-  // …contact fields with the phone normalized to +1E.164…
-  expect(fd.full_name).toBe("Pat Buyer");
-  expect(fd.email).toBe("buyer@example.com");
-  expect(fd.phone).toBe("+15551234567");
-  // …and consent as the one-element array of the CRM's exact stored sentence.
-  expect(fd["K6hRBtIufgEo0ZuJfDPD"]).toEqual([
-    "I consent to receiving text messages to this number. We will only use this number for text communication regarding this application.",
-  ]);
-  // The attribution the whole custom flow exists to carry rides along too.
-  expect((fd.eventData as { url_params: Record<string, string> }).url_params.utm_source).toBe(
-    "reddoorla-website",
-  );
+  expect(fields["iRpYADswmWvMc0hnWtrT"]).toBe("My business partner");
+  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("$30,000 - 50,000");
+  // …and free text as a string. `website` names a STANDARD contact field, so the
+  // server routes it out of the custom-field write (see ghl/client).
+  expect(fields["website"]).toBe("https://buyer.example.com");
+
+  // Consent is NOT carried as a field value. The browser sends the boolean and
+  // the server writes the CRM's exact stored sentence itself, so a client can
+  // never assert consent on a visitor's behalf.
+  expect(fields["K6hRBtIufgEo0ZuJfDPD"]).toBeUndefined();
+  expect(application.smsConsent).toBe(true);
+
+  expect(strayCrmCalls).toEqual([]);
 });
 
 test("the contact frame enforces name, phone and consent", async ({ page }) => {
-  const { calls, fires } = await stubInquiry(page);
+  const { calls } = await stubInquiry(page);
   await gotoHydrated(page);
   const dialog = await throughStepOne(page);
 
@@ -315,7 +269,6 @@ test("the contact frame enforces name, phone and consent", async ({ page }) => {
 
   // Nothing was submitted beyond the step-one capture.
   expect(calls).toHaveLength(1);
-  await expect.poll(() => fires.length).toBe(1);
 });
 
 test("Back preserves what was already answered", async ({ page }) => {
@@ -570,30 +523,14 @@ test("a CTA with no data-inquire-step falls back to the first framework step", a
   expect(calls[0].step).toBe("The Diagnosis");
 });
 
-// Every other test aborts api.js and asserts the tokenless degrade; this one
-// stands up a widget that actually mints a token and proves it rides the fire.
-test("a minted Turnstile token rides the CRM fire", async ({ page }) => {
-  await primeTurnstileSuccess(page, "FAKE-TS-TOKEN");
-  const { fires } = await stubInquiry(page);
-  await gotoHydrated(page);
-  await throughStepOne(page);
-
-  await expect.poll(() => fires.length).toBe(1);
-  // The token goes up as the CRM's non-interactive proof, a distinct multipart
-  // part — so assert the part name, not just that the token string appears.
-  expect(fires[0].body).toContain('name="turnstileNonInteractiveToken"');
-  expect(fires[0].body).toContain("FAKE-TS-TOKEN");
-});
-
-// The survey fire is gated on the application's ingest POST succeeding: the CRM
-// is the sync, never the sole holder of an application the system of record
-// rejected. Step one succeeds (so the visitor reaches the wizard); the
-// application POST fails.
-test("an application-step ingest failure surfaces the error and never fires the survey", async ({
+// The CRM sync lives behind /api/inquiry, so an ingest failure means the whole
+// endpoint failed and nothing reached the CRM either — ingest is the system of
+// record and the CRM must never hold an application it rejected. Step one
+// succeeds (so the visitor reaches the wizard); the application POST fails.
+test("an application-step ingest failure surfaces the error and holds the visitor", async ({
   page,
 }) => {
   const calls: Record<string, unknown>[] = [];
-  const fires: { url: string; body: string }[] = [];
   await page.route("**/api/inquiry", async (route) => {
     calls.push(JSON.parse(route.request().postData() ?? "{}"));
     const failing = calls.length >= 2; // 1 = email capture (ok), 2 = application (fail)
@@ -604,20 +541,14 @@ test("an application-step ingest failure surfaces the error and never fires the 
     });
   });
   await page.route("**/challenges.cloudflare.com/**", (route) => route.abort());
-  await page.route("**/backend.leadconnectorhq.com/**", async (route) => {
-    fires.push({
-      url: route.request().url(),
-      body: route.request().postDataBuffer()?.toString("utf8") ?? "",
-    });
-    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  const strayCrmCalls: string[] = [];
+  await page.route("**/*.leadconnectorhq.com/**", async (route) => {
+    strayCrmCalls.push(route.request().url());
+    await route.abort();
   });
 
   await gotoHydrated(page);
   const dialog = await throughStepOne(page);
-
-  // The step-one form fire is out; the survey must not follow it.
-  await expect.poll(() => fires.length).toBe(1);
-  expect(fires[0].url).toContain("/forms/submit");
 
   for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
   await page.locator("#inquiry-name").fill("Pat Buyer");
@@ -625,13 +556,14 @@ test("an application-step ingest failure surfaces the error and never fires the 
   await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  // The failure is surfaced, the visitor is held on the contact frame (not
-  // marched to the thank-you), and no survey fire ever goes out.
+  // The failure is surfaced and the visitor is held on the contact frame rather
+  // than marched to the thank-you, so the application can be retried.
   await expect(dialog.getByRole("alert")).toContainText("Ingest is down.");
   await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
   await expect(dialog.getByRole("status")).toHaveCount(0);
-  expect(fires.every((f) => !f.url.includes("/surveys/submit"))).toBe(true);
-  expect(fires).toHaveLength(1);
+  // Both POSTs were attempted; neither reached the CRM from the browser.
+  expect(calls).toHaveLength(2);
+  expect(strayCrmCalls).toEqual([]);
 });
 
 // The resume path is only for a mid-wizard abandon. A FINISHED application must

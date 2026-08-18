@@ -1,6 +1,8 @@
 import { json } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
+import { syncInquiryToCrm, syncApplicationToCrm } from "$lib/ghl/client";
+import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 import type { RequestHandler } from "./$types";
 
 // The industry landing pages are prerendered (root layout sets `prerender =
@@ -12,7 +14,17 @@ export const prerender = false;
 
 // Mirrors the /contact action's limits so a submission that would be rejected
 // there is rejected here identically.
-const MAX_LEN = { email: 254, step: 200, sourceUrl: 500, name: 200, phone: 40 };
+const MAX_LEN = {
+  email: 254,
+  step: 200,
+  sourceUrl: 500,
+  name: 200,
+  phone: 40,
+  // CRM identifiers: 20-char ids in practice, bounded well above that.
+  fieldTag: 64,
+  surveyId: 64,
+  referrer: 500,
+};
 
 // The completed application carries the wizard's answers as display-shaped
 // {label, value} pairs — the client renders the questions, so the client is the
@@ -58,6 +70,34 @@ function readAnswers(raw: unknown): AnswerLine[] | null {
   return out;
 }
 
+/**
+ * The same answers keyed by CRM field id, for the custom-field write. Bounded
+ * exactly like `answers` above. WHICH ids are actually writable is decided
+ * downstream by the CRM client's whitelist and never by this payload — a forged
+ * tag reaches the client and is dropped there rather than trusted here.
+ */
+function readFields(raw: unknown): Record<string, string | string[]> | null {
+  if (raw === undefined) return {};
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length > MAX_ANSWERS) return null;
+  const out: Record<string, string | string[]> = {};
+  for (const [tag, value] of entries) {
+    if (tag.length > MAX_LEN.fieldTag) return null;
+    if (typeof value === "string") {
+      if (value.length > MAX_ANSWER_VALUE) return null;
+      out[tag] = oneLine(value);
+    } else if (Array.isArray(value)) {
+      if (value.length > MAX_ANSWER_OPTIONS) return null;
+      if (!value.every((v) => typeof v === "string" && v.length <= MAX_ANSWER_VALUE)) return null;
+      out[tag] = value.map(oneLine);
+    } else {
+      return null;
+    }
+  }
+  return out;
+}
+
 export const POST: RequestHandler = async ({ request, fetch, url, getClientAddress }) => {
   let body: Record<string, unknown>;
   try {
@@ -73,6 +113,11 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   const name = str(body.name);
   const phone = str(body.phone);
   const smsConsent = body.smsConsent === true;
+  // For the CRM sync only: the referrer and the survey whose field ids the
+  // answers are keyed by. Both are advisory — a missing survey id falls back to
+  // the default, and a missing referrer just shortens the attribution note.
+  const referrer = str(body.referrer);
+  const surveyId = str(body.surveyId) || DEFAULT_INQUIRY_SURVEY_ID;
 
   // Bot screen FIRST, ahead of every 400: a filled honeypot or an implausibly
   // fast fill is silently accepted (no forward) so a bot gets no signal —
@@ -87,9 +132,10 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   if (!screen.ok) return json({ success: true });
 
   const answers = readAnswers(body.answers);
+  const fields = readFields(body.fields);
   // A malformed answers array is a bug or a bot, not a visitor mistake — there
   // is no form state a human could fix to make it valid.
-  if (answers === null) {
+  if (answers === null || fields === null) {
     return json({ error: "Malformed request." }, { status: 400 });
   }
   /** Step one sends email only; the finished application carries the rest. */
@@ -114,6 +160,8 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     sourceUrl.length > MAX_LEN.sourceUrl ||
     name.length > MAX_LEN.name ||
     phone.length > MAX_LEN.phone ||
+    referrer.length > MAX_LEN.referrer ||
+    surveyId.length > MAX_LEN.surveyId ||
     answersChars > MAX_ANSWERS_TOTAL
   ) {
     return json({ error: "One of the fields is too long — please shorten it." }, { status: 400 });
@@ -189,6 +237,41 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
       { error: "Something went wrong. Please try again or email info@reddoorla.com." },
       { status: 502 },
     );
+  }
+
+  // Ingest is the source of record and holds the lead now. The CRM sync runs on
+  // top of it: awaited, so a failure is logged with a real status — the browser
+  // fire this replaced was opaque by construction (`mode: "no-cors"`) and, on
+  // the evidence, never landed once — but never fatal. A CRM outage must not
+  // tell a visitor their application failed when it is safely in the dashboard.
+  //
+  // Synthetic probes are exempt: the fleet form-e2e audit hits the live endpoint
+  // on a schedule, and its fake leads must not surface in anyone's pipeline.
+  if (body.testMode !== true) {
+    if (!env.CRM_TOKEN) {
+      console.warn("[inquiry] CRM_TOKEN not set — skipping CRM sync");
+    } else {
+      const sync = isApplication
+        ? await syncApplicationToCrm({
+            token: env.CRM_TOKEN,
+            fetch,
+            surveyId,
+            email,
+            name,
+            phone,
+            fields,
+            smsConsent,
+            transcript: message,
+            sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,
+            referrer,
+          })
+        : await syncInquiryToCrm({ token: env.CRM_TOKEN, fetch, email });
+      if (!sync.ok) {
+        console.error(`[inquiry] CRM sync failed (${sync.status}): ${sync.error}`);
+      } else if ("noteOk" in sync.data && !sync.data.noteOk) {
+        console.warn(`[inquiry] CRM contact ${sync.data.contactId} saved, note failed`);
+      }
+    }
   }
 
   return json({ success: true });

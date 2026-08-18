@@ -60,7 +60,6 @@
     title={inquiry?.inquiry_title || undefined}
     prompt={inquiry?.inquiry_prompt || undefined}
     thanks={inquiry?.inquiry_thanks || undefined}
-    formId={inquiry?.inquiry_form_id || undefined}
     surveyId={inquiry?.inquiry_survey_id || undefined}
     campaign={data.page.uid}
   />

@@ -6,9 +6,7 @@
   import type { RichTextField } from "@prismicio/client";
   import { stepNumber, numeralNudge } from "$lib/slices/TextColumns/stepNumber";
   import { questionsFor, SMS_CONSENT, type InquiryAnswers } from "$lib/ghl/questions";
-  import { fireInquiryForm, fireInquirySurvey, capturePageContext } from "$lib/ghl/submit";
-  import { primeGhlTurnstile, type GhlTurnstile } from "$lib/ghl/turnstile";
-  import { DEFAULT_INQUIRY_FORM_ID, DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
+  import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 
   export type InquiryStep = {
     title: string;
@@ -31,11 +29,15 @@
     /**
      * GHL wiring, from the industry document's Inquiry tab. Blank falls back to
      * the A-101 application funnel, so the flow works before the tab is filled
-     * in — and a future industry page can point at its own form/survey.
+     * in — and a future industry page can point at its own survey.
+     *
+     * Survey only: the CRM sync runs server-side through the contacts API, which
+     * has no per-form route, so a form id no longer addresses anything. The
+     * survey id still selects the question set AND the custom fields the server
+     * will write.
      */
-    formId?: string;
     surveyId?: string;
-    /** The page uid; becomes the default utm_campaign on the CRM side. */
+    /** The page uid; recorded in the CRM's attribution note. */
     campaign?: string;
     class?: string;
   }
@@ -46,7 +48,6 @@
     prompt = "Enter your email, then answer 5 questions to see if you're a good fit:",
     thanks = "Thanks — your application is in. We'll review it and be in touch shortly.",
     steps = [],
-    formId = "",
     surveyId = "",
     campaign = "",
     class: className = "",
@@ -97,9 +98,6 @@
   const questions = $derived(questionsFor(resolvedSurveyId));
   const question = $derived(questions?.[qIndex]);
 
-  /** Turnstile priming for the CRM fires; undefined until the modal opens. */
-  let ghlTs: GhlTurnstile | undefined;
-
   const emailLooksValid = $derived(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
   /** The modal is one frame, and that frame is step one. */
   const firstStep = $derived(steps[0]);
@@ -108,6 +106,8 @@
   /** Sent to ingest so a lead traces back to the CTA/section it came from —
    *  the trigger's own step when it gave one, else the first framework step. */
   const stepLabel = $derived((triggerStep ?? firstStep?.title)?.replace(/:$/, "") ?? "");
+  /** Sent to the server for the CRM's attribution note (the API cannot write
+   *  real attribution — see $lib/ghl/client). */
   const campaignSlug = () =>
     campaign || location.pathname.split("/").filter(Boolean).pop() || "industry";
 
@@ -157,23 +157,6 @@
   function close() {
     open = false;
   }
-
-  let ghlTsEl = $state<HTMLDivElement>();
-
-  // Mint CRM-verifiable Turnstile tokens while the modal is up. Primed on open
-  // (the challenge takes a moment — starting it at submit time would stall the
-  // visitor), torn down on close. Failure is fine: fires go tokenless.
-  $effect(() => {
-    if (!open) return;
-    const el = ghlTsEl;
-    if (!el) return;
-    const ts = primeGhlTurnstile(el);
-    ghlTs = ts;
-    return () => {
-      ghlTs = undefined;
-      ts.destroy();
-    };
-  });
 
   /** Move between frames, landing focus on the new frame's heading — without
    *  it a keyboard or screen-reader user is left on a button that vanished. */
@@ -277,7 +260,12 @@
           step: stepLabel,
           botField,
           ts: openedAt,
+          // location.href carries the utm_* params the CRM's attribution note
+          // is built from, so no separate params field is needed.
           sourceUrl: location.href,
+          referrer: document.referrer,
+          campaign: campaignSlug(),
+          surveyId: resolvedSurveyId,
           ...payload,
         }),
       });
@@ -306,10 +294,6 @@
     // email nor write frame/status onto whatever replaced this session.
     const mySession = session;
     const capturedEmail = email.trim();
-    const capturedOpenedAt = openedAt;
-    const page = capturePageContext();
-    const campaign = campaignSlug();
-    const ts = ghlTs;
     status = "sending";
     error = "";
 
@@ -323,20 +307,6 @@
       }
       return;
     }
-
-    // Ingest holds the lead now, so fire the CRM sync for the captured email
-    // regardless of whether this session is still the live one. A token not
-    // minted within its budget is simply left off (the fire is best-effort).
-    void (ts?.take(2500) ?? Promise.resolve(undefined)).then((token) =>
-      fireInquiryForm({
-        formId: formId.trim() || DEFAULT_INQUIRY_FORM_ID,
-        email: capturedEmail,
-        campaign,
-        page,
-        openedAt: capturedOpenedAt,
-        token,
-      }),
-    );
 
     // A close→reopen during the POST starts a new session; leave its frame alone.
     if (session !== mySession) return;
@@ -401,10 +371,6 @@
     const capturedEmail = email.trim();
     const capturedName = fullName.trim();
     const capturedPhone = phone.trim();
-    const capturedOpenedAt = openedAt;
-    const page = capturePageContext();
-    const campaign = campaignSlug();
-    const ts = ghlTs;
     status = "sending";
     error = "";
 
@@ -428,6 +394,9 @@
       phone: capturedPhone,
       smsConsent: true,
       answers: answerLines,
+      // The same answers keyed by CRM field id. The server whitelists these
+      // against its own question table, so an unknown id is dropped, not written.
+      fields: pruned,
     });
     if (!res.ok) {
       if (session === mySession) {
@@ -436,20 +405,6 @@
       }
       return;
     }
-
-    void (ts?.take(2500) ?? Promise.resolve(undefined)).then((token) =>
-      fireInquirySurvey({
-        surveyId: resolvedSurveyId,
-        email: capturedEmail,
-        fullName: capturedName,
-        phone: capturedPhone,
-        answers: pruned,
-        campaign,
-        page,
-        openedAt: capturedOpenedAt,
-        token,
-      }),
-    );
 
     // Advance only if this is still the live session AND still on the contact
     // frame — a Back during a slow submit must not be yanked to the thank-you.
@@ -765,9 +720,6 @@
           </form>
         {/if}
       </div>
-
-      <!-- Invisible-Turnstile mount for the CRM fires; draws nothing. -->
-      <div class="inquiry-ts" bind:this={ghlTsEl} aria-hidden="true"></div>
     </div>
   </div>
 {/if}
@@ -1216,13 +1168,6 @@
   }
 
   /* Zero-footprint mount for the invisible CRM Turnstile. */
-  .inquiry-ts {
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: hidden;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .inquiry-close,
     .inquiry-submit,
