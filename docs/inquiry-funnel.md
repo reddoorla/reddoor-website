@@ -467,36 +467,77 @@ What the site writes, and when — this half is hard fact, from `ghl/constants.t
 
 Exact strings, lower-case, no trailing space.
 
-So A-102-1 needs two things to hold:
+#### What A-102-2 actually contains (screenshot, 2026-08-18)
 
-1. **It must start on `Contact Tag Added` → `application started`.** Add that
-   trigger; leave the existing form-submission trigger in place, since it costs
-   nothing and still works if the embed is ever used.
-2. **It must not chase someone who has since finished.** Today that is a removal
-   keyed to the survey submission — an event an API upsert cannot fire.
+The API cannot read a workflow, but a person looking at the canvas can. Tucker
+sent the builder view of **A-102-2. New Inquiry Submitted**
+(`006e248e-2b58-40c3-bfd1-0b20a9800da6`), and it corrects the prescription an
+earlier revision of this section gave:
 
-For (2), prefer an **If/Else immediately after the 1-hour wait**, testing
-"contact has tag `application completed`" and exiting if so, over re-keying the
-removal condition. Two reasons: it is one edit in one place, and it removes the
-ordering hazard — with a removal condition, the window between adding the
-trigger and re-keying the removal is a window in which finishers get chased. An
-If/Else placed **before** the trigger is added has no bad window at all.
+```
+Qualify Form Submitted
+  → Remove from Workflow: Inquiry Started   (Default Path)
+  → Create Or Update Opportunity
+  → Assign the lead
+  → Add Tag: application completed
+  → Wait 1m  → Confirmation SMS (to client)
+             → Application Confirmation Email
+  → Wait 30 minutes → SMS Reminder 1
+  → Wait 2 Days     → Email Reminder 1
+  → Wait 1 Day      → SMS Reminder 3
+  → Wait 2m         → Email Reminder 2
+  → Wait 2 Days     → Add Tag "nurture"
+  → Goal - Book A Call
+```
 
-If A-102-1 has several chase steps spread over hours, re-key the removal
-condition **as well**, so the later ones also stop for someone who finishes at
-minute 90.
+⚠️ **The removal lives in A-102-2, not in A-102-1.** Node 2 pulls the contact out
+of "Inquiry Started". So there is nothing to build inside A-102-1 for the exit —
+an earlier revision here proposed an If/Else after A-102-1's 1-hour wait, which
+would have duplicated a mechanism the template already has. Removed.
 
-**Order of operations:** add the If/Else first, add the trigger second. Never the
-other way round.
+The trigger is confirmed by sight as `Qualify Form Submitted` — exactly the
+class an API upsert cannot fire, previously known only from the Loom.
 
-**How to test it without waiting an hour:** put `application started` on a
-throwaway contact by hand and confirm it enters the workflow; then add
-`application completed` and confirm it leaves without sending. No form,
-no website, no real lead.
+#### The change: one trigger on each, A-102-2 FIRST
+
+| Workflow                              | Add trigger                                   | Keep                     |
+| ------------------------------------- | --------------------------------------------- | ------------------------ |
+| **1. A-102-2. New Inquiry Submitted** | `Contact Tag Added` → `application completed` | `Qualify Form Submitted` |
+| **2. A-102-1. Inquiry Started**       | `Contact Tag Added` → `application started`   | its form trigger         |
+
+**The order is not arbitrary, and it is the reverse of what this section said
+before.** Because the removal lives in A-102-2, arming A-102-1 first puts leads
+into a chase that nothing can end — the "you didn't finish" sequence fires at
+people who did finish, which is worse than the current silence. Arming A-102-2
+first is risk-free: its removal step is a no-op while A-102-1 is still inert, and
+everything else it does (opportunity, assignment, confirmation SMS and email)
+starts working immediately.
+
+#### Open questions on that canvas
+
+1. **Does `Goal - Book A Call` actually exit the sequence?** This is the one that
+   matters. Nodes 9–18 are a 2-day chase to book, and this funnel sends people
+   straight to `/schedule` from the questionnaire — most will already have booked
+   within minutes. If the goal does not pull them out, they get two days of "book
+   a call" nudges **on top of** A-102-3's appointment reminders, which are
+   confirmed to fire from an API booking (§6.8). It is drawn at the end of a
+   linear canvas rather than as a branch, so it is worth opening.
+2. **`Create Or Update Opportunity` duplicates `ensureCrmOpportunity`.** Ours is
+   a guarded stopgap written precisely because this workflow was not firing (§4.4).
+   The node says "Update", and our lookup skips when a card exists, so the two
+   should reconcile — but watch the first real lead for a double card, and once
+   this is live the stopgap can be removed.
+3. **`SMS Reminder 3` with no Reminder 2** in the chain — probably a naming
+   leftover from the template, worth a glance.
+
+**How to test without waiting:** put `application completed` on a throwaway
+contact by hand and confirm A-102-2 enrols it; then `application started` on
+another and confirm A-102-1 enrols and is removed when the completion tag lands.
+No form, no website, no real lead.
 
 One caveat worth knowing: `POST /contacts/{id}/tags` adds a tag that is already
-present without re-firing "Tag Added", so a visitor who reopens the modal and
-resubmits step one does not re-enter the workflow.
+present without re-firing "Tag Added" — which is also why node 5 re-adding
+`application completed` cannot loop the workflow back onto its own new trigger.
 
 `A-102` was independently confirmed incomplete by Tucker in the CRM UI.
 
