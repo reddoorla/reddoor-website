@@ -33,10 +33,19 @@ const MAX_DAYS = 31;
 const DAY_MS = 86_400_000;
 
 export const GET: RequestHandler = async ({ fetch, url, setHeaders }) => {
-  const requested = Number(url.searchParams.get("days"));
-  const days = Number.isFinite(requested)
-    ? Math.min(Math.max(Math.trunc(requested), 1), MAX_DAYS)
-    : DEFAULT_DAYS;
+  // `searchParams.get` returns null when the param is absent, and Number(null)
+  // is 0 — not NaN. An earlier version tested `Number.isFinite(requested)` to
+  // decide whether a param was supplied, so the no-param case took the param
+  // branch, and the `Math.max(…, 1)` clamp below turned 0 into a perfectly
+  // plausible 1. The page then offered only TODAY's remaining slots, and showed
+  // "nothing open in the next couple of weeks" to everyone once the last one
+  // passed. Read the raw string first so absent and zero are both the default.
+  const raw = url.searchParams.get("days");
+  const requested = raw === null || raw.trim() === "" ? NaN : Number(raw);
+  const days =
+    Number.isFinite(requested) && requested >= 1
+      ? Math.min(Math.trunc(requested), MAX_DAYS)
+      : DEFAULT_DAYS;
 
   if (!env.CRM_FUNNEL_ACTIVE_TOKEN) {
     console.error("[slots] CRM_FUNNEL_ACTIVE_TOKEN not set");
