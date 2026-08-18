@@ -66,8 +66,8 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     return json({ error: "One of the fields is too long — please shorten it." }, { status: 400 });
   }
 
-  if (!env.CRM_TOKEN) {
-    console.error("[book] CRM_TOKEN not set");
+  if (!env.CRM_FUNNEL_ACTIVE_TOKEN) {
+    console.error("[book] CRM_FUNNEL_ACTIVE_TOKEN not set");
     return json(
       { error: "Booking is temporarily unavailable. Please email info@reddoorla.com." },
       { status: 500 },
@@ -78,7 +78,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   // rather than assume: this page is reachable cold, so the person booking may
   // never have filled in the application.
   const contact = await upsertCrmContact({
-    token: env.CRM_TOKEN,
+    token: env.CRM_FUNNEL_ACTIVE_TOKEN,
     fetch,
     email,
     name,
@@ -94,7 +94,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   }
 
   const appointment = await bookAppointment({
-    token: env.CRM_TOKEN,
+    token: env.CRM_FUNNEL_ACTIVE_TOKEN,
     fetch,
     contactId: contact.data.contactId,
     startTime,
@@ -121,7 +121,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   // Best-effort from here — the appointment is real and confirmed, so nothing
   // below may turn a successful booking into a failure the visitor sees.
   const tagged = await addCrmTags({
-    token: env.CRM_TOKEN,
+    token: env.CRM_FUNNEL_ACTIVE_TOKEN,
     fetch,
     contactId: contact.data.contactId,
     tags: [TAG_SCHEDULED_A_CALL],

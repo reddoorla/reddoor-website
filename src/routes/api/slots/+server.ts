@@ -38,8 +38,8 @@ export const GET: RequestHandler = async ({ fetch, url, setHeaders }) => {
     ? Math.min(Math.max(Math.trunc(requested), 1), MAX_DAYS)
     : DEFAULT_DAYS;
 
-  if (!env.CRM_TOKEN) {
-    console.error("[slots] CRM_TOKEN not set");
+  if (!env.CRM_FUNNEL_ACTIVE_TOKEN) {
+    console.error("[slots] CRM_FUNNEL_ACTIVE_TOKEN not set");
     return json(
       { error: "Booking is temporarily unavailable. Please email info@reddoorla.com." },
       { status: 500 },
@@ -51,7 +51,7 @@ export const GET: RequestHandler = async ({ fetch, url, setHeaders }) => {
   // minutes out — that is its setting to make, not ours to quietly override.
   const startDate = Date.now();
   const result = await fetchFreeSlots({
-    token: env.CRM_TOKEN,
+    token: env.CRM_FUNNEL_ACTIVE_TOKEN,
     fetch,
     startDate,
     endDate: startDate + days * DAY_MS,

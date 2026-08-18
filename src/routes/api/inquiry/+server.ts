@@ -253,12 +253,12 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   // Synthetic probes are exempt: the fleet form-e2e audit hits the live endpoint
   // on a schedule, and its fake leads must not surface in anyone's pipeline.
   if (body.testMode !== true) {
-    if (!env.CRM_TOKEN) {
-      console.warn("[inquiry] CRM_TOKEN not set — skipping CRM sync");
+    if (!env.CRM_FUNNEL_ACTIVE_TOKEN) {
+      console.warn("[inquiry] CRM_FUNNEL_ACTIVE_TOKEN not set — skipping CRM sync");
     } else {
       const sync = isApplication
         ? await syncApplicationToCrm({
-            token: env.CRM_TOKEN,
+            token: env.CRM_FUNNEL_ACTIVE_TOKEN,
             fetch,
             surveyId,
             email,
@@ -272,7 +272,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
             campaign,
           })
         : await syncInquiryToCrm({
-            token: env.CRM_TOKEN,
+            token: env.CRM_FUNNEL_ACTIVE_TOKEN,
             fetch,
             email,
             campaign,

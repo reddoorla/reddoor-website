@@ -329,7 +329,11 @@ for Tim, not assumed to be a bug. See §6.3.
 
 ### 4.6 Scopes
 
-Location-level Private Integration Token, env key `CRM_TOKEN`. Headers:
+Location-level Private Integration Token, env key **`CRM_FUNNEL_ACTIVE_TOKEN`**
+(read by `/api/inquiry`, `/api/slots` and `/api/book`). A second, broader token
+lives under `CRM_CLAUDE_TOKEN` for local investigation and is referenced nowhere
+in `src/` — the split exists so a permissive token can never be the one that
+ships. Headers:
 `Authorization: Bearer <token>` and `Version: 2021-07-28` — the help-centre
 article omits `Bearer` and is stale; the marketplace docs are current `[11]`.
 
@@ -519,7 +523,7 @@ Every test runs against a stub. One end-to-end verification with `notify: false`
 4. **Never render the CRM's raw UTC offset to a visitor.** Convert to their zone
    and name it.
 5. **Never send `tags` on an upsert.** It overwrites; use the tags endpoint.
-6. **Never print or echo token values** (`CRM_TOKEN`, `DISCORD_BOT_KEY`, …).
+6. **Never print or echo token values** (`CRM_FUNNEL_ACTIVE_TOKEN`, `CRM_CLAUDE_TOKEN`, `DISCORD_BOT_KEY`, …).
 7. Some message bodies live in **Marketing → Snippets**, not the workflow
    builder — editing the workflow won't change them.
 
