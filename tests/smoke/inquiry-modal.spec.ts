@@ -19,6 +19,22 @@ async function gotoHydrated(page: import("@playwright/test").Page) {
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
 }
 
+/**
+ * Wait out a client-side navigation. The layout crossfades routes (out 500ms,
+ * in after a 700ms delay) and then scrolls to the top on a 600ms timer, so for
+ * well over a second there are TWO <main> elements on the page and everything
+ * in them is still moving — which Playwright reports as "element is not stable"
+ * or "outside of the viewport" rather than as the transition it is.
+ */
+async function settled(page: import("@playwright/test").Page) {
+  await expect(page.locator("main")).toHaveCount(1);
+  await expect
+    .poll(() => page.locator("main").evaluate((el) => Number(getComputedStyle(el).opacity)), {
+      timeout: 15_000,
+    })
+    .toBe(1);
+}
+
 // Nothing here should ever reach central ingest. /api/inquiry is the modal's
 // ONLY network call now — the CRM sync moved server-side behind that endpoint —
 // so stubbing it is what keeps a test from producing a real lead. What the CRM
@@ -47,6 +63,23 @@ async function stubInquiry(
 
   await page.route("**/challenges.cloudflare.com/**", (route) => route.abort());
 
+  // A completed application now navigates to /schedule, which fetches slots on
+  // mount. Stubbed so the suite never reaches the live calendar — and /api/book
+  // with it, because that endpoint creates a REAL appointment on a real
+  // person's calendar the moment a token is present in the dev server's env.
+  await page.route("**/api/slots**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ slots: ["2026-08-19T09:00:00-06:00"] }),
+    }),
+  );
+  const bookCalls: string[] = [];
+  await page.route("**/api/book", async (route) => {
+    bookCalls.push(route.request().url());
+    await route.abort();
+  });
+
   // A guard, not a fixture: the browser must never call the CRM directly again.
   // If the old widget fire is ever reintroduced, this fails the suite loudly
   // instead of quietly submitting a real lead from CI.
@@ -56,7 +89,7 @@ async function stubInquiry(
     await route.abort();
   });
 
-  return { calls, strayCrmCalls };
+  return { calls, strayCrmCalls, bookCalls };
 }
 
 /**
@@ -202,7 +235,14 @@ test("the full application: five questions, contact details, both submissions", 
   await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  await expect(page.getByRole("status")).toContainText("application");
+  // A finished application hands off to the calendar rather than stopping on a
+  // thank-you: booking runs in PARALLEL with vetting, so the confirmation lands
+  // as /schedule's own headline and the next action is already on screen.
+  await expect(page).toHaveURL(/\/schedule$/);
+  // By name, not by level: the layout crossfades between routes, so the old
+  // page's <h1> is still in the DOM for the ~1.2s the transition takes and a
+  // level-1 query resolves to both pages at once.
+  await expect(page.getByRole("heading", { name: /your application is in/ })).toBeVisible();
 
   // Two ingest submissions: the step-one capture and the full application.
   expect(calls).toHaveLength(2);
@@ -244,6 +284,15 @@ test("the full application: five questions, contact details, both submissions", 
   // never assert consent on a visitor's behalf.
   expect(fields["K6hRBtIufgEo0ZuJfDPD"]).toBeUndefined();
   expect(application.smsConsent).toBe(true);
+
+  // The details cross to the booking page in sessionStorage, so nobody is asked
+  // for their name a third time in one sitting. Deliberately NOT query params —
+  // those would put a real person's contact details into the browser history
+  // and the Referer of every request the page makes.
+  await page.getByRole("button", { name: "8:00 AM" }).click();
+  await expect(page.locator("#book-name")).toHaveValue("Pat Buyer");
+  await expect(page.locator("#book-email")).toHaveValue("buyer@example.com");
+  await expect(page.locator("#book-phone")).toHaveValue("(555) 123-4567");
 
   expect(strayCrmCalls).toEqual([]);
 });
@@ -580,10 +629,13 @@ test("reopening after a completed application starts a fresh email frame", async
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
   await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
-  await expect(page.getByRole("status")).toContainText("application");
+  await expect(page).toHaveURL(/\/schedule$/);
 
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // Back to the landing page — the browser Back button after a booking hand-off
+  // is an ordinary thing to do, and it is how a shared machine ends up showing
+  // the next person whatever the last one left behind.
+  await page.goBack();
+  await settled(page);
 
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
   const reopened = page.getByRole("dialog");

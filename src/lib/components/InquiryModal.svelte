@@ -5,7 +5,9 @@
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import type { RichTextField } from "@prismicio/client";
   import { stepNumber, numeralNudge } from "$lib/slices/TextColumns/stepNumber";
+  import { goto } from "$app/navigation";
   import { questionsFor, SMS_CONSENT, type InquiryAnswers } from "$lib/ghl/questions";
+  import { writeHandoff } from "$lib/schedule/handoff";
   import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 
   export type InquiryStep = {
@@ -136,7 +138,22 @@
       open = true;
       return;
     }
-    // Fresh session: invalidate any submit still in flight from the last one.
+    resetSession(step);
+    openedAt = Date.now();
+    open = true;
+  }
+
+  /**
+   * Everything a fresh visitor should see, and the bumped session id that
+   * invalidates any submit still in flight from the last one.
+   *
+   * Shared by show()'s fresh branch and the post-submit hand-off. A finished
+   * application MUST reset rather than merely close: the layout crossfades
+   * routes inside a `{#key}` block, so a Back pressed during the transition
+   * revives this very instance, and an unreset one would let show() take its
+   * resume path straight back into a completed application's contact frame.
+   */
+  function resetSession(step?: string) {
     session++;
     triggerStep = step;
     status = "idle";
@@ -150,8 +167,6 @@
     phone = "";
     smsConsent = false;
     contactErrors = {};
-    openedAt = Date.now();
-    open = true;
   }
 
   function close() {
@@ -408,7 +423,38 @@
 
     // Advance only if this is still the live session AND still on the contact
     // frame — a Back during a slow submit must not be yanked to the thank-you.
-    if (session === mySession && frame === "contact") await goSent();
+    if (session !== mySession || frame !== "contact") return;
+
+    // Straight on to the calendar, which is what the template does: booking
+    // runs in PARALLEL with vetting ("while we are reviewing your inquiry,
+    // please choose a time"), so the call is being scheduled while a human
+    // reads the answers. A calendar reachable only from the nav is the failure
+    // mode this avoids.
+    //
+    // The thank-you is not lost by navigating — /schedule opens on "Thanks —
+    // your application is in", so the confirmation lands as the destination's
+    // own headline rather than flashing here for half a second first.
+    writeHandoff({
+      email: capturedEmail,
+      name: capturedName,
+      phone: capturedPhone,
+      applied: true,
+    });
+    // Closed and wound back BEFORE navigating, rather than left mounted to be
+    // torn down with the page — see resetSession for what a revived instance
+    // would otherwise resume into.
+    open = false;
+    resetSession();
+    try {
+      await goto("/schedule");
+    } catch {
+      // Navigation blocked (an offline SPA hop, a router failure): fall back to
+      // the in-modal thank-you so a submitted application is never met with a
+      // screen that still says "Submit". No session guard here — the reset above
+      // deliberately invalidated the one this submit was tagged with.
+      open = true;
+      await goSent();
+    }
   }
 </script>
 

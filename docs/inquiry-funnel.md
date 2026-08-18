@@ -123,12 +123,14 @@ industry landing page (prerendered)
    └─ frame 7 ....... name, phone, consent ► POST /api/inquiry ──┬──► ingest
                       │                          (touch 2)       └──► CRM
                       │
-                      ▼   redirect on completion — NOT WIRED YET (§6.4)
-
-/schedule — NOT BUILT YET (§6.4)
+                      ▼   goto("/schedule"), details handed over in sessionStorage
+/schedule (prerendered shell)
 │
-└─ slot picker ──────────────────────────► POST /api/book ────┬──► CRM      the outcome
-                                                              └──► ingest   notification
+├─ on mount ─────────────────────────────► GET  /api/slots ────────► CRM   free-slots, uncached,
+│                                                                          regrouped into the
+│                                                                          VISITOR's timezone
+└─ confirm ──────────────────────────────► POST /api/book ─────┬──► CRM   the outcome
+                                                               └──► ingest  notification
 ```
 
 The landing pages are prerendered (the root layout sets `prerender = "auto"`),
@@ -146,6 +148,10 @@ POSTs to an API route instead of using a SvelteKit action `[4]`.
 | [`src/lib/ghl/phone.ts`](../src/lib/ghl/phone.ts)                                     | E.164 normalisation                                             |
 | [`src/lib/components/InquiryModal.svelte`](../src/lib/components/InquiryModal.svelte) | The whole client-side flow                                      |
 | [`src/routes/api/inquiry/+server.ts`](../src/routes/api/inquiry/+server.ts)           | Validate → screen → ingest → CRM sync                           |
+| [`src/lib/schedule/slots.ts`](../src/lib/schedule/slots.ts)                           | Regrouping and formatting slots in the visitor's timezone       |
+| [`src/lib/schedule/handoff.ts`](../src/lib/schedule/handoff.ts)                       | Carrying a finished application to /schedule via sessionStorage |
+| [`src/routes/schedule/+page.svelte`](../src/routes/schedule/+page.svelte)             | The booking page: day tabs, time grid, confirm, booked state    |
+| [`src/routes/api/slots/+server.ts`](../src/routes/api/slots/+server.ts)               | Free slots, flat and uncached                                   |
 | [`src/routes/api/book/+server.ts`](../src/routes/api/book/+server.ts)                 | Upsert → book → tag → notify ingest                             |
 
 Content comes from an **Inquiry tab** on the `industry` custom type (modal
@@ -325,12 +331,13 @@ granted broadly, so anything not listed here is untested rather than known-absen
 
 ## 5. Verification status
 
-| Layer                         | State                                                                                                                                                 |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit tests                    | 125 passing (`src/lib/ghl/*.test.ts`, `src/routes/api/inquiry/server.test.ts`)                                                                        |
-| Smoke tests                   | 60 passing, 1 skipped — including a `strayCrmCalls` guard that aborts any `*.leadconnectorhq.com` request so a reintroduced browser fire fails loudly |
-| `svelte-check` / lint / build | Clean as of `dfa0543`                                                                                                                                 |
-| **Live end-to-end booking**   | **NOT RUN.** Requires a real write to a live calendar — needs explicit permission first. Proposed with `notify: false` so no real person is emailed.  |
+| Layer                         | State                                                                                                                                                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit tests                    | 136 passing (`src/lib/ghl/*.test.ts`, `src/lib/schedule/slots.test.ts`, `src/routes/api/inquiry/server.test.ts`)                                                                                               |
+| Smoke tests                   | 72 passing, 1 skipped — including a `strayCrmCalls` guard that aborts any `*.leadconnectorhq.com` request so a reintroduced browser fire fails loudly, and `/api/book` stubbed in every spec that can reach it |
+| Timezone coverage             | The booking page runs in three zones — Los Angeles, New York and Shanghai. Shanghai is the one that matters: it splits a single Mountain calendar day across two local days                                    |
+| `svelte-check` / lint / build | Clean                                                                                                                                                                                                          |
+| **Live end-to-end booking**   | **NOT RUN.** Requires a real write to a live calendar — needs explicit permission first. Proposed with `notify: false` so no real person is emailed.                                                           |
 
 ---
 
@@ -396,18 +403,37 @@ LA-facing business, or a snapshot leftover. Either way, the page must render
 slots in the **visitor's** timezone with the zone **named**, never as the raw
 offset the API returns.
 
-### 6.4 `/schedule` is not built
+### 6.4 `/schedule` — built, but never run against the live calendar
 
-The server half is done and tested (`fetchFreeSlots`, `bookAppointment`,
-`/api/book`). Still to build:
+The page ships: day tabs, a time grid, a confirm step, and a booked/prep state
+standing in for the template's `/call-booked`. Completing the questionnaire now
+navigates straight into it, with the visitor's details handed over in
+sessionStorage, so the calendar is never the disconnected page §2.2 warns about.
+It also works cold — which is why `/api/book` upserts rather than assuming a
+contact exists `[5]`.
 
-- The route itself, with a server `load` of free slots.
-- Slot rendering in the visitor's timezone, zone named (§6.3).
-- A confirm step, and a booked/prep state (the template's `/call-booked`).
-- **The redirect from questionnaire completion into it** — this is what keeps
-  the calendar from becoming the disconnected page §2.2 warns about.
-- Cold entry: the page must work for someone who never filled the application,
-  which is why `/api/book` upserts rather than assuming a contact exists `[5]`.
+Three decisions inside it worth knowing:
+
+- **Slots are fetched from the browser, not a server `load`.** The root layout
+  puts every SSR response on Netlify's durable CDN for five minutes with a day
+  of stale-while-revalidate — right for marketing pages, wrong for a list where
+  a stale entry means two people arrive for the same call. `/api/slots` sets
+  `no-store` for the same reason: a short TTL would serve a just-taken slot
+  straight back after the "that time was just taken" message, and the visitor
+  would loop.
+- **The CRM's day buckets are thrown away and the slots regrouped by the
+  visitor's local date.** GHL buckets by the LOCATION's Mountain date; between
+  UTC+1 and UTC+8 that window straddles local midnight, so one CRM day is
+  genuinely two days on the visitor's screen. Every label is derived from a real
+  instant rather than a date string — `new Date("2026-08-19")` is UTC midnight
+  and renders as the 18th anywhere west of Greenwich.
+- **The chosen time goes back to the CRM byte-identical to what `free-slots`
+  returned.** Only the display is converted. Re-serialising a local time would
+  drift by the offset and book the wrong hour.
+
+**Still outstanding: no booking has ever been made against the live calendar.**
+Every test runs against a stub. One end-to-end verification with `notify: false`
+(so no real person is emailed) needs permission first — the standing rule in §7.
 
 ### 6.5 Housekeeping
 
@@ -417,8 +443,21 @@ The server half is done and tested (`fetchFreeSlots`, `bookAppointment`,
 - `/medtech` has no direct-offer video. The canonical template landing page puts
   one above the email field `[3]`. Worth making that divergence deliberate
   rather than accidental.
+- `/schedule` is deliberately **not** in the sitemap, unlike `/contact`. It is a
+  funnel step, and indexing it invites cold bookings that skip qualification
+  entirely — the one thing the funnel exists to prevent. Direct links from a
+  signature or a DM still work; that is what `Z-001-3` is for. Easy to reverse
+  by adding it to `STATIC_ROUTES` in `src/routes/sitemap.xml/+server.ts`.
+- `playwright.config.ts` sets `use: { reducedMotion: "reduce" }` and it is **not
+  taking effect** — probed 2026-08-18 on Playwright 1.62.1: in the page,
+  `matchMedia("(prefers-reduced-motion: reduce)").matches` is `false` and
+  computed `transitionDuration` is unchanged, while `page.emulateMedia` flips
+  both. So the suite is not running reduced-motion, contrary to what that
+  config, `industry-page.spec.ts` and the smooth-scroll flake note all assume.
+  Worth fixing centrally, but it changes motion behaviour for every existing
+  test, so it does not belong in a booking-page change.
 - The program worksheet sets a QC bar of page-speed ≥ 90 and page weight
-  < 2MB `[12]` — applies to `/schedule` when it ships.
+  < 2MB `[12]` — worth measuring `/schedule` against now that it exists.
 
 ---
 
