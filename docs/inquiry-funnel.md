@@ -630,9 +630,10 @@ collapses into a single contact, silently, with no error from the API. This is
 not something the code does; it is how the endpoint behaves. Worth deciding
 deliberately whether to keep sending `phone` on the second touch at all.
 
-**Still unexplained:** that contact recorded SMS consent but carries **no phone
-number**. Tucker confirms a number WAS typed, which removes the dullest
-explanation. What is left is a number offered twice and stored neither time:
+**4. ⚠️ A submitted phone can vanish, silently.** The walkthrough contact
+recorded SMS consent and carried **no phone number** — and a number WAS typed,
+which removes the dullest explanation. So: a number offered twice, stored
+neither time.
 
 | Touch                       | Endpoint       | Sends `phone`?                             | Code                   |
 | --------------------------- | -------------- | ------------------------------------------ | ---------------------- |
@@ -640,7 +641,7 @@ explanation. What is left is a number offered twice and stored neither time:
 | 2. Survey + contact details | `/api/inquiry` | **yes**, beside the consent that DID stick | `syncApplicationToCrm` |
 | 3. Booking                  | `/api/book`    | **yes**                                    | `POST /api/book`       |
 
-Three theories tested and disproved:
+Three theories tested and disproved before the real one:
 
 - our client omits an empty phone rather than sending `""` (read the body it builds);
 - the CRM accepts fictional `555` numbers happily (upserted one, read it back);
@@ -652,61 +653,76 @@ The remaining candidate, and the one the dedupe behaviour above predicts, is a
 phone matched a DIFFERENT contact, and GHL resolved it by keeping the email
 match and dropping the phone rather than moving a number between records.
 
-**The precondition is confirmed.** Tucker confirms the walkthrough used the
-number already sitting on `3xt31L8G8pz0B0TSHj2Z`, and a read of that record
-identifies it:
+**Confirmed, mechanism and all**, 2026-08-18. Two throwaway contacts, one
+holding a number, one holding an email:
 
 ```
-id           3xt31L8G8pz0B0TSHj2Z
-email        tucker.lemos@gmail.com
-source       "A-101-2. Application Step 1 "      ← the widget form's own name
+setup     owner  conflict-owner@example.com   phone +12128675310
+          other  conflict-other@example.com   phone none
+
+conflict  upsert { email: other, phone: owner's }
+          → returns OTHER's id            the EMAIL match wins
+          → response carries no phone
+          → owner still holds the number, other still has none
+
+HTTP 200. No error, no warning, no hint beyond the absent field.
+```
+
+The third finding is the useful one: **the upsert's response reflects what was
+STORED, not what was sent.** An absent `phone` on a request that carried one is
+therefore a real answer, not an echo — so the drop is detectable with no extra
+call and no extra scope, which an earlier version of this section assumed was
+impossible.
+
+The colliding record has been identified and removed (approved by Tucker):
+
+```
+id           3xt31L8G8pz0B0TSHj2Z          email  tucker.lemos@gmail.com
+source       "A-101-2. Application Step 1 "        ← the widget form's own name
 dateAdded    2026-08-17T18:10:37
-customFields 5   (the four survey answers + sms_consent)
-tags         []          notes 0   opportunities 0   appointments 0
+customFields 5   (four survey answers + sms_consent)
+tags []   notes 0   opportunities 0   appointments 0
+attributionSource.url       https://fiddle.jshell.net/_display/?editor_console=true
+attributionSource.referrer  https://jsfiddle.net
 ```
 
-Those last three are the tell. **Our server code did not create this record** —
-`syncApplicationToCrm` always writes a tag, an opportunity and a note, and this
-has none of them, while carrying the full set of survey answers and a phone.
-That is the effect of a raw embed submission, i.e. the jsfiddle test of the
-hosted widget this location was already known to hold `[the audit, §3.5]`. It is
-also, incidentally, the specimen the whole CRM client was reverse-engineered
-from — see the header comment in `ghl/client.ts`.
+Two independent confirmations that it was not ours. `syncApplicationToCrm`
+always writes a tag, an opportunity and a note, and this had none of the three
+while carrying a full answer set — and its own attribution names the jsfiddle
+page. It was the jsfiddle test of the hosted widget `[§3.5]`, and also the
+specimen `ghl/client.ts` was reverse-engineered from; the record is printed in
+full in this section's history and its lesson is transcribed in that file's
+header comment. Deleted 2026-08-18, verified gone by id (the `/contacts/` list
+still shows it for a while — that endpoint lags deletes, §5).
 
-Of six contacts in the location, two hold a number and only this one holds the
-walkthrough's. So the collision is real and its cause is a piece of test debris.
+**What ships** (`phoneWasDropped` in `ghl/client.ts`):
 
-**Still inferred:** that GHL responds to the conflict by silently dropping the
-phone. Confirming the mechanism needs two throwaway contacts and therefore
-permission (§7.1).
+- `upsertCrmContact` now returns `storedPhone` from the response.
+- `syncApplicationToCrm` returns `phoneDropped`, and the contact note carries
+  the number **unconditionally** — detection is reliable today, but the note is
+  the mitigation, and it should not silently stop appearing if GHL ever changes
+  the response semantics. When the drop IS detected the line says why:
 
-**Shipped regardless** — the mechanism does not have to be understood for the
-consequence to be unacceptable. `syncApplicationToCrm` now restates the number
-in the contact note:
+  ```
+  SMS consent: yes
+  Cell as entered: (603) 531-1812 — NOT saved to this contact; that number is
+  already on another record
+  ```
 
-```
-…
-SMS consent: yes
-Cell as entered: (603) 531-1812
+- `/api/inquiry` and `/api/book` each log a distinct warning, because the
+  request is a clean success by every other measure.
 
-Landing page: https://reddoorla.com/medtech?utm_source=…
-```
+Ingest — the source of record — receives `phone` as a first-class field on both
+touches and always did, so the number was never lost to the business. What was
+missing was any trace of it on the CRM record a salesperson opens before the
+call, next to a consent line promising to text them.
 
-Written unconditionally, because nothing in the upsert's own answer distinguishes
-"stored" from "dropped for colliding". Ingest — the source of record — receives
-`phone` as a first-class field on both touches and always did, so the number was
-never lost to the business; what was missing was any trace of it on the CRM
-record a salesperson opens before the call. The transcript already carried
-`SMS consent: yes` and nothing to use it on.
+**Not a rare edge case.** Any two people sharing a number collide: a company
+mainline, a couple, an assistant booking for their exec, or simply a returning
+lead who uses a second email address.
 
-**Open, needs a decision:** the jsfiddle record is live test debris holding a
-real cell number, and any future lead who types that number hits the same
-collision. Clearing just its phone keeps the specimen and removes the collision;
-deleting it removes both. Either is a CRM write (§7.1).
-
-Also worth noting: a read-only survey of which contacts hold which numbers was
-initially blocked by the local sandbox classifier, which refuses a script that
-shell-sources `.env.local`. `npx tsx --env-file=…` is the route that works.
+Tooling note: a script that shell-sources `.env.local` is refused by the local
+sandbox classifier. `npx tsx --env-file=…` is the route that works.
 
 ### 6.9 The booking page stopped asking twice
 

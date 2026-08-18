@@ -231,7 +231,7 @@ export async function upsertCrmContact(opts: {
   customFields?: CrmCustomField[];
   /** Standard-field values (currently just `website`). */
   standard?: Record<string, string>;
-}): Promise<CrmResult<{ contactId: string; isNew: boolean }>> {
+}): Promise<CrmResult<{ contactId: string; isNew: boolean; storedPhone: string }>> {
   const body: Record<string, unknown> = {
     locationId: GHL_LOCATION_ID,
     email: opts.email,
@@ -255,9 +255,40 @@ export async function upsertCrmContact(opts: {
     },
     (json) => {
       const c = (json.contact ?? {}) as Record<string, unknown>;
-      return { contactId: String(c.id ?? ""), isNew: c.new === true };
+      // `storedPhone` is the number as the CRM now holds it, which is NOT always
+      // the one we sent — see PHONE_CONFLICT below. Measured: the response
+      // reflects storage rather than echoing the request, so this is a real
+      // answer and not a restatement of our own input.
+      return {
+        contactId: String(c.id ?? ""),
+        isNew: c.new === true,
+        storedPhone: String(c.phone ?? ""),
+      };
     },
   );
+}
+
+/**
+ * Did a phone we sent actually land on the contact?
+ *
+ * GHL matches an upsert on email AND on phone. When the two match DIFFERENT
+ * contacts it keeps the email match and drops the phone — HTTP 200, no warning,
+ * no hint in the body beyond the absent field. Measured 2026-08-18 with two
+ * throwaway contacts:
+ *
+ *   owner  = {email: owner@…,  phone: +1212…}          → holds the number
+ *   other  = {email: other@…}                          → no number
+ *   upsert   {email: other@…,  phone: +1212…}
+ *      → returns OTHER's id, response phone absent, other still has no number,
+ *        owner still has it.
+ *
+ * That is how a real lead ended up with SMS consent on file and nothing to use
+ * it on: the number they typed already sat on a stale test contact. It is not
+ * rare in the wild either — a company mainline, a couple, an assistant booking
+ * for someone else.
+ */
+export function phoneWasDropped(sent: string, stored: string): boolean {
+  return sent.trim() !== "" && stored.trim() === "";
 }
 
 /** Attach a note to a contact. Covered by contacts.write — no extra scope. */
@@ -425,6 +456,8 @@ export async function syncApplicationToCrm(opts: {
     taggedOk: boolean;
     opportunityOk: boolean;
     noteOk: boolean;
+    /** True when a number was submitted and the CRM did not keep it. */
+    phoneDropped: boolean;
   }>
 > {
   const { customFields, standard } = partitionAnswers(opts.fields, writableFieldIds(opts.surveyId));
@@ -452,6 +485,7 @@ export async function syncApplicationToCrm(opts: {
   if (!contact.ok) return contact;
   const { token, fetch: f } = opts;
   const contactId = contact.data.contactId;
+  const dropped = phoneWasDropped(opts.phone, contact.data.storedPhone);
 
   const tagged = await addCrmTags({
     token,
@@ -479,7 +513,15 @@ export async function syncApplicationToCrm(opts: {
       // it on is the worst possible half of that pair to keep, so the note
       // carries the number a human can read before the call. Ingest holds it
       // either way; this is so the CRM record does too.
-      ...(opts.phone.trim() ? [`Cell as entered: ${opts.phone.trim()}`] : []),
+      ...(opts.phone.trim()
+        ? [
+            `Cell as entered: ${opts.phone.trim()}${
+              dropped
+                ? " — NOT saved to this contact; that number is already on another record"
+                : ""
+            }`,
+          ]
+        : []),
       "",
       ...attributionLines(opts.sourceUrl, opts.referrer),
     ].join("\n"),
@@ -492,6 +534,7 @@ export async function syncApplicationToCrm(opts: {
       taggedOk: tagged.ok,
       opportunityOk: opportunity.ok,
       noteOk: note.ok,
+      phoneDropped: dropped,
     },
   };
 }

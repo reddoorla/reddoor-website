@@ -298,6 +298,15 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
         if (failed.length) {
           console.warn(`[inquiry] contact ${d.contactId} saved; failed: ${failed.join(", ")}`);
         }
+        // Its own line, because it is not a transport failure and reads as a
+        // clean success everywhere else: the number collided with another
+        // contact and the CRM kept the other one. The note carries it, but a
+        // contact holding SMS consent and no number should be visible here too.
+        if ("phoneDropped" in d && d.phoneDropped) {
+          console.warn(
+            `[inquiry] contact ${d.contactId}: submitted phone NOT stored (already on another contact)`,
+          );
+        }
       }
     }
   }

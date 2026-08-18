@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
-import { upsertCrmContact, addCrmTags, attributionFields } from "$lib/ghl/client";
+import { upsertCrmContact, addCrmTags, attributionFields, phoneWasDropped } from "$lib/ghl/client";
 import { bookAppointment, TAG_SCHEDULED_A_CALL } from "$lib/ghl/booking";
 import type { RequestHandler } from "./$types";
 
@@ -90,6 +90,16 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     return json(
       { error: "Something went wrong. Please try again or email info@reddoorla.com." },
       { status: 502 },
+    );
+  }
+
+  // Same conflict as on the application path (see phoneWasDropped): a number
+  // already sitting on another contact is dropped on an otherwise clean 200.
+  // Nothing to correct here — the appointment matters more than the reminder,
+  // and ingest has the number — but it must not pass unrecorded.
+  if (phoneWasDropped(phone, contact.data.storedPhone)) {
+    console.warn(
+      `[book] contact ${contact.data.contactId}: submitted phone NOT stored (already on another contact)`,
     );
   }
 

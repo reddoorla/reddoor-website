@@ -4,6 +4,7 @@ import {
   attributionLines,
   ensureCrmOpportunity,
   partitionAnswers,
+  phoneWasDropped,
   syncApplicationToCrm,
   syncInquiryToCrm,
   upsertCrmContact,
@@ -54,8 +55,16 @@ function stubCrm(
       headers: (init.headers ?? {}) as Record<string, string>,
     });
     let r: { status: number; body: unknown };
-    if (url.includes("/contacts/upsert")) r = reply("upsert", { contact: { id: "C1", new: true } });
-    else if (url.includes("/tags")) r = reply("tags", { tags: [] });
+    if (url.includes("/contacts/upsert")) {
+      // The live endpoint answers with the contact AS STORED — including the
+      // phone, or not, which is the only signal that a number was dropped for
+      // colliding with another record. Echoing what was sent models the happy
+      // path; a test that wants a drop overrides this reply without one.
+      const sent = JSON.parse(String(init.body ?? "{}")) as Record<string, unknown>;
+      r = reply("upsert", {
+        contact: { id: "C1", new: true, ...(sent.phone ? { phone: sent.phone } : {}) },
+      });
+    } else if (url.includes("/tags")) r = reply("tags", { tags: [] });
     else if (url.includes("/opportunities/search"))
       r = reply("search", { opportunities: [], meta: { total: 0 } });
     else if (url.includes("/opportunities/"))
@@ -187,7 +196,10 @@ describe("upsertCrmContact", () => {
       source: "X",
     });
 
-    expect(res).toEqual({ ok: true, data: { contactId: "C1", isNew: true } });
+    expect(res).toEqual({
+      ok: true,
+      data: { contactId: "C1", isNew: true, storedPhone: "+15551234567" },
+    });
     expect(calls[0].url).toBe("https://services.leadconnectorhq.com/contacts/upsert");
     // The dated Version header is not optional — LeadConnector pins request
     // behaviour to it, and omitting it changes the response shape.
@@ -292,6 +304,19 @@ describe("ensureCrmOpportunity", () => {
   });
 });
 
+describe("phoneWasDropped", () => {
+  it("is true only when a number was submitted and none came back", () => {
+    expect(phoneWasDropped("(555) 123-4567", "")).toBe(true);
+    expect(phoneWasDropped("(555) 123-4567", "+15551234567")).toBe(false);
+    // Nothing submitted is not a failure, however the CRM answers.
+    expect(phoneWasDropped("", "")).toBe(false);
+    expect(phoneWasDropped("   ", "")).toBe(false);
+    // The stored number need not equal the one sent — GHL reformats to E.164,
+    // and a lead correcting their number is a legitimate change, not a drop.
+    expect(phoneWasDropped("+44 20 7946 0958", "+442079460958")).toBe(false);
+  });
+});
+
 describe("syncApplicationToCrm", () => {
   const base = {
     token: "t",
@@ -380,19 +405,44 @@ describe("syncApplicationToCrm", () => {
     expect(String(note.body.body)).toContain("utm_source: google");
   });
 
-  it("restates the phone in the note, since the contact field may refuse it", async () => {
+  it("restates the phone in the note even when the contact field kept it", async () => {
     const { fetch, find } = stubCrm();
-    await syncApplicationToCrm({ ...base, fetch });
-    // Written even on the happy path: nothing in the upsert's answer tells us
-    // whether the number was stored or dropped for colliding with another
-    // contact, so the note carries it unconditionally rather than guessing.
+    const res = await syncApplicationToCrm({ ...base, fetch });
+    // Unconditional on purpose. Detection is measured and reliable today, but
+    // the note is the mitigation — if the response semantics ever change, the
+    // number should still be readable rather than silently stop appearing.
     expect(String(find("/notes")[0].body.body)).toContain("Cell as entered: 555 123 4567");
+    expect(String(find("/notes")[0].body.body)).not.toContain("NOT saved");
+    if (res.ok) expect(res.data.phoneDropped).toBe(false);
+  });
+
+  it("says so in the note when the CRM refused the number", async () => {
+    // The conflict case, measured 2026-08-18: the upsert answers 200 with the
+    // email match and no phone, because that number already sits on another
+    // contact. Nothing else about the response distinguishes it from success.
+    const { fetch, find } = stubCrm({ upsert: { body: { contact: { id: "C1", new: false } } } });
+    const res = await syncApplicationToCrm({ ...base, fetch });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.phoneDropped).toBe(true);
+    const body = String(find("/notes")[0].body.body);
+    expect(body).toContain("Cell as entered: 555 123 4567");
+    expect(body).toContain("already on another record");
+    // The record still claims consent — which is exactly why the number has to
+    // be legible somewhere on it.
+    const consent = (find("/contacts/upsert")[0].body.customFields as { id: string }[]).find(
+      (x) => x.id === SMS_CONSENT.tag,
+    );
+    expect(consent).toBeDefined();
   });
 
   it("omits the line rather than writing an empty one when no phone was given", async () => {
     const { fetch, find } = stubCrm();
-    await syncApplicationToCrm({ ...base, phone: "  ", fetch });
+    const res = await syncApplicationToCrm({ ...base, phone: "  ", fetch });
     expect(String(find("/notes")[0].body.body)).not.toContain("Cell as entered");
+    // Nothing was submitted, so nothing was dropped — a blank phone must not
+    // raise the alarm the conflict case raises.
+    if (res.ok) expect(res.data.phoneDropped).toBe(false);
   });
 
   it("reports partial failure without failing the submission", async () => {
