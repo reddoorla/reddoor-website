@@ -221,7 +221,12 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     payload: {
       formType: "inquiry",
       email,
-      ...(name ? { name } : {}),
+      // Central ingest requires a name (submissions.name is NOT NULL). Step one
+      // is an email-only capture with no name yet, so fall back to the email —
+      // the completed application posts the real name in its own submission.
+      // (Follow-up: make name nullable for email-only leads — tracked on the
+      // Airtable→Turso migration, maintenance #539.)
+      name: name || email,
       ...(phone ? { phone } : {}),
       message,
       sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,

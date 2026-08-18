@@ -91,8 +91,10 @@ describe("POST /api/inquiry", () => {
     const p = lastPayload();
     expect(p.formType).toBe("inquiry");
     expect(p.email).toBe("buyer@example.com");
-    // Step one carries no contact details or answer envelope.
-    expect(p.name).toBeUndefined();
+    // Ingest requires a name (submissions.name is NOT NULL); an email-only step
+    // one falls back to the email so the row inserts. No phone or answer envelope.
+    expect(p.name).toBe("buyer@example.com");
+    expect(p.phone).toBeUndefined();
     expect(p.extra).toBeUndefined();
     expect(String(p.message)).toContain("The Diagnosis");
   });

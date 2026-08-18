@@ -5,6 +5,7 @@
   import type { ImageField } from "@prismicio/client";
   import { PrismicImage } from "@prismicio/svelte";
   import { slugForCard, parseCardNumberFromHash } from "$lib/twenty-for-twenty/hash";
+  import twentySketchFallback from "$lib/assets/images/twenty-sketch-fallback.png";
 
   type ProjectCard = {
     number: number;
@@ -25,6 +26,18 @@
   let cardsSection: HTMLElement;
   let viewportHeight = $state(0);
   let animationFrameId = 0;
+
+  // Background Vimeo sketch: shown only once the player confirms playback via its
+  // postMessage API. Until then (and forever, if autoplay is blocked — e.g. iPad
+  // Low Power Mode, or a cross-origin autoplay denial) the static fallback frame
+  // stays visible, so the box is never blank.
+  let vimeoIframe: HTMLIFrameElement | undefined = $state();
+  let videoPlaying = $state(false);
+
+  // Honor Reduce Motion: motion-sensitive users get the static sketch and the
+  // video is never embedded or played (WCAG 2.3.3 / 2.2.2). This is independent
+  // of iOS Low Power Mode — that's a separate setting iOS does not surface to JS.
+  let prefersReducedMotion = $state(false);
 
   const lerp = (start: number, end: number, factor: number) => {
     return start + (end - start) * factor;
@@ -151,6 +164,94 @@
       cancelAnimationFrame(animationFrameId);
     };
   });
+
+  // Track Reduce Motion and keep it live (users can toggle it without reloading).
+  $effect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    prefersReducedMotion = mq.matches;
+    const onChange = (e: MediaQueryListEvent) => (prefersReducedMotion = e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  });
+
+  // Reveal the Vimeo iframe only while playback is *continuously* confirmed via
+  // the player's postMessage API (no SDK dependency). iOS/iPadOS frequently
+  // fires an initial play event and then silently suspends a muted background
+  // autoplay — so a one-shot "it played" latch would hide the fallback and leave
+  // a blank box. Instead we gate on the steady stream of timeupdate events: each
+  // one (re)hides the fallback and arms a watchdog; if the stream stops (or we
+  // get pause/ended), the static sketch comes back. A device that never really
+  // plays never hides the fallback at all — so the box is never blank.
+  $effect(() => {
+    const iframe = vimeoIframe;
+    // No iframe (also the Reduce Motion case — it isn't rendered): reset to the
+    // static sketch and don't wire anything up.
+    if (!iframe) {
+      videoPlaying = false;
+      return;
+    }
+
+    // Longer than the ~250–330ms timeupdate cadence, so a couple of dropped
+    // ticks don't flicker the fallback, but short enough to recover quickly
+    // when iOS suspends playback mid-stream.
+    const PLAYBACK_TIMEOUT_MS = 700;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+
+    const post = (method: string, value?: string) =>
+      iframe.contentWindow?.postMessage(JSON.stringify({ method, value }), "*");
+
+    const subscribe = () => {
+      for (const event of ["timeupdate", "playProgress", "pause", "ended"]) {
+        post("addEventListener", event);
+      }
+    };
+
+    const onHeartbeat = () => {
+      videoPlaying = true;
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => (videoPlaying = false), PLAYBACK_TIMEOUT_MS);
+    };
+
+    const onStop = () => {
+      clearTimeout(watchdog);
+      videoPlaying = false;
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== iframe.contentWindow) return;
+      let data: { event?: string };
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      switch (data?.event) {
+        // Vimeo emits "ready" once the player is live — (re)subscribe then,
+        // since listeners registered before ready can be dropped.
+        case "ready":
+          subscribe();
+          break;
+        case "timeupdate":
+        case "playProgress":
+          onHeartbeat();
+          break;
+        case "pause":
+        case "ended":
+          onStop();
+          break;
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    iframe.addEventListener("load", subscribe);
+    subscribe(); // in case the iframe already loaded before this effect ran
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      iframe.removeEventListener("load", subscribe);
+      clearTimeout(watchdog);
+    };
+  });
 </script>
 
 <svelte:window bind:innerHeight={viewportHeight} />
@@ -180,15 +281,42 @@
     </div>
     <div class="md:w-1/2 flex flex-col text-primary items-center">
       <div class="flex flex-col text-primary items-center relative">
+        <!-- Decorative typographic lockups (main's MED-7 fix): the only real
+             heading is the sr-only h1 above; these are aria-hidden so the video
+             block doesn't reintroduce a second/decorative h1 into the outline. -->
         <div aria-hidden="true" class="type-20">20</div>
         <div aria-hidden="true" class="type-for -mt-8">for</div>
-        <iframe
-          title="background video"
-          src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1&dnt=1"
-          class="aspect-square w-full mix-blend-multiply opacity-90 scale-110 -mt-12"
-          frameborder="0"
-          allowfullscreen
-        ></iframe>
+        <!-- No transform/opacity on this wrapper: those would form an isolated
+             blending group and stop the children's mix-blend-multiply from
+             reaching the paper background (white box). The scale lives on each
+             child instead, exactly as the original single-iframe markup did. -->
+        <div class="relative aspect-square w-full -mt-12">
+          <!-- Static fallback: the finished "20" sketch frame. Shown until the
+               player confirms playback, and left in place if autoplay is blocked. -->
+          <img
+            src={twentySketchFallback}
+            alt="Hand-drawn sketch of the number 20"
+            class="absolute inset-0 h-full w-full scale-110 object-cover mix-blend-multiply transition-opacity duration-700 {videoPlaying
+              ? 'opacity-0'
+              : 'opacity-90'}"
+          />
+          {#if !prefersReducedMotion}
+            <!-- dnt=1 kept from main (fleet privacy rollout); the reveal/gating
+                 machinery kept from staging (iPad autoplay + reduced-motion). -->
+            <iframe
+              bind:this={vimeoIframe}
+              title="20 for 20 animated sketch"
+              src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1&dnt=1"
+              class="absolute inset-0 h-full w-full scale-110 mix-blend-multiply transition-opacity duration-700 {videoPlaying
+                ? 'opacity-90'
+                : 'opacity-0'}"
+              frameborder="0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            ></iframe>
+          {/if}
+        </div>
       </div>
     </div>
   </ContentWidth>
