@@ -469,7 +469,20 @@ export async function syncApplicationToCrm(opts: {
     token,
     fetch: f,
     contactId,
-    body: [opts.transcript, "", ...attributionLines(opts.sourceUrl, opts.referrer)].join("\n"),
+    body: [
+      opts.transcript,
+      // The number restated in prose, because the contact FIELD is not a
+      // reliable place to keep it. Measured on 2026-08-18: a walkthrough
+      // recorded SMS consent and no phone, because GHL drops a phone whose
+      // value already sits on a different contact — silently, on an upsert that
+      // reports success and returns the record. Consent with no number to use
+      // it on is the worst possible half of that pair to keep, so the note
+      // carries the number a human can read before the call. Ingest holds it
+      // either way; this is so the CRM record does too.
+      ...(opts.phone.trim() ? [`Cell as entered: ${opts.phone.trim()}`] : []),
+      "",
+      ...attributionLines(opts.sourceUrl, opts.referrer),
+    ].join("\n"),
   });
 
   return {

@@ -650,16 +650,63 @@ Three theories tested and disproved:
 The remaining candidate, and the one the dedupe behaviour above predicts, is a
 **match conflict**: the upsert matched an existing contact by EMAIL while the
 phone matched a DIFFERENT contact, and GHL resolved it by keeping the email
-match and dropping the phone rather than moving a number between records. This
-location does hold another contact carrying a real number
-(`3xt31L8G8pz0B0TSHj2Z`, untouched throughout). If the walkthrough used that same
-number, the conflict is the explanation.
+match and dropping the phone rather than moving a number between records.
 
-Testing it needs two throwaway contacts and therefore permission (§7.1); a
-read-only survey of which contacts hold which numbers was blocked by the local
-sandbox classifier, which refuses to run a script sourcing `.env.local`.
-**Unconfirmed.** Recording consent with no number to use it on is worth closing
-out — it is a compliance record pointing at nothing.
+**The precondition is confirmed.** Tucker confirms the walkthrough used the
+number already sitting on `3xt31L8G8pz0B0TSHj2Z`, and a read of that record
+identifies it:
+
+```
+id           3xt31L8G8pz0B0TSHj2Z
+email        tucker.lemos@gmail.com
+source       "A-101-2. Application Step 1 "      ← the widget form's own name
+dateAdded    2026-08-17T18:10:37
+customFields 5   (the four survey answers + sms_consent)
+tags         []          notes 0   opportunities 0   appointments 0
+```
+
+Those last three are the tell. **Our server code did not create this record** —
+`syncApplicationToCrm` always writes a tag, an opportunity and a note, and this
+has none of them, while carrying the full set of survey answers and a phone.
+That is the effect of a raw embed submission, i.e. the jsfiddle test of the
+hosted widget this location was already known to hold `[the audit, §3.5]`. It is
+also, incidentally, the specimen the whole CRM client was reverse-engineered
+from — see the header comment in `ghl/client.ts`.
+
+Of six contacts in the location, two hold a number and only this one holds the
+walkthrough's. So the collision is real and its cause is a piece of test debris.
+
+**Still inferred:** that GHL responds to the conflict by silently dropping the
+phone. Confirming the mechanism needs two throwaway contacts and therefore
+permission (§7.1).
+
+**Shipped regardless** — the mechanism does not have to be understood for the
+consequence to be unacceptable. `syncApplicationToCrm` now restates the number
+in the contact note:
+
+```
+…
+SMS consent: yes
+Cell as entered: (603) 531-1812
+
+Landing page: https://reddoorla.com/medtech?utm_source=…
+```
+
+Written unconditionally, because nothing in the upsert's own answer distinguishes
+"stored" from "dropped for colliding". Ingest — the source of record — receives
+`phone` as a first-class field on both touches and always did, so the number was
+never lost to the business; what was missing was any trace of it on the CRM
+record a salesperson opens before the call. The transcript already carried
+`SMS consent: yes` and nothing to use it on.
+
+**Open, needs a decision:** the jsfiddle record is live test debris holding a
+real cell number, and any future lead who types that number hits the same
+collision. Clearing just its phone keeps the specimen and removes the collision;
+deleting it removes both. Either is a CRM write (§7.1).
+
+Also worth noting: a read-only survey of which contacts hold which numbers was
+initially blocked by the local sandbox classifier, which refuses a script that
+shell-sources `.env.local`. `npx tsx --env-file=…` is the route that works.
 
 ### 6.9 The booking page stopped asking twice
 

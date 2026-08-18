@@ -380,6 +380,21 @@ describe("syncApplicationToCrm", () => {
     expect(String(note.body.body)).toContain("utm_source: google");
   });
 
+  it("restates the phone in the note, since the contact field may refuse it", async () => {
+    const { fetch, find } = stubCrm();
+    await syncApplicationToCrm({ ...base, fetch });
+    // Written even on the happy path: nothing in the upsert's answer tells us
+    // whether the number was stored or dropped for colliding with another
+    // contact, so the note carries it unconditionally rather than guessing.
+    expect(String(find("/notes")[0].body.body)).toContain("Cell as entered: 555 123 4567");
+  });
+
+  it("omits the line rather than writing an empty one when no phone was given", async () => {
+    const { fetch, find } = stubCrm();
+    await syncApplicationToCrm({ ...base, phone: "  ", fetch });
+    expect(String(find("/notes")[0].body.body)).not.toContain("Cell as entered");
+  });
+
   it("reports partial failure without failing the submission", async () => {
     const { fetch } = stubCrm({
       tags: { status: 500, body: { message: "a" } },
