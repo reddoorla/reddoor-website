@@ -588,6 +588,56 @@ what is untested is only that endpoint's own wiring in a deployed environment.
 
 ---
 
+### 6.8 What a real walkthrough proved (and corrected)
+
+A human walked the whole funnel on staging, 2026-08-18. Everything landed: one
+contact, correct `source`, all five answers, consent verbatim, the three process
+tags, the pipeline card, the appointment, and a confirmation email carrying the
+Zoom link. Three things it settled that probing could not:
+
+**1. Appointment workflows DO fire from an API booking.** This was previously
+reasoned, not measured — both earlier live bookings passed `notify: false`
+precisely to avoid finding out. From the conversation log:
+
+```
+21:28:24  TYPE_ACTIVITY_APPOINTMENT   Intro call — Tucker Lemos
+21:28:48  TYPE_EMAIL                  "Your call has been confirmed for
+                                       August 19, 2026 at 11:30 AM MDT …"
+21:28:54  TYPE_ACTIVITY_OPPORTUNITY   Opportunity updated
+```
+
+plus notes from `Z-001-1` ("Scheduled a call with Tim Holmes…") and
+`WF# 001-1` ("Contact added to meeting reminders"). The A-102 trigger gap
+(§6.1) applies ONLY to the form/survey-triggered workflows. Anything keyed to an
+appointment works today.
+
+**2. Bounce handling works.** The test address was not a real mailbox, so
+`WF#Z-015-4` caught the bounce, tagged the contact `email bounced` and placed
+its email on DND within four seconds.
+
+**3. ⚠️ `POST /contacts/upsert` dedupes on PHONE, not just email — and
+overwrites the email when it matches.** Measured with two throwaway contacts:
+
+```
+upsert dupe-phone-a@example.com + (212) 867-5309  → id jWap2a96VWPiW3G16PtC
+upsert dupe-phone-b@example.com + (212) 867-5309  → id jWap2a96VWPiW3G16PtC   (same record)
+                                                     stored email now …-b@example.com
+```
+
+One record, and the first lead's email address is **gone**. Anyone sharing a
+number — a company mainline, a couple, a receptionist booking for someone else —
+collapses into a single contact, silently, with no error from the API. This is
+not something the code does; it is how the endpoint behaves. Worth deciding
+deliberately whether to keep sending `phone` on the second touch at all.
+
+**Still unexplained:** that contact recorded SMS consent but carries **no phone
+number**. Two theories tested and disproved — our client omits an empty phone
+rather than sending `""`, and the CRM accepts fictional `555` numbers happily.
+The remaining candidate, consistent with the dedupe behaviour above, is that the
+number entered already belonged to another contact and the CRM declined to move
+it. Unconfirmed. Recording consent with no number to use it on is worth closing
+out.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
