@@ -83,7 +83,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     email,
     name,
     phone,
-    customFields: attributionFields(sourceUrl || `${url.origin}${url.pathname}`, campaign),
+    customFields: attributionFields(campaign),
   });
   if (!contact.ok) {
     console.error(`[book] contact upsert failed (${contact.status}): ${contact.error}`);

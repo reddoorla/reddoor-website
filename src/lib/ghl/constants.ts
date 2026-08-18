@@ -54,10 +54,15 @@ export const TAG_APPLICATION_STARTED = "application started";
 export const TAG_APPLICATION_COMPLETED = "application completed";
 
 /**
- * Attribution custom fields, by field id. The template ships these, which is
- * where utm data belongs — `attributionSource` is read-only on the API, so the
- * values GHL would normally derive from its own tracking have to be written
- * here explicitly or they are lost.
+ * Attribution custom fields, by field id — the full set the template ships.
+ *
+ * We only WRITE `lead_source` and `funnel`. The four utm_* fields are listed
+ * because they exist on the location and it matters that we know their ids, but
+ * writing them is pointless: GHL accepts the write, returns it on an immediate
+ * read, then blanks it within ~10 seconds by reconciling against
+ * `attributionSource`, which no API upsert can set. Measured 2026-08-18 — see
+ * the header comment on `attributionFields` for the sampled timeline. The utm
+ * params go in the contact note instead.
  */
 export const GHL_ATTRIBUTION_FIELDS = {
   /** contact.utm_source */

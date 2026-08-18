@@ -248,22 +248,42 @@ leave it alone `[6]`.
 ### 4.2 Attribution
 
 `attributionSource` is read-only — `UpsertContactDto` has no attribution
-property at all `[11]`. So utm data cannot go where GHL would normally put it.
-The template ships utm as **real writable contact custom fields**, which is a
-better home than the note we originally shipped:
+property at all `[11]`. The template ships utm as writable contact custom
+fields, and that looked like the answer. **It is not.** Measured against the
+live CRM on 2026-08-18, writing all six in one upsert:
 
-| Field          | Id                     |
-| -------------- | ---------------------- |
-| `utm_source`   | `0IUZyt1voFzbwN6wzEkE` |
-| `utm_medium`   | `crVdbGgZZtPu9RGXm5zh` |
-| `utm_campaign` | `9cpTB290UIOnrKtAlBfE` |
-| `utm_content`  | `5EDQLTB4hjyWWdPDCzpU` |
-| `lead_source`  | `6kweGxbWRwBR2LV508jv` |
-| `funnel`       | `NlnuKejf3ThqsfBVvMgU` |
+| Sampled | Fields present                                                                     |
+| ------- | ---------------------------------------------------------------------------------- |
+| t=0s    | `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `lead_source`, `funnel` |
+| t=10s   | `lead_source`, `funnel`                                                            |
+| t=120s  | `lead_source`, `funnel`                                                            |
 
-A param the visitor actually arrived with always wins; the page uid only fills
-`utm_campaign` when the URL carried none, so an ad click's campaign is never
-overwritten by the page it landed on `[6]`.
+GHL accepts a `contact.utm_*` write and hands it straight back on an immediate
+read, then its own attribution pipeline reconciles those fields against
+`attributionSource` — null on any API-created contact — and blanks them. They
+are read-only in effect, with delayed enforcement that makes them look writable
+long enough to fool a test that reads straight back.
+
+**So we write two fields, and the utm params live in the contact note:**
+
+| Field          | Id                     | Written?                               |
+| -------------- | ---------------------- | -------------------------------------- |
+| `lead_source`  | `6kweGxbWRwBR2LV508jv` | yes — always `reddoorla.com`           |
+| `funnel`       | `NlnuKejf3ThqsfBVvMgU` | yes — the page uid, omitted when blank |
+| `utm_source`   | `0IUZyt1voFzbwN6wzEkE` | no — reverted by the CRM               |
+| `utm_medium`   | `crVdbGgZZtPu9RGXm5zh` | no — reverted by the CRM               |
+| `utm_campaign` | `9cpTB290UIOnrKtAlBfE` | no — reverted by the CRM               |
+| `utm_content`  | `5EDQLTB4hjyWWdPDCzpU` | no — reverted by the CRM               |
+
+Nothing is lost: `attributionLines` writes the landing page, the referrer and
+every utm/gclid param into the contact note, verified live. That is where a
+salesperson reads them anyway, and it is where this flow put them before the
+custom fields looked like a better home.
+
+> Cold `/schedule` bookings send no campaign at all, so `funnel` is omitted
+> rather than written blank — the funnel value is established at inquiry time,
+> where the landing page is actually known, and a booking must not relabel a
+> medtech lead.
 
 ### 4.3 Tags
 

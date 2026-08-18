@@ -139,40 +139,40 @@ export function attributionLines(sourceUrl: string, referrer: string): string[] 
 }
 
 /**
- * Attribution as custom-field writes. The template ships utm_* / lead_source /
- * funnel as real contact fields, which is the only place this data can live:
- * `attributionSource` is read-only on the API, so what GHL would normally derive
- * from its own tracking pipeline has to be written explicitly or it is lost.
+ * The attribution that actually STICKS, as custom-field writes.
  *
- * A param the visitor actually arrived with always wins; `campaign` only fills
- * utm_campaign when the URL carried none, so an ad click's own campaign is never
- * overwritten by the page's uid.
+ * This used to write the template's six attribution fields. It writes two,
+ * because the other four do not survive — measured against the live CRM on
+ * 2026-08-18:
+ *
+ *   t=0s    utm_source, utm_medium, utm_campaign, utm_content, lead_source, funnel
+ *   t=10s   lead_source, funnel
+ *   t=120s  lead_source, funnel
+ *
+ * GHL accepts a `contact.utm_*` write and hands it straight back on an
+ * immediate read, then its own attribution pipeline reconciles those fields
+ * against `attributionSource` — which is null on any API-created contact,
+ * because `UpsertContactDto` has no attribution property — and blanks them.
+ * So they are read-only in effect, just with delayed enforcement that makes
+ * them look writable long enough to fool a test that reads straight back.
+ *
+ * `lead_source` and `funnel` persist: the snapshot happens to name them that
+ * way, but they are ordinary custom fields and GHL's attribution model does not
+ * claim them.
+ *
+ * The utm params are NOT lost — `attributionLines` puts them in the contact
+ * note, which is where a salesperson reads them anyway, and which is what this
+ * flow shipped with before the custom fields looked like a better home.
  */
-export function attributionFields(sourceUrl: string, campaign: string): CrmCustomField[] {
-  let params: URLSearchParams | undefined;
-  try {
-    params = new URL(sourceUrl).searchParams;
-  } catch {
-    /* a malformed sourceUrl just means no params to read */
-  }
-  const value = (key: string) => params?.get(key)?.trim() || "";
-  const resolved: Record<keyof typeof GHL_ATTRIBUTION_FIELDS, string> = {
-    utm_source: value("utm_source"),
-    utm_medium: value("utm_medium"),
-    utm_campaign: value("utm_campaign") || campaign,
-    utm_content: value("utm_content"),
-    lead_source: LEAD_SOURCE,
-    funnel: campaign,
-  };
+export function attributionFields(campaign: string): CrmCustomField[] {
   return (
-    Object.entries(resolved)
-      // Empty values are omitted rather than blanking a field the CRM already has
-      // — step two must not wipe attribution step one recorded.
-      .filter(([, v]) => v !== "")
-      .map(([key, v]) => ({
-        id: GHL_ATTRIBUTION_FIELDS[key as keyof typeof GHL_ATTRIBUTION_FIELDS],
-        value: v,
-      }))
+    [
+      { id: GHL_ATTRIBUTION_FIELDS.lead_source, value: LEAD_SOURCE },
+      { id: GHL_ATTRIBUTION_FIELDS.funnel, value: campaign },
+    ]
+      // An empty value is omitted rather than written blank, so a second touch
+      // can never wipe what the first recorded.
+      .filter((f) => f.value !== "")
   );
 }
 
@@ -377,7 +377,7 @@ export async function syncInquiryToCrm(opts: {
     fetch: opts.fetch,
     email: opts.email,
     source: INQUIRY_FORM_NAME,
-    customFields: attributionFields(opts.sourceUrl, opts.campaign),
+    customFields: attributionFields(opts.campaign),
   });
   if (!contact.ok) return contact;
 
@@ -438,7 +438,7 @@ export async function syncApplicationToCrm(opts: {
   // Re-asserted on the second touch so a visitor who reopened the modal on a
   // fresh URL still lands attribution. attributionFields drops empties, so this
   // can only add to what step one recorded — it can never blank it.
-  customFields.push(...attributionFields(opts.sourceUrl, opts.campaign));
+  customFields.push(...attributionFields(opts.campaign));
 
   const contact = await upsertCrmContact({
     token: opts.token,

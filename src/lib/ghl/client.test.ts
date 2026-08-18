@@ -131,31 +131,31 @@ describe("attributionFields", () => {
     key: keyof typeof GHL_ATTRIBUTION_FIELDS,
   ) => fields.find((f) => f.id === GHL_ATTRIBUTION_FIELDS[key])?.value;
 
-  it("records the visitor's own utm params over ours", () => {
-    const f = attributionFields(
-      "https://reddoorla.com/medtech?utm_source=google&utm_medium=cpc&utm_campaign=q3-push",
-      "medtech",
-    );
-    expect(byId(f, "utm_source")).toBe("google");
-    expect(byId(f, "utm_medium")).toBe("cpc");
-    // An ad click's own campaign must survive — the page uid does not overwrite it.
-    expect(byId(f, "utm_campaign")).toBe("q3-push");
-    expect(byId(f, "funnel")).toBe("medtech");
+  it("writes only the two fields that survive", () => {
+    const f = attributionFields("medtech");
     expect(byId(f, "lead_source")).toBe(LEAD_SOURCE);
+    expect(byId(f, "funnel")).toBe("medtech");
+    expect(f).toHaveLength(2);
   });
 
-  it("falls back to the page uid only where the URL carried nothing", () => {
-    const f = attributionFields("https://reddoorla.com/medtech", "medtech");
-    expect(byId(f, "utm_campaign")).toBe("medtech");
-    // Fields with no value are omitted entirely rather than written blank, so a
-    // second touch can never wipe what the first recorded.
+  // Measured against the live CRM 2026-08-18: GHL accepts a contact.utm_* write
+  // and returns it on an immediate read, then blanks it within ~10s by
+  // reconciling against `attributionSource`, which an API upsert cannot set.
+  // Writing them is a wasted call that makes the record look like it captured
+  // attribution when it did not — the note is the real home. See the header
+  // comment on attributionFields.
+  it("does not write the utm fields, which the CRM silently reverts", () => {
+    const f = attributionFields("medtech");
     expect(byId(f, "utm_source")).toBeUndefined();
     expect(byId(f, "utm_medium")).toBeUndefined();
+    expect(byId(f, "utm_campaign")).toBeUndefined();
+    expect(byId(f, "utm_content")).toBeUndefined();
   });
 
-  it("survives a malformed url", () => {
-    const f = attributionFields("not a url", "medtech");
-    expect(byId(f, "funnel")).toBe("medtech");
+  it("omits funnel entirely for a cold booking rather than writing it blank", () => {
+    const f = attributionFields("");
+    expect(byId(f, "funnel")).toBeUndefined();
+    expect(byId(f, "lead_source")).toBe(LEAD_SOURCE);
   });
 });
 
@@ -334,8 +334,12 @@ describe("syncApplicationToCrm", () => {
       value: ["Outdated sales and marketing materials"],
     });
     expect(cf).toContainEqual({ id: SMS_CONSENT.tag, value: [SMS_CONSENT.label] });
-    // Attribution rides along as real fields, not just the note.
-    expect(cf).toContainEqual({ id: GHL_ATTRIBUTION_FIELDS.utm_source, value: "google" });
+    // The attribution that survives rides along as real fields; the utm params
+    // reach the CRM only through the note, because GHL reverts utm_* writes on
+    // an API-created contact (see attributionFields).
+    expect(cf).toContainEqual({ id: GHL_ATTRIBUTION_FIELDS.funnel, value: "medtech" });
+    expect(cf).toContainEqual({ id: GHL_ATTRIBUTION_FIELDS.lead_source, value: LEAD_SOURCE });
+    expect(cf.some((x) => x.id === GHL_ATTRIBUTION_FIELDS.utm_source)).toBe(false);
   });
 
   it("records consent from the request boolean, never from the answer map", async () => {
