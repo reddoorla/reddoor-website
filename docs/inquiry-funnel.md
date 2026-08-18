@@ -501,23 +501,38 @@ Three decisions inside it worth knowing:
 Every test runs against a stub. One end-to-end verification with `notify: false`
 (so no real person is emailed) needs permission first — the standing rule in §7.
 
-### 6.6 Nothing has run in a deployed environment
+### 6.6 Deployed to staging 2026-08-18
 
-The funnel is proven locally against the live CRM, on the scoped token. It has
-never run from a deployed build:
+`staging.reddoorla.com` now runs this branch. `origin/staging` fast-forwarded to
+it, so there is no merge commit and no divergence.
 
-- **Production** has none of it — `/medtech` 404s and the work sits in an
-  unmerged stack.
-- **Staging** serves `/medtech` with the modal wired and the old browser fire
-  gone, but its build predates this branch: no `/schedule`, and it reads the old
-  `CRM_TOKEN` name rather than `CRM_FUNNEL_ACTIVE_TOKEN`. So even with the token
-  set on Netlify, that build would not find it.
+| Check        | Result                                                          |
+| ------------ | --------------------------------------------------------------- |
+| `/medtech`   | 200, 3 `#inquire` triggers, no `leadconnectorhq` in the shell   |
+| `/schedule`  | 200, renders the picker shell                                   |
+| `/api/slots` | 200 — reads the live calendar through `CRM_FUNNEL_ACTIVE_TOKEN` |
 
-Checking staging therefore means deploying this branch there first. Note the
-known trap when doing so: `netlify env:clone` writes masked garbage for SECRET
-variables, so the token must be set explicitly with
-`env:set --secret --context …` and the site rebuilt — see
-[[reference_netlify_env_clone_secret_gotcha]].
+The token was set on the Netlify site as a **secret**, for the `production`,
+`branch-deploy` and `deploy-preview` contexts, via `createEnvVars` on the API —
+`env:set --site` is not supported on the installed CLI, and linking the repo
+would have risked pointing it at the production site. A rebuild was triggered
+afterwards so the function environment picked it up.
+
+**Merging staging in first was not optional.** `origin/staging` was not behind
+this branch — it carried `8a54c4c`, a fix this branch did not have:
+
+> Central ingest's `submissions.name` is NOT NULL, but the step-one email
+> capture has no name yet, so `createSubmission` threw and the form returned 502. Fixed by falling back to the email as the name.
+
+That bug was found by running against **real** ingest on staging. It is
+invisible to the local probe, which points `FORMS_INGEST_URL` at a sink that
+accepts anything — worth remembering before treating a local end-to-end run as
+proof of the ingest contract. Proper fix (nullable name for email-only leads) is
+tracked on maintenance #539.
+
+Still not exercised on staging: a real `POST /api/inquiry`. It would put a
+genuine lead in the forms dashboard — `testMode` cannot isolate it, because the
+endpoint gates the CRM sync on the same flag.
 
 ### 6.5 Housekeeping
 
