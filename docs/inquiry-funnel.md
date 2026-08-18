@@ -535,9 +535,25 @@ contact by hand and confirm A-102-2 enrols it; then `application started` on
 another and confirm A-102-1 enrols and is removed when the completion tag lands.
 No form, no website, no real lead.
 
-One caveat worth knowing: `POST /contacts/{id}/tags` adds a tag that is already
-present without re-firing "Tag Added" — which is also why node 5 re-adding
-`application completed` cannot loop the workflow back onto its own new trigger.
+#### Two caveats on the tag trigger itself
+
+**Publishing is not optional, and it is not retroactive.** GHL says it outright
+in the trigger panel: _"This trigger only applies to tags added after the
+workflow is published."_ So the edit must be saved AND published, and contacts
+who already carry the tag — every walkthrough record from 2026-08-18 — are not
+enrolled. That is the desired outcome, but it means a test has to be a **fresh**
+tag application after publishing, never an inspection of an existing contact.
+
+**Check `Settings → re-entry` on A-102-2.** Node 5 adds `application completed`,
+which is now also the workflow's own trigger. On the site's path that is
+harmless: we write the tag first, so node 5 re-adds a tag that is already
+present and `POST /contacts/{id}/tags` fires nothing. On the **embed** path the
+workflow itself creates the tag for the first time at node 5 — a genuine
+tag-added event, which would re-enrol the contact and double every confirmation
+and reminder. GHL disallows re-entry by default, so this is a confirmation
+rather than a likely bug, but the failure mode is duplicate messages to a real
+lead. An earlier note here said the redundant add "cannot loop the workflow",
+which is only true of the path we control.
 
 `A-102` was independently confirmed incomplete by Tucker in the CRM UI.
 
