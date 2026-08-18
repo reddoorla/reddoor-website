@@ -1,16 +1,9 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import {
-    groupByDay,
-    resolveTimeZone,
-    formatTime,
-    formatZone,
-    formatDayLabel,
-    formatFullSlot,
-    type SlotDay,
-  } from "$lib/schedule/slots";
+  import { groupByDay, resolveTimeZone, formatFullSlot, type SlotDay } from "$lib/schedule/slots";
   import { readHandoff, clearHandoff } from "$lib/schedule/handoff";
+  import SlotPicker from "$lib/components/SlotPicker.svelte";
   import SendingDots from "$lib/components/SendingDots.svelte";
 
   /**
@@ -73,11 +66,6 @@
   let submitEl = $state<HTMLButtonElement>();
   let bookedEl = $state<HTMLElement>();
 
-  const selectedDay = $derived(days.find((d) => d.key === selectedKey));
-  /** The zone abbreviation, taken from a real slot so it lands on the right
-   *  side of any DST boundary inside the booking window. */
-  const zoneLabel = $derived(days[0]?.slots[0] ? formatZone(days[0].slots[0], timeZone) : "");
-
   onMount(() => {
     timeZone = resolveTimeZone();
     openedAt = Date.now();
@@ -118,8 +106,7 @@
     }
   }
 
-  async function chooseSlot(iso: string) {
-    selectedSlot = iso;
+  async function chooseSlot() {
     formError = "";
     // Land on the first thing they now have to act on — the form appears
     // below the fold on a phone, and silently revealing it strands them. With
@@ -258,53 +245,14 @@
             > and we'll find you a time.
           </p>
         {:else}
-          <p class="zone-note">
-            Times shown in your local time{zoneLabel ? ` (${zoneLabel})` : ""}.
-          </p>
-
-          <!-- Buttons with aria-pressed rather than a tablist: there is one
-               panel, it is always visible, and real tabs would promise an
-               arrow-key model the layout does not need. -->
-          <div class="days" role="group" aria-label="Choose a day">
-            {#each days as day (day.key)}
-              {@const label = formatDayLabel(day, timeZone)}
-              <button
-                type="button"
-                class="day"
-                class:is-selected={day.key === selectedKey}
-                aria-pressed={day.key === selectedKey}
-                onclick={() => {
-                  selectedKey = day.key;
-                  selectedSlot = null;
-                  formError = "";
-                }}
-              >
-                <span class="day-weekday">{label.weekday}</span>
-                <span class="day-date">{label.date}</span>
-              </button>
-            {/each}
-          </div>
-
-          {#if selectedDay}
-            {@const dayLabel = formatDayLabel(selectedDay, timeZone)}
-            <div
-              class="times"
-              role="group"
-              aria-label="Available times on {dayLabel.weekday} {dayLabel.date}"
-            >
-              {#each selectedDay.slots as slot (slot)}
-                <button
-                  type="button"
-                  class="time"
-                  class:is-selected={slot === selectedSlot}
-                  aria-pressed={slot === selectedSlot}
-                  onclick={() => chooseSlot(slot)}
-                >
-                  {formatTime(slot, timeZone)}
-                </button>
-              {/each}
-            </div>
-          {/if}
+          <SlotPicker
+            {days}
+            {timeZone}
+            bind:selectedKey
+            bind:selectedSlot
+            onchoose={chooseSlot}
+            ondaychange={() => (formError = "")}
+          />
 
           <!-- Outside the form on purpose. Losing a slot race clears the
                selection so the visitor cannot re-submit a dead time — which
@@ -446,86 +394,6 @@
     font-weight: 200;
     color: #6e6f72;
   }
-  .zone-note {
-    margin: 0 0 12px;
-    font-size: 14px;
-    font-weight: 200;
-    color: #6e6f72;
-  }
-
-  .days {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 22px;
-  }
-  .day {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    min-width: 72px;
-    padding: 10px 14px;
-    border: 1px solid #bbbdbf;
-    border-radius: 4px;
-    background: #fff;
-    color: #000;
-    cursor: pointer;
-    transition:
-      border-color 300ms,
-      background-color 300ms,
-      color 300ms;
-  }
-  .day:hover {
-    border-color: #6e6f72;
-  }
-  .day.is-selected {
-    border-color: #d71920;
-    background: #d71920;
-    color: #fff;
-  }
-  .day-weekday {
-    font-size: 13px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .day-date {
-    font-size: 15px;
-    font-weight: 200;
-  }
-
-  .times {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-    gap: 8px;
-  }
-  .time {
-    padding: 12px 10px;
-    border: 1px solid #bbbdbf;
-    border-radius: 4px;
-    background: #fff;
-    color: #000;
-    font-size: 15px;
-    font-weight: 200;
-    /* The grid is a column of numerals; proportional digits make it ragged. */
-    font-variant-numeric: tabular-nums;
-    cursor: pointer;
-    transition:
-      border-color 300ms,
-      background-color 300ms,
-      color 300ms;
-  }
-  .time:hover {
-    border-color: #6e6f72;
-  }
-  .time.is-selected {
-    border-color: #d71920;
-    background: #d71920;
-    color: #fff;
-  }
-
-  .day:focus-visible,
-  .time:focus-visible,
   .submit:focus-visible,
   .ghost:focus-visible,
   .link-button:focus-visible,
@@ -685,8 +553,6 @@
      visitor who has asked for less motion should not get a quarter-second of
      interpolating red under their cursor. */
   @media (prefers-reduced-motion: reduce) {
-    .day,
-    .time,
     .submit,
     .ghost,
     .link-button,

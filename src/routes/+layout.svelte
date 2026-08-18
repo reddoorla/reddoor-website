@@ -138,6 +138,15 @@
   {#if page.data.meta_title}
     <meta property="og:title" content={page.data.meta_title} />
   {/if}
+  <!-- Opt-in per page. The appointment routes carry a bearer id in the path, so
+       they must stay out of search indexes and out of the Referer of anything
+       they load — a leaked id is a booking someone else can move or cancel. -->
+  {#if page.data.meta_robots}
+    <meta name="robots" content={page.data.meta_robots} />
+  {/if}
+  {#if page.data.meta_referrer}
+    <meta name="referrer" content={page.data.meta_referrer} />
+  {/if}
   {#if metaImageUrl}
     <meta property="og:image" content={metaImageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
