@@ -1,4 +1,13 @@
-import { GHL_LOCATION_ID, INQUIRY_FORM_NAME } from "./constants";
+import {
+  GHL_ATTRIBUTION_FIELDS,
+  GHL_LOCATION_ID,
+  GHL_PIPELINE_ID,
+  GHL_STAGE_NEW_INQUIRY,
+  INQUIRY_FORM_NAME,
+  LEAD_SOURCE,
+  TAG_APPLICATION_COMPLETED,
+  TAG_APPLICATION_STARTED,
+} from "./constants";
 import { normalizePhone } from "./phone";
 import { questionsFor, SMS_CONSENT } from "./questions";
 
@@ -21,15 +30,21 @@ import { questionsFor, SMS_CONSENT } from "./questions";
  *   type                  = "lead"        (derived by the CRM, not settable)
  *   customFields          = the 5 answers + SMS consent, keyed by field id
  *   website               = a STANDARD contact field, NOT a custom field
- *   tags                  = []            (the embed applies none)
- *   opportunity           = none          (the embed opens none)
  *   dnd                   = untouched     (consent is only a custom-field value)
  *   attributionSource     = set by their tracking pipeline — READ-ONLY to us
  *
  * That last line is the one thing the API cannot do: `UpsertContactDto` has no
- * attribution property, so utm/referrer data has nowhere official to go. We
- * keep it where we can — a `source` label and a note on the contact — rather
- * than silently dropping what the utm plumbing collects.
+ * attribution property. The template ships utm_* / lead_source / funnel as real
+ * contact fields, so that is where attribution goes instead of being dropped —
+ * plus a human-readable note for whoever reads the record before a call.
+ *
+ * Two things go BEYOND the embed's effect, deliberately:
+ *
+ *   tags         the CRM's own process vocabulary, written so the record reads
+ *                correctly and so the A-102 chain fires the moment a
+ *                Contact-Tag-Added trigger is added to it.
+ *   opportunity  a guarded stopgap while A-102-2 (which would normally open it)
+ *                is unfinished — without one, the sales review has no surface.
  *
  * Token: a location-level Private Integration Token with `contacts.write`
  * (verified granted 2026-08-18). Injected rather than read from env here so the
@@ -121,6 +136,44 @@ export function attributionLines(sourceUrl: string, referrer: string): string[] 
   const utm = [...(params ?? [])].filter(([k]) => /^(utm_|gclid|fbclid|gbraid|wbraid)/.test(k));
   if (utm.length) lines.push(...utm.map(([k, v]) => `${k}: ${v}`));
   return lines;
+}
+
+/**
+ * Attribution as custom-field writes. The template ships utm_* / lead_source /
+ * funnel as real contact fields, which is the only place this data can live:
+ * `attributionSource` is read-only on the API, so what GHL would normally derive
+ * from its own tracking pipeline has to be written explicitly or it is lost.
+ *
+ * A param the visitor actually arrived with always wins; `campaign` only fills
+ * utm_campaign when the URL carried none, so an ad click's own campaign is never
+ * overwritten by the page's uid.
+ */
+export function attributionFields(sourceUrl: string, campaign: string): CrmCustomField[] {
+  let params: URLSearchParams | undefined;
+  try {
+    params = new URL(sourceUrl).searchParams;
+  } catch {
+    /* a malformed sourceUrl just means no params to read */
+  }
+  const value = (key: string) => params?.get(key)?.trim() || "";
+  const resolved: Record<keyof typeof GHL_ATTRIBUTION_FIELDS, string> = {
+    utm_source: value("utm_source"),
+    utm_medium: value("utm_medium"),
+    utm_campaign: value("utm_campaign") || campaign,
+    utm_content: value("utm_content"),
+    lead_source: LEAD_SOURCE,
+    funnel: campaign,
+  };
+  return (
+    Object.entries(resolved)
+      // Empty values are omitted rather than blanking a field the CRM already has
+      // — step two must not wipe attribution step one recorded.
+      .filter(([, v]) => v !== "")
+      .map(([key, v]) => ({
+        id: GHL_ATTRIBUTION_FIELDS[key as keyof typeof GHL_ATTRIBUTION_FIELDS],
+        value: v,
+      }))
+  );
 }
 
 async function call<T>(
@@ -221,26 +274,127 @@ export async function addCrmNote(opts: {
 }
 
 /**
- * Step one — the email capture. Mirrors the embed's first touch: a contact with
- * `source` set to the form's name and nothing else. `source` is set HERE and
- * only here, because the CRM keeps the first-touch label and the survey
- * submission does not overwrite it.
+ * Add tags WITHOUT clobbering. The upsert body's `tags` property replaces the
+ * entire array, so process state is applied through this endpoint instead —
+ * it appends, leaving anything a workflow added intact.
+ */
+export async function addCrmTags(opts: {
+  token: string;
+  fetch: CrmFetch;
+  contactId: string;
+  tags: string[];
+}): Promise<CrmResult<{ tags: string[] }>> {
+  return call(
+    { token: opts.token, fetch: opts.fetch },
+    `/contacts/${encodeURIComponent(opts.contactId)}/tags`,
+    { method: "POST", body: JSON.stringify({ tags: opts.tags }) },
+    (json) => ({ tags: (json.tags as string[]) ?? [] }),
+  );
+}
+
+/**
+ * Open a pipeline opportunity for a completed application — but only if the
+ * contact has none.
+ *
+ * The guard is the whole point. In the template this is a workflow action inside
+ * A-102-2, which is currently unfinished; creating it here gives the sales
+ * review an actual surface to happen on. When A-102-2 is finished it will do the
+ * same thing, and the lookup is what stops the two from racing into duplicates.
+ *
+ * A failed LOOKUP is treated as "do not create". Creating on an unknown state
+ * risks a duplicate in someone's live pipeline; skipping only risks a missing
+ * card, which a human can add. The cheaper mistake wins.
+ */
+export async function ensureCrmOpportunity(opts: {
+  token: string;
+  fetch: CrmFetch;
+  contactId: string;
+  /** Shown as the opportunity name — the person, falling back to their email. */
+  name: string;
+}): Promise<CrmResult<{ opportunityId: string; created: boolean }>> {
+  const existing = await call<number>(
+    { token: opts.token, fetch: opts.fetch },
+    `/opportunities/search?location_id=${GHL_LOCATION_ID}&contact_id=${encodeURIComponent(opts.contactId)}`,
+    { method: "GET" },
+    (json) => {
+      const list = (json.opportunities as unknown[]) ?? [];
+      const meta = json.meta as { total?: number } | undefined;
+      return meta?.total ?? list.length;
+    },
+  );
+  if (!existing.ok) return existing;
+  if (existing.data > 0) return { ok: true, data: { opportunityId: "", created: false } };
+
+  return call(
+    { token: opts.token, fetch: opts.fetch },
+    "/opportunities/",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        locationId: GHL_LOCATION_ID,
+        pipelineId: GHL_PIPELINE_ID,
+        pipelineStageId: GHL_STAGE_NEW_INQUIRY,
+        contactId: opts.contactId,
+        name: opts.name,
+        // "open" is the CRM's short-term-follow-up state. Their other statuses
+        // carry specific meaning a human assigns later: `abandoned` for a good
+        // fit on a long horizon, `lost` for dead, `won` for cash collected.
+        status: "open",
+      }),
+    },
+    (json) => {
+      const o = (json.opportunity ?? {}) as Record<string, unknown>;
+      return { opportunityId: String(o.id ?? ""), created: true };
+    },
+  );
+}
+
+/**
+ * Step one — the email capture. Mirrors the embed's first touch: a contact whose
+ * `source` is the form's name. `source` is set HERE and only here, because the
+ * CRM keeps the first-touch label and the survey submission does not overwrite
+ * it — so the second touch must leave it alone.
+ *
+ * Attribution rides on this first write because it is the only touch guaranteed
+ * to see the visitor's original landing URL with its utm params intact.
  */
 export async function syncInquiryToCrm(opts: {
   token: string;
   fetch: CrmFetch;
   email: string;
-}): Promise<CrmResult<{ contactId: string; isNew: boolean }>> {
-  return upsertCrmContact({ ...opts, source: INQUIRY_FORM_NAME });
+  /** The industry page's uid — utm_campaign fallback and the `funnel` value. */
+  campaign: string;
+  /** location.href at submit, carrying whatever utm params the visitor arrived with. */
+  sourceUrl: string;
+}): Promise<CrmResult<{ contactId: string; isNew: boolean; taggedOk: boolean }>> {
+  const contact = await upsertCrmContact({
+    token: opts.token,
+    fetch: opts.fetch,
+    email: opts.email,
+    source: INQUIRY_FORM_NAME,
+    customFields: attributionFields(opts.sourceUrl, opts.campaign),
+  });
+  if (!contact.ok) return contact;
+
+  // Best-effort from here: the lead is already recorded, so a failed tag is
+  // logged rather than surfaced as a failure to the visitor.
+  const tagged = await addCrmTags({
+    token: opts.token,
+    fetch: opts.fetch,
+    contactId: contact.data.contactId,
+    tags: [TAG_APPLICATION_STARTED],
+  });
+  return { ok: true, data: { ...contact.data, taggedOk: tagged.ok } };
 }
 
 /**
- * Step two — the completed application. Writes the answers as custom fields and
- * appends a note carrying the transcript plus the attribution the API cannot
- * store on the contact itself.
+ * Step two — the completed application. Writes the answers as custom fields,
+ * marks the process state, opens a pipeline opportunity if none exists, and
+ * appends a readable transcript for whoever takes the call.
  *
- * The note is best-effort: the contact (with every answer on it) is already
- * safe by the time it runs, so a failed note is logged, not surfaced.
+ * Everything after the contact upsert is best-effort: the answers are already
+ * safe on the record by then, so a failed tag, opportunity or note is reported
+ * for logging rather than surfaced to the visitor.
  */
 export async function syncApplicationToCrm(opts: {
   token: string;
@@ -257,7 +411,17 @@ export async function syncApplicationToCrm(opts: {
   transcript: string;
   sourceUrl: string;
   referrer: string;
-}): Promise<CrmResult<{ contactId: string; isNew: boolean; noteOk: boolean }>> {
+  /** The industry page's uid — utm_campaign fallback and the `funnel` value. */
+  campaign: string;
+}): Promise<
+  CrmResult<{
+    contactId: string;
+    isNew: boolean;
+    taggedOk: boolean;
+    opportunityOk: boolean;
+    noteOk: boolean;
+  }>
+> {
   const { customFields, standard } = partitionAnswers(opts.fields, writableFieldIds(opts.surveyId));
   // Consent is written from THIS request's boolean using the CRM's exact stored
   // sentence, in the one-element array shape a real widget submission produces.
@@ -266,6 +430,11 @@ export async function syncApplicationToCrm(opts: {
   if (opts.smsConsent) {
     customFields.push({ id: SMS_CONSENT.tag, value: [SMS_CONSENT.label] });
   }
+  // Re-asserted on the second touch so a visitor who reopened the modal on a
+  // fresh URL still lands attribution. attributionFields drops empties, so this
+  // can only add to what step one recorded — it can never blank it.
+  customFields.push(...attributionFields(opts.sourceUrl, opts.campaign));
+
   const contact = await upsertCrmContact({
     token: opts.token,
     fetch: opts.fetch,
@@ -276,12 +445,35 @@ export async function syncApplicationToCrm(opts: {
     standard,
   });
   if (!contact.ok) return contact;
+  const { token, fetch: f } = opts;
+  const contactId = contact.data.contactId;
 
+  const tagged = await addCrmTags({
+    token,
+    fetch: f,
+    contactId,
+    tags: [TAG_APPLICATION_COMPLETED],
+  });
+  const opportunity = await ensureCrmOpportunity({
+    token,
+    fetch: f,
+    contactId,
+    name: opts.name.trim() || opts.email,
+  });
   const note = await addCrmNote({
-    token: opts.token,
-    fetch: opts.fetch,
-    contactId: contact.data.contactId,
+    token,
+    fetch: f,
+    contactId,
     body: [opts.transcript, "", ...attributionLines(opts.sourceUrl, opts.referrer)].join("\n"),
   });
-  return { ok: true, data: { ...contact.data, noteOk: note.ok } };
+
+  return {
+    ok: true,
+    data: {
+      ...contact.data,
+      taggedOk: tagged.ok,
+      opportunityOk: opportunity.ok,
+      noteOk: note.ok,
+    },
+  };
 }

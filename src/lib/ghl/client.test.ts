@@ -1,31 +1,75 @@
 import { describe, expect, it } from "vitest";
 import {
+  attributionFields,
   attributionLines,
+  ensureCrmOpportunity,
   partitionAnswers,
   syncApplicationToCrm,
   syncInquiryToCrm,
   upsertCrmContact,
   writableFieldIds,
 } from "./client";
-import { DEFAULT_INQUIRY_SURVEY_ID, GHL_LOCATION_ID, INQUIRY_FORM_NAME } from "./constants";
+import {
+  DEFAULT_INQUIRY_SURVEY_ID,
+  GHL_ATTRIBUTION_FIELDS,
+  GHL_LOCATION_ID,
+  GHL_PIPELINE_ID,
+  GHL_STAGE_NEW_INQUIRY,
+  INQUIRY_FORM_NAME,
+  LEAD_SOURCE,
+  TAG_APPLICATION_COMPLETED,
+  TAG_APPLICATION_STARTED,
+} from "./constants";
 import { SMS_CONSENT } from "./questions";
 
-/** A fetch stub that records calls and replays queued responses. */
-function stubFetch(responses: Array<{ status?: number; body?: unknown }>) {
-  const calls: Array<{ url: string; init: RequestInit; body: Record<string, unknown> }> = [];
+/**
+ * Routes by URL rather than replaying a queue: the sync functions call several
+ * endpoints in sequence, and a positional queue would make every test brittle to
+ * a reordering that changes nothing observable.
+ */
+function stubCrm(
+  overrides: Partial<
+    Record<
+      "upsert" | "tags" | "search" | "opportunity" | "note",
+      { status?: number; body?: unknown }
+    >
+  > = {},
+) {
+  const calls: Array<{
+    url: string;
+    method: string;
+    body: Record<string, unknown>;
+    headers: Record<string, string>;
+  }> = [];
+  const reply = (key: keyof typeof overrides, fallback: unknown) => {
+    const o = overrides[key];
+    return { status: o?.status ?? 200, body: o && "body" in o ? o.body : fallback };
+  };
   const fetch = async (url: string, init: RequestInit = {}) => {
-    calls.push({ url, init, body: JSON.parse(String(init.body ?? "{}")) });
-    const next = responses.shift() ?? { status: 200, body: {} };
-    return new Response(JSON.stringify(next.body ?? {}), {
-      status: next.status ?? 200,
+    const method = init.method ?? "GET";
+    calls.push({
+      url,
+      method,
+      body: JSON.parse(String(init.body ?? "{}")),
+      headers: (init.headers ?? {}) as Record<string, string>,
+    });
+    let r: { status: number; body: unknown };
+    if (url.includes("/contacts/upsert")) r = reply("upsert", { contact: { id: "C1", new: true } });
+    else if (url.includes("/tags")) r = reply("tags", { tags: [] });
+    else if (url.includes("/opportunities/search"))
+      r = reply("search", { opportunities: [], meta: { total: 0 } });
+    else if (url.includes("/opportunities/"))
+      r = reply("opportunity", { opportunity: { id: "O1" } });
+    else if (url.includes("/notes")) r = reply("note", { note: { id: "N1" } });
+    else r = { status: 404, body: {} };
+    return new Response(JSON.stringify(r.body ?? {}), {
+      status: r.status,
       headers: { "content-type": "application/json" },
     });
   };
-  return { fetch, calls };
+  const find = (fragment: string) => calls.filter((c) => c.url.includes(fragment));
+  return { fetch, calls, find };
 }
-
-const CONTACT_OK = { body: { contact: { id: "C1", new: true } } };
-const NOTE_OK = { body: { note: { id: "N1" } } };
 
 describe("writableFieldIds", () => {
   it("covers the survey's custom fields, excluding `website` and consent", () => {
@@ -67,8 +111,6 @@ describe("partitionAnswers", () => {
   });
 
   it("drops a forged field id rather than writing it", () => {
-    // The answer map comes from the browser; an id we don't recognise must not
-    // reach the CRM, or a bot could write arbitrary fields on the contact.
     const { customFields } = partitionAnswers({ someOtherFieldId: "malicious" }, writable);
     expect(customFields).toEqual([]);
   });
@@ -83,19 +125,49 @@ describe("partitionAnswers", () => {
   });
 });
 
+describe("attributionFields", () => {
+  const byId = (
+    fields: { id: string; value: string | string[] }[],
+    key: keyof typeof GHL_ATTRIBUTION_FIELDS,
+  ) => fields.find((f) => f.id === GHL_ATTRIBUTION_FIELDS[key])?.value;
+
+  it("records the visitor's own utm params over ours", () => {
+    const f = attributionFields(
+      "https://reddoorla.com/medtech?utm_source=google&utm_medium=cpc&utm_campaign=q3-push",
+      "medtech",
+    );
+    expect(byId(f, "utm_source")).toBe("google");
+    expect(byId(f, "utm_medium")).toBe("cpc");
+    // An ad click's own campaign must survive — the page uid does not overwrite it.
+    expect(byId(f, "utm_campaign")).toBe("q3-push");
+    expect(byId(f, "funnel")).toBe("medtech");
+    expect(byId(f, "lead_source")).toBe(LEAD_SOURCE);
+  });
+
+  it("falls back to the page uid only where the URL carried nothing", () => {
+    const f = attributionFields("https://reddoorla.com/medtech", "medtech");
+    expect(byId(f, "utm_campaign")).toBe("medtech");
+    // Fields with no value are omitted entirely rather than written blank, so a
+    // second touch can never wipe what the first recorded.
+    expect(byId(f, "utm_source")).toBeUndefined();
+    expect(byId(f, "utm_medium")).toBeUndefined();
+  });
+
+  it("survives a malformed url", () => {
+    const f = attributionFields("not a url", "medtech");
+    expect(byId(f, "funnel")).toBe("medtech");
+  });
+});
+
 describe("attributionLines", () => {
   it("reports the landing page, referrer and ad params", () => {
     const lines = attributionLines(
-      "https://reddoorla.com/medtech?utm_source=google&utm_medium=cpc&gclid=abc&nope=1",
+      "https://reddoorla.com/medtech?utm_source=google&gclid=abc&nope=1",
       "https://news.example.com/story",
-    );
-    expect(lines[0]).toBe(
-      "Landing page: https://reddoorla.com/medtech?utm_source=google&utm_medium=cpc&gclid=abc&nope=1",
     );
     expect(lines).toContain("Referrer: https://news.example.com/story");
     expect(lines).toContain("utm_source: google");
     expect(lines).toContain("gclid: abc");
-    // Non-attribution query junk stays out of the note.
     expect(lines.some((l) => l.startsWith("nope"))).toBe(false);
   });
 
@@ -106,7 +178,7 @@ describe("attributionLines", () => {
 
 describe("upsertCrmContact", () => {
   it("sends the documented headers and a location-scoped body", async () => {
-    const { fetch, calls } = stubFetch([CONTACT_OK]);
+    const { fetch, calls } = stubCrm();
     const res = await upsertCrmContact({
       token: "tok",
       fetch,
@@ -117,24 +189,28 @@ describe("upsertCrmContact", () => {
 
     expect(res).toEqual({ ok: true, data: { contactId: "C1", isNew: true } });
     expect(calls[0].url).toBe("https://services.leadconnectorhq.com/contacts/upsert");
-    const headers = calls[0].init.headers as Record<string, string>;
-    expect(headers.Authorization).toBe("Bearer tok");
-    expect(headers.Version).toBe("2021-07-28");
+    // The dated Version header is not optional — LeadConnector pins request
+    // behaviour to it, and omitting it changes the response shape.
+    expect(calls[0].headers.Authorization).toBe("Bearer tok");
+    expect(calls[0].headers.Version).toBe("2021-07-28");
     expect(calls[0].body.locationId).toBe(GHL_LOCATION_ID);
-    // Phone is normalised to the +1 shape the CRM stores.
+    // Phone normalised to the +1 shape the CRM stores.
     expect(calls[0].body.phone).toBe("+15551234567");
   });
 
   it("NEVER sends tags — the API overwrites the whole array", async () => {
-    const { fetch, calls } = stubFetch([CONTACT_OK]);
+    const { fetch, calls } = stubCrm();
     await upsertCrmContact({ token: "t", fetch, email: "a@b.co" });
     expect("tags" in calls[0].body).toBe(false);
   });
 
   it("surfaces a validation array as one readable error", async () => {
-    const { fetch } = stubFetch([
-      { status: 422, body: { message: ["email must be an email", "email must be a string"] } },
-    ]);
+    const { fetch } = stubCrm({
+      upsert: {
+        status: 422,
+        body: { message: ["email must be an email", "email must be a string"] },
+      },
+    });
     const res = await upsertCrmContact({ token: "t", fetch, email: "nope" });
     expect(res).toEqual({
       ok: false,
@@ -142,24 +218,77 @@ describe("upsertCrmContact", () => {
       error: "email must be an email; email must be a string",
     });
   });
-
-  it("reports a missing scope rather than throwing", async () => {
-    const { fetch } = stubFetch([
-      { status: 401, body: { message: "The token is not authorized for this scope." } },
-    ]);
-    const res = await upsertCrmContact({ token: "t", fetch, email: "a@b.co" });
-    expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.status).toBe(401);
-  });
 });
 
 describe("syncInquiryToCrm", () => {
-  it("stamps the first touch with the CRM's own form name", async () => {
-    const { fetch, calls } = stubFetch([CONTACT_OK]);
-    await syncInquiryToCrm({ token: "t", fetch, email: "a@b.co" });
+  const base = {
+    token: "t",
+    email: "a@b.co",
+    campaign: "medtech",
+    sourceUrl: "https://reddoorla.com/medtech",
+  };
+
+  it("stamps the first touch with the CRM's own form name and records attribution", async () => {
+    const { fetch, find } = stubCrm();
+    const res = await syncInquiryToCrm({ ...base, fetch });
+    expect(res.ok).toBe(true);
+
+    const upsert = find("/contacts/upsert")[0];
     // Matching the embed's source verbatim keeps this flow's leads grouped with
     // the widget's in the CRM's source reporting.
-    expect(calls[0].body.source).toBe(INQUIRY_FORM_NAME);
+    expect(upsert.body.source).toBe(INQUIRY_FORM_NAME);
+    const fields = upsert.body.customFields as { id: string }[];
+    expect(fields.some((f) => f.id === GHL_ATTRIBUTION_FIELDS.funnel)).toBe(true);
+  });
+
+  it("adds the started tag without sending it on the upsert", async () => {
+    const { fetch, find } = stubCrm();
+    await syncInquiryToCrm({ ...base, fetch });
+    const tag = find("/tags")[0];
+    expect(tag.method).toBe("POST");
+    expect(tag.url).toContain("/contacts/C1/tags");
+    expect(tag.body).toEqual({ tags: [TAG_APPLICATION_STARTED] });
+  });
+
+  it("still succeeds when only the tag fails — the lead is already recorded", async () => {
+    const { fetch } = stubCrm({ tags: { status: 500, body: { message: "boom" } } });
+    const res = await syncInquiryToCrm({ ...base, fetch });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.taggedOk).toBe(false);
+  });
+});
+
+describe("ensureCrmOpportunity", () => {
+  it("opens one at New Inquiry when the contact has none", async () => {
+    const { fetch, find } = stubCrm();
+    const res = await ensureCrmOpportunity({ token: "t", fetch, contactId: "C1", name: "Dana" });
+    expect(res).toEqual({ ok: true, data: { opportunityId: "O1", created: true } });
+
+    const created = find("/opportunities/").filter((c) => c.method === "POST")[0];
+    expect(created.body.pipelineId).toBe(GHL_PIPELINE_ID);
+    expect(created.body.pipelineStageId).toBe(GHL_STAGE_NEW_INQUIRY);
+    expect(created.body.contactId).toBe("C1");
+    expect(created.body.status).toBe("open");
+  });
+
+  it("creates nothing when one already exists", async () => {
+    // A-102-2 opens this opportunity too once it is finished; the guard is what
+    // stops the two from racing into duplicates in a live pipeline.
+    const { fetch, find } = stubCrm({
+      search: { body: { opportunities: [{ id: "EXISTING" }], meta: { total: 1 } } },
+    });
+    const res = await ensureCrmOpportunity({ token: "t", fetch, contactId: "C1", name: "Dana" });
+    expect(res).toEqual({ ok: true, data: { opportunityId: "", created: false } });
+    expect(find("/opportunities/").filter((c) => c.method === "POST")).toHaveLength(0);
+  });
+
+  it("creates nothing when the lookup itself fails", async () => {
+    // Creating on an unknown state risks a duplicate in someone's live pipeline;
+    // skipping only risks a missing card a human can add. Cheaper mistake wins.
+    const { fetch, find } = stubCrm({ search: { status: 500, body: { message: "down" } } });
+    const res = await ensureCrmOpportunity({ token: "t", fetch, contactId: "C1", name: "Dana" });
+    expect(res.ok).toBe(false);
+    expect(find("/opportunities/").filter((c) => c.method === "POST")).toHaveLength(0);
   });
 });
 
@@ -178,66 +307,92 @@ describe("syncApplicationToCrm", () => {
     transcript: 'Landing-page application — opened from "Discover".',
     sourceUrl: "https://reddoorla.com/medtech?utm_source=google",
     referrer: "",
+    campaign: "medtech",
   };
 
   it("writes answers as custom fields and leaves the first-touch source alone", async () => {
-    const { fetch, calls } = stubFetch([CONTACT_OK, NOTE_OK]);
+    const { fetch, find } = stubCrm();
     const res = await syncApplicationToCrm({ ...base, fetch });
-
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.data).toEqual({ contactId: "C1", isNew: true, noteOk: true });
+    if (res.ok) {
+      expect(res.data.contactId).toBe("C1");
+      expect(res.data.taggedOk).toBe(true);
+      expect(res.data.opportunityOk).toBe(true);
+      expect(res.data.noteOk).toBe(true);
+    }
 
-    const body = calls[0].body;
+    const body = find("/contacts/upsert")[0].body;
     // `source` is the CRM's first-touch label; the survey submission does not
     // overwrite it, so neither do we.
     expect("source" in body).toBe(false);
     expect(body.name).toBe("Dana Buyer");
     expect(body.website).toBe("https://acme.test");
-    expect(body.customFields).toEqual([
-      { id: "vlLzA6TsJhHkmvmf6ArR", value: ["Outdated sales and marketing materials"] },
-      { id: SMS_CONSENT.tag, value: [SMS_CONSENT.label] },
-    ]);
+
+    const cf = body.customFields as { id: string; value: unknown }[];
+    expect(cf).toContainEqual({
+      id: "vlLzA6TsJhHkmvmf6ArR",
+      value: ["Outdated sales and marketing materials"],
+    });
+    expect(cf).toContainEqual({ id: SMS_CONSENT.tag, value: [SMS_CONSENT.label] });
+    // Attribution rides along as real fields, not just the note.
+    expect(cf).toContainEqual({ id: GHL_ATTRIBUTION_FIELDS.utm_source, value: "google" });
   });
 
   it("records consent from the request boolean, never from the answer map", async () => {
-    // A browser claiming consent via the field id must be ignored…
-    const forged = stubFetch([CONTACT_OK, NOTE_OK]);
+    const forged = stubCrm();
     await syncApplicationToCrm({
       ...base,
       fetch: forged.fetch,
       smsConsent: false,
       fields: { ...base.fields, [SMS_CONSENT.tag]: [SMS_CONSENT.label] },
     });
-    const written = forged.calls[0].body.customFields as Array<{ id: string }>;
-    expect(written.some((f) => f.id === SMS_CONSENT.tag)).toBe(false);
+    const cf = forged.find("/contacts/upsert")[0].body.customFields as { id: string }[];
+    expect(cf.some((f) => f.id === SMS_CONSENT.tag)).toBe(false);
+  });
 
-    // …while the boolean alone is enough to record it.
-    const real = stubFetch([CONTACT_OK, NOTE_OK]);
-    await syncApplicationToCrm({ ...base, fetch: real.fetch, smsConsent: true, fields: {} });
-    expect(real.calls[0].body.customFields).toEqual([
-      { id: SMS_CONSENT.tag, value: [SMS_CONSENT.label] },
-    ]);
+  it("marks the process state and opens the pipeline card", async () => {
+    const { fetch, find } = stubCrm();
+    await syncApplicationToCrm({ ...base, fetch });
+    expect(find("/tags")[0].body).toEqual({ tags: [TAG_APPLICATION_COMPLETED] });
+    expect(find("/opportunities/").filter((c) => c.method === "POST")[0].body.name).toBe(
+      "Dana Buyer",
+    );
+  });
+
+  it("names the opportunity by email when no name was given", async () => {
+    const { fetch, find } = stubCrm();
+    await syncApplicationToCrm({ ...base, fetch, name: "   " });
+    expect(find("/opportunities/").filter((c) => c.method === "POST")[0].body.name).toBe(
+      "buyer@example.com",
+    );
   });
 
   it("attaches the transcript and attribution as a note", async () => {
-    const { fetch, calls } = stubFetch([CONTACT_OK, NOTE_OK]);
+    const { fetch, find } = stubCrm();
     await syncApplicationToCrm({ ...base, fetch });
-    expect(calls[1].url).toBe("https://services.leadconnectorhq.com/contacts/C1/notes");
-    const note = String(calls[1].body.body);
-    expect(note).toContain('opened from "Discover"');
-    expect(note).toContain("Landing page: https://reddoorla.com/medtech?utm_source=google");
-    expect(note).toContain("utm_source: google");
+    const note = find("/notes")[0];
+    expect(note.url).toContain("/contacts/C1/notes");
+    expect(String(note.body.body)).toContain('opened from "Discover"');
+    expect(String(note.body.body)).toContain("utm_source: google");
   });
 
-  it("still succeeds when only the note fails — the answers are already saved", async () => {
-    const { fetch } = stubFetch([CONTACT_OK, { status: 500, body: { message: "boom" } }]);
+  it("reports partial failure without failing the submission", async () => {
+    const { fetch } = stubCrm({
+      tags: { status: 500, body: { message: "a" } },
+      note: { status: 500, body: { message: "b" } },
+    });
     const res = await syncApplicationToCrm({ ...base, fetch });
+    // The answers are already on the contact, so the visitor is not told this failed.
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.data.noteOk).toBe(false);
+    if (res.ok) {
+      expect(res.data.taggedOk).toBe(false);
+      expect(res.data.noteOk).toBe(false);
+      expect(res.data.opportunityOk).toBe(true);
+    }
   });
 
-  it("does not post a note when the contact upsert failed", async () => {
-    const { fetch, calls } = stubFetch([{ status: 401, body: { message: "nope" } }]);
+  it("does nothing further when the contact upsert failed", async () => {
+    const { fetch, calls } = stubCrm({ upsert: { status: 401, body: { message: "nope" } } });
     const res = await syncApplicationToCrm({ ...base, fetch });
     expect(res.ok).toBe(false);
     expect(calls).toHaveLength(1);

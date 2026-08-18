@@ -24,6 +24,7 @@ const MAX_LEN = {
   fieldTag: 64,
   surveyId: 64,
   referrer: 500,
+  campaign: 100,
 };
 
 // The completed application carries the wizard's answers as display-shaped
@@ -118,6 +119,9 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   // the default, and a missing referrer just shortens the attribution note.
   const referrer = str(body.referrer);
   const surveyId = str(body.surveyId) || DEFAULT_INQUIRY_SURVEY_ID;
+  // The industry page's uid. Fills utm_campaign when the visitor arrived with
+  // none, and is recorded as the CRM's `funnel` value either way.
+  const campaign = str(body.campaign);
 
   // Bot screen FIRST, ahead of every 400: a filled honeypot or an implausibly
   // fast fill is silently accepted (no forward) so a bot gets no signal —
@@ -162,6 +166,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     phone.length > MAX_LEN.phone ||
     referrer.length > MAX_LEN.referrer ||
     surveyId.length > MAX_LEN.surveyId ||
+    campaign.length > MAX_LEN.campaign ||
     answersChars > MAX_ANSWERS_TOTAL
   ) {
     return json({ error: "One of the fields is too long — please shorten it." }, { status: 400 });
@@ -264,12 +269,30 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
             transcript: message,
             sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,
             referrer,
+            campaign,
           })
-        : await syncInquiryToCrm({ token: env.CRM_TOKEN, fetch, email });
+        : await syncInquiryToCrm({
+            token: env.CRM_TOKEN,
+            fetch,
+            email,
+            campaign,
+            sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,
+          });
       if (!sync.ok) {
         console.error(`[inquiry] CRM sync failed (${sync.status}): ${sync.error}`);
-      } else if ("noteOk" in sync.data && !sync.data.noteOk) {
-        console.warn(`[inquiry] CRM contact ${sync.data.contactId} saved, note failed`);
+      } else {
+        // The contact is saved by this point; these are the best-effort extras.
+        // Named individually so a partial sync is diagnosable from the log
+        // rather than looking like a clean success.
+        const d = sync.data;
+        const failed = [
+          d.taggedOk === false && "tag",
+          "opportunityOk" in d && d.opportunityOk === false && "opportunity",
+          "noteOk" in d && d.noteOk === false && "note",
+        ].filter(Boolean);
+        if (failed.length) {
+          console.warn(`[inquiry] contact ${d.contactId} saved; failed: ${failed.join(", ")}`);
+        }
       }
     }
   }
