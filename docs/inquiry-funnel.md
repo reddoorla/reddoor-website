@@ -331,15 +331,40 @@ granted broadly, so anything not listed here is untested rather than known-absen
 
 ## 5. Verification status
 
-| Layer                         | State                                                                                                                                                                                                          |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit tests                    | 136 passing (`src/lib/ghl/*.test.ts`, `src/lib/schedule/slots.test.ts`, `src/routes/api/inquiry/server.test.ts`)                                                                                               |
-| Smoke tests                   | 72 passing, 1 skipped — including a `strayCrmCalls` guard that aborts any `*.leadconnectorhq.com` request so a reintroduced browser fire fails loudly, and `/api/book` stubbed in every spec that can reach it |
-| Timezone coverage             | The booking page runs in three zones — Los Angeles, New York and Shanghai. Shanghai is the one that matters: it splits a single Mountain calendar day across two local days                                    |
-| `svelte-check` / lint / build | Clean                                                                                                                                                                                                          |
-| **Live end-to-end booking**   | **NOT RUN.** Requires a real write to a live calendar — needs explicit permission first. Proposed with `notify: false` so no real person is emailed.                                                           |
+| Layer                         | State                                                                                                                                                                                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit tests                    | 136 passing (`src/lib/ghl/*.test.ts`, `src/lib/schedule/slots.test.ts`, `src/routes/api/inquiry/server.test.ts`)                                                                                                                               |
+| Smoke tests                   | 72 passing, 1 skipped — including a `strayCrmCalls` guard that aborts any `*.leadconnectorhq.com` request so a reintroduced browser fire fails loudly, and `/api/book` stubbed in every spec that can reach it                                 |
+| Timezone coverage             | The booking page runs in three zones — Los Angeles, New York and Shanghai. Shanghai is the one that matters: it splits a single Mountain calendar day across two local days                                                                    |
+| `svelte-check` / lint / build | Clean                                                                                                                                                                                                                                          |
+| **Live end-to-end booking**   | **RUN AND PASSED 2026-08-18.** Booked the furthest slot in the window against the real calendar with `notify: false`, read it back, then deleted the appointment and the throwaway contact — calendar confirmed back to zero events. See §5.1. |
 
 ---
+
+### 5.1 What the live booking proved
+
+Run through our own modules against the real CRM, on a throwaway contact at
+`example.com` rather than the jsfiddle reference specimen — that record is the
+only evidence we have of what a real widget submission looks like and must not
+be mutated.
+
+| Check                            | Result                                                                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Appointment created and readable | `confirmed`, 14:30→15:00, correct contact                                                                                        |
+| Start time round-trip            | Byte-identical to what `free-slots` returned                                                                                     |
+| Zoom link                        | Auto-attached by the calendar — confirms that omitting `meetingLocationType` was right, since setting it would have dropped this |
+| `scheduled a call` tag           | Applied                                                                                                                          |
+| **Double-booking the same slot** | **Rejected, `400 "The slot you have selected is no longer available."`**                                                         |
+| Cleanup                          | Appointment and contact deleted; calendar back to zero events                                                                    |
+
+That double-book rejection is the important one. Leaving
+`ignoreFreeSlotValidation` off is what produces the 409 → "That time was just
+taken" path in `/api/book`, and until now it was only ever exercised against a
+stub. The CRM really does refuse.
+
+One cosmetic finding: the create response carries **no `endTime`** (the
+read-back does). `bookAppointment` already defaults it to `""` and `/api/book`
+never returns it, so nothing downstream is affected.
 
 ## 6. Open items
 
