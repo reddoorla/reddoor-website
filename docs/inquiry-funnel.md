@@ -426,20 +426,77 @@ Both A-102 workflows are keyed to exactly the trigger class we cannot fire `[3]`
 So on an API path the automation chain stays inert. Applying tags alone does
 nothing, because the tag is an _output_ of A-102-1, not its trigger.
 
-**The fix is two CRM edits, and they must land together:**
+#### What the API will and will not tell us (re-probed 2026-08-18)
 
-1. Add a `Contact Tag Added` trigger to each (`application started`,
-   `application completed`).
-2. **Re-key `A-102-1`'s removal condition** to the completion tag.
+The workflow **list** is readable and worth having — 37 workflows, with status,
+version and timestamps. The A-102 block:
 
-Doing (1) without (2) means every lead who _does_ finish still gets an hour of
-"you didn't finish" emails. That is worse than the current silence.
+```
+published  A-102-1.  Inquiry Started                    v7  updated 2026-08-17T19:23
+draft      A-102-2. Nurture Emails [Value Added…]       v2  updated 2026-08-04T23:47
+published  A-102-2.  New Inquiry Submitted              v6  updated 2026-08-18T15:29
+published  A-102-3. Appointment Booked + Reminders      v4  updated 2026-08-17T20:10
+published  A-102-4. Lead Approved                       v4
+published  A-102-5. Lead Rejected                       v4
+published  A-102-6  Fibonacci Followup                  v4
+```
 
-> This is Tim-side work in the CRM UI. Workflow triggers are **not readable by
-> any API** — v2 `/workflows/` is list-only (`/steps`, `/triggers`, `/detail`
-> all 404), v1 REST rejects a PIT, and the internal backend host 404s. The only
-> documentation of them is Brian's Loom `[3]`, which is why that transcript is
-> the citation for the whole section.
+⚠️ **There are TWO A-102-2s**, and earlier revisions of this section treated them
+as one: a **draft** "Nurture Emails" and a **published** "New Inquiry Submitted".
+Anything said here about "A-102-2" means the published one. The draft is the one
+confirmed disarmed.
+
+Their **contents remain unreadable by any API.** Re-probed with the widened
+token: `/workflows/{id}`, `/{id}/triggers`, `/{id}/steps`, `/{id}/detail` and
+`/{id}/versions` all return **404**. v1 REST rejects a PIT, the internal backend
+host 404s. So every statement below about what A-102-1 _currently contains_
+comes from Brian's Loom `[3]` plus Tucker's own look in the UI — **not** from
+reading the workflow. Verify the current shape before editing it; `A-102-1` is
+on version 7 and `A-102-2. New Inquiry Submitted` was edited on 2026-08-18,
+so the template's original shape is not necessarily what is in there now.
+
+#### The change to A-102-1
+
+What the site writes, and when — this half is hard fact, from `ghl/constants.ts`:
+
+| When                                      | Tag applied             | Written by             |
+| ----------------------------------------- | ----------------------- | ---------------------- |
+| Email captured (modal step one)           | `application started`   | `syncInquiryToCrm`     |
+| Questionnaire + contact details submitted | `application completed` | `syncApplicationToCrm` |
+| Intro call booked                         | `scheduled a call`      | `POST /api/book`       |
+
+Exact strings, lower-case, no trailing space.
+
+So A-102-1 needs two things to hold:
+
+1. **It must start on `Contact Tag Added` → `application started`.** Add that
+   trigger; leave the existing form-submission trigger in place, since it costs
+   nothing and still works if the embed is ever used.
+2. **It must not chase someone who has since finished.** Today that is a removal
+   keyed to the survey submission — an event an API upsert cannot fire.
+
+For (2), prefer an **If/Else immediately after the 1-hour wait**, testing
+"contact has tag `application completed`" and exiting if so, over re-keying the
+removal condition. Two reasons: it is one edit in one place, and it removes the
+ordering hazard — with a removal condition, the window between adding the
+trigger and re-keying the removal is a window in which finishers get chased. An
+If/Else placed **before** the trigger is added has no bad window at all.
+
+If A-102-1 has several chase steps spread over hours, re-key the removal
+condition **as well**, so the later ones also stop for someone who finishes at
+minute 90.
+
+**Order of operations:** add the If/Else first, add the trigger second. Never the
+other way round.
+
+**How to test it without waiting an hour:** put `application started` on a
+throwaway contact by hand and confirm it enters the workflow; then add
+`application completed` and confirm it leaves without sending. No form,
+no website, no real lead.
+
+One caveat worth knowing: `POST /contacts/{id}/tags` adds a tag that is already
+present without re-firing "Tag Added", so a visitor who reopens the modal and
+resubmits step one does not re-enter the workflow.
 
 `A-102` was independently confirmed incomplete by Tucker in the CRM UI.
 
