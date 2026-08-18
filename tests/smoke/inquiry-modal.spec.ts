@@ -290,9 +290,19 @@ test("the full application: five questions, contact details, both submissions", 
   // those would put a real person's contact details into the browser history
   // and the Referer of every request the page makes.
   await page.getByRole("button", { name: "8:00 AM" }).click();
-  await expect(page.locator("#book-name")).toHaveValue("Pat Buyer");
-  await expect(page.locator("#book-email")).toHaveValue("buyer@example.com");
-  await expect(page.locator("#book-phone")).toHaveValue("(555) 123-4567");
+  // Scoped to the booking form by class: the layout crossfade keeps the
+  // outgoing page — modal form and all — mounted for ~1.2s, so a bare `form`
+  // matches two elements here.
+  const booking = page.locator("form.details");
+  await expect(booking).toContainText("Booking as");
+  await expect(booking).toContainText("Pat Buyer");
+  await expect(booking).toContainText("buyer@example.com");
+  await expect(booking).toContainText("(555) 123-4567");
+  // Not asked again at all — the whole point of carrying them across.
+  await expect(page.locator("#book-name")).toHaveCount(0);
+  // And nothing personal ended up in the URL on the way here.
+  expect(page.url()).not.toContain("buyer@example.com");
+  expect(page.url()).not.toContain("Pat");
 
   expect(strayCrmCalls).toEqual([]);
 });

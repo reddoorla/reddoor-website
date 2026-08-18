@@ -631,12 +631,79 @@ not something the code does; it is how the endpoint behaves. Worth deciding
 deliberately whether to keep sending `phone` on the second touch at all.
 
 **Still unexplained:** that contact recorded SMS consent but carries **no phone
-number**. Two theories tested and disproved — our client omits an empty phone
-rather than sending `""`, and the CRM accepts fictional `555` numbers happily.
-The remaining candidate, consistent with the dedupe behaviour above, is that the
-number entered already belonged to another contact and the CRM declined to move
-it. Unconfirmed. Recording consent with no number to use it on is worth closing
-out.
+number**. Tucker confirms a number WAS typed, which removes the dullest
+explanation. What is left is a number offered twice and stored neither time:
+
+| Touch                       | Endpoint       | Sends `phone`?                             | Code                   |
+| --------------------------- | -------------- | ------------------------------------------ | ---------------------- |
+| 1. Email capture            | `/api/inquiry` | no — the modal has not asked yet           | `syncInquiryToCrm`     |
+| 2. Survey + contact details | `/api/inquiry` | **yes**, beside the consent that DID stick | `syncApplicationToCrm` |
+| 3. Booking                  | `/api/book`    | **yes**                                    | `POST /api/book`       |
+
+Three theories tested and disproved:
+
+- our client omits an empty phone rather than sending `""` (read the body it builds);
+- the CRM accepts fictional `555` numbers happily (upserted one, read it back);
+- `normalizePhone` mangles it — it passes anything it does not recognise straight
+  through, so the worst case is the visitor's own formatting, not an empty string.
+
+The remaining candidate, and the one the dedupe behaviour above predicts, is a
+**match conflict**: the upsert matched an existing contact by EMAIL while the
+phone matched a DIFFERENT contact, and GHL resolved it by keeping the email
+match and dropping the phone rather than moving a number between records. This
+location does hold another contact carrying a real number
+(`3xt31L8G8pz0B0TSHj2Z`, untouched throughout). If the walkthrough used that same
+number, the conflict is the explanation.
+
+Testing it needs two throwaway contacts and therefore permission (§7.1); a
+read-only survey of which contacts hold which numbers was blocked by the local
+sandbox classifier, which refuses to run a script sourcing `.env.local`.
+**Unconfirmed.** Recording consent with no number to use it on is worth closing
+out — it is a compliance record pointing at nothing.
+
+### 6.9 The booking page stopped asking twice
+
+Raised by Tucker on walking the funnel: `/schedule` prefilled name, email and
+phone from the hand-off, but still rendered them as three labelled inputs — so a
+lead who had typed those details one screen earlier met them again as a form to
+check. Prefilling was not enough; a filled field still reads as work.
+
+`/schedule` now collapses to a confirmation block when the hand-off carried
+everything the booking needs:
+
+```
+BOOKING AS
+Tucker Lemos
+tucker@reddoorla.com
+(603) 531-1812
+                         Use different details
+```
+
+Details that matter:
+
+- **Gated on usable data, not on `applied`.** `prefilled` requires a non-empty
+  name AND an email matching the same regex the submit guard uses — `readHandoff`
+  accepts any non-empty string as an email, and a summary must never stand in for
+  a value the submit would reject.
+- **A snapshot taken at mount**, not `$derived` off the live values, so editing
+  the email down to nothing cannot fold the form back up mid-edit.
+- **Validation failure reveals the fields first.** Unreachable from a hand-off
+  this page accepted, but an error message pointed at an input the summary is
+  hiding would be a dead end with no way to correct it.
+- **The email is shown, deliberately.** It is where the calendar invite goes;
+  confirming it is not friction. Booking silently under a stale hand-off on a
+  shared machine is the failure this prevents.
+- **Focus after choosing a slot** moves to the confirm button rather than a
+  field, since there is no longer a field to land on. The form still appears
+  below the fold on a phone.
+- **The bot screen is unaffected.** `MIN_FILL_MS` is 800ms and the clock starts
+  at mount; a visitor still has to wait for slots to load and pick a day and a
+  time, so removing the typing time cannot trip "too-fast".
+
+Covered by four smoke tests: the summary renders and its values reach `/api/book`
+unretyped; "Use different details" reveals the fields already holding them; a
+hand-off with an unusable email falls back to the fields; and axe passes on the
+new state (it is a UI state the picker-open a11y test never reaches).
 
 ## 7. Rules of engagement
 

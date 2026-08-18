@@ -24,6 +24,10 @@
    * "9:00 AM" would be an hour wrong for most of the people reading it.
    */
 
+  /** The shape the server also accepts, in one place: the summary below may
+   *  only stand in for values the submit would have taken anyway. */
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   let timeZone = $state<string | undefined>(undefined);
   let status = $state<"loading" | "ready" | "error">("loading");
   let slotsError = $state("");
@@ -33,6 +37,23 @@
 
   /** Set once the questionnaire has been completed in this tab. */
   let applied = $state(false);
+  /**
+   * True when the handoff arrived with everything the booking needs, so the
+   * three inputs collapse to a line naming who we are booking.
+   *
+   * Prefilling them is not enough: a filled field still reads as a field to
+   * check, so the visitor re-reads their own name and email one screen after
+   * typing them. What they actually need here is confirmation of where the
+   * invite is going, and a way out if it is wrong.
+   *
+   * A snapshot taken at mount, deliberately NOT derived from the live values —
+   * clearing the email while editing must not fold the form back up mid-edit.
+   */
+  let prefilled = $state(false);
+  /** Flipped by "Use different details", and by any validation failure: an
+   *  error message on an input that is not on screen is a dead end. Never
+   *  flipped back — taking a correction off screen is worse than a long form. */
+  let editing = $state(false);
 
   let name = $state("");
   let email = $state("");
@@ -48,6 +69,7 @@
   let booked = $state<string | null>(null);
 
   let nameEl = $state<HTMLInputElement>();
+  let submitEl = $state<HTMLButtonElement>();
   let bookedEl = $state<HTMLElement>();
 
   const selectedDay = $derived(days.find((d) => d.key === selectedKey));
@@ -64,6 +86,7 @@
       name = handoff.name;
       phone = handoff.phone;
       applied = handoff.applied;
+      prefilled = name.trim() !== "" && EMAIL_RE.test(email.trim());
     }
     loadSlots();
   });
@@ -97,10 +120,18 @@
   async function chooseSlot(iso: string) {
     selectedSlot = iso;
     formError = "";
-    // Land on the first thing they now have to fill in — the form appears
-    // below the fold on a phone, and silently revealing it strands them.
+    // Land on the first thing they now have to act on — the form appears
+    // below the fold on a phone, and silently revealing it strands them. With
+    // the details already known, that is the confirm button rather than a field.
     await tick();
-    if (!name.trim()) nameEl?.focus();
+    if (prefilled && !editing) submitEl?.focus();
+    else if (!name.trim()) nameEl?.focus();
+  }
+
+  async function startEditing() {
+    editing = true;
+    await tick();
+    nameEl?.focus();
   }
 
   async function book(e: SubmitEvent) {
@@ -109,10 +140,12 @@
 
     const errs: typeof fieldErrors = {};
     if (!name.trim()) errs.name = "Please tell us your name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-      errs.email = "Please provide a valid email address.";
+    if (!EMAIL_RE.test(email.trim())) errs.email = "Please provide a valid email address.";
     fieldErrors = errs;
     if (Object.keys(errs).length) {
+      // Unreachable from a handoff this page accepted — but a corrupted one
+      // must not put an error on an input the summary is hiding.
+      editing = true;
       await tick();
       document.getElementById(errs.name ? "book-name" : "book-email")?.focus();
       return;
@@ -301,69 +334,86 @@
                 />
               </div>
 
-              <div class="fields">
-                <div>
-                  <label class="field-label" for="book-name">Name</label>
-                  <input
-                    id="book-name"
-                    class="input"
-                    type="text"
-                    autocomplete="name"
-                    placeholder="Full Name"
-                    required
-                    bind:this={nameEl}
-                    bind:value={name}
-                    aria-invalid={fieldErrors.name ? "true" : undefined}
-                    aria-describedby={fieldErrors.name ? "book-name-error" : undefined}
-                  />
-                  {#if fieldErrors.name}
-                    <p id="book-name-error" class="form-error">{fieldErrors.name}</p>
-                  {/if}
+              {#if prefilled && !editing}
+                <!-- Text, not three disabled inputs: a locked field still looks
+                     like something to check, and the point of this block is
+                     that there is nothing left to do but confirm. -->
+                <div class="who">
+                  <span class="type-eyebrow who-label">Booking as</span>
+                  <p class="who-name">{name}</p>
+                  <p class="who-contact">
+                    <span class="who-email">{email}</span>
+                    {#if phone}<span>{phone}</span>{/if}
+                  </p>
+                  <button type="button" class="link-button" onclick={startEditing}>
+                    Use different details
+                  </button>
                 </div>
+              {:else}
+                <div class="fields">
+                  <div>
+                    <label class="field-label" for="book-name">Name</label>
+                    <input
+                      id="book-name"
+                      class="input"
+                      type="text"
+                      autocomplete="name"
+                      placeholder="Full Name"
+                      required
+                      bind:this={nameEl}
+                      bind:value={name}
+                      aria-invalid={fieldErrors.name ? "true" : undefined}
+                      aria-describedby={fieldErrors.name ? "book-name-error" : undefined}
+                    />
+                    {#if fieldErrors.name}
+                      <p id="book-name-error" class="form-error">{fieldErrors.name}</p>
+                    {/if}
+                  </div>
 
-                <div>
-                  <label class="field-label" for="book-email">Email address</label>
-                  <input
-                    id="book-email"
-                    class="input"
-                    type="email"
-                    inputmode="email"
-                    autocomplete="email"
-                    placeholder="you@domain.com"
-                    required
-                    bind:value={email}
-                    aria-invalid={fieldErrors.email ? "true" : undefined}
-                    aria-describedby={fieldErrors.email ? "book-email-error" : undefined}
-                  />
-                  {#if fieldErrors.email}
-                    <p id="book-email-error" class="form-error">{fieldErrors.email}</p>
-                  {/if}
-                </div>
+                  <div>
+                    <label class="field-label" for="book-email">Email address</label>
+                    <input
+                      id="book-email"
+                      class="input"
+                      type="email"
+                      inputmode="email"
+                      autocomplete="email"
+                      placeholder="you@domain.com"
+                      required
+                      bind:value={email}
+                      aria-invalid={fieldErrors.email ? "true" : undefined}
+                      aria-describedby={fieldErrors.email ? "book-email-error" : undefined}
+                    />
+                    {#if fieldErrors.email}
+                      <p id="book-email-error" class="form-error">{fieldErrors.email}</p>
+                    {/if}
+                  </div>
 
-                <div>
-                  <label class="field-label" for="book-phone">
-                    Cell number <span class="optional">optional</span>
-                  </label>
-                  <input
-                    id="book-phone"
-                    class="input"
-                    type="tel"
-                    inputmode="tel"
-                    autocomplete="tel"
-                    placeholder="+1 (555) 000-0000"
-                    aria-describedby="book-phone-hint"
-                    bind:value={phone}
-                  />
-                  <p id="book-phone-hint" class="hint">So we can text you a reminder.</p>
+                  <div>
+                    <label class="field-label" for="book-phone">
+                      Cell number <span class="optional">optional</span>
+                    </label>
+                    <input
+                      id="book-phone"
+                      class="input"
+                      type="tel"
+                      inputmode="tel"
+                      autocomplete="tel"
+                      placeholder="+1 (555) 000-0000"
+                      aria-describedby="book-phone-hint"
+                      bind:value={phone}
+                    />
+                    <p id="book-phone-hint" class="hint">So we can text you a reminder.</p>
+                  </div>
                 </div>
-              </div>
+              {/if}
 
               <div class="actions">
                 <!-- aria-busy rather than disabled: disabling the button the
                      visitor just pressed drops focus to <body>, and on the
                      error path they never get it back. The guard in book()
                      blocks the re-submit. -->
-                <button type="submit" class="submit" aria-busy={submitting}>
+                <button type="submit" class="submit" aria-busy={submitting} bind:this={submitEl}>
                   {submitting ? "Booking…" : "Confirm this time"}
                 </button>
                 <button type="button" class="ghost" onclick={() => (selectedSlot = null)}>
@@ -477,6 +527,7 @@
   .time:focus-visible,
   .submit:focus-visible,
   .ghost:focus-visible,
+  .link-button:focus-visible,
   .input:focus-visible {
     outline: 2px solid #d71920;
     outline-offset: 1px;
@@ -498,6 +549,57 @@
   }
   .chosen :global(.type-eyebrow) {
     color: #6e6f72;
+  }
+
+  .who {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    max-width: 420px;
+  }
+  .who-label {
+    color: #6e6f72;
+  }
+  .who-name {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 200;
+    line-height: 1.4;
+    color: #000;
+  }
+  /* Where the invite is going, and how we would text a reminder — the details
+     they are confirming rather than the person, so they sit under the name at
+     the same weight as every other secondary line on this page. */
+  .who-contact {
+    display: flex;
+    flex-direction: column;
+    margin: 2px 0 0;
+    font-size: 15px;
+    font-weight: 200;
+    line-height: 1.5;
+    color: #6e6f72;
+  }
+  /* The one value with no break points of its own; a long address must wrap
+     rather than push the column sideways on a narrow phone. */
+  .who-email {
+    overflow-wrap: anywhere;
+  }
+  .link-button {
+    margin-top: 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #6e6f72;
+    font-size: 14px;
+    font-weight: 200;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color 300ms;
+  }
+  .link-button:hover {
+    color: #000;
   }
 
   .fields {
@@ -586,6 +688,7 @@
     .time,
     .submit,
     .ghost,
+    .link-button,
     .input {
       transition: none;
     }

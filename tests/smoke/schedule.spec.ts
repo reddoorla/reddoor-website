@@ -196,7 +196,7 @@ test.describe("in Los Angeles", () => {
   });
 
   test("a finished application is greeted by name and never asked twice", async ({ page }) => {
-    await stubApi(page);
+    const { bookCalls } = await stubApi(page);
     await seedHandoff(page, {
       email: "buyer@example.com",
       name: "Pat Buyer",
@@ -207,8 +207,69 @@ test.describe("in Los Angeles", () => {
 
     await expect(page.getByRole("heading", { level: 1 })).toContainText("your application is in");
     await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+
+    // "Never asked twice" means no fields at all — a prefilled input still
+    // reads as something to check, one screen after they typed it.
+    await expect(page.locator("#book-name")).toHaveCount(0);
+    await expect(page.locator("#book-email")).toHaveCount(0);
+    await expect(page.locator("#book-phone")).toHaveCount(0);
+
+    const form = page.locator("form");
+    await expect(form).toContainText("Booking as");
+    await expect(form).toContainText("Pat Buyer");
+    // The address the invite goes to is the one thing worth showing back.
+    await expect(form).toContainText("buyer@example.com");
+    await expect(form).toContainText("(555) 123-4567");
+
+    // And the values still reach the server unretyped.
+    await page.getByRole("button", { name: "Confirm this time" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    expect(bookCalls).toHaveLength(1);
+    expect(bookCalls[0]).toMatchObject({
+      email: "buyer@example.com",
+      name: "Pat Buyer",
+      phone: "(555) 123-4567",
+    });
+  });
+
+  test("the summary can be corrected without retyping it", async ({ page }) => {
+    const { bookCalls } = await stubApi(page);
+    await seedHandoff(page, {
+      email: "buyer@example.com",
+      name: "Pat Buyer",
+      phone: "(555) 123-4567",
+      applied: true,
+    });
+    await gotoHydrated(page);
+
+    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+    await page.getByRole("button", { name: "Use different details" }).click();
+
+    // Revealed already holding what the summary showed: the escape hatch is for
+    // fixing a typo or booking on someone else's behalf, not starting over.
     await expect(page.locator("#book-name")).toHaveValue("Pat Buyer");
+    await expect(page.locator("#book-email")).toHaveValue("buyer@example.com");
     await expect(page.locator("#book-phone")).toHaveValue("(555) 123-4567");
+    await expect(page.locator("form")).not.toContainText("Booking as");
+
+    await page.locator("#book-email").fill("someone.else@example.com");
+    await page.getByRole("button", { name: "Confirm this time" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    expect(bookCalls[0]).toMatchObject({ email: "someone.else@example.com" });
+  });
+
+  test("a handoff without a usable email asks rather than assumes", async ({ page }) => {
+    await stubApi(page);
+    // readHandoff accepts any non-empty string as an email. The summary may
+    // only stand in for a value the submit would also take — otherwise the
+    // visitor meets a validation error pointed at an input that is not on
+    // screen, which is a dead end with no way to correct it.
+    await seedHandoff(page, { email: "not-an-email", name: "Pat Buyer", phone: "", applied: true });
+    await gotoHydrated(page);
+
+    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+    await expect(page.locator("#book-email")).toHaveValue("not-an-email");
+    await expect(page.locator("form")).not.toContainText("Booking as");
   });
 
   test("a cold visitor gets the cold headline", async ({ page }) => {
@@ -265,6 +326,32 @@ test.describe("in Los Angeles", () => {
     // neither can the stylesheet. Measuring mid-fade blends every colour on the
     // page toward white. Same artifact industry-page.spec.ts documents for
     // animateIn, different mechanism.
+    await expect
+      .poll(() => page.locator("main").evaluate((el) => Number(getComputedStyle(el).opacity)), {
+        timeout: 15_000,
+      })
+      .toBe(1);
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("has no accessibility violations, booking summary shown", async ({ page }) => {
+    await stubApi(page);
+    await seedHandoff(page, {
+      email: "buyer@example.com",
+      name: "Pat Buyer",
+      phone: "(555) 123-4567",
+      applied: true,
+    });
+    // See the picker-open test above for why this is set per-test.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await gotoHydrated(page);
+    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Use different details" })).toBeVisible();
+
     await expect
       .poll(() => page.locator("main").evaluate((el) => Number(getComputedStyle(el).opacity)), {
         timeout: 15_000,
