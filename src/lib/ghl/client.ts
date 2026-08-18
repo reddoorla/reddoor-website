@@ -176,7 +176,12 @@ export function attributionFields(sourceUrl: string, campaign: string): CrmCusto
   );
 }
 
-async function call<T>(
+/**
+ * One authenticated call to the CRM, shared by every helper here and in
+ * booking.ts. Never throws: a transport failure comes back as status 0 so the
+ * caller can tell "never got an answer" from a real HTTP rejection.
+ */
+export async function crmCall<T>(
   opts: { token: string; fetch: CrmFetch },
   path: string,
   init: RequestInit,
@@ -241,7 +246,7 @@ export async function upsertCrmContact(opts: {
   // on the second touch would wipe any tag a CRM workflow added between the two
   // submissions. The embed applies no tags anyway; if we ever need one, it goes
   // through POST /contacts/{id}/tags, which adds instead of replacing.
-  return call(
+  return crmCall(
     { token: opts.token, fetch: opts.fetch },
     "/contacts/upsert",
     {
@@ -262,7 +267,7 @@ export async function addCrmNote(opts: {
   contactId: string;
   body: string;
 }): Promise<CrmResult<{ noteId: string }>> {
-  return call(
+  return crmCall(
     { token: opts.token, fetch: opts.fetch },
     `/contacts/${encodeURIComponent(opts.contactId)}/notes`,
     { method: "POST", body: JSON.stringify({ body: opts.body }) },
@@ -284,7 +289,7 @@ export async function addCrmTags(opts: {
   contactId: string;
   tags: string[];
 }): Promise<CrmResult<{ tags: string[] }>> {
-  return call(
+  return crmCall(
     { token: opts.token, fetch: opts.fetch },
     `/contacts/${encodeURIComponent(opts.contactId)}/tags`,
     { method: "POST", body: JSON.stringify({ tags: opts.tags }) },
@@ -312,7 +317,7 @@ export async function ensureCrmOpportunity(opts: {
   /** Shown as the opportunity name — the person, falling back to their email. */
   name: string;
 }): Promise<CrmResult<{ opportunityId: string; created: boolean }>> {
-  const existing = await call<number>(
+  const existing = await crmCall<number>(
     { token: opts.token, fetch: opts.fetch },
     `/opportunities/search?location_id=${GHL_LOCATION_ID}&contact_id=${encodeURIComponent(opts.contactId)}`,
     { method: "GET" },
@@ -325,7 +330,7 @@ export async function ensureCrmOpportunity(opts: {
   if (!existing.ok) return existing;
   if (existing.data > 0) return { ok: true, data: { opportunityId: "", created: false } };
 
-  return call(
+  return crmCall(
     { token: opts.token, fetch: opts.fetch },
     "/opportunities/",
     {

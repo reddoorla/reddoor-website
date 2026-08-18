@@ -76,3 +76,19 @@ export const GHL_ATTRIBUTION_FIELDS = {
 
 /** What we report as `lead_source` — the site, distinct from any ad utm_source. */
 export const LEAD_SOURCE = "reddoorla.com";
+
+/**
+ * "Schedule an intro call with Reddoor Creative" — the only calendar on the
+ * account. Round-robin with one member (Tim), 30-minute slots on a 30-minute
+ * interval, Mon–Fri 09:00–17:00 in the LOCATION timezone, a five-day booking
+ * window, no minimum notice, auto-confirmed, meeting held over Zoom.
+ *
+ * Note the location timezone is America/Boise, so those hours are Mountain —
+ * 8am–4pm Pacific. Possibly deliberate (the team spans San Antonio, LA and
+ * Boise); either way slots must be rendered in the VISITOR's timezone with the
+ * zone named, never as the raw offset the API returns.
+ */
+export const GHL_CALENDAR_ID = "kNRHivTnovXd07knBgu1";
+
+/** Process-state tag for a booked intro call. */
+export const TAG_SCHEDULED_A_CALL = "scheduled a call";
