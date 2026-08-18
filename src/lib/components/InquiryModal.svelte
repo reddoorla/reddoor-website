@@ -8,6 +8,7 @@
   import { goto } from "$app/navigation";
   import { questionsFor, SMS_CONSENT, type InquiryAnswers } from "$lib/ghl/questions";
   import { writeHandoff } from "$lib/schedule/handoff";
+  import SendingDots from "$lib/components/SendingDots.svelte";
   import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 
   export type InquiryStep = {
@@ -589,7 +590,7 @@
                    activated drops focus to <body>, and on the error path they'd
                    never get it back. The submitEmail guard blocks a re-submit. -->
               <button type="submit" class="inquiry-submit" aria-busy={status === "sending"}>
-                {status === "sending" ? "Sending…" : "Inquire Now"}
+                {#if status === "sending"}Sending<SendingDots />{:else}Inquire Now{/if}
               </button>
             </div>
 
@@ -760,7 +761,7 @@
                 Back
               </button>
               <button type="submit" class="inquiry-submit" aria-busy={status === "sending"}>
-                {status === "sending" ? "Sending…" : "Submit Application"}
+                {#if status === "sending"}Sending<SendingDots />{:else}Submit Application{/if}
               </button>
             </div>
           </form>

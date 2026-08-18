@@ -11,6 +11,7 @@
     type SlotDay,
   } from "$lib/schedule/slots";
   import { readHandoff, clearHandoff } from "$lib/schedule/handoff";
+  import SendingDots from "$lib/components/SendingDots.svelte";
 
   /**
    * The booking step. Reached automatically on finishing the questionnaire —
@@ -414,7 +415,7 @@
                      error path they never get it back. The guard in book()
                      blocks the re-submit. -->
                 <button type="submit" class="submit" aria-busy={submitting} bind:this={submitEl}>
-                  {submitting ? "Booking…" : "Confirm this time"}
+                  {#if submitting}Booking<SendingDots />{:else}Confirm this time{/if}
                 </button>
                 <button type="button" class="ghost" onclick={() => (selectedSlot = null)}>
                   Pick another

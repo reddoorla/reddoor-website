@@ -272,6 +272,44 @@ test.describe("in Los Angeles", () => {
     await expect(page.locator("form")).not.toContainText("Booking as");
   });
 
+  test("the in-flight button animates without changing its accessible name", async ({ page }) => {
+    await stubApi(page);
+    // Hold the booking open, or the in-flight state never exists to be looked at.
+    await page.route("**/api/book", async (route) => {
+      await new Promise((r) => setTimeout(r, 2000));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
+    });
+    await gotoHydrated(page);
+
+    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+    await page.locator("#book-name").fill("Pat Buyer");
+    await page.locator("#book-email").fill("buyer@example.com");
+    await page.getByRole("button", { name: "Confirm this time" }).click();
+
+    // "Booking", not "Booking...": the dots are aria-hidden, so a screen reader
+    // is never handed a name that mutates while it is speaking. aria-busy is
+    // what carries the state assistively.
+    const busy = page.getByRole("button", { name: "Booking", exact: true });
+    await expect(busy).toBeVisible();
+    await expect(busy).toHaveAttribute("aria-busy", "true");
+
+    // And the dots are actually moving — a decorative element that silently
+    // fails to animate is the whole point of this change, undone.
+    const running = await busy
+      .locator("span span")
+      .first()
+      .evaluate((el) => {
+        const s = getComputedStyle(el);
+        return { name: s.animationName, state: s.animationPlayState };
+      });
+    expect(running.name).not.toBe("none");
+    expect(running.state).toBe("running");
+  });
+
   test("a cold visitor gets the cold headline", async ({ page }) => {
     await stubApi(page);
     await gotoHydrated(page);
