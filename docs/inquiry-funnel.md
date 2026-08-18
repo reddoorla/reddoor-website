@@ -390,6 +390,23 @@ One cosmetic finding: the create response carries **no `endTime`** (the
 read-back does). `bookAppointment` already defaults it to `""` and `/api/book`
 never returns it, so nothing downstream is affected.
 
+### 5.2 The scoped token, end to end
+
+Re-run 2026-08-18 against a dev server holding **only**
+`CRM_FUNNEL_ACTIVE_TOKEN` — the five-scope token the deployed site uses — with
+ingest pointed at a local sink so no fake lead reached the dashboard, and
+cleanup performed with `CRM_CLAUDE_TOKEN` (the funnel token has no delete
+rights, and should not).
+
+Both `/api/inquiry` submissions, `/api/slots`, and a booking all passed:
+one contact across both touches, correct `source`, `website` as a standard
+field, both process tags, all five answers, consent verbatim, `funnel` +
+`lead_source` present and the utm fields correctly absent, the note carrying the
+utm params, one pipeline opportunity, and an appointment created and removed.
+
+That is the whole funnel proven on the minimum permission set. What remains
+untested is only the deployed environment — see §6.6.
+
 ## 6. Open items
 
 ### 6.1 The A-102 trigger gap — the blocker
@@ -483,6 +500,24 @@ Three decisions inside it worth knowing:
 **Still outstanding: no booking has ever been made against the live calendar.**
 Every test runs against a stub. One end-to-end verification with `notify: false`
 (so no real person is emailed) needs permission first — the standing rule in §7.
+
+### 6.6 Nothing has run in a deployed environment
+
+The funnel is proven locally against the live CRM, on the scoped token. It has
+never run from a deployed build:
+
+- **Production** has none of it — `/medtech` 404s and the work sits in an
+  unmerged stack.
+- **Staging** serves `/medtech` with the modal wired and the old browser fire
+  gone, but its build predates this branch: no `/schedule`, and it reads the old
+  `CRM_TOKEN` name rather than `CRM_FUNNEL_ACTIVE_TOKEN`. So even with the token
+  set on Netlify, that build would not find it.
+
+Checking staging therefore means deploying this branch there first. Note the
+known trap when doing so: `netlify env:clone` writes masked garbage for SECRET
+variables, so the token must be set explicitly with
+`env:set --secret --context …` and the site rebuilt — see
+[[reference_netlify_env_clone_secret_gotcha]].
 
 ### 6.5 Housekeeping
 
