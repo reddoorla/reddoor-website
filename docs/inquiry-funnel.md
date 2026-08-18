@@ -882,6 +882,75 @@ unretyped; "Use different details" reveals the fields already holding them; a
 hand-off with an unusable email falls back to the fields; and axe passes on the
 new state (it is a UI state the picker-open a11y test never reaches).
 
+### 6.10 Owning the links the CRM sends
+
+Every URL this CRM has ever sent a human, extracted from the messages
+themselves on 2026-08-18 (workflow bodies are unreadable by any API; the
+messages they produced are not):
+
+| Sent | Link                                                            | Verdict                              |
+| ---- | --------------------------------------------------------------- | ------------------------------------ |
+| 6x   | `links.reddoorla.com/google/calendar/add-event/{id}`            | ours — now `/calendar/{id}`          |
+| 3x   | `links.reddoorla.com/widget/booking/{cal}?event_id={id}`        | ours — now `/reschedule/{id}`        |
+| 3x   | `links.reddoorla.com/widget/cancel-booking?event_id={id}`       | ours — now `/cancel/{id}`            |
+| 2x   | `go.reddoorla.com/inquiry?email=&full_name=&phone=`             | ours — the industry LP replaces it   |
+| 1x   | `go.reddoorla.com/inquiry-completed` (behind an SMS short link) | ours — `/schedule` replaces it       |
+| 2x   | `us06web.zoom.us/j/…`                                           | **leave** — the actual meeting       |
+| 2x   | `services.msgsndr.com/…/unsubscribe-view/…`                     | **leave** — compliance, wired to DND |
+
+The calendar's own `notes` field is a second home for two of them, separate from
+any workflow email:
+
+```
+Need to make a change to this event?
+Reschedule:-
+{{reschedule_link}}
+
+Cancel:-
+{{cancellation_link}}
+```
+
+#### What shipped
+
+`/reschedule/[eventId]`, `/cancel/[eventId]`, `/calendar/[eventId]`, over
+`/api/appointment/[eventId]` and its `reschedule` and `cancel` children. No
+token change was needed — the deployed five-scope token already reads
+appointments, and `calendars/events.write` covers the update.
+
+**The security shape is the interesting part.** An appointment id in a URL is a
+bearer token: it arrives in an email, and emails get forwarded. That cannot be
+fixed without making leads log in. What CAN be fixed is how much the id READS —
+the CRM's answer to it carries the Zoom join URL with its password, the contact
+id and the assigned user. Verified against the deployed build:
+
+```
+GET /api/appointment/yeNIKuJ12o9bnPIUweNV
+{"startTime":"2026-08-21T11:00:00-06:00","endTime":"…","status":"confirmed","actionable":true}
+leaks zoom no · contactId no · assignedUserId no · address no · title no
+```
+
+The add-to-calendar hand-offs are server redirects and a server-built `.ics` for
+the same reason: a client-side "Add to Google Calendar" anchor would print the
+join URL into our HTML. A smoke test asserts `zoom.us` never appears in page
+source on any of the three.
+
+Other decisions worth not re-litigating:
+
+- **Cancel is a POST behind an explicit press, never a GET on load.** The id is
+  in an email, so a GET would be cancelled by the first link scanner or inbox
+  preview to touch the message.
+- **Cancel sets the status; it does not DELETE.** `Z-002-1. Cancelled Meeting >
+Let's Reschedule` is keyed to the status — a delete takes the follow-up with it.
+- **Reschedule sends no `endTime`**, so the calendar's own 30-minute duration
+  applies rather than a computed one quietly changing the length of the call,
+  and it leaves slot validation on, which is what refuses a double-booking.
+- All three carry `noindex, nofollow` and `no-referrer`.
+
+**Untested:** the two WRITE paths. The reads are verified against the live API;
+`PUT /calendars/events/appointments/{id}` is implemented from the documented
+shape and has never been fired, because it would move or cancel a real booking
+(§7.1). One throwaway booking would settle both.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
