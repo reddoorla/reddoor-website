@@ -530,9 +530,37 @@ accepts anything — worth remembering before treating a local end-to-end run as
 proof of the ingest contract. Proper fix (nullable name for email-only leads) is
 tracked on maintenance #539.
 
-Still not exercised on staging: a real `POST /api/inquiry`. It would put a
-genuine lead in the forms dashboard — `testMode` cannot isolate it, because the
-endpoint gates the CRM sync on the same flag.
+### 6.7 The inquiry flow, verified on the deployed build
+
+Run 2026-08-18 against `staging.reddoorla.com` and **real** central ingest — the
+one contract a local run cannot check. Every step passed:
+
+| Check                                        | Result                                         |
+| -------------------------------------------- | ---------------------------------------------- |
+| Step one against real ingest                 | 200 — the path that 502'd before `8a54c4c`     |
+| Step two against real ingest                 | 200                                            |
+| CRM contact from the deployed build          | created, one record across both touches        |
+| `source`, `website` as a standard field      | correct                                        |
+| Both process tags                            | `application started`, `application completed` |
+| Five answers, consent verbatim               | correct                                        |
+| `funnel` + `lead_source` persist, utm absent | correct                                        |
+| Note carries the utm params                  | correct                                        |
+| One pipeline opportunity                     | correct                                        |
+
+CRM side cleaned up with `CRM_CLAUDE_TOKEN`; two rows remain in the forms
+dashboard under `STAGING-TEST-DELETE-ME@example.com`, left deliberately because
+`testMode` cannot isolate them without also skipping the CRM sync under test.
+
+> **Deleting a contact does not clear it from `GET /contacts/` straight away.**
+> The list is index-backed and lags both writes and deletes by seconds to
+> minutes; a direct `GET /contacts/{id}` is authoritative and returned
+> `400 Contact not found` immediately. Do not read a stale list as a failed
+> cleanup — or as a successful one.
+
+**Still not exercised on the deployed build: `POST /api/book`.** Unlike
+`bookAppointment`, the endpoint always notifies, so a probe would email the test
+contact and run `A-102-3`. The booking path itself is proven live (§5.1, §5.2);
+what is untested is only that endpoint's own wiring in a deployed environment.
 
 ### 6.5 Housekeeping
 
