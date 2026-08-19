@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { upsertCrmContact, addCrmTags, attributionFields, phoneWasDropped } from "$lib/ghl/client";
+import { normalizeZone } from "$lib/schedule/timezone";
 import { bookAppointment, TAG_SCHEDULED_A_CALL } from "$lib/ghl/booking";
 import type { RequestHandler } from "./$types";
 
@@ -33,6 +34,10 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   const startTime = str(body.startTime);
   const sourceUrl = str(body.sourceUrl);
   const campaign = str(body.campaign);
+  // Dropped rather than rejected when unrecognised: the booking is what matters
+  // here, and an absent zone only costs the visitor the Mountain-time rendering
+  // they were already getting.
+  const timezone = normalizeZone(body.timezone);
 
   // Bot screen ahead of every validation error, as on /api/inquiry: a filled
   // honeypot is silently accepted so a bot learns nothing from the difference
@@ -83,6 +88,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     email,
     name,
     phone,
+    timezone,
     customFields: attributionFields(campaign),
   });
   if (!contact.ok) {
@@ -160,6 +166,10 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
         extra: {
           startTime: appointment.data.startTime,
           appointmentId: appointment.data.appointmentId,
+          // Carried so the team notification says which zone the visitor read
+          // the time in. `startTime` is absolute and unambiguous; the human
+          // reading it is not.
+          ...(timezone ? { timezone } : {}),
         },
         ...(clientIp || userAgent
           ? { _meta: { ...(clientIp ? { clientIp } : {}), ...(userAgent ? { userAgent } : {}) } }

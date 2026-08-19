@@ -228,6 +228,16 @@ export async function upsertCrmContact(opts: {
   phone?: string;
   /** Only on the FIRST touch — see syncApplicationToCrm for why. */
   source?: string;
+  /**
+   * The visitor's IANA zone, already validated by `normalizeZone`.
+   *
+   * Unlike `source`, this is re-asserted on EVERY touch. `source` records where
+   * someone came from once and would be a lie if overwritten; a timezone
+   * records where they are now, and the latest reading is the best one we have.
+   * Without it GHL renders every confirmation in the location's Mountain time —
+   * see `$lib/schedule/timezone` for the report that prompted this.
+   */
+  timezone?: string;
   customFields?: CrmCustomField[];
   /** Standard-field values (currently just `website`). */
   standard?: Record<string, string>;
@@ -238,6 +248,7 @@ export async function upsertCrmContact(opts: {
     ...(opts.name ? { name: opts.name } : {}),
     ...(opts.phone ? { phone: normalizePhone(opts.phone) } : {}),
     ...(opts.source ? { source: opts.source } : {}),
+    ...(opts.timezone ? { timezone: opts.timezone } : {}),
     ...(opts.customFields?.length ? { customFields: opts.customFields } : {}),
     ...(opts.standard ?? {}),
   };
@@ -402,12 +413,15 @@ export async function syncInquiryToCrm(opts: {
   campaign: string;
   /** location.href at submit, carrying whatever utm params the visitor arrived with. */
   sourceUrl: string;
+  /** Validated IANA zone, so the CRM's own sends render in the visitor's time. */
+  timezone?: string;
 }): Promise<CrmResult<{ contactId: string; isNew: boolean; taggedOk: boolean }>> {
   const contact = await upsertCrmContact({
     token: opts.token,
     fetch: opts.fetch,
     email: opts.email,
     source: INQUIRY_FORM_NAME,
+    timezone: opts.timezone,
     customFields: attributionFields(opts.campaign),
   });
   if (!contact.ok) return contact;
@@ -449,6 +463,8 @@ export async function syncApplicationToCrm(opts: {
   referrer: string;
   /** The industry page's uid — utm_campaign fallback and the `funnel` value. */
   campaign: string;
+  /** Validated IANA zone, so the CRM's own sends render in the visitor's time. */
+  timezone?: string;
 }): Promise<
   CrmResult<{
     contactId: string;
@@ -479,6 +495,7 @@ export async function syncApplicationToCrm(opts: {
     email: opts.email,
     name: opts.name,
     phone: opts.phone,
+    timezone: opts.timezone,
     customFields,
     standard,
   });

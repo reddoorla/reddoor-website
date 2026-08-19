@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { syncInquiryToCrm, syncApplicationToCrm } from "$lib/ghl/client";
+import { normalizeZone } from "$lib/schedule/timezone";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 import type { RequestHandler } from "./$types";
 
@@ -122,6 +123,10 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
   // The industry page's uid. Fills utm_campaign when the visitor arrived with
   // none, and is recorded as the CRM's `funnel` value either way.
   const campaign = str(body.campaign);
+  // Set on the contact so the CRM's own emails and texts render in the
+  // visitor's time rather than the location's Mountain. Advisory like the two
+  // above: an unrecognised value is dropped, never substituted.
+  const timezone = normalizeZone(body.timezone);
 
   // Bot screen FIRST, ahead of every 400: a filled honeypot or an implausibly
   // fast fill is silently accepted (no forward) so a bot gets no signal —
@@ -275,6 +280,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
             sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,
             referrer,
             campaign,
+            timezone,
           })
         : await syncInquiryToCrm({
             token: env.CRM_FUNNEL_ACTIVE_TOKEN,
@@ -282,6 +288,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
             email,
             campaign,
             sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,
+            timezone,
           });
       if (!sync.ok) {
         console.error(`[inquiry] CRM sync failed (${sync.status}): ${sync.error}`);

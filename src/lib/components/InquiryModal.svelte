@@ -8,6 +8,7 @@
   import { goto } from "$app/navigation";
   import { questionsFor, SMS_CONSENT, type InquiryAnswers } from "$lib/ghl/questions";
   import { writeHandoff } from "$lib/schedule/handoff";
+  import { resolveTimeZone } from "$lib/schedule/slots";
   import SendingDots from "$lib/components/SendingDots.svelte";
   import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 
@@ -282,6 +283,10 @@
           referrer: document.referrer,
           campaign: campaignSlug(),
           surveyId: resolvedSurveyId,
+          // Set on the contact from the first touch, so any CRM send that
+          // quotes a time — not just the booking confirmation — renders in the
+          // visitor's zone instead of the location's Mountain.
+          timezone: resolveTimeZone(),
           ...payload,
         }),
       });

@@ -155,6 +155,11 @@
           // application is submitted, where the landing page is actually known.
           // Sending a value from here would relabel a medtech lead "schedule".
           sourceUrl: location.href,
+          // The same zone this page has been rendering every slot in. Sent so
+          // the CRM's confirmation email and text agree with what the visitor
+          // just read — without it the contact has no zone and GHL falls back
+          // to the location's Mountain time.
+          timezone: timeZone,
           botField,
           ts: openedAt,
         }),

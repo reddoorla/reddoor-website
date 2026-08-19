@@ -216,6 +216,21 @@ describe("upsertCrmContact", () => {
     expect("tags" in calls[0].body).toBe(false);
   });
 
+  it("sends the visitor's timezone so the CRM's sends use their clock", async () => {
+    // Without it GHL has no zone for the contact and renders every appointment
+    // email and SMS in the location's America/Boise. Reported 2026-08-19: a
+    // 10:30am Central booking confirmed as "9:30 AM MDT".
+    const { fetch, calls } = stubCrm();
+    await upsertCrmContact({ token: "t", fetch, email: "a@b.co", timezone: "America/Chicago" });
+    expect(calls[0].body.timezone).toBe("America/Chicago");
+  });
+
+  it("omits the timezone rather than sending an empty one", async () => {
+    const { fetch, calls } = stubCrm();
+    await upsertCrmContact({ token: "t", fetch, email: "a@b.co" });
+    expect("timezone" in calls[0].body).toBe(false);
+  });
+
   it("surfaces a validation array as one readable error", async () => {
     const { fetch } = stubCrm({
       upsert: {

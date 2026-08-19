@@ -143,6 +143,11 @@ test.describe("in Los Angeles", () => {
     // No campaign: utm/funnel are written when the application is submitted,
     // where the landing page is actually known. See the note in the page.
     expect(bookCalls[0].campaign).toBeUndefined();
+    // The zone the page rendered every slot in, carried so the CRM sets it on
+    // the contact. Without it GHL has no zone and renders its confirmation
+    // email and SMS in the location's Mountain — reported 2026-08-19, a 10:30am
+    // Central booking confirmed as "9:30 AM MDT".
+    expect(bookCalls[0].timezone).toBe("America/Los_Angeles");
   });
 
   test("a slot taken mid-flight refetches instead of looping on a stale list", async ({ page }) => {
@@ -413,6 +418,22 @@ test.describe("in New York", () => {
     // the only proof that nothing is being echoed from the API.
     await expect(page.getByRole("button", { name: "11:00 AM", exact: true })).toBeVisible();
     await expect(page.getByText(/Times shown in your local time \(EDT\)/)).toBeVisible();
+  });
+
+  test("the booking carries THIS visitor's zone, not a baked-in one", async ({ page }) => {
+    // The companion to the Los Angeles assertion: the zone has to follow the
+    // visitor. A constant would have passed there and still confirmed every
+    // Eastern booking in Pacific.
+    const { bookCalls } = await stubApi(page);
+    await gotoHydrated(page);
+
+    await page.getByRole("button", { name: "11:00 AM", exact: true }).click();
+    await page.locator("#book-name").fill("Pat Buyer");
+    await page.locator("#book-email").fill("buyer@example.com");
+    await page.getByRole("button", { name: "Confirm this time" }).click();
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    expect(bookCalls[0].timezone).toBe("America/New_York");
   });
 });
 
