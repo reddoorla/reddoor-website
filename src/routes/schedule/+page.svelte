@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { page } from "$app/state";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { groupByDay, resolveTimeZone, formatFullSlot, type SlotDay } from "$lib/schedule/slots";
   import { readHandoff, clearHandoff } from "$lib/schedule/handoff";
@@ -66,6 +67,63 @@
   let submitEl = $state<HTMLButtonElement>();
   let bookedEl = $state<HTMLElement>();
 
+  /**
+   * The CRM's own entry point: its "Schedule Appointment" trigger link appends
+   * `?first_name=…&last_name=…&email=…&phone=…` from the contact record.
+   *
+   * The sessionStorage handoff cannot serve that visitor — they arrive from an
+   * email, in a browser that has never seen the modal — so without this they
+   * would be asked for details the CRM already emailed them about. The handoff
+   * still wins where both exist: it was written by this tab, seconds ago.
+   *
+   * The params are stripped from the URL immediately afterwards. An email
+   * address in a URL is an email address in the history, in a screenshot, and
+   * in anything that reads `location.href` later. Today that last one is not
+   * hypothetical but not yet real either: gtag.js is deferred until the first
+   * pointer/key/scroll event (see app.html), so it initialises AFTER this runs
+   * and reads an already-clean URL. That ordering is the only reason a contact's
+   * address never reaches analytics — if GA is ever moved back to load on
+   * landing, this stops being sufficient and the trigger link has to stop
+   * carrying the address.
+   */
+  function prefillFromTriggerLink(): boolean {
+    const p = page.url.searchParams;
+    const first = (p.get("first_name") ?? "").trim();
+    const last = (p.get("last_name") ?? "").trim();
+    const fromLink = [first, last].filter(Boolean).join(" ");
+    const linkEmail = (p.get("email") ?? "").trim();
+    const linkPhone = (p.get("phone") ?? "").trim();
+    if (!fromLink && !linkEmail && !linkPhone) return false;
+
+    name = fromLink;
+    email = linkEmail;
+    phone = linkPhone;
+    return true;
+  }
+
+  /**
+   * The native history API rather than SvelteKit's `replaceState`, which throws
+   * "Cannot call replaceState(...) before router is initialized" here — both in
+   * `onMount` and in `afterNavigate`, which on a first load runs DURING
+   * hydration, before the router is up. Measured, not assumed.
+   *
+   * The usual objection to going around the router is that `page.url` desyncs.
+   * That is real, and harmless in this one case: the params are read once, in
+   * `onMount`, before this runs, and nothing on the page consults them again.
+   * A `page.url` that still shows them would be the stale copy, not this.
+   */
+  function stripPrefillParams() {
+    const url = new URL(location.href);
+    let touched = false;
+    for (const k of ["first_name", "last_name", "email", "phone"]) {
+      if (url.searchParams.has(k)) {
+        url.searchParams.delete(k);
+        touched = true;
+      }
+    }
+    if (touched) history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+  }
+
   onMount(() => {
     timeZone = resolveTimeZone();
     openedAt = Date.now();
@@ -75,8 +133,13 @@
       name = handoff.name;
       phone = handoff.phone;
       applied = handoff.applied;
-      prefilled = name.trim() !== "" && EMAIL_RE.test(email.trim());
+    } else {
+      prefillFromTriggerLink();
     }
+    // Unconditional: a stale link opened in a tab that also holds a handoff must
+    // not leave the address sitting in the URL either.
+    stripPrefillParams();
+    prefilled = name.trim() !== "" && EMAIL_RE.test(email.trim());
     loadSlots();
   });
 

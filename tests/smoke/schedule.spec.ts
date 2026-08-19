@@ -76,8 +76,8 @@ async function stubApi(
   return { slotCalls, bookCalls, strayCrmCalls };
 }
 
-async function gotoHydrated(page: Page) {
-  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+async function gotoHydrated(page: Page, path: string = PATH) {
+  await page.goto(path, { waitUntil: "domcontentloaded" });
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
 }
 
@@ -235,6 +235,59 @@ test.describe("in Los Angeles", () => {
       name: "Pat Buyer",
       phone: "(555) 123-4567",
     });
+  });
+
+  test("a visitor arriving from the CRM's email is not asked again either", async ({ page }) => {
+    // The CRM's "Schedule Appointment" trigger link interpolates the contact
+    // record into the query string. That visitor comes from an email, in a
+    // browser that has never seen the modal, so sessionStorage is empty — the
+    // path the handoff cannot serve.
+    const { bookCalls } = await stubApi(page);
+    await gotoHydrated(
+      page,
+      "/schedule?first_name=Pat&last_name=Buyer&email=buyer%40example.com&phone=%2B15551234567",
+    );
+
+    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+
+    const form = page.locator("form");
+    await expect(form).toContainText("Booking as");
+    await expect(form).toContainText("Pat Buyer");
+    await expect(form).toContainText("buyer@example.com");
+    await expect(page.locator("#book-email")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Confirm this time" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    expect(bookCalls[0]).toMatchObject({
+      email: "buyer@example.com",
+      name: "Pat Buyer",
+      phone: "+15551234567",
+    });
+  });
+
+  test("the contact's address does not linger in the URL", async ({ page }) => {
+    // An address in a URL is an address in the history, in a screenshot, and in
+    // anything that reads location.href later — gtag.js among them, which is
+    // deferred until first interaction and so must find this already cleaned.
+    await stubApi(page);
+    await gotoHydrated(page, "/schedule?first_name=Pat&last_name=Buyer&email=buyer%40example.com");
+
+    await expect.poll(() => new URL(page.url()).search).toBe("");
+    expect(page.url()).not.toContain("buyer@example.com");
+    expect(page.url()).not.toContain("buyer%40example.com");
+  });
+
+  test("a link carrying only a name still asks for the address", async ({ page }) => {
+    // Half a prefill is not a prefill: the summary claims we know where the
+    // invite is going, so it may only appear when we actually do.
+    await stubApi(page);
+    await gotoHydrated(page, "/schedule?first_name=Pat&last_name=Buyer");
+
+    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+
+    await expect(page.locator("#book-email")).toBeVisible();
+    await expect(page.locator("#book-name")).toHaveValue("Pat Buyer");
+    await expect(page.locator("form")).not.toContainText("Booking as");
   });
 
   test("the summary can be corrected without retyping it", async ({ page }) => {
