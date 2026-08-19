@@ -60,10 +60,16 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
   if (!result.ok) {
     // Logged, not surfaced: see the enumeration note above.
     console.error(`[email-preferences] resubscribe failed (${result.status}): ${result.error}`);
-  } else if (result.data.isNew) {
-    // Worth a line. It means someone typed an address the CRM had never seen,
-    // which is either a typo or the upsert's known cost (see consent.ts).
-    console.warn(`[email-preferences] resubscribe CREATED contact ${result.data.contactId}`);
+  } else if (result.data.outcome === "created-by-fallback") {
+    // Loud on purpose. This only happens when `contacts.readonly` has gone
+    // missing from the token, and it means a contact was invented from a typed
+    // address rather than matched — see consent.ts.
+    console.error(
+      `[email-preferences] contacts.readonly MISSING — fell back to upsert and created ${result.data.contactId}`,
+    );
+  } else if (result.data.outcome === "unknown-address") {
+    // Not an error: a typo, or someone else's address. Nothing was written.
+    console.warn("[email-preferences] resubscribe for an address with no contact — ignored");
   }
 
   return json({ success: true });
