@@ -1458,8 +1458,56 @@ The 10-character floor in each route's id guard is doing real work — a short o
 malformed id 404s before any CRM call, so a mis-rendered merge field costs one
 404 rather than a request per hit.
 
-**Tucker's decision, 2026-08-19: reuse `sub_domain_url` rather than add a second
-custom value.** The recommendation above was for two, and the accepted tradeoff
+#### Why only the first email was editable: templates vs inline
+
+Tucker could set the link on A-102-3's first email and found the rest greyed
+out, showing `{{appointment.user.email_signature}}`. The cause is not that merge
+field — it is where each message body lives, and the sent mail proves which is
+which. **Every reminder's unsubscribe URL carries a `template_id`; every
+confirmation's and every chase email's does not.**
+
+    reminder      template_id=GEcQ9OAld4jZUkAAkUm6
+    reminder      template_id=ms6K48Wce5nnEsk4poXC
+    confirmation  (none — inline)
+    chase         (none — inline)
+
+The reminders are **templates**, so the workflow's email action has "Select
+existing template" chosen and renders the body read-only. They are edited in
+Marketing → Emails → Templates:
+
+    GEcQ9OAld4jZUkAAkUm6  Z-001-1. Scheduled Appointment - EMAIL 1: Reminder 1 Days Before
+    ms6K48Wce5nnEsk4poXC  Z-001-1. Scheduled Appointment - EMAIL 2: Reminder 4 Hours Before
+
+Each holds exactly one appointment link — `{{appointment.reschedule_link}}` —
+plus `{{appointment.meeting_location}}` as the Zoom href. No cancel, no
+add-to-calendar; those exist only on the confirmation. So each reminder needs a
+single swap, and both subjects already interpolate
+`{{custom_values.business_short_name}}`, which independently confirms custom
+values resolve inside a template.
+
+`{{appointment.user.email_signature}}` is the **assigned user's** signature,
+set per-user in GHL's profile settings, not in the workflow or the template. In
+delivered mail it renders as "Tim Holmes / Co-Founder / Creative Director /
+Reddoor Creative" and contains no links at all — it sits beside the link, it
+does not hold it. It is not exposed on `/users/search`, so a render is again the
+only way to read it.
+
+**Not automatable, checked against the spec rather than guessed.**
+`/locations/{locationId}/templates/{id}` is GET and DELETE only — there is no
+update verb. `POST /emails/builder/data` is documented as "Update a template"
+but requires `dnd` and `editorType`, drag-and-drop builder fields these
+plain-HTML templates do not carry; supplying them risks converting the template
+rather than editing it. Two hand-edits, once each.
+
+One trap for the next sweep: `GET /locations/{locationId}/templates` returns
+`totalCount: 0` for this location even though GET-by-id returns 200 for both
+templates. The library is invisible to the list endpoint, which is why the first
+pass here concluded there were no templates and looked for the reminder bodies
+in the wrong place.
+
+#### Tucker's decision, 2026-08-19
+
+**Reuse `sub_domain_url` rather than add a second custom value.** The recommendation above was for two, and the accepted tradeoff
 is explicit — if `sub_domain_url` ever has to be reverted for another consumer,
 A-102-3's three links must be re-edited in the builder at the same time, because
 they will follow it back to `go.reddoorla.com`.
