@@ -1578,6 +1578,48 @@ is explicit — if `sub_domain_url` ever has to be reverted for another consumer
 A-102-3's three links must be re-edited in the builder at the same time, because
 they will follow it back to `go.reddoorla.com`.
 
+### 6.17 A null result from a test that could not have produced anything else
+
+After the snippets were repointed, an SMS went out reading
+`https://staging.reddoorla.com/reschedule/` — no id. I concluded
+`{{appointment.id}}` does not resolve, and shipped a `/reschedule` fallback on
+the strength of it. **The conclusion was wrong.** Tucker sent that message
+directly, not through the no-show workflow, so there was no appointment in
+scope and _every_ `{{appointment.*}}` field would render empty regardless of
+whether it exists.
+
+The message contained its own control, which the first read missed. The snippet
+is:
+
+    Hi {{contact.first_name}},
+    … {{custom_values.sub_domain_url}}/reschedule/{{appointment.id}}
+    Thanks,
+    {{appointment.user.first_name}}
+    {{custom_values.business_short_name}}
+
+and the delivered copy resolved `contact.first_name` to "Tucker" and both
+`custom_values`, while `{{appointment.user.first_name}}` came through as a blank
+line above "Reddoor Creative" — the same blank as the id. Two appointment fields
+empty and every non-appointment field populated is the signature of a missing
+scope, not a missing field.
+
+The lesson generalises past this one: a render is only evidence about the field
+under test when something else in the same message proves the namespace was
+populated. Reading an empty value as "the field does not exist" is the same
+error shape as §6.15's Z-004 claim and §6.14's tags claim — inferring absence
+from a place the answer was never going to appear.
+
+The fallback stays. It was justified for a reason that survives being wrong
+about the cause: an id can go missing through a truncated link, a dropped
+segment on copy-paste, or a forward, and a client chasing a missed call should
+not meet a 404. It is no longer evidence of anything about the merge field.
+
+**Still open**, and settled only by a booking that actually exists: run the flow
+on staging, let the workflow fire, and read the delivered message back. The
+control is already in the snippet — if `{{appointment.user.first_name}}` renders
+"Tim" and the URL still ends in `/reschedule/`, the field genuinely is not
+there.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
