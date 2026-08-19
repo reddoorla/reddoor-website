@@ -41,8 +41,10 @@
   let saved = $state<{
     name: string;
     sendRecap: boolean;
-    /** true marked no-show, false the write failed, null nothing to mark. */
-    noShowSynced: boolean | null;
+    /** Drives which half of the calendar note applies. */
+    noShow: boolean;
+    /** true settled, false the write failed, null nothing to settle. */
+    attendanceSynced: boolean | null;
   } | null>(null);
   let savedEl = $state<HTMLElement>();
 
@@ -96,7 +98,8 @@
       saved = {
         name: data?.name ?? "",
         sendRecap: data?.sendRecap === true,
-        noShowSynced: data?.noShowSynced ?? null,
+        noShow: outcome === "No Show",
+        attendanceSynced: data?.attendanceSynced ?? null,
       };
       await tick();
       savedEl?.focus();
@@ -132,16 +135,21 @@
           <p class="body">
             Outcome recorded{saved.name ? ` against ${saved.name}` : ""}.
           </p>
-          {#if saved.noShowSynced === true}
+          {#if saved.attendanceSynced === true}
             <p class="body">
-              The appointment is marked as a no-show in the calendar too, so the CRM's own
-              reschedule follow-up takes it from here.
+              {#if saved.noShow}
+                The appointment is marked as a no-show in the calendar too, so the CRM's own
+                reschedule follow-up takes it from here.
+              {:else}
+                The appointment is marked as attended in the calendar too.
+              {/if}
             </p>
-          {:else if saved.noShowSynced === false}
+          {:else if saved.attendanceSynced === false}
             <p class="body">
-              Heads up — we couldn't mark the appointment as a no-show in the calendar. The outcome
-              above did save. Please set that status by hand so the reschedule follow-up still goes
-              out.
+              Heads up — we couldn't update the appointment's status in the calendar. The outcome
+              above did save. Please set it by hand{saved.noShow
+                ? " so the reschedule follow-up still goes out"
+                : ""}.
             </p>
           {/if}
           <p class="body">

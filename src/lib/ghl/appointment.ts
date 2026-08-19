@@ -205,33 +205,61 @@ export async function listContactAppointments(opts: {
 }
 
 /**
- * Mark an appointment as a no-show.
+ * Record whether the call actually happened.
  *
  * Reported by Erik 2026-08-19: the post-call "it was a pleasure chatting with
- * you" text fires on a timer, so it reaches people the call never happened
- * with — and the personal touch is exactly what makes that land badly.
+ * you" text reached him minutes into a live call. That turned out to be a
+ * human submitting GHL's form mid-call, not a timer — but tracing it showed
+ * that submitting GHL's form ALSO sets this status, and our page did not.
  *
- * Logging "No Show" on /meeting-outcome tagged the CONTACT but left the
- * APPOINTMENT alone, so the CRM's own no-show handling ("Z-002-2. NoShow >
- * Let's Reschedule") never fired and the calendar disagreed with the record.
- * This closes that gap from the same submission.
- *
- * `toNotify` is false: the salesperson is logging what already happened, and
- * a status change is not itself news the lead needs a message about. The
- * follow-up they SHOULD get is Z-002-2's, which the status change triggers.
+ * `toNotify` is false for both. The salesperson is recording what already
+ * happened; a status change is not itself news the lead needs a message about.
+ * For a no-show the message they SHOULD get is Z-002-2's, which the status
+ * change is what triggers.
  */
-export async function markAppointmentNoShow(opts: {
-  token: string;
-  fetch: CrmFetch;
-  eventId: string;
-}): Promise<CrmResult<{ status: string }>> {
+function setAttendance(
+  opts: { token: string; fetch: CrmFetch; eventId: string },
+  status: "showed" | "noshow",
+): Promise<CrmResult<{ status: string }>> {
   return crmCall(
     { token: opts.token, fetch: opts.fetch },
     `/calendars/events/appointments/${encodeURIComponent(opts.eventId)}`,
     {
       method: "PUT",
-      body: JSON.stringify({ appointmentStatus: "noshow", toNotify: false }),
+      body: JSON.stringify({ appointmentStatus: status, toNotify: false }),
     },
-    (json) => ({ status: pickAppointment(json).status || "noshow" }),
+    (json) => ({ status: pickAppointment(json).status || status }),
   );
+}
+
+/**
+ * Mark an appointment as a no-show.
+ *
+ * Logging "No Show" on /meeting-outcome tagged the CONTACT but left the
+ * APPOINTMENT alone, so the CRM's own no-show handling ("Z-002-2. NoShow >
+ * Let's Reschedule") never fired and the calendar disagreed with the record.
+ */
+export function markAppointmentNoShow(opts: {
+  token: string;
+  fetch: CrmFetch;
+  eventId: string;
+}): Promise<CrmResult<{ status: string }>> {
+  return setAttendance(opts, "noshow");
+}
+
+/**
+ * Mark an appointment as attended.
+ *
+ * The counterpart, and the reason `SETTLED` above could read "showed" while
+ * nothing wrote it: we settled the missed calls and left every call that DID
+ * happen sitting at `confirmed` forever. GHL's own form sets this — observed on
+ * a real contact, 2026-08-19, four seconds before the recap SMS went out — so
+ * whatever reads the status is already used to seeing it.
+ */
+export function markAppointmentShowed(opts: {
+  token: string;
+  fetch: CrmFetch;
+  eventId: string;
+}): Promise<CrmResult<{ status: string }>> {
+  return setAttendance(opts, "showed");
 }

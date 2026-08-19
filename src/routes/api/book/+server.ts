@@ -166,6 +166,12 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
         extra: {
           startTime: appointment.data.startTime,
           appointmentId: appointment.data.appointmentId,
+          // The join key back to the CRM. Free to record here because booking
+          // is CRM-FIRST — the contact must exist before an appointment can
+          // reference it — so by now we have it. /api/inquiry cannot do the
+          // same: ingest runs first there on purpose, so that a CRM outage
+          // never fails a lead, and the id does not exist yet when it does.
+          crmContactId: contact.data.contactId,
           // Carried so the team notification says which zone the visitor read
           // the time in. `startTime` is absolute and unambiguous; the human
           // reading it is not.

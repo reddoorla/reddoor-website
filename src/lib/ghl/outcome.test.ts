@@ -168,7 +168,7 @@ describe("the no-show / calendar gap", () => {
       input: { ...base, outcome: "No Show", sendRecap: false },
     });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.data?.noShowSynced).toBe(true);
+    if (r.ok) expect(r.data?.attendanceSynced).toBe(true);
 
     const put = find("/calendars/events/appointments/")[0];
     expect(put.method).toBe("PUT");
@@ -178,16 +178,36 @@ describe("the no-show / calendar gap", () => {
     expect(put.body.toNotify).toBe(false);
   });
 
-  it("touches no appointment for any other outcome", async () => {
-    // A sale must never mark the meeting that produced it as missed.
+  it("settles every other outcome as showed, never as missed", async () => {
+    // A sale must never mark the meeting that produced it as a no-show —
+    // Z-002-2 keys off that status, so getting it wrong invites someone to
+    // reschedule a call they just bought from.
     for (const outcome of [
       "Sold!",
       "Offer Made (pending)",
       "Not Interested/ Not Yet Ready",
+      "Unqualified - Not A Good Fit (Do Not Follow Up)",
     ] as const) {
       const { fetch, find } = stubCrm({ appointments: [past] });
       await recordMeetingOutcome({ token: "t", fetch, input: { ...base, outcome } });
-      expect(find("/calendars/events/appointments/"), outcome).toHaveLength(0);
+      const put = find("/calendars/events/appointments/")[0];
+      expect(put, outcome).toBeTruthy();
+      expect(put.body.appointmentStatus, outcome).toBe("showed");
+      expect(put.body.toNotify, outcome).toBe(false);
+    }
+  });
+
+  it("does not re-settle an appointment already marked", async () => {
+    // Re-logging a call must be idempotent. SETTLED contains both statuses this
+    // writes, so the second submission finds nothing unsettled and no-ops.
+    for (const status of ["showed", "noshow"]) {
+      const { fetch, find } = stubCrm({
+        appointments: [{ ...past, appointmentStatus: status }],
+      });
+      const r = await recordMeetingOutcome({ token: "t", fetch, input: base });
+      expect(r.ok, status).toBe(true);
+      if (r.ok) expect(r.data?.attendanceSynced, status).toBeNull();
+      expect(find("/calendars/events/appointments/"), status).toHaveLength(0);
     }
   });
 
@@ -199,7 +219,7 @@ describe("the no-show / calendar gap", () => {
       input: { ...base, outcome: "No Show", sendRecap: false },
     });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.data?.noShowSynced).toBeNull();
+    if (r.ok) expect(r.data?.attendanceSynced).toBeNull();
     expect(find("/calendars/events/appointments/")).toHaveLength(0);
   });
 
@@ -213,6 +233,6 @@ describe("the no-show / calendar gap", () => {
       input: { ...base, outcome: "No Show", sendRecap: false },
     });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.data?.noShowSynced).toBe(false);
+    if (r.ok) expect(r.data?.attendanceSynced).toBe(false);
   });
 });

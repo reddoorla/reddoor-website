@@ -110,13 +110,13 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
   }
 
   // Reported back so the salesperson knows whether the CALENDAR agrees. Only
-  // ever a note beside a saved outcome — false means "log it by hand too", not
-  // "that did not save". null means there was no past appointment to mark,
+  // ever a note beside a saved outcome — false means "set it by hand too", not
+  // "that did not save". null means there was no past appointment to settle,
   // which is normal for a call that was never in the calendar.
   return json({
     success: true,
     name: result.data.name,
     sendRecap,
-    noShowSynced: result.data.noShowSynced,
+    attendanceSynced: result.data.attendanceSynced,
   });
 };

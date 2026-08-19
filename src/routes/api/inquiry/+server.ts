@@ -293,6 +293,13 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
       if (!sync.ok) {
         console.error(`[inquiry] CRM sync failed (${sync.status}): ${sync.error}`);
       } else {
+        // Logged on SUCCESS too, not just on a partial failure. This id is the
+        // only link between an ingest submission and the CRM record it became,
+        // and ingest has already been written by this point — see above, that
+        // ordering is deliberate — so there is nowhere durable left to put it.
+        // Recording it in the logs is the cheap half of the fix; the real one
+        // is persisting funnel state, which is a larger piece of work.
+        console.info(`[inquiry] ${step} -> crm contact ${sync.data.contactId}`);
         // The contact is saved by this point; these are the best-effort extras.
         // Named individually so a partial sync is diagnosable from the log
         // rather than looking like a clean success.

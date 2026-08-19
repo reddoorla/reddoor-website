@@ -179,7 +179,7 @@ test("says when the calendar was updated too", async ({ page }) => {
   // reaches people the call never happened with. The tag alone did not stop
   // that — the CRM's no-show handling keys off the APPOINTMENT status.
   await stub(page, {
-    body: { success: true, name: "Dana Buyer", sendRecap: false, noShowSynced: true },
+    body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: true },
   });
   await gotoHydrated(page, PATH);
 
@@ -192,7 +192,7 @@ test("a failed calendar write asks for a hand fix, without claiming the log fail
   page,
 }) => {
   await stub(page, {
-    body: { success: true, name: "Dana Buyer", sendRecap: false, noShowSynced: false },
+    body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: false },
   });
   await gotoHydrated(page, PATH);
 
@@ -204,12 +204,26 @@ test("a failed calendar write asks for a hand fix, without claiming the log fail
   // whitespace for string matches but NOT for regex ones, so a pattern that
   // spans a line break in the markup never matches.
   await expect(page.getByText(/above did save/)).toBeVisible();
-  await expect(page.getByText(/set that status by hand/)).toBeVisible();
+  await expect(page.getByText(/set it by hand/)).toBeVisible();
 });
 
-test("says nothing about the calendar for an outcome that is not a no-show", async ({ page }) => {
+test("a sale is marked attended, not offered a reschedule", async ({ page }) => {
+  // The status drives Z-002-2. Marking a won call as a no-show would invite
+  // someone to reschedule a conversation they just bought from.
   await stub(page, {
-    body: { success: true, name: "Dana Buyer", sendRecap: false, noShowSynced: null },
+    body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: true },
+  });
+  await gotoHydrated(page, PATH);
+
+  await page.locator("#mo-outcome").selectOption("Sold!");
+  await page.getByRole("button", { name: "Save outcome" }).click();
+  await expect(page.getByText(/marked as attended in the calendar/)).toBeVisible();
+  await expect(page.getByText(/no-show/)).toHaveCount(0);
+});
+
+test("says nothing about the calendar when there was nothing to settle", async ({ page }) => {
+  await stub(page, {
+    body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: null },
   });
   await gotoHydrated(page, PATH);
 

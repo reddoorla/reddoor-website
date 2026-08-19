@@ -15,4 +15,11 @@ export const load: PageLoad = () => ({
   meta_description:
     "Book a 30-minute intro call with Reddoor Creative. Pick a time that suits you and we'll send the Zoom link.",
   meta_image: metaImage,
+  // Deliberately out of the index, though NOT out of reach. The page is built
+  // to be shared directly — a signature, a DM, the CRM's own trigger link — and
+  // `noindex` does nothing to that. What it prevents is the page being found
+  // cold in search, where a stranger books a 30-minute call with no application
+  // behind it and no idea what the call is for. It is a funnel step, not a
+  // landing page, and the sitemap has always agreed: /schedule was never listed.
+  meta_robots: "noindex, follow",
 });

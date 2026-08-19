@@ -351,6 +351,22 @@ export async function addCrmTags(opts: {
  * A failed LOOKUP is treated as "do not create". Creating on an unknown state
  * risks a duplicate in someone's live pipeline; skipping only risks a missing
  * card, which a human can add. The cheaper mistake wins.
+ *
+ * ── Kept deliberately, 2026-08-19, after checking whether it could retire ──
+ *
+ * It looks dead. All four opportunities live in the pipeline today carry a name
+ * like "Erik | August 19, 2026 | 9:30 AM | MDT" and a source of "Schedule an
+ * intro call with Reddoor Creative" — the CALENDAR's name. This function sets
+ * `name` to the contact's name and sends no `source` at all, and its target
+ * stage (GHL_STAGE_NEW_INQUIRY) holds zero cards. On that evidence the CRM has
+ * been creating every card and this has never fired.
+ *
+ * "On that evidence" is doing real work in that sentence, though — a workflow
+ * could equally have renamed and moved a card this created, and nothing
+ * readable distinguishes the two. So the decision rests on the asymmetry
+ * instead, which needs no attribution: the lookup makes this idempotent.
+ * Keeping it can only add a card when none exists; removing it can only lose
+ * one. A missing pipeline card is a lead nobody in sales can see.
  */
 export async function ensureCrmOpportunity(opts: {
   token: string;
