@@ -1578,6 +1578,21 @@ is explicit — if `sub_domain_url` ever has to be reverted for another consumer
 A-102-3's three links must be re-edited in the builder at the same time, because
 they will follow it back to `go.reddoorla.com`.
 
+**The calendar links stay on GHL. Closed — do not raise again.** The
+"Add to Your Outlook Calendar" link in A-102-3's confirmation still points at
+`links.reddoorla.com/google/calendar/get-ics/{id}`, and that is fine. Both
+endpoints serve an ICS; the differences (their `METHOD:REQUEST` with
+ORGANIZER/ATTENDEE against our `METHOD:PUBLISH`, and the GHL reschedule/cancel
+links inside their DESCRIPTION) are real but do not matter, and the decision was
+made three times over. `/calendar/{id}/google`, `/outlook` and `/event.ics`
+remain built and available if that ever changes.
+
+Recorded at this length because it kept being re-surfaced as a defect after
+being settled — first flagged as optional, then reported as a missed link under
+"check all the links", then raised a third time off the same audit output. A
+decision that has been made is not a finding, and a completeness sweep is not a
+licence to reopen it.
+
 ### 6.17 A null result from a test that could not have produced anything else
 
 After the snippets were repointed, an SMS went out reading
