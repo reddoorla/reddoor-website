@@ -1522,6 +1522,49 @@ Both templates are backed up verbatim before any of this
 (`backup-template-{id}.json`), because the one verb that _is_ granted beyond GET
 is DELETE.
 
+**Settled 2026-08-19: non-grantable.** The Private Integration scope picker
+offers `locations/templates.readonly` (View Templates) and no write counterpart.
+The only write on offer is `emails/builder.write`, which governs the _builder_
+store — the two Design-editor templates — not the snippet store these live in.
+Every scope is already granted. Snippets are hand-edited, permanently.
+
+#### Every snippet that has to change — all 55 scanned
+
+`originId` **must be empty**. It is a required param whose documentation reads
+only "Origin Id", and passing the locationId filters the result to zero — which
+is what made the store look empty earlier and sent the search to Marketing →
+Emails → Templates, where these are not listed. `?originId=&limit=500` returns
+all 55.
+
+Nine carry something that has to move. The reminder pair is a third of the work;
+the no-show sequence is the part that would have been missed:
+
+| Snippet                                    | Type  | What                                            |
+| ------------------------------------------ | ----- | ----------------------------------------------- |
+| Z-001-1 EMAIL 1: Reminder 1 Days Before    | email | `reschedule_link`                               |
+| Z-001-1 EMAIL 2: Reminder 4 Hours Before   | email | `reschedule_link`                               |
+| Z-002-2 EMAIL 0: No Show Confirmation      | email | `reschedule_link`                               |
+| Z-002-2 EMAIL 1: 1st Attempt to Reschedule | email | `reschedule_link`                               |
+| Z-002-2 SMS 0: No Show Confirmation        | sms   | `reschedule_link`                               |
+| Z-002-2 SMS 1: 1st Attempt to Reschedule   | sms   | `reschedule_link`                               |
+| Z-002-2 SMS 2: 2nd Attempt to Reschedule   | sms   | `reschedule_link`                               |
+| Z-001-1 EMAIL 0: Confirmation              | email | `add_to_google_calendar`, `add_to_ical_outlook` |
+| WF# A-101-1 Email Thank you                | email | `{{user.phone}}` — **correct, leave it**        |
+
+The last is not a defect: it reads "text me at `{{user.phone}}`", the assigned
+user's number used deliberately. Only the chase link's use of it is wrong. Worth
+stating, because a blind search-and-replace on `{{user.phone}}` breaks a working
+message.
+
+`Z-001-1 EMAIL 0: Confirmation` is the odd one — the confirmation that actually
+sends is composed inline (no `template_id` in any sent copy), so this snippet
+looks unwired. Check before editing rather than assume, and note it carries only
+the calendar links, no cancel or reschedule.
+
+Z-004-1/2/3 review snippets exist in this store, which is worth knowing beside
+§6.15's correction: the **snippets** were imported, the **workflows** were not.
+Bodies present, nothing to send them.
+
 One trap for the next sweep: `GET /locations/{locationId}/templates` returns
 `totalCount: 0` for this location even though GET-by-id returns 200 for both
 templates. The library is invisible to the list endpoint, which is why the first
