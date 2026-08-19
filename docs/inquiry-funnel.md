@@ -1075,6 +1075,26 @@ Still per-template: the calendar's `notes` field, and A-102-3's confirmation
 email — the one send that stays unreadable, because all three calendar
 notifications turned out to go to the assigned user rather than the lead.
 
+#### Deploy state of the secrets, 2026-08-19
+
+`MEETING_OUTCOME_KEY` is set as a **secret** on both `reddoor-staging` and
+`reddoorla`, same value, contexts `production` / `deploy-preview` /
+`branch-deploy`. Deliberately the same on both: the key rides inside a GHL
+custom value, and two different keys would mean rotating that custom value on
+the day the branch merges. Setting an env var is not enough on its own — Netlify
+injects it at build time, so the running function kept answering 503 until a
+rebuild; verified live afterwards (correct key → 400 validation, wrong key and
+right-length-wrong-bytes → 404).
+
+⚠️ **`CRM_FUNNEL_ACTIVE_TOKEN` does not exist on the production site.** Today
+that breaks nothing, because none of these routes are on `main` yet. The moment
+this branch merges, `/api/book` returns 500, `/api/slots` fails, and `/api/inquiry`
+reaches ingest but silently skips the CRM with a logged warning. **It has to land
+on `reddoorla` before the merge, not after.** `netlify env:clone` will not do it —
+it writes masked garbage for secrets (see memory
+`reference_netlify_env_clone_secret_gotcha`); set it explicitly with
+`env:set --secret --context production deploy-preview branch-deploy`, then rebuild.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
