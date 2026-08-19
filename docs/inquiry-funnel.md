@@ -1440,6 +1440,30 @@ Whether `{{appointment.id}}` exists remains the open question, and no endpoint
 answers it. But a render does: send one test booking, then read the delivered
 message back with the recipe above. If the URL contains an id, it exists.
 
+#### The three destinations, verified live
+
+Against two real appointment ids on staging, so the id is the only unknown left:
+
+    /reschedule/{id}          200
+    /cancel/{id}              200
+    /calendar/{id}/event.ics  200  text/calendar; SUMMARY + DTSTART correct
+    /calendar/{id}/google     302  -> calendar.google.com
+
+A double slash is harmless (`//reschedule/{id}` also answers 200), which matters
+because these hang off a hand-edited custom value — pasting a trailing slash
+into it cannot break them. A GET on `/cancel` writes nothing: its `load` returns
+metadata only, and the cancellation is a submit.
+
+The 10-character floor in each route's id guard is doing real work — a short or
+malformed id 404s before any CRM call, so a mis-rendered merge field costs one
+404 rather than a request per hit.
+
+**Tucker's decision, 2026-08-19: reuse `sub_domain_url` rather than add a second
+custom value.** The recommendation above was for two, and the accepted tradeoff
+is explicit — if `sub_domain_url` ever has to be reverted for another consumer,
+A-102-3's three links must be re-edited in the builder at the same time, because
+they will follow it back to `go.reddoorla.com`.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
