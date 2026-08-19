@@ -1145,6 +1145,56 @@ This is a trap for any verify-after-write: reading back through
 `findContactByEmail` immediately would have reported the write as failed when it
 had already landed. Read the record by id when the answer must be current.
 
+### 6.13 The links, actually swapped — 2026-08-19
+
+Seven writes, applied with permission and read back. Pointed at
+`staging.reddoorla.com` deliberately: four of the five pages do not exist on
+`reddoorla.com` until this branch merges, and sending someone from a working GHL
+page to a 404 is worse than leaving the GHL page in place.
+
+| id                     | key / name                          | now                                          |
+| ---------------------- | ----------------------------------- | -------------------------------------------- |
+| `UP1xzQCIhcrIU4DsySD4` | `schedule_my_appointment_url`       | `{staging}/schedule`                         |
+| `9fiXMEzf3yRJn3rq8gKp` | `your_agency_website`               | `https://reddoorla.com` — **not** staging    |
+| `pvXZ4v22D0KVJf1arGBc` | `email_unsubscribe_confirmation`    | `{staging}/email/unsubscribed`               |
+| `Xwp83IVumkOAF3z0B22r` | `resubscribe_for_emails_page`       | `{staging}/email/resubscribed`               |
+| `bqVBAYHR70Yo9fwCxgyo` | `client_meeting_status_update_url`  | `{staging}/meeting-outcome` — bare, no key   |
+| `XNbbFm2yy5f9GLovpjGC` | Schedule Appointment (link)         | `{staging}/schedule?first_name=…`            |
+| `CNC9Ce7s3kqntcPZ57Lk` | Client Meeting Status Update (link) | `{staging}/meeting-outcome?k=…&first_name=…` |
+
+`your_agency_website` is the exception on purpose: it is the business website
+leads read in email, not a funnel page, and `reddoorla.com/` is live today.
+Pointing it at staging would have been wrong in a way nobody would notice.
+
+**At merge time**, re-point the five `{staging}` entries to `reddoorla.com`.
+Both PUT bodies require `name` alongside the value, so every write must resend
+the existing name verbatim or it blanks the label.
+
+#### The `?` collision — why the key is in the LINK, not the custom value
+
+`Client Meeting Status Update` was stored as:
+
+    {{ custom_values.client_meeting_status_update_url }}?first_name={{contact.first_name}}&…
+
+It appends its **own** `?`. Putting `?k=<key>` inside the custom value would have
+produced `…/meeting-outcome?k=<key>?first_name=Dana&…`, so `k` would arrive as
+`<key>?first_name=Dana`, fail the constant-time compare, and return **404 on
+every submission** — a failure that reads as "the page is broken" rather than
+"the key is wrong", which is exactly the kind that costs an afternoon.
+
+So the key lives in the trigger link, joined with `&`, and the custom value holds
+the bare URL. A read-back asserts each link contains exactly one `?`.
+
+#### `sub_domain_url` was left alone, and the earlier claim withdrawn
+
+§6.10 said that once the Schedule Appointment link changed, `sub_domain_url`
+would have no remaining consumer. That was an assertion, not a finding.
+`GET /emails/builder` returns **zero** templates for this location — the bodies
+live inside the workflow editors, which the API does not expose — so nothing
+here can prove what else interpolates it. It still reads `https://go.reddoorla.com`,
+and the Schedule Appointment link now carries its own absolute URL instead of
+being built from it.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
