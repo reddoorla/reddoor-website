@@ -1095,6 +1095,56 @@ it writes masked garbage for secrets (see memory
 `reference_netlify_env_clone_secret_gotcha`); set it explicitly with
 `env:set --secret --context production deploy-preview branch-deploy`, then rebuild.
 
+### 6.12 The confirmation spoke Mountain — reported by Erik, 2026-08-19
+
+He booked 10:30am Central and the confirmation email read **"9:30 AM MDT"**. The
+instant was right and the frame was wrong, which is worse than it sounds: the
+picker, the day tabs and the zone note had all been in his own time, so the
+CRM's send is the single point where the flow changes language on the visitor.
+The SMS has the identical cause.
+
+**Why.** GHL renders appointment times in the CONTACT's timezone and falls back
+to the LOCATION's when the contact has none. Every contact we created had none,
+and the location is `America/Boise`. Erik's record read `timezone: null`.
+
+**The lever was already in our hands.** `resolveTimeZone()` in `slots.ts` has
+been resolving the visitor's IANA zone since day one to render the picker — it
+was simply never sent anywhere. It now travels with `/api/inquiry` and
+`/api/book` and is set on the upsert. No GHL template changes; their renderer
+does the rest.
+
+Three decisions in `$lib/schedule/timezone.ts` worth keeping:
+
+- **`Intl` validates it, not a regex.** The value is attacker-controlled and
+  ends up in mail we send. The question is not whether the string looks like a
+  zone but whether the tz database knows it — and an unknown zone throws
+  `RangeError` there, which is exactly the answer wanted.
+- **Bare offsets and abbreviations are refused.** `"UTC"` is a legal `Intl`
+  argument that says nothing about where someone is; writing it to a record
+  would claim more than we know.
+- **An unrecognised value is dropped, never substituted.** A wrong zone applied
+  silently is worse than the Mountain fallback, which is at least consistent and
+  explicable.
+
+Unlike `source`, the zone is re-asserted on EVERY touch. `source` records where
+someone came from once and would be a lie if overwritten; a timezone records
+where someone is, and the newest reading is the best available.
+
+⚠️ **Only helps bookings from here on.** Existing contacts still read
+`timezone: null` until they rebook. Erik's was backfilled by hand to
+`America/Chicago` on 2026-08-19 with permission.
+
+#### `/contacts/search` is eventually consistent — measured
+
+Right after the `PUT`, `GET /contacts/{id}` returned `America/Chicago` while
+`POST /contacts/search` still returned `null` for the same contact. A re-search
+about ninety seconds later agreed. The field IS projected into the index; the
+index simply lags.
+
+This is a trap for any verify-after-write: reading back through
+`findContactByEmail` immediately would have reported the write as failed when it
+had already landed. Read the record by id when the answer must be current.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
