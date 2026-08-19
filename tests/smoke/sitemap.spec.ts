@@ -23,6 +23,11 @@ const FUNNEL_PATHS = [
 /** Reachable only with an appointment id, which is a bearer token in a URL. */
 const TOKEN_PATHS = ["/reschedule", "/cancel", "/calendar"];
 
+/** Redirects, so there is no HTML to carry a `noindex` — absence from the
+ *  sitemap is the only control they have, which makes it the load-bearing one.
+ *  /inquiry is where the CRM's chase link lands, carrying a lead's address. */
+const REDIRECT_PATHS = ["/inquiry"];
+
 test("the sitemap advertises no part of the funnel", async ({ request }) => {
   const res = await request.get("/sitemap.xml");
   expect(res.status()).toBe(200);
@@ -32,7 +37,7 @@ test("the sitemap advertises no part of the funnel", async ({ request }) => {
   );
 
   expect(paths.length).toBeGreaterThan(5);
-  for (const p of FUNNEL_PATHS) expect(paths, p).not.toContain(p);
+  for (const p of [...FUNNEL_PATHS, ...REDIRECT_PATHS]) expect(paths, p).not.toContain(p);
   // Prefix check for the id-bearing routes: no /reschedule/<anything> either.
   for (const prefix of TOKEN_PATHS) {
     const leaked = paths.filter((p) => p === prefix || p.startsWith(`${prefix}/`));
