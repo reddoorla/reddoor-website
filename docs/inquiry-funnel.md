@@ -1281,10 +1281,19 @@ Audited 2026-08-19 by resolving each trigger link through its custom value.
     Facebook Review Request    ->  {{ custom_values.facebook_review_request }}     NO SUCH VALUE
 
 None of the three exists among the location's custom values, so each resolves to
-nothing. `Z-004-2` and `Z-004-3` both send review-request SMS built on the first
-of them — meaning any review request that fires today sends a client a dead
-link. Unrelated to this funnel and inherited from the snapshot, but it is
-client-facing and it is broken, which is why it is recorded here.
+nothing.
+
+**Correction, 2026-08-19.** This section previously said `Z-004-2` and `Z-004-3`
+send review-request SMS built on the first of them, and that any review request
+firing today would send a client a dead link. Both wrong. The workflow list is
+37 entries and **contains no Z-004 series at all** — the numbering runs Z-002,
+Z-003, Z-015, Z-016, so the review workflows were either never imported from the
+snapshot or were deleted. The three trigger links are orphans: nothing is armed
+to send them. The claim came from the snapshot's shape rather than from this
+location's data, which is the same mistake as the tags claim in §6.14.
+
+What is still true: the links are dead, and if a review series is ever built the
+custom values have to exist first.
 
 #### What `sub_domain_url` actually feeds
 
@@ -1299,6 +1308,74 @@ landing page uid (Erik's reads `medtech`), so `https://reddoorla.com/{{contact.f
 returns a lead to the exact page they abandoned, and an empty funnel degrades to
 the homepage rather than a 404. The modal reads the same three params the GHL
 page did — see `stripQueryParams` — so the link needs no reshaping.
+
+### 6.16 What is reachable by API, and what needs a human in the builder
+
+Tucker asked, of four links, which could be switched over from here. Probed
+2026-08-19; the answers split cleanly along one line — **custom values are
+API-writable, message bodies are not.**
+
+| Link                                | Reachable?       | Why                           |
+| ----------------------------------- | ---------------- | ----------------------------- |
+| A-102-1's `/inquiry` chase          | **yes**, one PUT | interpolates a custom value   |
+| `{{appointment.cancellation_link}}` | no               | inline Embed Link in the body |
+| `{{appointment.reschedule_link}}`   | no               | inline Embed Link in the body |
+| `{{appointment.add_to_google_…}}`   | no               | inline Embed Link in the body |
+
+Two independent confirmations for the appointment links. Tucker's screencap of
+the A-102-3 editor shows them as **Embed Link** dialogs — a free-text URL field
+with a merge-tag picker — typed into the message body, not resolved from
+anywhere settable. And the live calendar object exposes only
+
+    allowReschedule    = true
+    allowCancellation  = true
+    formSubmitRedirectUrl = ""
+
+booleans that permit the actions, plus a post-booking redirect. Nothing that
+repoints the widget URL those merge fields generate. So the switchover for
+cancel, reschedule and add-to-calendar is a hand-edit, and it needs
+`{{appointment.id}}` to exist in the picker — which only a human in that dialog
+can confirm, since merge fields are exposed by no endpoint.
+
+#### `phone={{user.phone}}` — the chase link prefills the wrong number
+
+The live link reads:
+
+    {{custom_values.sub_domain_url}}/inquiry
+      ?email={{contact.email}}
+      &full_name={{contact.name}}
+      &phone={{user.phone}}
+      &utm_source={{contact.attributionSource.utmSource}}
+
+`{{user.phone}}` is the **assigned user's** phone. `{{contact.phone}}` was
+meant. Contacts do get assigned — "Contact Assign + UTM Updates" is published —
+so on an assigned lead this renders one of the business's own numbers, prefills
+it into the lead's own phone field, and writes it back to their contact record
+when they submit.
+
+Checked against live data before acting: three business-owned numbers are on
+file, and of the location's contacts exactly one carries one of them — a
+record with no name, no email, no source and no tags, which is the signature of
+an inbound SMS creating a contact, not of a form submission (ours requires an
+email). **So the bug has not fired.** Recorded because the first read of that
+scan looked like a hit, and the difference is entirely in the record's shape.
+
+`/inquiry` drops the param rather than forwarding it. The value is either wrong
+or empty and never right, so no information is lost, and fixing it here does not
+depend on a hand-edit in a builder that cannot be read back. If the merge field
+is ever corrected, add `"phone"` to `CARRIED` in
+[`src/routes/inquiry/+server.ts`](../src/routes/inquiry/+server.ts) — the modal
+already reads it.
+
+#### Why `/inquiry` is a route and not a redirect rule
+
+The path is fixed by a message we cannot edit, so the site meets it where it is.
+The route validates `funnel` against published `industry` documents before
+redirecting — the destination of a redirect is the wrong place to trust a query
+param — and forwards `utm_*`, which the modal posts as `sourceUrl` and the CRM
+builds its attribution note from. It is absent from the sitemap and pinned there
+by `sitemap.spec.ts`: being a redirect, it has no HTML to carry a `noindex`, so
+absence is its only control.
 
 ## 7. Rules of engagement
 
