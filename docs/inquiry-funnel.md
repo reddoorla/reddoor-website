@@ -1257,6 +1257,49 @@ reminder texts, which fired off an appointment we created over the API.
    namespaced or not. Which means matching their vocabulary is a consistency argument, not
    a capability one.
 
+### 6.15 Every client-facing surface, and who serves it
+
+Audited 2026-08-19 by resolving each trigger link through its custom value.
+
+| Journey step                     | Served by  | Note                                                        |
+| -------------------------------- | ---------- | ----------------------------------------------------------- |
+| Industry landing page + modal    | **us**     |                                                             |
+| Abandoned-inquiry chase link     | GHL        | `go.reddoorla.com/inquiry`, inline in A-102-1               |
+| Post-application → booking       | **us**     | `Schedule Appointment` link; confirmed live by Tim          |
+| Booking confirmation + reminders | GHL sends  | reminder link lands on our `/schedule`                      |
+| ↳ cancel / reschedule links      | GHL        | `links.reddoorla.com/widget/…`, merge fields inside A-102-3 |
+| ↳ add-to-calendar                | GHL        | we have `/calendar/{id}/{google,outlook,event.ics}` unused  |
+| Post-call recap email + SMS      | GHL sends  | no links out; nothing to move                               |
+| Review request                   | **broken** | see below                                                   |
+| Unsubscribe / resubscribe        | **us**     |                                                             |
+| Meeting-outcome form             | GHL        | internal, deliberately left — see §6.14                     |
+
+#### Three trigger links point at custom values that do not exist
+
+    Review Request Survey URL  ->  {{ custom_values.review_request_survey_url }}   NO SUCH VALUE
+    Google Review Link         ->  {{ custom_values.google_review_link }}          NO SUCH VALUE
+    Facebook Review Request    ->  {{ custom_values.facebook_review_request }}     NO SUCH VALUE
+
+None of the three exists among the location's custom values, so each resolves to
+nothing. `Z-004-2` and `Z-004-3` both send review-request SMS built on the first
+of them — meaning any review request that fires today sends a client a dead
+link. Unrelated to this funnel and inherited from the snapshot, but it is
+client-facing and it is broken, which is why it is recorded here.
+
+#### What `sub_domain_url` actually feeds
+
+Answered at last: the abandoned-inquiry chase. Its message is composed inline in
+A-102-1 — no template carries the URL — and builds
+`{{custom_values.sub_domain_url}}/inquiry?email=…&full_name=…&phone=…`. So the
+value must stay as it is until that message is edited, and §6.10's guess that it
+would have no consumer left was wrong twice over.
+
+Our replacement takes the same shape deliberately: `contact.funnel` holds the
+landing page uid (Erik's reads `medtech`), so `https://reddoorla.com/{{contact.funnel}}`
+returns a lead to the exact page they abandoned, and an empty funnel degrades to
+the homepage rather than a 404. The modal reads the same three params the GHL
+page did — see `stripQueryParams` — so the link needs no reshaping.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
