@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { page } from "$app/state";
+  import { stripQueryParams } from "$lib/url/stripQueryParams";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { groupByDay, resolveTimeZone, formatFullSlot, type SlotDay } from "$lib/schedule/slots";
   import { readHandoff, clearHandoff } from "$lib/schedule/handoff";
@@ -86,6 +87,8 @@
    * landing, this stops being sufficient and the trigger link has to stop
    * carrying the address.
    */
+  const PREFILL_PARAMS = ["first_name", "last_name", "email", "phone"] as const;
+
   function prefillFromTriggerLink(): boolean {
     const p = page.url.searchParams;
     const first = (p.get("first_name") ?? "").trim();
@@ -99,29 +102,6 @@
     email = linkEmail;
     phone = linkPhone;
     return true;
-  }
-
-  /**
-   * The native history API rather than SvelteKit's `replaceState`, which throws
-   * "Cannot call replaceState(...) before router is initialized" here — both in
-   * `onMount` and in `afterNavigate`, which on a first load runs DURING
-   * hydration, before the router is up. Measured, not assumed.
-   *
-   * The usual objection to going around the router is that `page.url` desyncs.
-   * That is real, and harmless in this one case: the params are read once, in
-   * `onMount`, before this runs, and nothing on the page consults them again.
-   * A `page.url` that still shows them would be the stale copy, not this.
-   */
-  function stripPrefillParams() {
-    const url = new URL(location.href);
-    let touched = false;
-    for (const k of ["first_name", "last_name", "email", "phone"]) {
-      if (url.searchParams.has(k)) {
-        url.searchParams.delete(k);
-        touched = true;
-      }
-    }
-    if (touched) history.replaceState(history.state, "", url.pathname + url.search + url.hash);
   }
 
   onMount(() => {
@@ -138,7 +118,7 @@
     }
     // Unconditional: a stale link opened in a tab that also holds a handoff must
     // not leave the address sitting in the URL either.
-    stripPrefillParams();
+    stripQueryParams(PREFILL_PARAMS);
     prefilled = name.trim() !== "" && EMAIL_RE.test(email.trim());
     loadSlots();
   });

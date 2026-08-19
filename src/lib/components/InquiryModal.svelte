@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { onMount, tick } from "svelte";
   import { fade, scale } from "svelte/transition";
   import { trapFocus } from "$lib/actions/trapFocus";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
@@ -9,6 +9,8 @@
   import { questionsFor, SMS_CONSENT, type InquiryAnswers } from "$lib/ghl/questions";
   import { writeHandoff } from "$lib/schedule/handoff";
   import { resolveTimeZone } from "$lib/schedule/slots";
+  import { page } from "$app/state";
+  import { stripQueryParams } from "$lib/url/stripQueryParams";
   import SendingDots from "$lib/components/SendingDots.svelte";
   import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 
@@ -170,6 +172,54 @@
     smsConsent = false;
     contactErrors = {};
   }
+
+  /**
+   * Resume an abandoned application from the CRM's chase link.
+   *
+   * A-102-1 texts and emails a lead who gave their email and never finished the
+   * questions. That link carries `?email=&full_name=&phone=` — and the whole
+   * reason they are being chased is that step one ALREADY succeeded, so landing
+   * them back on the email field asks for the one thing we demonstrably have.
+   * This opens straight into the questions instead.
+   *
+   * Deliberately does NOT re-post to ingest. Their email was captured when they
+   * first submitted it; sending it again would file a second lead for the same
+   * person, which is exactly what the chase exists to avoid.
+   *
+   * The params are stripped immediately — an email address in a URL is an email
+   * address in the browser history and in anything that later reads
+   * `location.href`. gtag.js is deferred until the first pointer/key/scroll
+   * event (see app.html), so it initialises after this and reads a clean URL.
+   * That ordering is the only thing keeping a lead's address out of analytics;
+   * move GA back to load-time and this stops being sufficient.
+   *
+   * The strip itself lives in `$lib/url/stripQueryParams` — see there for why
+   * it defers past hydration before touching the address bar.
+   */
+  const LINK_PARAMS = ["email", "full_name", "name", "phone"] as const;
+
+  onMount(() => {
+    const p = page.url.searchParams;
+    const linkEmail = (p.get("email") ?? "").trim();
+    const linkName = (p.get("full_name") ?? p.get("name") ?? "").trim();
+    const linkPhone = (p.get("phone") ?? "").trim();
+    // Unconditional, so even a malformed link leaves nothing in the URL bar.
+    stripQueryParams(LINK_PARAMS);
+
+    // An address we cannot use is not a resume — fall through to the normal
+    // page, rather than opening a modal over it for no reason.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(linkEmail)) return;
+
+    resetSession();
+    openedAt = Date.now();
+    email = linkEmail;
+    fullName = linkName;
+    phone = linkPhone;
+    open = true;
+    // Where a build has no question set for this survey, there is nothing to
+    // resume INTO; frame one prefilled is the honest fallback.
+    if (questions?.length) void goTo("question", 0);
+  });
 
   function close() {
     open = false;

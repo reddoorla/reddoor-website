@@ -14,8 +14,8 @@ const PATH = "/dev/a11y-fixtures";
 // The modal opens on a click, so the page has to be hydrated first — a click
 // dispatched before hydration is swallowed and the delegated listener never
 // sees it. See the CI compile-storm note in the repo's other specs.
-async function gotoHydrated(page: import("@playwright/test").Page) {
-  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+async function gotoHydrated(page: import("@playwright/test").Page, path: string = PATH) {
+  await page.goto(path, { waitUntil: "domcontentloaded" });
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
 }
 
@@ -653,4 +653,84 @@ test("reopening after a completed application starts a fresh email frame", async
   await expect(reopened.locator("#inquiry-email")).toBeVisible();
   await expect(reopened.locator("#inquiry-email")).toHaveValue("");
   await expect(reopened.getByText("your application is in")).toHaveCount(0);
+});
+
+// ── Resuming from the CRM's chase link ────────────────────────────────────
+//
+// A-102-1 chases a lead who gave their email and never finished the questions.
+// Its message links back with `?email=&full_name=&phone=`. The point of that
+// chase is that step one ALREADY succeeded — so the link must not land them on
+// the email field, and must not file their email a second time.
+
+const CHASE = `${PATH}?email=pat%40example.com&full_name=Pat%20Buyer&phone=(310)%20555-0101`;
+
+test("a chase link opens straight into the questions", async ({ page }) => {
+  const { calls } = await stubInquiry(page);
+  await gotoHydrated(page, CHASE);
+
+  // Open, past the email frame, and on question one.
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.locator("#inquiry-email")).toHaveCount(0);
+  await expect(page.getByText("What problems are you experiencing?")).toBeVisible();
+
+  // And nothing was submitted on arrival — their email is already on record,
+  // and re-posting it would file a second lead for the same person.
+  expect(calls).toEqual([]);
+});
+
+test("the address does not linger in the URL", async ({ page }) => {
+  // gtag.js is deferred until first interaction, so it must find this already
+  // cleaned — that ordering is the only thing keeping a lead's address out of
+  // analytics.
+  await stubInquiry(page);
+  await gotoHydrated(page, CHASE);
+
+  await expect.poll(() => new URL(page.url()).search).toBe("");
+  expect(page.url()).not.toContain("pat@example.com");
+  expect(page.url()).not.toContain("pat%40example.com");
+});
+
+test("the name and phone carry through to the contact frame", async ({ page }) => {
+  const { calls } = await stubInquiry(page);
+  await gotoHydrated(page, CHASE);
+  const dialog = page.getByRole("dialog");
+
+  // The same five questions the full-flow test walks, entered from the resume
+  // point rather than through step one.
+  await dialog.getByRole("checkbox", { name: "Outdated sales and marketing materials" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("textbox").fill("https://buyer.example.com");
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("checkbox", { name: "Confidence to compete in new markets" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("radio", { name: "My business partner" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("radio", { name: "$30,000 - 50,000" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+
+  // Arrived with both fields already filled — the whole point of the link.
+  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+  await expect(page.locator("#inquiry-name")).toHaveValue("Pat Buyer");
+  await expect(page.locator("#inquiry-phone")).toHaveValue("(310) 555-0101");
+
+  // Still nothing sent until they actually submit.
+  expect(calls).toEqual([]);
+
+  await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
+  await dialog.getByRole("button", { name: "Submit Application" }).click();
+
+  // And the address from the link is what reaches the server, unretyped.
+  await expect.poll(() => calls.length).toBe(1);
+  expect(calls[0].email).toBe("pat@example.com");
+  expect(calls[0].name).toBe("Pat Buyer");
+});
+
+test("a link with no usable address just shows the page", async ({ page }) => {
+  // No modal thrown over the page for a malformed link — but the params still
+  // go, so a broken link leaves nothing behind either.
+  await stubInquiry(page);
+  await gotoHydrated(page, `${PATH}?email=not-an-address&phone=(310)%20555-0101`);
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect.poll(() => new URL(page.url()).search).toBe("");
 });
