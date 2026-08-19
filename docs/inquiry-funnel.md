@@ -1353,12 +1353,41 @@ so on an assigned lead this renders one of the business's own numbers, prefills
 it into the lead's own phone field, and writes it back to their contact record
 when they submit.
 
-Checked against live data before acting: three business-owned numbers are on
-file, and of the location's contacts exactly one carries one of them — a
-record with no name, no email, no source and no tags, which is the signature of
-an inbound SMS creating a contact, not of a form submission (ours requires an
-email). **So the bug has not fired.** Recorded because the first read of that
-scan looked like a hit, and the difference is entirely in the record's shape.
+**Proven, not inferred — from sent mail.** The builder shows a template; only a
+delivered message shows a render. Three chase emails have gone out, and in all
+three the rendered `phone=` is, to the digit, the location's
+**"Z - PROFILE: Client SMS Notification Number"**. Not a guess about what
+`{{user.phone}}` resolves to; that is what it resolved to, every time.
+
+The scan of contact records is a separate question and its answer is still no:
+exactly one contact carries a business number, and it has no name, no email, no
+source and no tags — the signature of an inbound SMS creating a contact, not of
+a form submission, since ours requires an email. So **the link is wrong in every
+chase email ever sent, and no contact record has been corrupted yet** — the only
+thing standing between the two is that nobody has clicked through and submitted.
+The recipients so far were Tim's own test contacts.
+
+Two more merge fields in the same link render **empty** in all three:
+
+    full_name={{contact.name}}                             -> ""
+    utm_source={{contact.attributionSource.utmSource}}     -> ""
+
+So the name never carried through and the attribution never did either;
+`{{contact.name}}` is not a field in this context and wants
+`{{contact.first_name}} {{contact.last_name}}`. And the rendered phone contains
+an **unencoded space** (`phone=(310) 555-0101`), which some mail clients
+terminate a bare URL on — a third reason the param should not be there.
+
+#### How to read a render at all
+
+`GET /conversations/search?locationId=…` → `GET /conversations/{id}/messages`,
+then read `m.body`. Two traps, both of which cost a pass here: email bodies come
+back on `m.body` directly and the `/conversations/messages/email/{id}` endpoint
+returns a different shape that is empty for these; and in the plain-text part a
+URL is delimited by `[` … `]`, so a `\S+` match truncates at the space inside a
+rendered phone number and silently produces a wrong answer rather than no
+answer. This is the only way to verify a merge field short of asking a human to
+look.
 
 `/inquiry` drops the param rather than forwarding it. The value is either wrong
 or empty and never right, so no information is lost, and fixing it here does not
@@ -1376,6 +1405,40 @@ param — and forwards `utm_*`, which the modal posts as `sourceUrl` and the CRM
 builds its attribution note from. It is absent from the sitemap and pinned there
 by `sitemap.spec.ts`: being a redirect, it has no HTML to carry a `noindex`, so
 absence is its only control.
+
+#### A custom value works inside an inline link — so use one in A-102-3
+
+Tucker's question: can the appointment links be written as
+`{{custom_values.…}}/reschedule/{{appointment.id}}` rather than a literal host?
+
+**Yes, and it is the right shape.** The evidence is the chase emails again —
+`{{custom_values.sub_domain_url}}/inquiry?…` rendered as
+`https://go.reddoorla.com/inquiry?…` in all three, fully resolved. A custom
+value interpolates inside an inline body's link exactly like it does anywhere
+else. So writing A-102-3's three URLs against a custom value converts the
+staging→production switchover from a builder visit into a single API write, and
+converts a whole class of future link change with it. Worth the one-time edit.
+
+**Use a dedicated value, not `sub_domain_url`.** That one means "the GHL funnel
+subdomain" and may have consumers that cannot be enumerated (§6.16). If one
+surfaces broken, the fix is to revert it — and if the appointment links hang off
+the same value, reverting silently breaks those too. Two names, two meanings,
+independently revertible.
+
+#### `{{appointment.reschedule_link}}` has already shipped broken once
+
+Of seven reschedule links in sent mail, six carry a calendar id and one rendered
+
+    https://links.reddoorla.com/widget/booking/undefined?event_id=59k1AfckglZ55oYmNquR
+
+`undefined` in the path — GHL's own merge field, in a delivered email, pointing
+at nothing. Argument enough on its own for `/reschedule/{{appointment.id}}`
+against our route, where the id is the only thing in the URL and a missing one
+is a 404 we control and can see.
+
+Whether `{{appointment.id}}` exists remains the open question, and no endpoint
+answers it. But a render does: send one test booking, then read the delivered
+message back with the recipe above. If the URL contains an id, it exists.
 
 ## 7. Rules of engagement
 
