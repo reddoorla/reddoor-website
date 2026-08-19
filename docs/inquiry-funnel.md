@@ -1195,6 +1195,68 @@ here can prove what else interpolates it. It still reads `https://go.reddoorla.c
 and the Schedule Appointment link now carries its own absolute URL instead of
 being built from it.
 
+### 6.14 What submitting GHL's status form actually does — and the link I broke
+
+Erik asked in Discord whether the post-call "it was a pleasure chatting with you" text
+was on a timer. It is not, and establishing that turned up something more important.
+
+**The message came from a form submission, not a wait step.** Measured:
+
+    15:30:00.0  appointment starts (30 minutes, ends 16:00)
+    15:32:30.9  Tim submits the status-update form — 2.5 min into the LIVE call
+    15:33:03.9  system note "WF# A-101-1 Status Updated"
+    15:33:06    appointment flips to `showed`
+    15:33:10.3  SMS delivered to Erik
+
+Tim confirmed it himself: "That message was triggered by me completing a form. I wanted to
+see what the response looked like." The text landed 27 minutes before the call was due to
+end, which is why it read as automatic from Erik's side.
+
+**A-101-1 does at least four things off that one submission**, and only the first is
+something our `/meeting-outcome` reproduces:
+
+| effect                                         | ours?                                  |
+| ---------------------------------------------- | -------------------------------------- |
+| writes the outcome custom fields               | yes                                    |
+| sends the recap email + SMS to the client      | no                                     |
+| applies `offer made` and `call showed`         | no — we apply `outcome …` tags instead |
+| sets the appointment status to `showed`        | no (we set only `noshow`)              |
+| moves the opportunity along 01. Sales Pipeline | no                                     |
+
+That pipeline move is what starts Nicole's follow-up sequence:
+`1. New Inquiry → 2. Scheduled Appointment → 3. Lead Approved → 4. Showed → 5. Offer Made`.
+
+⚠️ **The regression, and the lesson.** §6.13 repointed the `Client Meeting Status Update`
+trigger link at our page. That link is not lead-facing — it is the one in the SMS Tim gets
+when a call starts ("Here's the link to update client meeting status", a
+`links.reddoorla.com` short URL). Our page writes through `PUT /contacts/{id}`, which
+creates no form submission, so A-101-1 would never have fired: no recap send, no tags, no
+pipeline move, no follow-ups — and our success screen would still have said "Logged."
+
+Reverted 2026-08-19: `client_meeting_status_update_url` back to
+`https://go.reddoorla.com/update`, and `CNC9Ce7s3kqntcPZ57Lk` back to
+`{{ custom_values.client_meeting_status_update_url }}?first_name=…`.
+
+The lesson generalises: **verifying that a replacement page renders is not verifying that
+submitting it does what the page it replaced did.** The other four swaps are safe because
+their destinations are terminal confirmation pages with no automation behind them, and
+`/schedule` drives the CRM through our booking API — proven by Erik's own confirmation and
+reminder texts, which fired off an appointment we created over the API.
+
+#### Two corrections to earlier sections
+
+1. §6.11 called our namespaced `outcome …` tags a ready-made hook. Verified since: they
+   exist on **zero** contacts and are absent from the location's complete 44-tag list,
+   because `/meeting-outcome` has never successfully run against a real contact. I also
+   claimed nothing listens for them — that is **unprovable** here, since workflow triggers
+   are unreadable by API. It was an inference stated as fact.
+2. The tags are only half the problem anyway. `offer made` and `call showed` are applied
+   BY A-101-1 as actions, downstream of its form trigger — they are outputs, not inputs.
+   Copying that vocabulary reproduces the DATA; it does not fire the SENDS. Firing those
+   needs a `Contact Tag Added` trigger added to A-101-1, and that works with any tag name,
+   namespaced or not. Which means matching their vocabulary is a consistency argument, not
+   a capability one.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
