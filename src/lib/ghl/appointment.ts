@@ -164,3 +164,74 @@ export async function cancelAppointment(opts: {
     (json) => ({ status: pickAppointment(json).status || "cancelled" }),
   );
 }
+
+/** Statuses that mean the appointment is already resolved one way or another. */
+const SETTLED = new Set(["cancelled", "noshow", "showed", "invalid"]);
+
+/**
+ * The appointment a just-logged call outcome refers to: the most recent one
+ * that has already STARTED and has not been settled.
+ *
+ * "Most recent past" rather than "only appointment" because a lead who
+ * rescheduled twice has three events on file, and because someone logging an
+ * outcome may already have their NEXT call booked — marking that one no-show
+ * would be a genuine mess.
+ */
+export function appointmentJustHeld(events: Appointment[], now = Date.now()): Appointment | null {
+  const past = events
+    .filter((e) => {
+      const t = Date.parse(e.startTime);
+      return Number.isFinite(t) && t <= now && !SETTLED.has(e.status.toLowerCase());
+    })
+    .sort((a, b) => Date.parse(b.startTime) - Date.parse(a.startTime));
+  return past[0] ?? null;
+}
+
+/** Every appointment on a contact. Needs only contacts.readonly. */
+export async function listContactAppointments(opts: {
+  token: string;
+  fetch: CrmFetch;
+  contactId: string;
+}): Promise<CrmResult<Appointment[]>> {
+  return crmCall(
+    { token: opts.token, fetch: opts.fetch },
+    `/contacts/${encodeURIComponent(opts.contactId)}/appointments`,
+    { method: "GET" },
+    (json) => {
+      const events = (json.events ?? []) as Record<string, unknown>[];
+      return events.map((e) => pickAppointment({ event: e }));
+    },
+  );
+}
+
+/**
+ * Mark an appointment as a no-show.
+ *
+ * Reported by Erik 2026-08-19: the post-call "it was a pleasure chatting with
+ * you" text fires on a timer, so it reaches people the call never happened
+ * with — and the personal touch is exactly what makes that land badly.
+ *
+ * Logging "No Show" on /meeting-outcome tagged the CONTACT but left the
+ * APPOINTMENT alone, so the CRM's own no-show handling ("Z-002-2. NoShow >
+ * Let's Reschedule") never fired and the calendar disagreed with the record.
+ * This closes that gap from the same submission.
+ *
+ * `toNotify` is false: the salesperson is logging what already happened, and
+ * a status change is not itself news the lead needs a message about. The
+ * follow-up they SHOULD get is Z-002-2's, which the status change triggers.
+ */
+export async function markAppointmentNoShow(opts: {
+  token: string;
+  fetch: CrmFetch;
+  eventId: string;
+}): Promise<CrmResult<{ status: string }>> {
+  return crmCall(
+    { token: opts.token, fetch: opts.fetch },
+    `/calendars/events/appointments/${encodeURIComponent(opts.eventId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ appointmentStatus: "noshow", toNotify: false }),
+    },
+    (json) => ({ status: pickAppointment(json).status || "noshow" }),
+  );
+}

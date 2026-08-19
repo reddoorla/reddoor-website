@@ -38,7 +38,12 @@
 
   let submitting = $state(false);
   let formError = $state("");
-  let saved = $state<{ name: string; sendRecap: boolean } | null>(null);
+  let saved = $state<{
+    name: string;
+    sendRecap: boolean;
+    /** true marked no-show, false the write failed, null nothing to mark. */
+    noShowSynced: boolean | null;
+  } | null>(null);
   let savedEl = $state<HTMLElement>();
 
   const isSold = $derived(outcome === "Sold!");
@@ -88,7 +93,11 @@
         formError = data?.error ?? "We couldn't save that. Please try again.";
         return;
       }
-      saved = { name: data?.name ?? "", sendRecap: data?.sendRecap === true };
+      saved = {
+        name: data?.name ?? "",
+        sendRecap: data?.sendRecap === true,
+        noShowSynced: data?.noShowSynced ?? null,
+      };
       await tick();
       savedEl?.focus();
     } catch {
@@ -123,6 +132,18 @@
           <p class="body">
             Outcome recorded{saved.name ? ` against ${saved.name}` : ""}.
           </p>
+          {#if saved.noShowSynced === true}
+            <p class="body">
+              The appointment is marked as a no-show in the calendar too, so the CRM's own
+              reschedule follow-up takes it from here.
+            </p>
+          {:else if saved.noShowSynced === false}
+            <p class="body">
+              Heads up — we couldn't mark the appointment as a no-show in the calendar. The outcome
+              above did save. Please set that status by hand so the reschedule follow-up still goes
+              out.
+            </p>
+          {/if}
           <p class="body">
             {#if saved.sendRecap}
               You asked for a recap email. Heads up — that send is a CRM workflow keyed to a form

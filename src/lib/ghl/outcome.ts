@@ -1,4 +1,5 @@
 import { addCrmTags, type CrmFetch, type CrmResult } from "./client";
+import { appointmentJustHeld, listContactAppointments, markAppointmentNoShow } from "./appointment";
 import { findContactByEmail, updateContact } from "./lookup";
 
 /**
@@ -87,7 +88,15 @@ export async function recordMeetingOutcome(opts: {
   token: string;
   fetch: CrmFetch;
   input: OutcomeInput;
-}): Promise<CrmResult<{ contactId: string; name: string; taggedOk: boolean } | null>> {
+}): Promise<
+  CrmResult<{
+    contactId: string;
+    name: string;
+    taggedOk: boolean;
+    /** true marked, false tried and failed, null nothing to mark. */
+    noShowSynced: boolean | null;
+  } | null>
+> {
   const found = await findContactByEmail({
     token: opts.token,
     fetch: opts.fetch,
@@ -131,8 +140,52 @@ export async function recordMeetingOutcome(opts: {
     tags: [tagFor(input.outcome)],
   });
 
+  const noShow = input.outcome === "No Show" ? await syncNoShow(opts, found.data.id) : null;
+
   return {
     ok: true,
-    data: { contactId: found.data.id, name: found.data.name, taggedOk: tagged.ok },
+    data: {
+      contactId: found.data.id,
+      name: found.data.name,
+      taggedOk: tagged.ok,
+      noShowSynced: noShow,
+    },
   };
+}
+
+/**
+ * Tell the CALENDAR what the contact record now says.
+ *
+ * Without this, "No Show" tagged the contact and left the appointment sitting
+ * at `confirmed`, so the CRM's own no-show follow-up never ran and the two
+ * halves of the CRM disagreed about the same meeting.
+ *
+ * Best-effort throughout, and returns null rather than throwing: the outcome is
+ * already safely on the record by the time this runs, and a salesperson who has
+ * just logged a missed call should not be shown a failure about a calendar
+ * field. Every branch is logged instead.
+ */
+async function syncNoShow(
+  opts: { token: string; fetch: CrmFetch },
+  contactId: string,
+): Promise<boolean | null> {
+  const events = await listContactAppointments({ ...opts, contactId });
+  if (!events.ok) {
+    console.error(`[outcome] could not list appointments (${events.status}): ${events.error}`);
+    return false;
+  }
+  const held = appointmentJustHeld(events.data);
+  if (!held) {
+    // Not a failure: an outcome can be logged for a call that was never in the
+    // calendar at all, and a lead whose only appointment is still in the future
+    // must not have it marked as missed.
+    console.warn(`[outcome] contact ${contactId}: no past unsettled appointment to mark no-show`);
+    return null;
+  }
+  const marked = await markAppointmentNoShow({ ...opts, eventId: held.id });
+  if (!marked.ok) {
+    console.error(`[outcome] no-show mark failed (${marked.status}): ${marked.error}`);
+    return false;
+  }
+  return true;
 }

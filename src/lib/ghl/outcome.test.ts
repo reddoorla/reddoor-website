@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { OUTCOMES, RECAP_NO, RECAP_YES, isOutcome, recordMeetingOutcome, tagFor } from "./outcome";
 
 function stubCrm(
-  opts: { found?: Record<string, unknown> | null; updateStatus?: number; tagStatus?: number } = {},
+  opts: {
+    found?: Record<string, unknown> | null;
+    updateStatus?: number;
+    tagStatus?: number;
+    appointments?: Record<string, unknown>[];
+    markStatus?: number;
+  } = {},
 ) {
   const calls: Array<{ url: string; method: string; body: Record<string, unknown> }> = [];
   const fetch = async (url: string, init: RequestInit = {}) => {
@@ -10,7 +16,16 @@ function stubCrm(
     calls.push({ url, method, body: JSON.parse(String(init.body ?? "{}")) });
     let status = 200;
     let body: unknown = {};
-    if (url.includes("/contacts/search")) {
+    // The calendar PUT first: "/appointments" alone matches BOTH it and the
+    // contact listing, and answering the write with a list of events is how a
+    // failing-write test silently passes.
+    if (url.includes("/calendars/events/appointments/")) {
+      status = opts.markStatus ?? 200;
+      body =
+        status === 200 ? { event: { id: "A1", appointmentStatus: "noshow" } } : { message: "no" };
+    } else if (url.includes("/appointments")) {
+      body = { events: opts.appointments ?? [] };
+    } else if (url.includes("/contacts/search")) {
       const found =
         opts.found === undefined
           ? { id: "C1", email: "buyer@example.com", firstName: "Dana", lastName: "Buyer" }
@@ -135,5 +150,69 @@ describe("recordMeetingOutcome", () => {
     const { fetch } = stubCrm({ updateStatus: 422 });
     const r = await recordMeetingOutcome({ token: "t", fetch, input: base });
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("the no-show / calendar gap", () => {
+  // Reported by Erik 2026-08-19: the post-call "pleasure chatting with you"
+  // text fires on a timer, so it reaches people the call never happened with.
+  // Tagging the contact was not enough — the CRM's own no-show follow-up is
+  // keyed to the APPOINTMENT's status, which nothing was setting.
+  const past = { id: "A1", startTime: "2000-01-01T10:00:00Z", appointmentStatus: "confirmed" };
+
+  it("marks the appointment when the outcome is No Show", async () => {
+    const { fetch, find } = stubCrm({ appointments: [past] });
+    const r = await recordMeetingOutcome({
+      token: "t",
+      fetch,
+      input: { ...base, outcome: "No Show", sendRecap: false },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data?.noShowSynced).toBe(true);
+
+    const put = find("/calendars/events/appointments/")[0];
+    expect(put.method).toBe("PUT");
+    expect(put.body.appointmentStatus).toBe("noshow");
+    // The salesperson is recording what already happened; a status change is
+    // not news the lead needs a message about. Z-002-2 sends the useful one.
+    expect(put.body.toNotify).toBe(false);
+  });
+
+  it("touches no appointment for any other outcome", async () => {
+    // A sale must never mark the meeting that produced it as missed.
+    for (const outcome of [
+      "Sold!",
+      "Offer Made (pending)",
+      "Not Interested/ Not Yet Ready",
+    ] as const) {
+      const { fetch, find } = stubCrm({ appointments: [past] });
+      await recordMeetingOutcome({ token: "t", fetch, input: { ...base, outcome } });
+      expect(find("/calendars/events/appointments/"), outcome).toHaveLength(0);
+    }
+  });
+
+  it("reports nothing-to-mark without failing the log", async () => {
+    const { fetch, find } = stubCrm({ appointments: [] });
+    const r = await recordMeetingOutcome({
+      token: "t",
+      fetch,
+      input: { ...base, outcome: "No Show", sendRecap: false },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data?.noShowSynced).toBeNull();
+    expect(find("/calendars/events/appointments/")).toHaveLength(0);
+  });
+
+  it("keeps the outcome saved when the calendar write fails", async () => {
+    // The outcome is already on the record by then. A salesperson who just
+    // logged a missed call should not be shown a failure about a calendar field.
+    const { fetch } = stubCrm({ appointments: [past], markStatus: 500 });
+    const r = await recordMeetingOutcome({
+      token: "t",
+      fetch,
+      input: { ...base, outcome: "No Show", sendRecap: false },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data?.noShowSynced).toBe(false);
   });
 });

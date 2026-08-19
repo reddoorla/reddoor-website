@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  publicView,
-  fetchAppointment,
-  rescheduleAppointment,
+  appointmentJustHeld,
   cancelAppointment,
+  fetchAppointment,
+  publicView,
+  rescheduleAppointment,
 } from "./appointment";
 import { GHL_CALENDAR_ID } from "./constants";
 
@@ -146,5 +147,59 @@ describe("cancelAppointment", () => {
     const r = await cancelAppointment({ token: "t", fetch, eventId: RAW.id });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.status).toBe(422);
+  });
+});
+
+describe("appointmentJustHeld", () => {
+  const NOW = Date.parse("2026-08-19T18:00:00Z");
+  const ev = (id: string, start: string, status = "confirmed") => ({
+    id,
+    calendarId: "cal",
+    contactId: "C1",
+    startTime: start,
+    endTime: start,
+    status,
+    title: "",
+    address: "",
+  });
+
+  it("picks the most recent appointment that has already started", () => {
+    // A lead who rescheduled twice has three events on file. Only the one the
+    // salesperson just sat through (or did not) should be marked.
+    const chosen = appointmentJustHeld(
+      [
+        ev("old", "2026-08-05T18:00:00Z"),
+        ev("held", "2026-08-19T17:00:00Z"),
+        ev("older", "2026-07-01T18:00:00Z"),
+      ],
+      NOW,
+    );
+    expect(chosen?.id).toBe("held");
+  });
+
+  it("never reaches forward to an appointment that has not happened", () => {
+    // The dangerous case: someone logs a missed call while their NEXT call is
+    // already booked. Marking that one no-show would cancel a live lead.
+    const chosen = appointmentJustHeld([ev("future", "2026-08-26T18:00:00Z")], NOW);
+    expect(chosen).toBeNull();
+  });
+
+  it("leaves already-settled appointments alone", () => {
+    for (const status of ["cancelled", "noshow", "showed", "invalid"]) {
+      const chosen = appointmentJustHeld([ev("done", "2026-08-19T17:00:00Z", status)], NOW);
+      expect(chosen, status).toBeNull();
+    }
+  });
+
+  it("returns null when there is nothing on file", () => {
+    // An outcome can be logged for a call that was never in the calendar.
+    expect(appointmentJustHeld([], NOW)).toBeNull();
+  });
+
+  it("ignores an unparseable start rather than treating it as the epoch", () => {
+    // Date.parse("") is NaN; a naive comparison would sort it to the front and
+    // mark an appointment nobody can date.
+    const chosen = appointmentJustHeld([ev("broken", ""), ev("held", "2026-08-19T17:00:00Z")], NOW);
+    expect(chosen?.id).toBe("held");
   });
 });

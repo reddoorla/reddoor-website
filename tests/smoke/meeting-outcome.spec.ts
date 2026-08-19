@@ -173,3 +173,47 @@ test("has no accessibility violations", async ({ page }) => {
     .analyze();
   expect(results.violations).toEqual([]);
 });
+
+test("says when the calendar was updated too", async ({ page }) => {
+  // Erik's report, 2026-08-19: the post-call text fires on a timer, so it
+  // reaches people the call never happened with. The tag alone did not stop
+  // that — the CRM's no-show handling keys off the APPOINTMENT status.
+  await stub(page, {
+    body: { success: true, name: "Dana Buyer", sendRecap: false, noShowSynced: true },
+  });
+  await gotoHydrated(page, PATH);
+
+  await page.locator("#mo-outcome").selectOption("No Show");
+  await page.getByRole("button", { name: "Save outcome" }).click();
+  await expect(page.getByText(/marked as a no-show in the calendar/)).toBeVisible();
+});
+
+test("a failed calendar write asks for a hand fix, without claiming the log failed", async ({
+  page,
+}) => {
+  await stub(page, {
+    body: { success: true, name: "Dana Buyer", sendRecap: false, noShowSynced: false },
+  });
+  await gotoHydrated(page, PATH);
+
+  await page.locator("#mo-outcome").selectOption("No Show");
+  await page.getByRole("button", { name: "Save outcome" }).click();
+
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Logged");
+  // Phrases chosen to sit within one source line: getByText normalises
+  // whitespace for string matches but NOT for regex ones, so a pattern that
+  // spans a line break in the markup never matches.
+  await expect(page.getByText(/above did save/)).toBeVisible();
+  await expect(page.getByText(/set that status by hand/)).toBeVisible();
+});
+
+test("says nothing about the calendar for an outcome that is not a no-show", async ({ page }) => {
+  await stub(page, {
+    body: { success: true, name: "Dana Buyer", sendRecap: false, noShowSynced: null },
+  });
+  await gotoHydrated(page, PATH);
+
+  await page.locator("#mo-outcome").selectOption("Sold!");
+  await page.getByRole("button", { name: "Save outcome" }).click();
+  await expect(page.getByText(/calendar/)).toHaveCount(0);
+});
