@@ -446,7 +446,7 @@ as one: a **draft** "Nurture Emails" and a **published** "New Inquiry Submitted"
 Anything said here about "A-102-2" means the published one. The draft is the one
 confirmed disarmed.
 
-Their **contents remain unreadable by any API.** Re-probed with the widened
+Their **ACTIONS remain unreadable by any API** — the workflows only. Re-probed with the widened
 token: `/workflows/{id}`, `/{id}/triggers`, `/{id}/steps`, `/{id}/detail` and
 `/{id}/versions` all return **404**. v1 REST rejects a PIT, the internal backend
 host 404s. So every statement below about what A-102-1 _currently contains_
@@ -885,7 +885,7 @@ new state (it is a UI state the picker-open a11y test never reaches).
 ### 6.10 Owning the links the CRM sends
 
 Every URL this CRM has ever sent a human, extracted from the messages
-themselves on 2026-08-18 (workflow bodies are unreadable by any API; the
+themselves on 2026-08-18 (workflow actions are unreadable by any API; the
 messages they produced are not):
 
 | Sent | Link                                                            | Verdict                              |
@@ -909,6 +909,50 @@ Reschedule:-
 Cancel:-
 {{cancellation_link}}
 ```
+
+#### Where the links actually live (probed 2026-08-18)
+
+The table above was inferred from messages six contacts happened to receive, on
+the basis that "workflow bodies are unreadable". That is true of workflow
+ACTIONS and of nothing else — a claim made here after probing only
+`/workflows/`. Four other surfaces answer to the broad token:
+
+| Endpoint                            | Holds                                   |
+| ----------------------------------- | --------------------------------------- |
+| `GET /links/?locationId=`           | trigger links + their real `redirectTo` |
+| `GET /locations/{id}/customValues`  | the URLs templates interpolate          |
+| `GET /calendars/{id}/notifications` | the calendar's own notification bodies  |
+| `GET /emails/builder?locationId=`   | standalone email templates              |
+
+Three things that changes:
+
+**1. `schedule my appointment url` is EMPTY.** A custom value that exists for
+exactly this purpose — `{{custom_values.schedule_my_appointment_url}}` — has
+never been set, so anything interpolating it renders nothing. So is
+`{{custom_values.your_agency_website}}`.
+
+**2. The SMS "book a call" link is ONE trigger link, not many messages.**
+
+```
+Schedule Appointment   id XNbbFm2yy5f9GLovpjGC
+  redirectTo  {{custom_values.sub_domain_url}}/inquiry-completed?first_name=…&email=…&phone=…
+  merge field {{trigger_link.XNbbFm2yy5f9GLovpjGC}}
+```
+
+That id is the `link_id` inside the JWT behind every `links.reddoorla.com/l/…`
+short link in the SMS reminders. Editing this one `redirectTo` changes all of
+them — far better than hunting through message bodies.
+
+**3. The calendar's notifications are all internal.** All three (`booked`,
+`cancellation`, `confirmation`) carry `receiverType: assignedUser` — they go to
+Tim, not the lead, and two have no body at all. So the lead-facing confirmation
+is a workflow email action inside A-102-3, which stays out of reach. The
+reschedule/cancel pair the lead sees comes from the calendar's `notes` field,
+which lands in the invite description.
+
+⚠️ **Do not blanket-change `{{custom_values.sub_domain_url}}`** to reddoorla.com.
+It is `https://go.reddoorla.com`, and the unsubscribe and resubscribe
+confirmation pages genuinely live there with no equivalent on our side.
 
 #### What shipped
 
