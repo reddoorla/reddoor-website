@@ -1492,12 +1492,35 @@ Reddoor Creative" and contains no links at all — it sits beside the link, it
 does not hold it. It is not exposed on `/users/search`, so a render is again the
 only way to read it.
 
-**Not automatable, checked against the spec rather than guessed.**
-`/locations/{locationId}/templates/{id}` is GET and DELETE only — there is no
-update verb. `POST /emails/builder/data` is documented as "Update a template"
-but requires `dnd` and `editorType`, drag-and-drop builder fields these
-plain-HTML templates do not carry; supplying them risks converting the template
-rather than editing it. Two hand-edits, once each.
+**The update route exists; the token lacks its scope.** An earlier pass here
+said "not automatable, checked against the spec" — the spec check was right
+about the docs and wrong to be the final word. Probing the live API with a
+**bogus template id**, so nothing real could be mutated:
+
+    PUT   /locations/{loc}/templates/{bogus}       401  token is not authorized for this scope
+    POST  /locations/{loc}/templates/{bogus}       401  token is not authorized for this scope
+    PATCH /locations/{loc}/templates/{bogus}       404  Cannot PATCH …            <- no such route
+    PUT   /locations/{loc}/notarealresource/{x}    404  Cannot PUT …              <- control
+    GET   /locations/{loc}/templates/{bogus}       400  Template does not exists. <- control
+
+A routing 404 and a scope 401 are different answers. PUT and POST are **real
+routes** behind a scope this token does not hold — not absent ones.
+
+The scope is undocumented: `templates` is the only `locations/*` resource with a
+`.readonly` and no matching `.write` (customFields, customValues and tags all
+have both). So whether it is grantable is the open question, and it is settled
+in one place — the Private Integration scope picker. If a templates write scope
+appears there, these two edits become an API write like the custom value did. If
+it does not, it is non-grantable and stays a hand-edit, the same shape as
+`/triggers/`.
+
+`POST /emails/builder/data` is a dead end regardless: 404 on this host even with
+a well-formed body, and it wants `dnd` + `editorType`, drag-and-drop fields
+these plain-HTML records do not carry.
+
+Both templates are backed up verbatim before any of this
+(`backup-template-{id}.json`), because the one verb that _is_ granted beyond GET
+is DELETE.
 
 One trap for the next sweep: `GET /locations/{locationId}/templates` returns
 `totalCount: 0` for this location even though GET-by-id returns 200 for both
