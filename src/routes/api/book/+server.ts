@@ -1,7 +1,13 @@
 import { json } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
-import { upsertCrmContact, addCrmTags, attributionFields, phoneWasDropped } from "$lib/ghl/client";
+import {
+  upsertCrmContact,
+  addCrmTags,
+  addCrmNote,
+  attributionFields,
+  phoneWasDropped,
+} from "$lib/ghl/client";
 import { normalizeZone } from "$lib/schedule/timezone";
 import { bookAppointment, TAG_SCHEDULED_A_CALL } from "$lib/ghl/booking";
 import type { RequestHandler } from "./$types";
@@ -101,12 +107,35 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
 
   // Same conflict as on the application path (see phoneWasDropped): a number
   // already sitting on another contact is dropped on an otherwise clean 200.
-  // Nothing to correct here — the appointment matters more than the reminder,
-  // and ingest has the number — but it must not pass unrecorded.
+  //
+  // A console line was the whole response here, which left the CRM record for a
+  // BOOKED CALL with no number and no trace that one was given. Measured on a
+  // real staging booking 2026-08-19: the visitor typed a phone, the contact
+  // saved without one, and the CRM's own reminder note read "Phone:  | Email:
+  // …" — so the person Tim would ring before the call had nothing to ring.
+  //
+  // The application path already writes the number into a note for exactly this
+  // (see the "Cell as entered" block in buildContactNote), and a booking is the
+  // stronger case for it: a call is scheduled. Ingest holds the number either
+  // way; this is so the record a human opens does too.
   if (phoneWasDropped(phone, contact.data.storedPhone)) {
     console.warn(
       `[book] contact ${contact.data.contactId}: submitted phone NOT stored (already on another contact)`,
     );
+    // Deliberately not awaited into the failure path: the booking is what the
+    // visitor came for, and a note that will not write is not a reason to fail
+    // it. Logged rather than surfaced.
+    const note = await addCrmNote({
+      token: env.CRM_FUNNEL_ACTIVE_TOKEN,
+      fetch,
+      contactId: contact.data.contactId,
+      body:
+        `Cell as entered when booking: ${phone}` +
+        ` — NOT saved to this contact; that number is already on another record.`,
+    });
+    if (!note.ok) {
+      console.error(`[book] phone-conflict note failed (${note.status}): ${note.error}`);
+    }
   }
 
   const appointment = await bookAppointment({
