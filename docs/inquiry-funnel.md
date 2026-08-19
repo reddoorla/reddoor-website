@@ -995,6 +995,86 @@ Let's Reschedule` is keyed to the status — a delete takes the follow-up with i
 shape and has never been fired, because it would move or cancel a real booking
 (§7.1). One throwaway booking would settle both.
 
+### 6.11 The go.reddoorla.com pages, replaced
+
+All five hosted funnel pages were read before anything was built, because
+whether a page SAYS something or DOES something changes the job entirely.
+
+| Hosted page          | What it is                                                             | Replaced by                      |
+| -------------------- | ---------------------------------------------------------------------- | -------------------------------- |
+| `/inquiry`           | the hosted questionnaire, 27 controls                                  | the industry LP + `InquiryModal` |
+| `/inquiry-completed` | static thank-you (its `<title>` still reads `YOUR BUSINESS NAME HERE`) | `/schedule`                      |
+| `/unsubscribe`       | confirmation + a recovery form                                         | `/email/unsubscribed`            |
+| `/resubscribe`       | pure confirmation                                                      | `/email/resubscribed`            |
+| `/update`            | a STAFF tool: outcome, lead value, notes, recap email                  | `/meeting-outcome`               |
+
+#### Unsubscribing stays with GHL
+
+`$lib/ghl/consent` can clear a DND flag and cannot set one, and a unit test
+asserts it can never emit `"active"`. GHL's unsubscribe view is wired to their
+compliance tooling and is the record of who asked us to stop; a second
+home-grown way to suppress someone is a second thing to get wrong about a legal
+obligation. Neither page writes on load, for the same reason `/cancel` does not.
+
+#### `contacts.readonly`, and why both remaining pages needed it
+
+The deployed token held `contacts.write` and not `contacts.readonly` — measured,
+`GET /contacts/{id}` returned 401. Both remaining pages take a **typed** email
+address from a form, so without a lookup they would have to upsert, and an
+upsert invents a contact for a typo. Neither a subscriber nor a call outcome
+should be conjured out of a mistyped address, so the scope was added on
+2026-08-18 (six now — see `.env.example`).
+
+`findContactByEmail` uses an `eq` filter, NOT the `query` parameter. Measured:
+`query` is fuzzy and will return a near-match, which is the wrong kind of
+helpful when the write is somebody's consent. The upsert survives only as a
+fallback for a **401**, so a scope revoked by someone who does not know this
+form depends on it cannot silently break an opt-in; that path logs at error.
+
+#### `/meeting-outcome` is guarded, unlike the page it replaces
+
+It is the only page here that writes onto somebody ELSE's record and can send
+them an email. GHL's is wide open — anyone with the URL can post to it — and
+inheriting that on our own domain is not a trade worth making. So:
+`MEETING_OUTCOME_KEY` in the trigger link, compared in constant time, and the
+endpoint **fails closed** when the variable is unset. A wrong key answers 404,
+the same as a missing page.
+
+Its five option strings are byte-for-byte from the location's own field
+definitions — the stray space in `Not Interested/ Not Yet Ready`, the
+exclamation mark on `Sold!`, the apostrophe in `No (don't send email)`. GHL
+matches exactly; a tidied-up option silently unmaps the answer and the
+salesperson sees a blank field rather than an error. `outcome.test.ts` pins them,
+as `questions.test.ts` pins the survey's.
+
+⚠️ **The A-102 trigger gap applies here too.** Writing those fields by API does
+not fire a form-submitted trigger, so the conversation recap email and anything
+keyed to "Sold!" will not run until `Contact Tag Added` triggers exist. Every
+outcome therefore applies a namespaced tag (`outcome sold`, `outcome no show`, …)
+so the hook is waiting, and the success screen says so rather than letting a
+requested recap quietly not send.
+
+#### The change list, once more — mostly custom values
+
+Four of the five are a custom-value edit, because the trigger links interpolate
+them:
+
+| Custom value                                | Set to                                          |
+| ------------------------------------------- | ----------------------------------------------- |
+| `schedule_my_appointment_url` (EMPTY today) | `https://reddoorla.com/schedule`                |
+| `your_agency_website` (EMPTY today)         | `https://reddoorla.com`                         |
+| `email_unsubscribe_confirmation`            | `https://reddoorla.com/email/unsubscribed`      |
+| `resubscribe_for_emails_page`               | `https://reddoorla.com/email/resubscribed`      |
+| `client_meeting_status_update_url`          | `https://reddoorla.com/meeting-outcome?k=<key>` |
+
+Plus one trigger link — `Schedule Appointment` (`XNbbFm2yy5f9GLovpjGC`), whose
+`redirectTo` becomes `https://reddoorla.com/schedule`. With that changed,
+`sub_domain_url` has no remaining consumer among these and can be left alone.
+
+Still per-template: the calendar's `notes` field, and A-102-3's confirmation
+email — the one send that stays unreadable, because all three calendar
+notifications turned out to go to the assigned user rather than the lead.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
