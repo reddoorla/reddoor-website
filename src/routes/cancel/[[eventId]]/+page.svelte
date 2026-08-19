@@ -21,8 +21,25 @@
    * and nothing here is hidden behind a second confirmation.
    */
 
+  /**
+   * The id is OPTIONAL in the route, so `/cancel` with nothing after it renders
+   * this page in its "missing" state rather than 404ing.
+   *
+   * That URL is reachable in production. The CRM builds
+   * `{{custom_values.sub_domain_url}}/cancel/{{appointment.id}}`, and an id can
+   * arrive empty — a message composed outside appointment scope, a mail client
+   * truncating the link, a forward that drops the last segment. SvelteKit 308s
+   * the resulting trailing slash to `/cancel`, which had no route at all, so a
+   * client trying to cancel met a 404 instead of a way through. Measured on the
+   * sibling `/reschedule` path after a real send.
+   *
+   * Reschedule redirects to /schedule instead, because "find another time" is
+   * the outcome that message wants. Cancelling has no such equivalent — sending
+   * someone to a booking page when they came to cancel would be the dark
+   * pattern this page is written to avoid — so it stays here and says so.
+   */
   const eventId = page.params.eventId ?? "";
-  const rescheduleHref = `/reschedule/${encodeURIComponent(eventId)}`;
+  const rescheduleHref = eventId ? `/reschedule/${encodeURIComponent(eventId)}` : "/schedule";
 
   let timeZone = $state<string | undefined>(undefined);
   let lookup = $state<"loading" | "ready" | "missing" | "error">("loading");
@@ -44,6 +61,13 @@
   });
 
   async function load() {
+    // No id, nothing to look up. Answered here rather than by asking the API
+    // for `/api/appointment/`, which is a different route and a 404 that means
+    // something else.
+    if (!eventId) {
+      lookup = "missing";
+      return;
+    }
     lookup = "loading";
     try {
       const res = await fetch(`/api/appointment/${encodeURIComponent(eventId)}`);
