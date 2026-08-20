@@ -107,7 +107,7 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
 export const SMS_CONSENT = {
   tag: "K6hRBtIufgEo0ZuJfDPD",
   label:
-    "I agree to receiving text messages at this number. We will only use this number for text communication regarding this application.",
+    "I agree to receive text messages at this number. We will only use this number for text communication regarding this application.",
 } as const;
 
 /**

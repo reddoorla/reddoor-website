@@ -232,7 +232,7 @@ test("the full application: five questions, contact details, both submissions", 
   await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
   await page.locator("#inquiry-name").fill("Pat Buyer");
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
   // A finished application hands off to the calendar rather than stopping on a
@@ -612,7 +612,7 @@ test("an application-step ingest failure surfaces the error and holds the visito
   for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
   await page.locator("#inquiry-name").fill("Pat Buyer");
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
   // The failure is surfaced and the visitor is held on the contact frame rather
@@ -637,7 +637,7 @@ test("reopening after a completed application starts a fresh email frame", async
   for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
   await page.locator("#inquiry-name").fill("Pat Buyer");
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
   await expect(page).toHaveURL(/\/schedule$/);
 
@@ -716,7 +716,7 @@ test("the name and phone carry through to the contact frame", async ({ page }) =
   // Still nothing sent until they actually submit.
   expect(calls).toEqual([]);
 
-  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
   // And the address from the link is what reaches the server, unretyped.

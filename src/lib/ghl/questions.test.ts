@@ -58,7 +58,7 @@ describe("the A-101 question set", () => {
   it("carries the CRM's exact consent field and wording", () => {
     expect(SMS_CONSENT.tag).toBe("K6hRBtIufgEo0ZuJfDPD");
     expect(SMS_CONSENT.label).toBe(
-      "I agree to receiving text messages at this number. We will only use this number for text communication regarding this application.",
+      "I agree to receive text messages at this number. We will only use this number for text communication regarding this application.",
     );
   });
 });

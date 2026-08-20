@@ -1705,12 +1705,23 @@ is a one-line correction.
 
 The consent string is the one to think twice about. It is not a label: it is
 written to the contact as the value of the SMS Consent field, so it **is** the
-record of what a person agreed to. Erik's rewording drops the word "consent"
-itself ("I agree to receiving text messages at this number…"). Contacts who
-consented before today keep the old wording, which is correct — a consent record
-should say what was actually on screen at the time — but it does mean the field
-now holds two wordings, and `SMS_CONSENT.label` has to match whichever is
-current or new consents stop matching at all.
+record of what a person agreed to. It now reads:
+
+    I agree to receive text messages at this number. We will only use this
+    number for text communication regarding this application.
+
+Contacts who consented before today keep the old wording, which is correct — a
+consent record should say what was actually on screen at the time — but it does
+mean the field holds two wordings, and `SMS_CONSENT.label` has to match
+whichever is current or new consents stop matching at all.
+
+Erik's note as written read "I agree to **receiving**"; corrected to "agree to
+**receive**" on Tucker's call, 2026-08-20. Dropping the word "consent" was left
+as he wrote it — it is his copy, and an affirmative "I agree to receive" is
+still an express opt-in. Worth noting for whoever reviews this later that
+neither wording carries message frequency, data rates, or STOP/HELP; that was
+already true of the original and is not a regression, but it is the thing to
+raise if SMS compliance is ever actually audited.
 
 ## 7. Rules of engagement
 
