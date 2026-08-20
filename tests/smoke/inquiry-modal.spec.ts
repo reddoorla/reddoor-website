@@ -11,6 +11,16 @@ import { AxeBuilder } from "@axe-core/playwright";
 // same `#inquire` trigger the migrated content will.
 const PATH = "/dev/a11y-fixtures";
 
+// Pinned because this file asserts a wall-clock slot label ("8:00 AM"). The
+// stubbed slot carries a MOUNTAIN offset, so the rendered time is whatever zone
+// the browser is in: Pacific on the machines this was written on, UTC on a CI
+// runner — where the same instant reads "3:00 PM" and the button is never
+// found. Unpinned, the test asserted the author's timezone rather than the
+// conversion, and passed locally for exactly that reason. schedule.spec.ts and
+// appointment-links.spec.ts pin for the same reason; this file was the only
+// zone-sensitive spec that did not.
+test.use({ timezoneId: "America/Los_Angeles" });
+
 // The modal opens on a click, so the page has to be hydrated first — a click
 // dispatched before hydration is swallowed and the delegated listener never
 // sees it. See the CI compile-storm note in the repo's other specs.
