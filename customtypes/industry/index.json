@@ -1,0 +1,132 @@
+{
+  "id": "industry",
+  "label": "Industry",
+  "format": "page",
+  "repeatable": true,
+  "status": true,
+  "json": {
+    "Main": {
+      "uid": {
+        "type": "UID",
+        "config": {
+          "label": "UID",
+          "placeholder": ""
+        }
+      },
+      "title": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Title",
+          "placeholder": "",
+          "allowTargetBlank": true,
+          "single": "heading1"
+        }
+      },
+      "slices": {
+        "type": "Slices",
+        "fieldset": "Slice Zone",
+        "config": {
+          "choices": {
+            "industry_hero": {
+              "type": "SharedSlice"
+            },
+            "lead_text": {
+              "type": "SharedSlice"
+            },
+            "text_columns": {
+              "type": "SharedSlice"
+            },
+            "case_study": {
+              "type": "SharedSlice"
+            },
+            "logo_grid": {
+              "type": "SharedSlice"
+            },
+            "testimonial": {
+              "type": "SharedSlice"
+            },
+            "featured_project": {
+              "type": "SharedSlice"
+            },
+            "value_block": {
+              "type": "SharedSlice"
+            },
+            "accordion": {
+              "type": "SharedSlice"
+            },
+            "cta_banner": {
+              "type": "SharedSlice"
+            },
+            "rich_text": {
+              "type": "SharedSlice"
+            }
+          }
+        }
+      }
+    },
+    "Inquiry": {
+      "inquiry_title": {
+        "type": "Text",
+        "config": {
+          "label": "Modal Title",
+          "placeholder": "Let’s Get Started! (default when blank)"
+        }
+      },
+      "inquiry_prompt": {
+        "type": "Text",
+        "config": {
+          "label": "Prompt Above the Email Field",
+          "placeholder": "Enter your email, then answer 5 questions… (default when blank)"
+        }
+      },
+      "inquiry_thanks": {
+        "type": "Text",
+        "config": {
+          "label": "Thank-You Message",
+          "placeholder": "Shown after the application is submitted (default when blank)"
+        }
+      },
+      "inquiry_form_id": {
+        "type": "Text",
+        "config": {
+          "label": "GHL Form ID (email capture)",
+          "placeholder": "e.g. MgcBOjbMGpQByfbVnUe7 — from the form's embed URL (default when blank)"
+        }
+      },
+      "inquiry_survey_id": {
+        "type": "Text",
+        "config": {
+          "label": "GHL Survey ID (five questions)",
+          "placeholder": "e.g. VfiN5rugWcATPw47P20U — the questions themselves are code, keyed to this ID"
+        }
+      }
+    },
+    "SEO & Metadata": {
+      "meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "Meta Title",
+          "placeholder": "A title of the page used for social media and search engines"
+        }
+      },
+      "meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "Meta Description",
+          "placeholder": "A brief summary of the page"
+        }
+      },
+      "meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Meta Image",
+          "constraint": {
+            "width": 2400,
+            "height": 1260
+          },
+          "thumbnails": []
+        }
+      }
+    }
+  }
+}

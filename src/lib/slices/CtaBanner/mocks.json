@@ -1,0 +1,54 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "heading": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "heading2",
+            "content": {
+              "text": "Are you ready for your brand to go from being overlooked to having instant credibility with your buyers?"
+            }
+          }
+        ]
+      },
+      "buttonLabel": {
+        "__TYPE__": "FieldContent",
+        "value": "Talk with a founder",
+        "type": "Text"
+      },
+      "buttonLink": {
+        "key": "ae201220-08f4-4d78-aab7-a6da365dd38b",
+        "__TYPE__": "LinkContent",
+        "value": {
+          "__TYPE__": "ExternalLink",
+          "url": "https://reddoorla.com/contact"
+        }
+      },
+      "background": {
+        "__TYPE__": "FieldContent",
+        "value": "paper-red",
+        "type": "Select"
+      },
+      "hasTopPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hasBottomPadding": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

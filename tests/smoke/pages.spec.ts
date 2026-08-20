@@ -34,7 +34,9 @@ function attachConsoleWatcher(page: Page, extraAllowed: RegExp[] = []) {
   return errors;
 }
 
-const ROUTES = ["/", "/about", "/portfolio", "/twenty-for-twenty", "/contact"];
+// "/medtech" is an `industry` document, not a `page` — it exercises the
+// page→industry fallback in the [uid] route.
+const ROUTES = ["/", "/about", "/portfolio", "/twenty-for-twenty", "/contact", "/medtech"];
 
 for (const path of ROUTES) {
   test(`${path} loads with no console errors`, async ({ page }) => {

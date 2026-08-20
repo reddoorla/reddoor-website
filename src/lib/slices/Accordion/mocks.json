@@ -45,5 +45,250 @@
       }
     },
     "items": []
+  },
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "rail",
+    "primary": {
+      "label": {
+        "__TYPE__": "FieldContent",
+        "value": "Frequently Asked Questions",
+        "type": "Text"
+      },
+      "defaultOpen": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      },
+      "items": {
+        "__TYPE__": "GroupContentType",
+        "value": [
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "We need more sales, not a new logo. How does branding actually help us win deals?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Buyers decide whether you look credible long before they talk to sales. Branding is how we close that trust gap, so the reps you already have spend their time on real conversations instead of proving you belong in the room."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "How does pricing work?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Every engagement is a fixed-fee scope agreed up front, phase by phase. You know the number before we start, and nothing gets added without your sign-off."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "We have a regulatory and QA team. Where do you fit?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "We build the brand system and the deliverables; your regulatory and QA teams review them the same way they review anything else. We have run this loop for twenty years and design for it from the first draft."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Will a rebrand confuse the customers we already have?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Not if it is sequenced properly. We keep the equity your customers recognize, retire only what is holding you back, and roll the change out on a schedule your sales team can explain in one sentence."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "What’s the timeline, and how much of our time does it take?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Most programs run three to six months end to end. Your team is in a working session roughly every other week; we handle everything in between."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Do we have to do all 3 phases?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "No. Each phase stands on its own and ends with something you can use. Most teams keep going because the next phase gets easier, not because they are locked in."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "Why not use a freelancer or handle this internally?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "Both work for one-off assets. Neither builds a system that holds up across a regulated sales cycle, a trade show booth, a spec sheet and a website at the same time — which is the part that actually moves deals."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "title",
+                {
+                  "__TYPE__": "FieldContent",
+                  "value": "How do we get started?",
+                  "type": "Text"
+                }
+              ],
+              [
+                "body",
+                {
+                  "__TYPE__": "StructuredTextContent",
+                  "value": [
+                    {
+                      "type": "paragraph",
+                      "content": {
+                        "text": "One call with a founder. We look at where buyers are losing confidence, and you leave with a clear read on the problem whether or not you hire us."
+                      }
+                    }
+                  ]
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
   }
 ]

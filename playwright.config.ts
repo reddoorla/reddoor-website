@@ -19,7 +19,11 @@ export default defineConfig({
   ...base,
   use: {
     ...base.use,
-    reducedMotion: "reduce",
+    // NOTE: `reducedMotion` is deliberately NOT set here. Measured on
+    // Playwright 1.62.1: the config-level value reaches neither
+    // matchMedia nor the CSS cascade, so it reads as protection the suite
+    // does not have. Tests that need it call page.emulateMedia({
+    // reducedMotion: "reduce" }) themselves — see schedule.spec.ts.
     ...(smokePort ? { baseURL: `http://localhost:${smokePort}` } : {}),
   },
   ...(smokePort

@@ -11,6 +11,7 @@
   import { afterNavigate, disableScrollHandling } from "$app/navigation";
 
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
+  import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
 
   import { isInHero } from "$lib/stores/isInHero.svelte";
   import LandscapeModal from "$lib/components/LandscapeModal.svelte";
@@ -27,11 +28,18 @@
   // attribute set; no behavioral effect.
   onMount(() => document.documentElement.setAttribute("data-hydrated", "true"));
 
-  const NAV_LINKS = [
+  const SITE_NAV_LINKS = [
     { label: "Portfolio", href: "/portfolio" },
     { label: "About", href: "/about" },
     { label: "20 for 20", href: "/twenty-for-twenty" },
     { label: "Meet With Us", href: "/contact" },
+  ];
+
+  // Industry landing pages are conversion pages: the board trims the nav to two
+  // links and promotes the CTA to a button, so the only route out is the funnel.
+  const INDUSTRY_NAV_LINKS = [
+    { label: "Portfolio", href: "/portfolio" },
+    { label: "About", href: "/about" },
   ];
 
   interface Props {
@@ -76,6 +84,10 @@
   const showNav = $derived(
     page.status === 404 || scrollY > 300 || page.url.pathname.includes("about"),
   );
+
+  // Set by the [uid] route when it resolved an `industry` document.
+  const isIndustryPage = $derived(page.data.docType === "industry");
+  const NAV_LINKS = $derived(isIndustryPage ? INDUSTRY_NAV_LINKS : SITE_NAV_LINKS);
 
   // Every load resolves meta_image to a URL string (Prismic URLs are absolute;
   // imported-asset paths are root-relative). OG/Twitter need an absolute URL.
@@ -125,6 +137,15 @@
   {/if}
   {#if page.data.meta_title}
     <meta property="og:title" content={page.data.meta_title} />
+  {/if}
+  <!-- Opt-in per page. The appointment routes carry a bearer id in the path, so
+       they must stay out of search indexes and out of the Referer of anything
+       they load — a leaked id is a booking someone else can move or cancel. -->
+  {#if page.data.meta_robots}
+    <meta name="robots" content={page.data.meta_robots} />
+  {/if}
+  {#if page.data.meta_referrer}
+    <meta name="referrer" content={page.data.meta_referrer} />
   {/if}
   {#if metaImageUrl}
     <meta property="og:image" content={metaImageUrl} />
@@ -194,6 +215,23 @@
           {item.label}
         </a>
       {/each}
+      {#if isIndustryPage}
+        <!-- A styled anchor rather than <a><DefaultButton/></a>: the component's
+             no-href branch renders a <button>, and a button inside a link is a
+             nested-interactive a11y failure (and a double tab stop). -->
+        <!-- `/contact#inquire` rather than `/contact`: on industry pages the
+             InquiryModal intercepts this href and opens instead of navigating.
+             It stays a real destination so the CTA still works without JS, and
+             this branch is already gated on `isIndustryPage`, so no other page's
+             nav is affected. -->
+        <a
+          href="/contact#inquire"
+          onclick={toggleOverlayOff}
+          class="mt-2 rounded-sm border-1 border-primary bg-primary px-3.75 py-2.5 text-center text-[14px] font-extralight tracking-wider text-white transition-all duration-300 hover:bg-primary-dark"
+        >
+          Get Started
+        </a>
+      {/if}
     </div>
   </div>
 {/if}
@@ -210,7 +248,9 @@
       <div
         class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
           'portfolio/',
-        ) || data.pathname.includes('about')
+        ) ||
+        data.pathname.includes('about') ||
+        isIndustryPage
           ? 'text-white'
           : 'text-black'}"
         transition:fly={{ y: -64, delay: 200 }}
@@ -229,6 +269,16 @@
                   onclick={() => (isOverlayVisible = false)}>{item.label}</a
                 >
               {/each}
+              {#if isIndustryPage}
+                <!-- See the overlay CTA above: opens the InquiryModal on
+                     industry pages, falls back to the contact form without JS. -->
+                <DefaultButton
+                  href="/contact#inquire"
+                  text="Get Started"
+                  filled={false}
+                  class="border-white text-white hover:bg-white hover:text-black"
+                />
+              {/if}
             </div>
 
             <button
@@ -258,7 +308,10 @@
           <div class="flex flex-row">
             <div class="hidden lg:flex flex-row justify-between items-center gap-10">
               {#each NAV_LINKS as item, i (item.href)}
-                {#if i < NAV_LINKS.length - 1}
+                <!-- The site nav highlights its final link ("Meet With Us") as the CTA.
+                     Industry pages carry a real CTA button instead, so nothing is
+                     highlighted there — otherwise "About" would inherit the red. -->
+                {#if isIndustryPage || i < NAV_LINKS.length - 1}
                   <a class="label" href={item.href} onclick={() => (isOverlayVisible = false)}
                     >{item.label}</a
                   >
@@ -270,6 +323,11 @@
                   >
                 {/if}
               {/each}
+              {#if isIndustryPage}
+                <!-- See the overlay CTA above: opens the InquiryModal on
+                     industry pages, falls back to the contact form without JS. -->
+                <DefaultButton href="/contact#inquire" text="Get Started" filled={false} red />
+              {/if}
             </div>
 
             <button

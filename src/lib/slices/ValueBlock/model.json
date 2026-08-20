@@ -54,6 +54,92 @@
         }
       },
       "items": {}
+    },
+    {
+      "id": "expandable",
+      "name": "Expandable",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Display title over a full-width rule, then the landing-page rail grid: the eyebrow sits in the narrow left rail beside a serif lede and a longer sans body that stays collapsed behind a Read More toggle.",
+      "imageUrl": "",
+      "primary": {
+        "displayTitle": {
+          "type": "Text",
+          "config": {
+            "label": "displayTitle",
+            "placeholder": "e.g. On Your Behalf"
+          }
+        },
+        "eyebrow": {
+          "type": "Text",
+          "config": {
+            "label": "eyebrow",
+            "placeholder": "e.g. About Us"
+          }
+        },
+        "lede": {
+          "type": "StructuredText",
+          "config": {
+            "label": "lede",
+            "placeholder": "Serif lead paragraph, always visible",
+            "allowTargetBlank": true,
+            "multi": "paragraph,strong,em,hyperlink"
+          }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "label": "body",
+            "placeholder": "Longer copy, hidden until Read More is pressed",
+            "allowTargetBlank": true,
+            "multi": "paragraph,strong,em,hyperlink"
+          }
+        },
+        "readMoreLabel": {
+          "type": "Text",
+          "config": {
+            "label": "readMoreLabel",
+            "placeholder": "Read More +"
+          }
+        },
+        "hasTopPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTopPadding",
+            "placeholder_false": "no top padding",
+            "placeholder_true": "top padding",
+            "default_value": true
+          }
+        },
+        "hasBottomPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasBottomPadding",
+            "placeholder_false": "no bottom padding",
+            "placeholder_true": "bottom padding",
+            "default_value": true
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
     }
   ]
 }

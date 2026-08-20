@@ -1,0 +1,94 @@
+{
+  "id": "featured_project",
+  "type": "SharedSlice",
+  "name": "FeaturedProject",
+  "description": "FeaturedProject",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Offset project image with an overlaid caption, linking to the project",
+      "imageUrl": "",
+      "primary": {
+        "image": {
+          "type": "Image",
+          "config": {
+            "label": "image",
+            "constraint": {},
+            "thumbnails": []
+          }
+        },
+        "title": {
+          "type": "Text",
+          "config": {
+            "label": "title",
+            "placeholder": "e.g. Medical Solutions of Texas (stored in natural case, shown uppercase)"
+          }
+        },
+        "services": {
+          "type": "Text",
+          "config": {
+            "label": "services",
+            "placeholder": "e.g. brand, digital"
+          }
+        },
+        "link": {
+          "type": "Link",
+          "config": {
+            "label": "link",
+            "placeholder": "",
+            "select": null
+          }
+        },
+        "hasTextureBleed": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTextureBleed",
+            "placeholder_false": "no texture bleed",
+            "placeholder_true": "paper texture bleeds over the top of this band",
+            "default_value": false
+          }
+        },
+        "hasTopPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasTopPadding",
+            "placeholder_false": "no top padding",
+            "placeholder_true": "top padding",
+            "default_value": false
+          }
+        },
+        "hasBottomPadding": {
+          "type": "Boolean",
+          "config": {
+            "label": "hasBottomPadding",
+            "placeholder_false": "no bottom padding",
+            "placeholder_true": "bottom padding",
+            "default_value": false
+          }
+        },
+        "isAnimated": {
+          "type": "Boolean",
+          "config": {
+            "label": "isAnimated",
+            "placeholder_false": "static",
+            "placeholder_true": "animated",
+            "default_value": true
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "placeholder_false": "visible",
+            "placeholder_true": "hidden",
+            "default_value": false
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}

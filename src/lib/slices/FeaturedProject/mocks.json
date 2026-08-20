@@ -1,0 +1,58 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "image": {
+        "origin": {
+          "id": "main",
+          "url": "https://images.unsplash.com/photo-1593642633279-1796119d5482",
+          "width": 4016,
+          "height": 6016
+        },
+        "url": "https://images.unsplash.com/photo-1593642633279-1796119d5482",
+        "width": 4016,
+        "height": 6016,
+        "edit": {
+          "zoom": 1,
+          "crop": {
+            "x": 0,
+            "y": 0
+          },
+          "background": "transparent"
+        },
+        "credits": null,
+        "alt": null,
+        "__TYPE__": "ImageContent",
+        "thumbnails": {}
+      },
+      "title": {
+        "__TYPE__": "FieldContent",
+        "value": "Medical Solutions of Texas",
+        "type": "Text"
+      },
+      "services": {
+        "__TYPE__": "FieldContent",
+        "value": "brand, digital",
+        "type": "Text"
+      },
+      "link": {
+        "key": "0f333f7f-ab20-4c20-a615-f21bfccf27f3",
+        "__TYPE__": "LinkContent",
+        "value": {
+          "__TYPE__": "ExternalLink",
+          "url": "https://reddoorla.com/portfolio/medical-solutions-of-texas"
+        }
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

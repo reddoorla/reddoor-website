@@ -1,0 +1,89 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "image": {
+        "origin": {
+          "id": "main",
+          "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a",
+          "width": 3840,
+          "height": 2160
+        },
+        "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a",
+        "width": 3840,
+        "height": 2160,
+        "edit": {
+          "zoom": 1,
+          "crop": {
+            "x": 0,
+            "y": 0
+          },
+          "background": "transparent"
+        },
+        "credits": null,
+        "alt": "Two surgeons in an operating room reviewing a tablet",
+        "__TYPE__": "ImageContent",
+        "thumbnails": {}
+      },
+      "headline": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "heading1",
+            "content": {
+              "text": "We'll Take Your \nMedTech Brand from Screened Out to Short List"
+            }
+          }
+        ]
+      },
+      "card_label": {
+        "__TYPE__": "FieldContent",
+        "value": "Brand-Credibility Framework",
+        "type": "Text"
+      },
+      "card_body": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "paragraph",
+            "content": {
+              "text": "Our framework means buyers trust you before your rep walks through the door. We diagnose, rebuild, and deploy everything your brand needs to compete on the national stage. "
+            }
+          }
+        ]
+      },
+      "buttons": {
+        "__TYPE__": "GroupContentType",
+        "value": [
+          {
+            "__TYPE__": "GroupItemContent",
+            "value": [
+              [
+                "link",
+                {
+                  "key": "8a1c4f0e-2d63-4a91-9b0f-7c3e5d21ab44",
+                  "__TYPE__": "LinkContent",
+                  "value": {
+                    "__TYPE__": "ExternalLink",
+                    "url": "https://reddoorla.com/contact",
+                    "text": "Get Started"
+                  }
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "isAnimated": {
+        "__TYPE__": "BooleanContent",
+        "value": true
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

@@ -30,6 +30,15 @@
 # /g/collect fallback) — a crawl from one region only exercises one routing,
 # so the allowlist follows the docs, not just the observation.
 #
+# backend.leadconnectorhq.com was REMOVED 2026-08-19. It was there for the
+# inquiry modal's browser-side fire at the GHL widget endpoint — an endpoint
+# that turned out to be structurally unusable (it needs a cf_clearance cookie
+# from a Cloudflare zone we do not own; see src/lib/ghl/constants.ts) and was
+# replaced by the server-side v2 sync. Nothing in the browser has spoken to the
+# CRM since. A connect-src entry for a host we never call is a standing
+# permission with no purpose, and the smoke suites now assert the opposite:
+# every one of them fails the run if the browser touches leadconnectorhq.com.
+#
 # Known gap: Netlify only attaches [[headers]] to statically-served files.
 # SSR/function responses ship with NO custom headers at all — that includes
 # the 404 page AND /contact (prerender=false for its form action), so the
