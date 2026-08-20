@@ -17,6 +17,10 @@ const smokePort = process.env.REDDOOR_SMOKE_PORT;
 
 export default defineConfig({
   ...base,
+  // Compiles every route the suite uses before any worker starts, so the first
+  // visit to a cold route does not happen inside a test. See the file for why
+  // this replaces raising timeouts. Runs after webServer is up.
+  globalSetup: "./tests/smoke/global-setup.ts",
   use: {
     ...base.use,
     // NOTE: `reducedMotion` is deliberately NOT set here. Measured on
