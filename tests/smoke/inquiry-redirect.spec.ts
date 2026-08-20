@@ -30,15 +30,29 @@ test("a chase link lands on the industry page with the lead's details", async ({
   expect(to.searchParams.get("full_name")).toBe("Pat Buyer");
 });
 
-test("the phone param is dropped, not forwarded", async ({ request }) => {
-  // The link sends `phone={{user.phone}}` — the ASSIGNED USER's phone, not the
-  // lead's. On an assigned contact that renders one of the business's own
-  // numbers, prefills it as the lead's, and writes it back to their record on
-  // submit; on an unassigned one it renders empty. Never right, so never
-  // carried. See the note in src/routes/inquiry/+server.ts.
+test("the phone carries through now the CRM sends the right one", async ({ request }) => {
+  // Dropped here until 2026-08-20, because the link shipped as
+  // `phone={{user.phone}}` — the assigned user's number, not the lead's, and
+  // confirmed as such in three delivered chase emails. The workflow now sends
+  // `{{contact.phone}}`, verified by a probe SMS rather than assumed, so the
+  // param is trustworthy and is forwarded. See src/routes/inquiry/+server.ts.
   const to = await locationOf(request, `/inquiry?${LEAD}&phone=(310)%20555-0101`);
-  expect(to.searchParams.has("phone")).toBe(false);
-  expect(to.search).not.toContain("555-0101");
+  expect(to.searchParams.get("phone")).toBe("(310) 555-0101");
+});
+
+test("a space in a rendered value survives the hop", async ({ request }) => {
+  // The CRM does not URL-encode merge values: a phone arrives as
+  // `(603) 531-1812` and a name as `Tucker Lemos`, spaces and all. Re-encoding
+  // them correctly on the way out is this route's job, so the landing page
+  // reads back what the CRM meant rather than a truncated fragment.
+  const to = await locationOf(
+    request,
+    `/inquiry?email=pat%40example.com&full_name=Pat%20Buyer&phone=(310)%20555-0101`,
+  );
+  expect(to.searchParams.get("full_name")).toBe("Pat Buyer");
+  expect(to.searchParams.get("phone")).toBe("(310) 555-0101");
+  // Encoded in the emitted URL, not left raw.
+  expect(to.search).not.toMatch(/=[^&]*\s/);
 });
 
 test("utm params survive the hop", async ({ request }) => {

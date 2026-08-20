@@ -26,9 +26,9 @@ import type { RequestHandler } from "./$types";
  *  moment somebody does it. Until then this is the only landing page live. */
 const DEFAULT_INDUSTRY_UID = "medtech";
 
-/** Carried through to the landing page. `phone` is conspicuously absent — see
- *  below. utm_* is not listed because it is matched by prefix. */
-const CARRIED = ["email", "full_name", "name"] as const;
+/** Carried through to the landing page. utm_* is not listed because it is
+ *  matched by prefix. */
+const CARRIED = ["email", "full_name", "name", "phone"] as const;
 
 export const prerender = false;
 
@@ -62,24 +62,24 @@ export const GET: RequestHandler = async ({ url, fetch, cookies }) => {
     }
   }
 
-  // `phone` is dropped on purpose, and this is the interesting decision here.
+  // `phone` was deliberately dropped here until 2026-08-20, and the history is
+  // worth keeping because the same trap is still one edit away.
   //
-  // The chase link sends `phone={{user.phone}}` — the ASSIGNED USER's phone,
-  // not the lead's. (`{{contact.phone}}` is the field that was meant; the
-  // snapshot has shipped it wrong since it was imported.) Contacts do get
-  // assigned — "Contact Assign + UTM Updates" is published — so on an assigned
-  // lead that merge field renders one of the business's own numbers, prefills
-  // it into the lead's own phone field, and writes it back to their record on
-  // submit. On an unassigned lead it renders empty.
+  // The chase link shipped as `phone={{user.phone}}` — the ASSIGNED USER's
+  // phone, not the lead's. Contacts do get assigned ("Contact Assign + UTM
+  // Updates" is published), so it rendered one of the business's own numbers
+  // into the lead's phone field, ready to be written back to their record on
+  // submit. Confirmed in delivered mail, three chase emails for three: every
+  // one carried the location's Client SMS Notification Number.
   //
-  // So the param is either wrong or worthless, never right, and honouring it
-  // cannot be correct. Dropping it here fixes the whole class from our side
-  // without depending on a hand-edit in a builder we cannot read back. If the
-  // merge field is ever corrected to `{{contact.phone}}`, add "phone" to
-  // CARRIED and the prefill starts working — the modal already reads it.
+  // The merge field is now `{{contact.phone}}`, verified by probe rather than
+  // assumed — a test SMS rendered it as the contact's own number. So the param
+  // is trustworthy again and is carried through.
   //
-  // Checked against live data before writing this: no contact currently carries
-  // a business number from this path.
+  // If a chase link ever prefills a number that is not the lead's, this is the
+  // line to remove, and the cause will be in the workflow body rather than
+  // here. The application path also writes the number into a note when the CRM
+  // refuses to store it (see /api/book), so a mismatch leaves a trail.
 
   const query = next.toString();
   return new Response(null, {
