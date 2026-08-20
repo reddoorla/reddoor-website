@@ -2,7 +2,15 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    # staging is here because work reaches it by DIRECT PUSH, not always by PR.
+    # `pull_request:` covers anything opened against any branch, but a
+    # fast-forward straight onto staging opened no PR and so ran nothing — a
+    # spec added on a feature branch could sit unverified until its eventual PR
+    # to main. That is how a timezone-dependent assertion in
+    # inquiry-modal.spec.ts survived to #133: it had never once executed in CI,
+    # passed on every Pacific machine, and failed on the UTC runner the first
+    # time CI ever saw it.
+    branches: [main, staging]
 jobs:
   ci:
     permissions:
