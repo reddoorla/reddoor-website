@@ -102,11 +102,11 @@ describe("partitionAnswers", () => {
 
   it("splits standard fields out of the custom-field write", () => {
     const { customFields, standard } = partitionAnswers(
-      { website: " https://acme.test ", iRpYADswmWvMc0hnWtrT: "Our Board" },
+      { website: " https://acme.test ", iRpYADswmWvMc0hnWtrT: "Our board of directors" },
       writable,
     );
     expect(standard).toEqual({ website: "https://acme.test" });
-    expect(customFields).toEqual([{ id: "iRpYADswmWvMc0hnWtrT", value: "Our Board" }]);
+    expect(customFields).toEqual([{ id: "iRpYADswmWvMc0hnWtrT", value: "Our board of directors" }]);
   });
 
   it("preserves array values for checkbox fields", () => {

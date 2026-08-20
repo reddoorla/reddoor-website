@@ -1648,6 +1648,70 @@ control is already in the snippet — if `{{appointment.user.first_name}}` rende
 "Tim" and the URL still ends in `/reschedule/`, the field genuinely is not
 there.
 
+### 6.18 The questionnaire copy, and where a survey actually keeps its words
+
+Erik sent thirteen marked-up notes on the questionnaire (Discord, 2026-08-20).
+Acting on them turned up a split that is not where anyone would guess: **a
+survey's answers and its questions live in different stores, and only one of
+them has an API.**
+
+| What                | Where it lives                                | API?                        |
+| ------------------- | --------------------------------------------- | --------------------------- |
+| Answer options      | `picklistOptions` on the contact custom field | **yes** — PUT               |
+| Question text       | the survey builder                            | no — human, Sites → Surveys |
+| Field labels we own | our own components                            | ours outright               |
+
+Every `/surveys/` route past listing answers **401 "This route is not yet
+supported by the IAM Service"**, and PUT/PATCH give a routing 404. That 401 is
+not the scope 401 of §6.16 — it says the route is not exposed to private
+integration tokens at all, so no amount of granting moves it.
+
+The options are reachable through `PUT /locations/{loc}/customFields/{id}`.
+Four things about that route are worth having written down, all of them found
+the hard way on a **disposable field created and deleted for the purpose**
+rather than on Erik's live ones:
+
+- The documented `UpdateCustomFieldsDTO` has **no options key** — only
+  `textBoxListOptions`. `options` works anyway; the spec is incomplete.
+- Options are **plain strings**. The `{key, label}` array the v3 spec describes
+  400s with `v.trim is not a function`.
+- `PUT /custom-fields/{id}` — the v3-style route that _does_ document `options`
+  — rejects these with "Fields with model contact is not supported on this
+  route". It is for custom objects. Contact fields have exactly one way in.
+- **The list endpoint lags the write.** A read straight after a 200 returns the
+  _old_ options, which reads exactly like a silent no-op. It converges within a
+  second or two. Poll it; do not conclude from one read.
+
+The spec also warns that "removal of options is not supported through this
+update", which sounds fatal for rewording. It is not: a reworded option
+**renames in place**, six-in-six-out, and does not accumulate a second copy.
+Confirmed on the disposable field before anything live was touched.
+
+One further trap, unrelated to GHL: Cloudflare fronts this zone and bans
+`Python-urllib/3.x` outright — every call 403s with **error 1010** before GHL
+sees it. Shell out to `curl`.
+
+**Applied 2026-08-20**, each verified by read-back: four options on Problems,
+two on Goals, two on Stakeholders, and the consent string. Mirrored in
+`questions.ts` in the same commit.
+
+**Deliberately not applied:** Erik's Q5 note rewrites the _question_ into a
+yes/no and its last answer with it. The question is builder-only, so moving the
+answer alone would leave "No, and to be honest…" sitting under "What would you
+expect to pay…". Both wait for a human. Two of his notes were also ambiguous —
+a bare `change "and" to "with"` and a bare `customers` — and were applied to
+the only options they read sensibly against; if either was aimed elsewhere it
+is a one-line correction.
+
+The consent string is the one to think twice about. It is not a label: it is
+written to the contact as the value of the SMS Consent field, so it **is** the
+record of what a person agreed to. Erik's rewording drops the word "consent"
+itself ("I agree to receiving text messages at this number…"). Contacts who
+consented before today keep the old wording, which is correct — a consent record
+should say what was actually on screen at the time — but it does mean the field
+now holds two wordings, and `SMS_CONSENT.label` has to match whichever is
+current or new consents stop matching at all.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
@@ -1655,7 +1719,10 @@ there.
 2. **Survey option strings change in GHL first, then in code.** GHL matches
    submitted values against its picklists **byte-for-byte**; an option "fixed"
    in `questions.ts` ahead of the CRM silently unmaps the answer from the contact
-   record. `questions.test.ts` pins the strings for this reason.
+   record. `questions.test.ts` pins the strings for this reason. "In GHL first"
+   no longer means "by hand": the options are API-writable (§6.18), so the order
+   matters more than the mechanism — CRM, verified by read-back, then code.
+   Question _text_ is still a human in the builder.
 3. **We create no opportunity beyond the guarded stopgap, and move none.** The
    pipeline is designed around one human gate; racing `A-102-2` makes duplicates.
 4. **Never render the CRM's raw UTC offset to a visitor.** Convert to their zone

@@ -32,11 +32,11 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
     tag: "vlLzA6TsJhHkmvmf6ArR",
     heading: "What problems are you experiencing?",
     options: [
-      "Bigger names win deals you could serve better",
+      "Bigger companies are squeezing out small and medium-sized businesses",
       "Outdated sales and marketing materials",
-      "Scattered messaging and inconsistent look and feel",
-      "My brand lacks the credibility it needs for buyers",
-      "Use DIY tools with little or no success",
+      "Scattered messaging with inconsistent look and feel",
+      "Brand lacks the credibility that buyers expect",
+      "Using DIY tools with little or no success",
       "Internal team is too busy or not capable",
     ],
   },
@@ -52,22 +52,35 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
     tag: "K0obgvYezsY9MX088GFN",
     heading: "What are your goals for this project?",
     options: [
-      "Build brand recognition and trust that converts buyers",
+      "Building brand recognition and trust that converts customers",
       "Confidence to compete in new markets",
       "Marketing deliverables that do the selling for you",
       "Command instant credibility with healthcare workers",
-      "Consistency within marketing and presentations",
+      "Consistency across all marketing and sales presentations",
     ],
   },
   {
     kind: "radio",
     tag: "iRpYADswmWvMc0hnWtrT",
     heading: "Is there anyone else involved in this project?",
-    options: ["Just myself", "My business partner", "My head of department", "Our Board", "Other"],
+    options: [
+      "Just myself",
+      "My business partner",
+      "My department head",
+      "Our board of directors",
+      "Other",
+    ],
   },
   {
     kind: "radio",
     tag: "xW6eFrHUFBNQCijp1mOM",
+    // Erik's 2026-08-20 notes rewrite this question into a yes/no ("Do you have
+    // a budget set aside for rebranding your business and the execution of all
+    // needed deliverables?") and its last answer with it. Both are pending, and
+    // deliberately so: question text lives in the survey builder, which no API
+    // route reaches, so the answer cannot move first without leaving "No, and
+    // to be honest…" sitting under "What would you expect to pay…". When the
+    // heading changes in GHL, the last option changes here in the same pass.
     heading:
       "What would you expect to pay to rebrand a business and execute all the deliverables, if needed?",
     options: [
@@ -84,11 +97,17 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
 /**
  * The survey's final slide also demands SMS consent; its tag and the literal
  * consent string the CRM stores. Shown beside the phone field, required.
+ *
+ * This one is not a label. It is written to the contact as the value of the
+ * SMS Consent field, so the string here IS the record of what a person agreed
+ * to. Contacts who consented before 2026-08-20 hold the previous wording ("I
+ * consent to receiving text messages to this number…") and keep it — a consent
+ * record should say what was actually shown at the time, so nothing backfills.
  */
 export const SMS_CONSENT = {
   tag: "K6hRBtIufgEo0ZuJfDPD",
   label:
-    "I consent to receiving text messages to this number. We will only use this number for text communication regarding this application.",
+    "I agree to receiving text messages at this number. We will only use this number for text communication regarding this application.",
 } as const;
 
 /**

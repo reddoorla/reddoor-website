@@ -205,7 +205,7 @@ test("the full application: five questions, contact details, both submissions", 
 
   // Q1 — problems (checkboxes; multiple allowed).
   await dialog.getByRole("checkbox", { name: "Outdated sales and marketing materials" }).check();
-  await dialog.getByRole("checkbox", { name: "Use DIY tools with little or no success" }).check();
+  await dialog.getByRole("checkbox", { name: "Using DIY tools with little or no success" }).check();
   await dialog.getByRole("button", { name: "Next" }).click();
 
   // Q2 — website (free text).
@@ -232,7 +232,7 @@ test("the full application: five questions, contact details, both submissions", 
   await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
   await page.locator("#inquiry-name").fill("Pat Buyer");
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
   // A finished application hands off to the calendar rather than stopping on a
@@ -255,7 +255,7 @@ test("the full application: five questions, contact details, both submissions", 
   expect(answers).toHaveLength(5);
   expect(answers[0].value).toEqual([
     "Outdated sales and marketing materials",
-    "Use DIY tools with little or no success",
+    "Using DIY tools with little or no success",
   ]);
   expect(answers[1].value).toBe("https://buyer.example.com");
   expect(answers[4].value).toBe("$30,000 - 50,000");
@@ -269,7 +269,7 @@ test("the full application: five questions, contact details, both submissions", 
   // Checkboxes as arrays, in the order they were ticked…
   expect(fields["vlLzA6TsJhHkmvmf6ArR"]).toEqual([
     "Outdated sales and marketing materials",
-    "Use DIY tools with little or no success",
+    "Using DIY tools with little or no success",
   ]);
   expect(fields["K0obgvYezsY9MX088GFN"]).toEqual(["Confidence to compete in new markets"]);
   // …radios as a single string, not a one-element array…
@@ -336,7 +336,7 @@ test("Back preserves what was already answered", async ({ page }) => {
   const dialog = await throughStepOne(page);
 
   const first = page.getByRole("checkbox", {
-    name: "Bigger names win deals you could serve better",
+    name: "Bigger companies are squeezing out small and medium-sized businesses",
   });
   await first.check();
   await dialog.getByRole("button", { name: "Next" }).click();
@@ -612,7 +612,7 @@ test("an application-step ingest failure surfaces the error and holds the visito
   for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
   await page.locator("#inquiry-name").fill("Pat Buyer");
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
   // The failure is surfaced and the visitor is held on the contact frame rather
@@ -637,7 +637,7 @@ test("reopening after a completed application starts a fresh email frame", async
   for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
   await page.locator("#inquiry-name").fill("Pat Buyer");
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
   await expect(page).toHaveURL(/\/schedule$/);
 
@@ -716,7 +716,7 @@ test("the name and phone carry through to the contact frame", async ({ page }) =
   // Still nothing sent until they actually submit.
   expect(calls).toEqual([]);
 
-  await dialog.getByRole("checkbox", { name: /I consent to receiving text messages/ }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to receiving text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
   // And the address from the link is what reaches the server, unretyped.

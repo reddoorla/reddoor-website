@@ -41,8 +41,8 @@ describe("the A-101 question set", () => {
     expect(options("iRpYADswmWvMc0hnWtrT")).toEqual([
       "Just myself",
       "My business partner",
-      "My head of department",
-      "Our Board",
+      "My department head",
+      "Our board of directors",
       "Other",
     ]);
     expect(options("xW6eFrHUFBNQCijp1mOM")).toEqual([
@@ -58,7 +58,7 @@ describe("the A-101 question set", () => {
   it("carries the CRM's exact consent field and wording", () => {
     expect(SMS_CONSENT.tag).toBe("K6hRBtIufgEo0ZuJfDPD");
     expect(SMS_CONSENT.label).toBe(
-      "I consent to receiving text messages to this number. We will only use this number for text communication regarding this application.",
+      "I agree to receiving text messages at this number. We will only use this number for text communication regarding this application.",
     );
   });
 });
