@@ -1695,13 +1695,23 @@ sees it. Shell out to `curl`.
 two on Goals, two on Stakeholders, and the consent string. Mirrored in
 `questions.ts` in the same commit.
 
-**Deliberately not applied:** Erik's Q5 note rewrites the _question_ into a
-yes/no and its last answer with it. The question is builder-only, so moving the
-answer alone would leave "No, and to be honest…" sitting under "What would you
-expect to pay…". Both wait for a human. Two of his notes were also ambiguous —
-a bare `change "and" to "with"` and a bare `customers` — and were applied to
-the only options they read sensibly against; if either was aimed elsewhere it
-is a one-line correction.
+**Q5, resolved the same day.** Erik's note there was truncated mid-sentence
+("No, and to be honest I have….") and appeared to rewrite the _question_ into a
+yes/no as well — which would have been builder-only, and moving the answer
+alone would have left "No, and to be honest…" sitting under "What would you
+expect to pay…". Asked in Discord for the full option text, Erik supplied
+wording that answers the question as it already stands:
+
+    I don't have a budget, and I'm unsure of how much something like this costs.
+
+So the heading is untouched, no builder edit is outstanding, and the option went
+in with the rest. Worth noting as a pattern: the blocker dissolved by asking
+the author what they meant rather than by finding a way around the API.
+
+Two of his notes were ambiguous — a bare `change "and" to "with"` and a bare
+`customers` — and were applied to the only options they read sensibly against;
+Tucker's call was to leave them. If either was aimed elsewhere it is a one-line
+correction.
 
 The consent string is the one to think twice about. It is not a label: it is
 written to the contact as the value of the SMS Consent field, so it **is** the

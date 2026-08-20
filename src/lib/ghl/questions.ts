@@ -74,13 +74,11 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
   {
     kind: "radio",
     tag: "xW6eFrHUFBNQCijp1mOM",
-    // Erik's 2026-08-20 notes rewrite this question into a yes/no ("Do you have
-    // a budget set aside for rebranding your business and the execution of all
-    // needed deliverables?") and its last answer with it. Both are pending, and
-    // deliberately so: question text lives in the survey builder, which no API
-    // route reaches, so the answer cannot move first without leaving "No, and
-    // to be honest…" sitting under "What would you expect to pay…". When the
-    // heading changes in GHL, the last option changes here in the same pass.
+    // Erik's 2026-08-20 notes also proposed rewriting this question into a
+    // yes/no ("Do you have a budget set aside…?"). That part was not taken up:
+    // asked for the full option text, he supplied wording that answers the
+    // question as it already stands, so the heading is unchanged and no
+    // builder edit is outstanding. The last option is his, verbatim.
     heading:
       "What would you expect to pay to rebrand a business and execute all the deliverables, if needed?",
     options: [
@@ -89,7 +87,7 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
       "$30,000 - 50,000",
       "$50,000 - 100,000",
       "$100,000 - 200,000",
-      "To be honest, I have no idea because I'm not sure how much these things cost.",
+      "I don't have a budget, and I'm unsure of how much something like this costs.",
     ],
   },
 ];

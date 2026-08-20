@@ -51,7 +51,7 @@ describe("the A-101 question set", () => {
       "$30,000 - 50,000",
       "$50,000 - 100,000",
       "$100,000 - 200,000",
-      "To be honest, I have no idea because I'm not sure how much these things cost.",
+      "I don't have a budget, and I'm unsure of how much something like this costs.",
     ]);
   });
 
