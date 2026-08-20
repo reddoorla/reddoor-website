@@ -32,16 +32,27 @@ async function gotoHydrated(page: import("@playwright/test").Page, path: string 
 /**
  * Wait out a client-side navigation. The layout crossfades routes (out 500ms,
  * in after a 700ms delay) and then scrolls to the top on a 600ms timer, so for
- * well over a second there are TWO <main> elements on the page and everything
- * in them is still moving — which Playwright reports as "element is not stable"
- * or "outside of the viewport" rather than as the transition it is.
+ * well over a second two copies of the page coexist and everything in them is
+ * still moving — which Playwright reports as "element is not stable" or
+ * "outside of the viewport" rather than as the transition it is.
+ *
+ * The overlapping pair used to be two <main> elements; `main` is now stable and
+ * the keyed wrapper carrying `data-page-transition` is what doubles up and
+ * fades. Waiting on `main` here would wait for nothing.
  */
 async function settled(page: import("@playwright/test").Page) {
-  await expect(page.locator("main")).toHaveCount(1);
+  await expect(page.locator("[data-page-transition]")).toHaveCount(1);
   await expect
-    .poll(() => page.locator("main").evaluate((el) => Number(getComputedStyle(el).opacity)), {
-      timeout: 15_000,
-    })
+    .poll(
+      () =>
+        page
+          .locator("[data-page-transition]")
+          .last()
+          .evaluate((el) => Number(getComputedStyle(el).opacity)),
+      {
+        timeout: 15_000,
+      },
+    )
     .toBe(1);
 }
 

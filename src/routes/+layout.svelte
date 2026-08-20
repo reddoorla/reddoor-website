@@ -236,160 +236,177 @@
   </div>
 {/if}
 <LandscapeModal />
-{#key data.pathname}
-  <main
-    id="main-content"
-    tabindex="-1"
-    class="focus:outline-none"
-    out:fade={{ duration: 500 }}
-    in:fade={{ delay: 700, duration: 700 }}
-  >
-    {#if !showNav && !isInHero.value}
-      <div
-        class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
-          'portfolio/',
-        ) ||
-        data.pathname.includes('about') ||
-        isIndustryPage
-          ? 'text-white'
-          : 'text-black'}"
-        transition:fly={{ y: -64, delay: 200 }}
-      >
-        <ContentWidth class="flex flex-row justify-between items-center h-full">
-          <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
-            Reddoor Creative
-          </a>
+<!-- `<main>` sits OUTSIDE the {#key} on purpose. Keyed, it was torn down and
+     rebuilt on every navigation, and because `out:fade` runs 500ms while
+     `in:fade` waits 700ms, the outgoing copy overlapped the incoming one — two
+     `main` landmarks and two `id="main-content"` in the document for about half
+     a second, every time anyone clicked a link. Assistive technology navigates
+     by landmark, so that is a real defect and not a cosmetic one; it also meant
+     the skip link's target was ambiguous mid-navigation, and that focus moved
+     off `main` whenever it was replaced.
 
-          <div class="flex flex-row">
-            <div class="hidden lg:flex flex-row justify-between items-center gap-10">
-              {#each NAV_LINKS as item (item.href)}
-                <a
-                  class="label hover:opacity-80 transition-opacity"
-                  href={item.href}
-                  onclick={() => (isOverlayVisible = false)}>{item.label}</a
-                >
-              {/each}
-              {#if isIndustryPage}
-                <!-- See the overlay CTA above: opens the InquiryModal on
-                     industry pages, falls back to the contact form without JS. -->
-                <DefaultButton
-                  href="/contact#inquire"
-                  text="Get Started"
-                  filled={false}
-                  class="border-white text-white hover:bg-white hover:text-black"
-                />
-              {/if}
-            </div>
+     It went unseen because axe reports `landmark-one-main`, `landmark-unique`
+     and `duplicate-id` only under its `best-practice` and `deprecated` tags,
+     and the a11y specs filter to wcag2a/2aa/21a/21aa. Verified 2026-08-20 by
+     counting `main` across a navigation: it reached 2.
 
-            <button
-              class="lg:hidden ml-6 opacity-60 hover:opacity-100 transition-all"
-              onclick={toggleOverlayOn}
-              aria-label="Open menu"
-            >
-              {#if !isOverlayVisible}
-                <Menu class="size-[2em]" strokeWidth={1} />
-              {/if}
-            </button>
-          </div>
-        </ContentWidth>
-      </div>
-    {/if}
-    <!-- nav #2 -->
-    {#if showNav && !isInHero.value}
-      <div
-        class="h-12 w-screen top-0 fixed z-20 bg-white/80"
-        transition:fly={{ y: -64, delay: 500 }}
-      >
-        <ContentWidth class="flex flex-row justify-between items-center h-full">
-          <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
-            Reddoor Creative
-          </a>
+     Keying the wrapper instead crossfades exactly the same content with the
+     landmark held stable. -->
+<main id="main-content" tabindex="-1" class="focus:outline-none">
+  {#key data.pathname}
+    <!-- `data-page-transition` is the hook the smoke suite waits on. It has to
+         live on the element that actually fades: `main` no longer does, and a
+         guard polling `main` opacity now returns 1 immediately and waits for
+         nothing. -->
+    <div data-page-transition out:fade={{ duration: 500 }} in:fade={{ delay: 700, duration: 700 }}>
+      {#if !showNav && !isInHero.value}
+        <div
+          class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
+            'portfolio/',
+          ) ||
+          data.pathname.includes('about') ||
+          isIndustryPage
+            ? 'text-white'
+            : 'text-black'}"
+          transition:fly={{ y: -64, delay: 200 }}
+        >
+          <ContentWidth class="flex flex-row justify-between items-center h-full">
+            <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
+              Reddoor Creative
+            </a>
 
-          <div class="flex flex-row">
-            <div class="hidden lg:flex flex-row justify-between items-center gap-10">
-              {#each NAV_LINKS as item, i (item.href)}
-                <!-- The site nav highlights its final link ("Meet With Us") as the CTA.
-                     Industry pages carry a real CTA button instead, so nothing is
-                     highlighted there — otherwise "About" would inherit the red. -->
-                {#if isIndustryPage || i < NAV_LINKS.length - 1}
-                  <a class="label" href={item.href} onclick={() => (isOverlayVisible = false)}
-                    >{item.label}</a
-                  >
-                {:else}
+            <div class="flex flex-row">
+              <div class="hidden lg:flex flex-row justify-between items-center gap-10">
+                {#each NAV_LINKS as item (item.href)}
                   <a
-                    class="text-primary label"
+                    class="label hover:opacity-80 transition-opacity"
                     href={item.href}
                     onclick={() => (isOverlayVisible = false)}>{item.label}</a
                   >
-                {/if}
-              {/each}
-              {#if isIndustryPage}
-                <!-- See the overlay CTA above: opens the InquiryModal on
+                {/each}
+                {#if isIndustryPage}
+                  <!-- See the overlay CTA above: opens the InquiryModal on
                      industry pages, falls back to the contact form without JS. -->
-                <DefaultButton href="/contact#inquire" text="Get Started" filled={false} red />
-              {/if}
-            </div>
+                  <DefaultButton
+                    href="/contact#inquire"
+                    text="Get Started"
+                    filled={false}
+                    class="border-white text-white hover:bg-white hover:text-black"
+                  />
+                {/if}
+              </div>
 
-            <button
-              class="lg:hidden ml-6 opacity-60 hover:opacity-100 transition-all"
-              onclick={toggleOverlayOn}
-              aria-label="Open menu"
-            >
-              {#if !isOverlayVisible}
-                <Menu class="size-[2em]" strokeWidth={2} />
-              {/if}
-            </button>
+              <button
+                class="lg:hidden ml-6 opacity-60 hover:opacity-100 transition-all"
+                onclick={toggleOverlayOn}
+                aria-label="Open menu"
+              >
+                {#if !isOverlayVisible}
+                  <Menu class="size-[2em]" strokeWidth={1} />
+                {/if}
+              </button>
+            </div>
+          </ContentWidth>
+        </div>
+      {/if}
+      <!-- nav #2 -->
+      {#if showNav && !isInHero.value}
+        <div
+          class="h-12 w-screen top-0 fixed z-20 bg-white/80"
+          transition:fly={{ y: -64, delay: 500 }}
+        >
+          <ContentWidth class="flex flex-row justify-between items-center h-full">
+            <a href="/" class="hover:opacity-80 transition-all duration-500 bump label">
+              Reddoor Creative
+            </a>
+
+            <div class="flex flex-row">
+              <div class="hidden lg:flex flex-row justify-between items-center gap-10">
+                {#each NAV_LINKS as item, i (item.href)}
+                  <!-- The site nav highlights its final link ("Meet With Us") as the CTA.
+                     Industry pages carry a real CTA button instead, so nothing is
+                     highlighted there — otherwise "About" would inherit the red. -->
+                  {#if isIndustryPage || i < NAV_LINKS.length - 1}
+                    <a class="label" href={item.href} onclick={() => (isOverlayVisible = false)}
+                      >{item.label}</a
+                    >
+                  {:else}
+                    <a
+                      class="text-primary label"
+                      href={item.href}
+                      onclick={() => (isOverlayVisible = false)}>{item.label}</a
+                    >
+                  {/if}
+                {/each}
+                {#if isIndustryPage}
+                  <!-- See the overlay CTA above: opens the InquiryModal on
+                     industry pages, falls back to the contact form without JS. -->
+                  <DefaultButton href="/contact#inquire" text="Get Started" filled={false} red />
+                {/if}
+              </div>
+
+              <button
+                class="lg:hidden ml-6 opacity-60 hover:opacity-100 transition-all"
+                onclick={toggleOverlayOn}
+                aria-label="Open menu"
+              >
+                {#if !isOverlayVisible}
+                  <Menu class="size-[2em]" strokeWidth={2} />
+                {/if}
+              </button>
+            </div>
+          </ContentWidth>
+        </div>
+      {/if}
+
+      {@render children?.()}
+
+      <footer class="relative bg-paper">
+        <div class="w-full h-full absolute top-0 left-0 bg-paper"></div>
+
+        <ContentWidth class="pb-4 flex flex-row justify-end items-end z-20 relative">
+          <div class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5">
+            <div class="flex flex-col gap-1">
+              <a href="/" class="translate-x-[-8%] w-3/5 md:w-full"
+                ><img
+                  src={rotatingReddoor}
+                  alt="reddoor drawn in multiple styles"
+                  loading="lazy"
+                  decoding="async"
+                /></a
+              >
+              <a href="/portfolio" class="text-primary underline">Portfolio</a>
+              <a href="/about" class="text-primary underline">About</a>
+              <a href="/contact" class="text-primary underline">Meet with Us</a>
+              <a
+                href="https://www.linkedin.com/company/reddoor-creative"
+                class="text-primary underline">LinkedIn</a
+              >
+              <a href="https://www.instagram.com/reddoorla/" class="text-primary underline"
+                >Instagram</a
+              >
+            </div>
+            <div class="flex flex-col">
+              <div>CONTACT</div>
+              <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
+              <a href="mailto:info@reddoorla.com" class="text-primary underline"
+                >info@reddoorla.com</a
+              >
+            </div>
+            <div class="flex flex-col">
+              <div>HQ MAILING ADDRESS</div>
+              <div>29027 Dapper Dan Dr.</div>
+              <div>Fair Oaks Ranch, TX 78015</div>
+            </div>
+            <div class="label text-nowrap">
+              {"© Reddoor Creative 2006-" + new Date().getFullYear() + ", All Rights Reserved"}
+            </div>
           </div>
         </ContentWidth>
-      </div>
-    {/if}
-
-    {@render children?.()}
-
-    <footer class="relative bg-paper">
-      <div class="w-full h-full absolute top-0 left-0 bg-paper"></div>
-
-      <ContentWidth class="pb-4 flex flex-row justify-end items-end z-20 relative">
-        <div class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5">
-          <div class="flex flex-col gap-1">
-            <a href="/" class="translate-x-[-8%] w-3/5 md:w-full"
-              ><img
-                src={rotatingReddoor}
-                alt="reddoor drawn in multiple styles"
-                loading="lazy"
-                decoding="async"
-              /></a
-            >
-            <a href="/portfolio" class="text-primary underline">Portfolio</a>
-            <a href="/about" class="text-primary underline">About</a>
-            <a href="/contact" class="text-primary underline">Meet with Us</a>
-            <a
-              href="https://www.linkedin.com/company/reddoor-creative"
-              class="text-primary underline">LinkedIn</a
-            >
-            <a href="https://www.instagram.com/reddoorla/" class="text-primary underline"
-              >Instagram</a
-            >
-          </div>
-          <div class="flex flex-col">
-            <div>CONTACT</div>
-            <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
-            <a href="mailto:info@reddoorla.com" class="text-primary underline">info@reddoorla.com</a
-            >
-          </div>
-          <div class="flex flex-col">
-            <div>HQ MAILING ADDRESS</div>
-            <div>29027 Dapper Dan Dr.</div>
-            <div>Fair Oaks Ranch, TX 78015</div>
-          </div>
-          <div class="label text-nowrap">
-            {"© Reddoor Creative 2006-" + new Date().getFullYear() + ", All Rights Reserved"}
-          </div>
-        </div>
-      </ContentWidth>
-    </footer>
-  </main>
-{/key}
+      </footer>
+    </div>
+  {/key}
+</main>
 
 {#if data.isPreviewSession}
   <PrismicPreview {repositoryName} />

@@ -163,9 +163,16 @@ test("has no accessibility violations", async ({ page }) => {
   await gotoHydrated(page, PATH);
   await page.locator("#mo-outcome").selectOption("Sold!");
   await expect
-    .poll(() => page.locator("main").evaluate((el) => Number(getComputedStyle(el).opacity)), {
-      timeout: 15_000,
-    })
+    .poll(
+      () =>
+        page
+          .locator("[data-page-transition]")
+          .last()
+          .evaluate((el) => Number(getComputedStyle(el).opacity)),
+      {
+        timeout: 15_000,
+      },
+    )
     .toBe(1);
 
   const results = await new AxeBuilder({ page })

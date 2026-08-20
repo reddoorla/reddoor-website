@@ -423,9 +423,16 @@ test.describe("in Los Angeles", () => {
     // page toward white. Same artifact industry-page.spec.ts documents for
     // animateIn, different mechanism.
     await expect
-      .poll(() => page.locator("main").evaluate((el) => Number(getComputedStyle(el).opacity)), {
-        timeout: 15_000,
-      })
+      .poll(
+        () =>
+          page
+            .locator("[data-page-transition]")
+            .last()
+            .evaluate((el) => Number(getComputedStyle(el).opacity)),
+        {
+          timeout: 15_000,
+        },
+      )
       .toBe(1);
 
     const results = await new AxeBuilder({ page })
@@ -449,9 +456,16 @@ test.describe("in Los Angeles", () => {
     await expect(page.getByRole("button", { name: "Use different details" })).toBeVisible();
 
     await expect
-      .poll(() => page.locator("main").evaluate((el) => Number(getComputedStyle(el).opacity)), {
-        timeout: 15_000,
-      })
+      .poll(
+        () =>
+          page
+            .locator("[data-page-transition]")
+            .last()
+            .evaluate((el) => Number(getComputedStyle(el).opacity)),
+        {
+          timeout: 15_000,
+        },
+      )
       .toBe(1);
 
     const results = await new AxeBuilder({ page })
