@@ -1372,9 +1372,22 @@ Two more merge fields in the same link render **empty** in all three:
     full_name={{contact.name}}                             -> ""
     utm_source={{contact.attributionSource.utmSource}}     -> ""
 
-So the name never carried through and the attribution never did either;
-`{{contact.name}}` is not a field in this context and wants
-`{{contact.first_name}} {{contact.last_name}}`. And the rendered phone contains
+**Correction, 2026-08-20 — `{{contact.name}}` is fine.** This section originally
+read "not a field in this context". It is a field, and it works: a probe SMS to
+a contact with a name rendered `{{contact.name}}` as `Tucker Lemos`,
+`{{contact.first_name}}` as `Tucker` and `{{contact.last_name}}` as `Lemos`. The
+three chase emails rendered it empty because **those contacts had no name** —
+`tim@reddoorla.com` still has an empty first and last name today, and the other
+recipient was named after its chase fired.
+
+That is the third instance of the same error in two days: reading an empty
+render as a missing field when the record behind it was empty. The others were
+`{{appointment.id}}` (§6.17) and the Z-004 workflows (§6.15). The rule that
+would have caught all three: **an empty render is only evidence about the field
+when something else proves the source had a value to give.**
+
+`{{contact.full_name}}` is the one that genuinely does not exist — it rendered
+empty in the same probe where the other three resolved. And the rendered phone contains
 an **unencoded space** (`phone=(310) 555-0101`), which some mail clients
 terminate a bare URL on — a third reason the param should not be there.
 
