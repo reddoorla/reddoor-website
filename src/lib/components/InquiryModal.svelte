@@ -764,7 +764,10 @@
               </div>
 
               <div>
-                <label class="inquiry-field-label" for="inquiry-phone">Cell number</label>
+                <!-- "Mobile", not "Cell number" — Erik, 2026-08-20. Safe to change
+                     here because this label is ours: unlike the consent line
+                     beneath it, nothing about it reaches the CRM. -->
+                <label class="inquiry-field-label" for="inquiry-phone">Mobile</label>
                 <input
                   id="inquiry-phone"
                   class="inquiry-input inquiry-wide"
