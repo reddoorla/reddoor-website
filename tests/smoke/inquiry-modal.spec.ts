@@ -244,9 +244,10 @@ test("the full application: five questions, contact details, both submissions", 
   await dialog.getByRole("radio", { name: "My business partner" }).check();
   await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q5 — budget (radio).
+  // Q5 — the budget gate (radio). "Yes" continues to the calendar; the "No"
+  // path has its own test below.
   await expect(dialog.getByRole("heading", { name: /expect to pay/ })).toBeVisible();
-  await dialog.getByRole("radio", { name: "$30,000 - 50,000" }).check();
+  await dialog.getByRole("radio", { name: "Yes" }).check();
   await dialog.getByRole("button", { name: "Next" }).click();
 
   // Contact frame.
@@ -279,7 +280,7 @@ test("the full application: five questions, contact details, both submissions", 
     "Using DIY tools with little or no success",
   ]);
   expect(answers[1].value).toBe("https://buyer.example.com");
-  expect(answers[4].value).toBe("$30,000 - 50,000");
+  expect(answers[4].value).toBe("Yes");
 
   // `fields` is the same answers keyed by CRM FIELD ID — the payload the server
   // turns into the contact's custom fields. Asserted by value shape, not by
@@ -295,7 +296,7 @@ test("the full application: five questions, contact details, both submissions", 
   expect(fields["K0obgvYezsY9MX088GFN"]).toEqual(["Confidence to compete in new markets"]);
   // …radios as a single string, not a one-element array…
   expect(fields["iRpYADswmWvMc0hnWtrT"]).toBe("My business partner");
-  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("$30,000 - 50,000");
+  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("Yes");
   // …and free text as a string. `website` names a STANDARD contact field, so the
   // server routes it out of the custom-field write (see ghl/client).
   expect(fields["website"]).toBe("https://buyer.example.com");
@@ -325,6 +326,40 @@ test("the full application: five questions, contact details, both submissions", 
   expect(page.url()).not.toContain("buyer@example.com");
   expect(page.url()).not.toContain("Pat");
 
+  expect(strayCrmCalls).toEqual([]);
+});
+
+test("a No at the budget gate lands on /not-a-fit, not the calendar", async ({ page }) => {
+  const { calls, strayCrmCalls, bookCalls } = await stubInquiry(page);
+  await gotoHydrated(page);
+  const dialog = await throughStepOne(page);
+
+  // Every other question skipped — they are optional, and the gate must route
+  // on its own answer, not on how much else was filled in.
+  for (let i = 0; i < 4; i++) await dialog.getByRole("button", { name: "Next" }).click();
+  await expect(dialog.getByRole("heading", { name: /expect to pay/ })).toBeVisible();
+  await dialog.getByRole("radio", { name: "No" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+
+  await page.locator("#inquiry-name").fill("Pat Modest");
+  await page.locator("#inquiry-phone").fill("(555) 123-4567");
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+  await dialog.getByRole("button", { name: "Submit Application" }).click();
+
+  // The official page, not the scheduler.
+  await expect(page).toHaveURL(/\/not-a-fit$/);
+  await expect(page.getByRole("heading", { name: /straight with us/i })).toBeVisible();
+
+  // The application still submitted in full — the No is an answer worth
+  // recording, and the server marks the CRM record from it.
+  expect(calls).toHaveLength(2);
+  const fields = calls[1].fields as Record<string, string | string[]>;
+  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("No");
+
+  // No booking handoff was written: /schedule visited later in this tab must
+  // treat them as a cold visitor, not offer to book the person who opted out.
+  expect(await page.evaluate(() => sessionStorage.getItem("reddoor:inquiry"))).toBeNull();
+  expect(bookCalls).toEqual([]);
   expect(strayCrmCalls).toEqual([]);
 });
 
@@ -726,7 +761,7 @@ test("the name and phone carry through to the contact frame", async ({ page }) =
   await dialog.getByRole("button", { name: "Next" }).click();
   await dialog.getByRole("radio", { name: "My business partner" }).check();
   await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("radio", { name: "$30,000 - 50,000" }).check();
+  await dialog.getByRole("radio", { name: "Yes" }).check();
   await dialog.getByRole("button", { name: "Next" }).click();
 
   // Arrived with both fields already filled — the whole point of the link.
