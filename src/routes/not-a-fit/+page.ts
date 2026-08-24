@@ -1,4 +1,4 @@
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import metaImage from "$lib/assets/og/not-a-fit.jpg";
 import type { PageLoad } from "./$types";
 
 /**

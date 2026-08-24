@@ -1,4 +1,4 @@
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import metaImage from "$lib/assets/og/resubscribed.jpg";
 import type { PageLoad } from "./$types";
 
 /** Static — see /email/unsubscribed. */

@@ -1,4 +1,4 @@
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import metaImage from "$lib/assets/og/unsubscribed.jpg";
 import type { PageLoad } from "./$types";
 
 /** Static shell — the one write is a browser fetch — so it prerenders. */
