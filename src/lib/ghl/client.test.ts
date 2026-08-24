@@ -20,8 +20,9 @@ import {
   LEAD_SOURCE,
   TAG_APPLICATION_COMPLETED,
   TAG_APPLICATION_STARTED,
+  TAG_NOT_A_FIT,
 } from "./constants";
-import { SMS_CONSENT } from "./questions";
+import { BUDGET_GATE, SMS_CONSENT } from "./questions";
 
 /**
  * Routes by URL rather than replaying a queue: the sync functions call several
@@ -401,6 +402,38 @@ describe("syncApplicationToCrm", () => {
     expect(find("/opportunities/").filter((c) => c.method === "POST")[0].body.name).toBe(
       "Dana Buyer",
     );
+  });
+
+  it("tags the self-opt-out and leaves the pipeline alone when the budget gate says No", async () => {
+    const { fetch, find } = stubCrm();
+    const res = await syncApplicationToCrm({
+      ...base,
+      fetch,
+      fields: { ...base.fields, [BUDGET_GATE.tag]: BUDGET_GATE.optOut },
+    });
+    expect(res.ok).toBe(true);
+    // One tag add carrying both states: they DID complete the application, and
+    // they opted out — the second tag is the filter lever for the chase
+    // workflows, which cannot be edited from here.
+    expect(find("/tags")[0].body).toEqual({ tags: [TAG_APPLICATION_COMPLETED, TAG_NOT_A_FIT] });
+    // No pipeline card at all — not even the existence lookup: a self-opt-out
+    // is not a lead awaiting review.
+    expect(find("/opportunities/")).toHaveLength(0);
+    if (res.ok) expect(res.data.opportunityOk).toBe(true);
+    // The record says what happened where a human will read it.
+    expect(String(find("/notes")[0].body.body)).toContain("budget gate");
+  });
+
+  it("runs the full pipeline path when the budget gate says Yes", async () => {
+    const { fetch, find } = stubCrm();
+    await syncApplicationToCrm({
+      ...base,
+      fetch,
+      fields: { ...base.fields, [BUDGET_GATE.tag]: "Yes" },
+    });
+    expect(find("/tags")[0].body).toEqual({ tags: [TAG_APPLICATION_COMPLETED] });
+    expect(find("/opportunities/").filter((c) => c.method === "POST")).toHaveLength(1);
+    expect(String(find("/notes")[0].body.body)).not.toContain("budget gate");
   });
 
   it("names the opportunity by email when no name was given", async () => {

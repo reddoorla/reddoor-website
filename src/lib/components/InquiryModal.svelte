@@ -6,7 +6,12 @@
   import type { RichTextField } from "@prismicio/client";
   import { stepNumber, numeralNudge } from "$lib/slices/TextColumns/stepNumber";
   import { goto } from "$app/navigation";
-  import { questionsFor, SMS_CONSENT, type InquiryAnswers } from "$lib/ghl/questions";
+  import {
+    isBudgetOptOut,
+    questionsFor,
+    SMS_CONSENT,
+    type InquiryAnswers,
+  } from "$lib/ghl/questions";
   import { writeHandoff } from "$lib/schedule/handoff";
   import { resolveTimeZone } from "$lib/schedule/slots";
   import { page } from "$app/state";
@@ -442,6 +447,11 @@
     const capturedEmail = email.trim();
     const capturedName = fullName.trim();
     const capturedPhone = phone.trim();
+    // The budget gate, read before resetSession() can wipe the answers: a "No"
+    // self-opts the visitor out and lands on /not-a-fit instead of the
+    // scheduler. The application still submits in full either way — the answer
+    // is a fact worth recording, and the server marks the record from it.
+    const optedOut = isBudgetOptOut(answers);
     status = "sending";
     error = "";
 
@@ -480,6 +490,23 @@
     // Advance only if this is still the live session AND still on the contact
     // frame — a Back during a slow submit must not be yanked to the thank-you.
     if (session !== mySession || frame !== "contact") return;
+
+    // A "No" at the budget gate skips the calendar entirely: the visitor said
+    // the work is beyond their budget, so offering them a 30-minute slot next
+    // is exactly the mismatch they just declined. No handoff written — nothing
+    // on /not-a-fit needs their details, and /schedule reads the handoff as
+    // "book this person", which they should not be.
+    if (optedOut) {
+      open = false;
+      resetSession();
+      try {
+        await goto("/not-a-fit");
+      } catch {
+        open = true;
+        await goSent();
+      }
+      return;
+    }
 
     // Straight on to the calendar, which is what the template does: booking
     // runs in PARALLEL with vetting ("while we are reviewing your inquiry,

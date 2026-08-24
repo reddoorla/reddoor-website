@@ -1,4 +1,4 @@
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import metaImage from "$lib/assets/og/calendar.jpg";
 import type { PageLoad } from "./$types";
 
 /** See /reschedule/[eventId]/+page.ts — same reasoning, same bearer id. */

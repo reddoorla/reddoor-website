@@ -7,9 +7,10 @@ import {
   LEAD_SOURCE,
   TAG_APPLICATION_COMPLETED,
   TAG_APPLICATION_STARTED,
+  TAG_NOT_A_FIT,
 } from "./constants";
 import { normalizePhone } from "./phone";
-import { questionsFor, SMS_CONSENT } from "./questions";
+import { isBudgetOptOut, questionsFor, SMS_CONSENT } from "./questions";
 
 /**
  * Server-side CRM sync over LeadConnector's OFFICIAL API, replacing the
@@ -520,24 +521,36 @@ export async function syncApplicationToCrm(opts: {
   const contactId = contact.data.contactId;
   const dropped = phoneWasDropped(opts.phone, contact.data.storedPhone);
 
+  // The budget gate (BUDGET_GATE): a "No" is a self-opt-out. They still
+  // completed the application — that tag stays true — but no pipeline card is
+  // opened (not even the existence lookup), because the pipeline is the queue
+  // of leads awaiting review and this one reviewed itself out. The extra tag is
+  // the exclusion lever for the chase workflows, which cannot be edited here.
+  const optedOut = isBudgetOptOut(opts.fields);
   const tagged = await addCrmTags({
     token,
     fetch: f,
     contactId,
-    tags: [TAG_APPLICATION_COMPLETED],
+    tags: optedOut ? [TAG_APPLICATION_COMPLETED, TAG_NOT_A_FIT] : [TAG_APPLICATION_COMPLETED],
   });
-  const opportunity = await ensureCrmOpportunity({
-    token,
-    fetch: f,
-    contactId,
-    name: opts.name.trim() || opts.email,
-  });
+  const opportunity = optedOut
+    ? { ok: true as const, data: { opportunityId: "", created: false } }
+    : await ensureCrmOpportunity({
+        token,
+        fetch: f,
+        contactId,
+        name: opts.name.trim() || opts.email,
+      });
   const note = await addCrmNote({
     token,
     fetch: f,
     contactId,
     body: [
       opts.transcript,
+      // Stated in prose too: tags are easy to miss and easier to strip, and
+      // whoever opens this record should know the visitor was routed away from
+      // the scheduler rather than wonder why they never booked.
+      ...(optedOut ? ["Self-opted out at the budget gate — routed to the not-a-fit page."] : []),
       // The number restated in prose, because the contact FIELD is not a
       // reliable place to keep it. Measured on 2026-08-18: a walkthrough
       // recorded SMS consent and no phone, because GHL drops a phone whose

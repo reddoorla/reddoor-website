@@ -54,6 +54,16 @@ export const TAG_APPLICATION_STARTED = "application started";
 export const TAG_APPLICATION_COMPLETED = "application completed";
 
 /**
+ * A visitor who answered the budget gate with "No" (see BUDGET_GATE in
+ * questions.ts). NOT the template's vocabulary — its nearest, "lead rejected",
+ * means a human reviewed and declined, and a self-opt-out must stay
+ * distinguishable from that. The CRM creates a tag on first use, so this
+ * exists the moment the first No lands; the A-102 chase workflows should add
+ * it as an exclusion filter (builder edit — flagged to Tim, 2026-08-24).
+ */
+export const TAG_NOT_A_FIT = "not a good fit";
+
+/**
  * Attribution custom fields, by field id — the full set the template ships.
  *
  * We only WRITE `lead_source` and `funnel`. The four utm_* fields are listed

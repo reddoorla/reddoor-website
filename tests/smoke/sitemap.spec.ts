@@ -15,6 +15,7 @@ import { test, expect } from "@playwright/test";
 
 const FUNNEL_PATHS = [
   "/schedule",
+  "/not-a-fit",
   "/meeting-outcome",
   "/email/unsubscribed",
   "/email/resubscribed",

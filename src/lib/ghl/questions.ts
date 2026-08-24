@@ -74,23 +74,33 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
   {
     kind: "radio",
     tag: "xW6eFrHUFBNQCijp1mOM",
-    // Erik's 2026-08-20 notes also proposed rewriting this question into a
-    // yes/no ("Do you have a budget set aside…?"). That part was not taken up:
-    // asked for the full option text, he supplied wording that answers the
-    // question as it already stands, so the heading is unchanged and no
-    // builder edit is outstanding. The last option is his, verbatim.
+    // The yes/no rewrite Erik first floated on 2026-08-20 landed on 2026-08-24:
+    // Tim asked for a $10,000+ gate, Erik supplied this wording. A "No" is a
+    // self-opt-out — the modal routes it to /not-a-fit instead of /schedule and
+    // the CRM sync marks it (see BUDGET_GATE below). The CRM field is
+    // "Inquiry - Expects $10k+ Budget" (renamed with the same edit).
     heading:
-      "What would you expect to pay to rebrand a business and execute all the deliverables, if needed?",
-    options: [
-      "Less than $10,000",
-      "$10,000 - 30,000",
-      "$30,000 - 50,000",
-      "$50,000 - 100,000",
-      "$100,000 - 200,000",
-      "I don't have a budget, and I'm unsure of how much something like this costs.",
-    ],
+      "Would you expect to pay $10,000+ to diagnose the problem and rebrand your business if needed?",
+    options: ["Yes", "No"],
   },
 ];
+
+/**
+ * The budget gate: the one answer that reroutes the flow. A visitor answering
+ * "No" has self-opted out — per Tim (2026-08-24) they land on the official
+ * not-a-fit page rather than the scheduler, and the CRM record is tagged so a
+ * workflow can exclude them from the booking chase.
+ *
+ * The literal "No" is the CRM's stored picklist value, pinned like every other
+ * option string here.
+ */
+export const BUDGET_GATE = { tag: "xW6eFrHUFBNQCijp1mOM", optOut: "No" } as const;
+
+/** True only for the gate's exact stored opt-out value — a radio submits a
+ *  plain string, so an array shape is a forgery, not an answer. */
+export function isBudgetOptOut(answers: Record<string, string | string[]>): boolean {
+  return answers[BUDGET_GATE.tag] === BUDGET_GATE.optOut;
+}
 
 /**
  * The survey's final slide also demands SMS consent; its tag and the literal

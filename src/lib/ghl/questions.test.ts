@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { questionsFor, SMS_CONSENT } from "./questions";
+import { questionsFor, SMS_CONSENT, BUDGET_GATE, isBudgetOptOut } from "./questions";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "./constants";
 
 // These assertions pin the CRM contract, not our prose. Every tag is a GHL
@@ -45,14 +45,19 @@ describe("the A-101 question set", () => {
       "Our board of directors",
       "Other",
     ]);
-    expect(options("xW6eFrHUFBNQCijp1mOM")).toEqual([
-      "Less than $10,000",
-      "$10,000 - 30,000",
-      "$30,000 - 50,000",
-      "$50,000 - 100,000",
-      "$100,000 - 200,000",
-      "I don't have a budget, and I'm unsure of how much something like this costs.",
-    ]);
+    // Reduced from six price ranges to a yes/no gate — Tim's ask, Erik's
+    // wording, both 2026-08-24. "No" self-opts the visitor out (see BUDGET_GATE).
+    expect(options("xW6eFrHUFBNQCijp1mOM")).toEqual(["Yes", "No"]);
+  });
+
+  it("names the budget gate and recognises only its exact opt-out", () => {
+    expect(BUDGET_GATE.tag).toBe("xW6eFrHUFBNQCijp1mOM");
+    expect(isBudgetOptOut({ [BUDGET_GATE.tag]: "No" })).toBe(true);
+    expect(isBudgetOptOut({ [BUDGET_GATE.tag]: "Yes" })).toBe(false);
+    // Unanswered, array-shaped, or foreign values are not an opt-out.
+    expect(isBudgetOptOut({})).toBe(false);
+    expect(isBudgetOptOut({ [BUDGET_GATE.tag]: ["No"] })).toBe(false);
+    expect(isBudgetOptOut({ someOtherTag: "No" })).toBe(false);
   });
 
   it("carries the CRM's exact consent field and wording", () => {

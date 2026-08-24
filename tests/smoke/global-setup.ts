@@ -43,6 +43,7 @@ const ROUTES = [
   "/portfolio",
   "/twenty-for-twenty",
   "/schedule",
+  "/not-a-fit",
   "/email/unsubscribed",
   "/email/resubscribed",
   "/reschedule/AAAAAAAAAAAA",
