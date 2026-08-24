@@ -1733,6 +1733,72 @@ neither wording carries message frequency, data rates, or STOP/HELP; that was
 already true of the original and is not a regression, but it is the thing to
 raise if SMS compliance is ever actually audited.
 
+### 6.19 Live — 2026-08-20
+
+`reddoorla.com/medtech` is serving. What that took, in the order it had to
+happen, because the order is the part worth keeping:
+
+1. **CRM first, code second.** Erik's questionnaire edits (§6.18) changed the
+   picklists before `questions.ts`, because GHL matches submitted values
+   byte-for-byte. Staging ran with the two disagreeing for about an hour; that
+   window is what the ordering rule exists to prevent.
+2. **The feature branch reached staging, then staging reached main.** Both
+   fast-forwards, 91 commits, one merge commit at `d28b179`.
+3. **Prod deployed and verified before anything was repointed.** Flipping the
+   CRM's URLs first would have sent live traffic to pages that were not there.
+4. **Then the CRM.** Four custom values off `staging.reddoorla.com`, each
+   confirmed by read-back. The `Schedule Appointment` trigger link was the only
+   one still hardcoded — every other link already interpolated a custom value,
+   which is why they all followed the flip on their own and it did not. It now
+   reads `{{ custom_values.schedule_my_appointment_url }}`, so the next
+   environment change is one edit rather than two. The key came from the value's
+   own `fieldKey`; slugifying the display name would have produced a dead token
+   (`Re-Subscribe to Email Marketing` is `resubscribe_for_emails_page`).
+5. **Prismic published by a human**, as it should be.
+
+#### Verified on production
+
+| Check                                          | Result                                                                 |
+| ---------------------------------------------- | ---------------------------------------------------------------------- |
+| `/medtech`                                     | 200, Tim's rewritten process line                                      |
+| CTA → modal                                    | opens in place; the `/contact#inquire` href is intercepted client-side |
+| `/api/slots`                                   | returns real CRM slots — prod's token genuinely works                  |
+| `/inquiry?…` chase link                        | 302, params preserved, `no-store` + `no-referrer`                      |
+| `/schedule` `/reschedule` `/cancel` `/email/*` | 200                                                                    |
+| All 12 of Erik's edits                         | present in the shipped bundle; all six retired strings gone            |
+| Crawlers                                       | funnel `noindex`, `/medtech` indexable and in the sitemap              |
+
+The `/api/slots` check is the one that matters most. A funnel renders perfectly
+without a CRM token and is completely dead — which is exactly how staging broke
+in §6.11, because `netlify env:clone` writes masked garbage for secrets.
+
+#### Not verified, deliberately
+
+**A real application and booking, end to end.** Completing the form writes a
+contact and books a live slot, so it waits for the sign-off walkthrough rather
+than being done from here. Everything up to submission is confirmed.
+
+#### What the release surfaced
+
+Three bugs of one shape — **tests that assert their environment rather than
+their behaviour** — and each was invisible for a structural reason rather than
+by bad luck:
+
+- `inquiry-modal.spec.ts` asserted a wall-clock slot label without pinning the
+  browser timezone, so it verified the author's zone rather than the Mountain
+  conversion. Green on every Pacific machine, red the first time CI ran it —
+  which was this release PR, because CI triggered only on `pull_request` and
+  `push: main` and the spec had reached staging by direct push. Fixed, and
+  `staging` added to the push triggers here and across 21 repos including both
+  starters.
+- `prismic-drift-wiring.test.ts` in reddoor-maintenance omits the `now` its
+  sibling injects, so it asserts what day it runs on. Surfaced only because the
+  trigger PR caused that repo's first CI run in three days.
+- The layout published **two `main` landmarks** on every navigation, recorded
+  two days earlier as a Playwright annoyance to work around rather than as the
+  a11y defect it was. Fixed; see `docs/a11y-landmark-and-heading-gaps.md` for
+  why a green a11y suite never mentioned it.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
