@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Serve the prospect audit report as a real, branded route on `reddoorla.com/r/{token}`, and produce a separately-designed PDF leave-behind from the same data.
+**Goal:** Serve the prospect audit report as a real, branded route on `reddoorla.com/audit/{token}`, and produce a separately-designed PDF leave-behind from the same data.
 
 **Architecture:** The audit keeps running in `reddoor-maintenance` and keeps writing `result_json` to Turso. Maintenance gains one new read endpoint that returns that JSON for a valid token; `reddoor-website` fetches it server-side and renders it with the site's own components. Turso credentials never leave the ops repo. The JSON contract is not hand-maintained — the website already depends on `@reddoorla/maintenance`, so the result type is exported from that package as a **dependency-free types-only subpath** and imported directly, giving compile-time safety across the repo boundary.
 
@@ -63,12 +63,12 @@ to prevent.
 
 - Create: `src/lib/report/fetch.ts` — server-only fetch of the report JSON
 - Create: `src/lib/report/fetch.test.ts`
-- Create: `src/routes/r/[token]/+page.server.ts`
-- Create: `src/routes/r/[token]/+page.svelte`
-- Create: `src/routes/r/[token]/print/+page.server.ts`
-- Create: `src/routes/r/[token]/print/+page.svelte`
+- Create: `src/routes/audit/[token]/+page.server.ts`
+- Create: `src/routes/audit/[token]/+page.svelte`
+- Create: `src/routes/audit/[token]/print/+page.server.ts`
+- Create: `src/routes/audit/[token]/print/+page.svelte`
 - Create: `src/lib/report/` components — `Verdict.svelte`, `ScoreBand.svelte`, `FixList.svelte`, `SearchResults.svelte`, `NamesakeCallout.svelte`, `BuyerQuestions.svelte`, `TechnicalChecks.svelte`, `QuestionSplit.svelte`
-- Modify: `static/robots.txt` — `Disallow: /r/`
+- Modify: `static/robots.txt` — `Disallow: /audit/`
 - Modify: `src/hooks.server.ts` — security headers on SSR responses
 
 ---
@@ -288,7 +288,7 @@ import { openDb, readDbConfig } from "../../src/db/client.js";
 import { getProspectAuditByToken, isValidToken } from "../../src/db/prospect-audits.js";
 import { handlerError } from "../../src/dashboard/handler-helpers.js";
 
-// The JSON behind reddoorla.com/r/{token}. Deliberately NOT operator-gated:
+// The JSON behind reddoorla.com/audit/{token}. Deliberately NOT operator-gated:
 // the 128-bit token IS the credential, exactly as it is for the HTML route in
 // prospect-report.mts. Anyone holding the link is the intended audience.
 //
@@ -492,13 +492,13 @@ The single unrecoverable mistake in this project is letting a prospect report re
 
 **Files:**
 
-- Create: `reddoor-website/src/routes/r/[token]/+page.server.ts`
+- Create: `reddoor-website/src/routes/audit/[token]/+page.server.ts`
 - Modify: `reddoor-website/static/robots.txt`
-- Test: `reddoor-website/src/routes/r/[token]/page.server.test.ts`
+- Test: `reddoor-website/src/routes/audit/[token]/page.server.test.ts`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `src/routes/r/[token]/page.server.test.ts`:
+Create `src/routes/audit/[token]/page.server.test.ts`:
 
 Note the shape: `vitest.config.js` loads no SvelteKit plugin, so `$env` has no
 resolver and **must be hand-mocked**, and the module under test is pulled in with
@@ -523,7 +523,7 @@ function evt(token: string, fetchImpl: typeof globalThis.fetch) {
 }
 const ok = vi.fn(async () => new Response(JSON.stringify(report), { status: 200 }));
 
-describe("/r/[token] route guards", () => {
+describe("/audit/[token] route guards", () => {
   // The root layout sets prerender = "auto". A per-prospect page must opt out
   // explicitly or the build tries to crawl it.
   it("opts out of prerendering", () => {
@@ -546,7 +546,7 @@ describe("/r/[token] route guards", () => {
 });
 
 describe("robots.txt", () => {
-  it("disallows /r/", () => {
+  it("disallows /audit/", () => {
     expect(readFileSync("static/robots.txt", "utf-8")).toMatch(/^Disallow: \/r\/$/m);
   });
 });
@@ -554,12 +554,12 @@ describe("robots.txt", () => {
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `pnpm exec vitest run src/routes/r/`
+Run: `pnpm exec vitest run src/routes/audit/`
 Expected: FAIL — no `+page.server.ts`.
 
 - [ ] **Step 3: Write the loader**
 
-Create `src/routes/r/[token]/+page.server.ts`:
+Create `src/routes/audit/[token]/+page.server.ts`:
 
 ```ts
 import { error } from "@sveltejs/kit";
@@ -600,23 +600,35 @@ export const load: PageServerLoad = async ({ params, fetch, setHeaders }) => {
 In `static/robots.txt`, after `Disallow: /dev/`:
 
 ```
-Disallow: /r/
+Disallow: /audit/
 ```
 
 - [ ] **Step 5: Verify**
 
-Run: `pnpm exec vitest run src/routes/r/`
+Run: `pnpm exec vitest run src/routes/audit/`
 Expected: 4 pass.
 
 - [ ] **Step 6: Confirm the sitemap cannot pick it up**
 
-`src/routes/sitemap.xml/+server.ts` builds from `STATIC_ROUTES` plus Prismic documents. `/r/` is neither. Confirm by reading the file — do not add an exclusion, because there is nothing to exclude; note it in the commit message so a future reader does not re-derive this.
+`src/routes/sitemap.xml/+server.ts` builds from `STATIC_ROUTES` plus Prismic documents. `/audit/` is neither. Confirm by reading the file — do not add an exclusion, because there is nothing to exclude; note it in the commit message so a future reader does not re-derive this.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Check the route against the Prismic catch-all**
+
+The site routes single-segment paths through `src/routes/[[preview=preview]]/[uid]/`, so a new top-level segment is worth a moment's thought. `/audit/{token}` is two segments and matches `audit/[token]` — a static segment wins over a dynamic one, so there is no ambiguity. Bare `/audit` still falls through to the Prismic lookup and 404s there, which is the correct outcome; do not add a page at `/audit`. Confirm both by hand:
+
+```bash
+pnpm build && pnpm preview
+# /audit/<valid-token>  -> the report
+# /audit                -> 404
+```
+
+A Prismic document published with the uid `audit` would be reachable at `/audit` and would sit confusingly beside these report URLs. Nothing prevents that today; it is a naming convention to keep, not a bug to fix.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/routes/r static/robots.txt
-git commit -m "feat(report): the /r/[token] route, de-indexed three ways"
+git commit -m "feat(report): the /audit/[token] route, de-indexed three ways"
 ```
 
 ---
@@ -627,7 +639,7 @@ Build the design at the reference artifact using site components and tokens. No 
 
 **Files:**
 
-- Create: `reddoor-website/src/routes/r/[token]/+page.svelte`
+- Create: `reddoor-website/src/routes/audit/[token]/+page.svelte`
 - Create: `reddoor-website/src/lib/report/` components (listed in File Structure)
 
 - [ ] **Step 1: Read the existing patterns first**
@@ -688,8 +700,8 @@ A separate design, not a stylesheet over the interactive page. Everything flat: 
 
 **Files:**
 
-- Create: `reddoor-website/src/routes/r/[token]/print/+page.server.ts`
-- Create: `reddoor-website/src/routes/r/[token]/print/+page.svelte`
+- Create: `reddoor-website/src/routes/audit/[token]/print/+page.server.ts`
+- Create: `reddoor-website/src/routes/audit/[token]/print/+page.svelte`
 
 - [ ] **Step 1: The loader**
 
@@ -718,12 +730,12 @@ Design for A4 and US Letter. Concretely:
 pnpm build && pnpm preview
 ```
 
-Then print `/r/{token}/print` to PDF from Chrome at both A4 and Letter. Check no block splits mid-item and nothing is clipped at the right margin.
+Then print `/audit/{token}/print` to PDF from Chrome at both A4 and Letter. Check no block splits mid-item and nothing is clipped at the right margin.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/routes/r/[token]/print src/lib/report/load.ts
+git add src/routes/audit/[token]/print src/lib/report/load.ts
 git commit -m "feat(report): a print-designed route for the PDF leave-behind"
 ```
 
@@ -802,18 +814,18 @@ The email builds its link from `DASHBOARD_BASE_URL`. Introduce a separate `REPOR
 
 - [ ] **Step 2: Redirect the old route**
 
-`netlify/functions/prospect-report.mts` becomes a 301 to `https://reddoorla.com/r/{token}`. Do not delete it: links already sent must keep working, and that is the whole point of a permanent redirect.
+`netlify/functions/prospect-report.mts` becomes a 301 to `https://reddoorla.com/audit/{token}`. Do not delete it: links already sent must keep working, and that is the whole point of a permanent redirect.
 
 - [ ] **Step 3: Close the SSR header gap**
 
-`/r/[token]` is SSR, and Netlify `[[headers]]` do not apply to SSR responses — the same gap `/contact` and the 404 page already have. Add the security headers in `src/hooks.server.ts` so they cover every SSR response rather than only this route. Ship `Content-Security-Policy-Report-Only` first and read the reports before enforcing.
+`/audit/[token]` is SSR, and Netlify `[[headers]]` do not apply to SSR responses — the same gap `/contact` and the 404 page already have. Add the security headers in `src/hooks.server.ts` so they cover every SSR response rather than only this route. Ship `Content-Security-Policy-Report-Only` first and read the reports before enforcing.
 
 - [ ] **Step 4: Verify the guards on the live site**
 
 ```bash
-curl -sI https://reddoorla.com/r/<token> | grep -i "x-robots-tag"
-curl -s https://reddoorla.com/robots.txt | grep -i "/r/"
-curl -s https://reddoorla.com/sitemap.xml | grep -c "/r/"
+curl -sI https://reddoorla.com/audit/<token> | grep -i "x-robots-tag"
+curl -s https://reddoorla.com/robots.txt | grep -i "/audit/"
+curl -s https://reddoorla.com/sitemap.xml | grep -c "/audit/"
 ```
 
 Expected: the header present; the Disallow present; **zero** matches in the sitemap.
