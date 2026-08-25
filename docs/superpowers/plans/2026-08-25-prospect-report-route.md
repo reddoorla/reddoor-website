@@ -29,7 +29,7 @@ These were settled before this plan and are not open questions:
 
 ### Cross-repo sequencing — read before starting Task 3
 
-Task 3 imports `@reddoorla/maintenance/prospect`. That subpath does not exist
+Task 3 imports `@reddoorla/maintenance/audit`. That subpath does not exist
 until Task 1 is **released to npm and the website's dependency is bumped** —
 merging Task 1 to `main` is not enough. `reddoor-website` currently pins
 `@reddoorla/maintenance: ^0.83.0`, and the caret will not pick up a new export
@@ -50,7 +50,7 @@ to prevent.
 
 **`reddoor-maintenance`**
 
-- Modify: `package.json` — add `./prospect` to `exports`
+- Modify: `package.json` — add `./audit` to `exports`
 - Modify: `tsup.config.ts` — add `src/prospect/types.ts` as an entry
 - Create: `netlify/functions/prospect-report-json.mts` — the read endpoint
 - Create: `tests/dashboard/prospect-report-json.test.ts`
@@ -95,12 +95,12 @@ import { readFileSync } from "node:fs";
 // import here reaches reddoorla.com's bundle and drags the audit's heavy deps
 // (Anthropic SDK, Playwright) with it. tsup.config.ts's own comment states the
 // rule — consumers only import dependency-free entries — and nothing enforced it.
-describe("the ./prospect package entry", () => {
+describe("the ./audit package entry", () => {
   it("is declared in the export map", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf-8")) as {
       exports: Record<string, { types: string; import: string }>;
     };
-    expect(pkg.exports["./prospect"]).toEqual({
+    expect(pkg.exports["./audit"]).toEqual({
       types: "./dist/prospect/types.d.ts",
       import: "./dist/prospect/types.js",
     });
@@ -124,18 +124,26 @@ describe("the ./prospect package entry", () => {
 - [ ] **Step 2: Run it and watch it fail**
 
 Run: `pnpm exec vitest run tests/prospect/types-entry.test.ts`
-Expected: FAIL — `pkg.exports["./prospect"]` is `undefined`.
+Expected: FAIL — `pkg.exports["./audit"]` is `undefined`.
 
 - [ ] **Step 3: Add the export map entry**
 
 In `package.json`, inside `exports`, after the `"./forms"` block:
 
 ```json
-    "./prospect": {
+    "./audit": {
       "types": "./dist/prospect/types.d.ts",
       "import": "./dist/prospect/types.js"
     },
 ```
+
+The subpath is `./audit` while the target is `dist/prospect/…`, and that mismatch
+is deliberate — do not "correct" it. Inside this repo the domain word is
+`prospect`: `src/prospect/`, the `prospect_audits` table, `prospect-report.mts`.
+Renaming the source to match the subpath would mean renaming that whole family
+for one export. Outward, `audit` is the accurate name for what a consumer
+imports — they are importing an audit result, not a prospect. An export map
+exists precisely to let the two differ.
 
 - [ ] **Step 4: Add the tsup entry**
 
@@ -215,7 +223,7 @@ afterEach(() => {
 function ctxFor(token: string) {
   return { params: { token } } as unknown as Context;
 }
-const req = (method = "GET") => new Request("https://ops.test/api/prospect-report/x", { method });
+const req = (method = "GET") => new Request("https://ops.test/api/audit-report/x", { method });
 
 describe("prospect-report-json", () => {
   it("returns the stored result_json for a valid token", async () => {
@@ -286,7 +294,7 @@ import { handlerError } from "../../src/dashboard/handler-helpers.js";
 //
 // Turso credentials stay in this repo; the website only ever sees this JSON.
 export const config: Config = {
-  path: ["/api/prospect-report/:token"],
+  path: ["/api/audit-report/:token"],
   rateLimit: { windowSize: 60, windowLimit: 120, aggregateBy: ["ip"] },
 };
 
@@ -382,7 +390,7 @@ describe("fetchReport", () => {
     const f = fetchReturning(200, OK);
     const r = await fetchReport("abc123", { baseUrl: "https://ops.test", fetch: f });
     expect(r).toEqual(OK);
-    expect(f.mock.calls[0]![0]).toBe("https://ops.test/api/prospect-report/abc123");
+    expect(f.mock.calls[0]![0]).toBe("https://ops.test/api/audit-report/abc123");
   });
 
   it("returns null on 404 — a bad link is not an error page", async () => {
@@ -428,7 +436,7 @@ Expected: FAIL — cannot resolve `./fetch`.
 Create `src/lib/report/fetch.ts`:
 
 ```ts
-import type { ProspectAuditResult } from "@reddoorla/maintenance/prospect";
+import type { ProspectAuditResult } from "@reddoorla/maintenance/audit";
 
 /** Base64url, the shape generateToken() produces in the maintenance repo. The
  *  route param is checked against this BEFORE any fetch, so a probe never
@@ -455,7 +463,7 @@ export async function fetchReport(
   if (!opts.baseUrl) {
     throw new Error("fetchReport: PROSPECT_REPORT_URL is not configured");
   }
-  const res = await opts.fetch(`${opts.baseUrl.replace(/\/$/, "")}/api/prospect-report/${token}`);
+  const res = await opts.fetch(`${opts.baseUrl.replace(/\/$/, "")}/api/audit-report/${token}`);
 
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`fetchReport: upstream responded ${res.status}`);
