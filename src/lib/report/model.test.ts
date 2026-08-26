@@ -1,7 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { toReportView, findNamesake } from "./model";
+import { toReportView, findNamesake, type ProbeAnswer } from "./model";
+import type { AuditReport } from "./fetch";
 
-const probe = (over: Record<string, unknown> = {}) => ({
+/**
+ * The fixtures here supply only the stages `toReportView` actually reads —
+ * scores, analyze, probes. Requiring `crawl`, `checks` and `lighthouse`, which
+ * it never touches, would make these tests brittle to schema changes they do
+ * not cover, and would bury what each case is actually about.
+ *
+ * The cast is the seam between what the contract promises and what this
+ * function is written to survive. The payload arrives over a network, and the
+ * whole point of the function is that a missing or failed piece degrades to
+ * null rather than throwing — which is precisely what a strictly-typed fixture
+ * cannot express.
+ */
+const asReport = (o: unknown): AuditReport => o as AuditReport;
+
+const probe = (over: Partial<ProbeAnswer> = {}): ProbeAnswer => ({
   engine: "claude",
   query: "branding agency Los Angeles",
   kind: "category",
@@ -63,7 +78,7 @@ const FULL = {
 
 describe("toReportView — a complete report", () => {
   it("splits probes by kind", () => {
-    const v = toReportView(FULL);
+    const v = toReportView(asReport(FULL));
     expect(v.categoryProbes).toHaveLength(2);
     expect(v.brandedProbes).toHaveLength(1);
   });
@@ -71,29 +86,31 @@ describe("toReportView — a complete report", () => {
   // The honest denominator. A bare 0 invites an argument; "0 of 2" invites a
   // question.
   it("counts the visibility denominator from the searches actually run", () => {
-    expect(toReportView(FULL).visibility).toEqual({ named: 0, total: 2 });
+    expect(toReportView(asReport(FULL)).visibility).toEqual({ named: 0, total: 2 });
   });
 
   it("counts a brand mention as named, not only a citation", () => {
-    const v = toReportView({
-      ...FULL,
-      probes: {
-        ok: true,
-        data: {
-          ...FULL.probes.data,
-          answers: [probe({ brandMentioned: true }), probe()],
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        probes: {
+          ok: true,
+          data: {
+            ...FULL.probes.data,
+            answers: [probe({ brandMentioned: true }), probe()],
+          },
         },
-      },
-    });
+      }),
+    );
     expect(v.visibility).toEqual({ named: 1, total: 2 });
   });
 
   it("tallies the buyer questions", () => {
-    expect(toReportView(FULL).questionTally).toEqual({ yes: 2, partial: 1, no: 2 });
+    expect(toReportView(asReport(FULL)).questionTally).toEqual({ yes: 2, partial: 1, no: 2 });
   });
 
   it("carries the fixes and narrative through", () => {
-    const v = toReportView(FULL);
+    const v = toReportView(asReport(FULL));
     expect(v.fixes).toHaveLength(1);
     expect(v.narrative?.answers).toBe("c");
   });
@@ -104,7 +121,7 @@ describe("toReportView — a complete report", () => {
 // and a wrong one.
 describe("toReportView — degraded stages", () => {
   it("survives a failed analyze stage", () => {
-    const v = toReportView({ ...FULL, analyze: { ok: false, error: "model refused" } });
+    const v = toReportView(asReport({ ...FULL, analyze: { ok: false, error: "model refused" } }));
     expect(v.fixes).toEqual([]);
     expect(v.buyerQuestions).toEqual([]);
     expect(v.narrative).toBeNull();
@@ -113,14 +130,16 @@ describe("toReportView — degraded stages", () => {
   // Null, not {named:0,total:0} — "we did not ask" and "we asked and you were
   // absent" are different claims about the prospect.
   it("reports no visibility measurement when the probe stage failed", () => {
-    const v = toReportView({ ...FULL, probes: { ok: false, error: "no engine answered" } });
+    const v = toReportView(
+      asReport({ ...FULL, probes: { ok: false, error: "no engine answered" } }),
+    );
     expect(v.visibility).toBeNull();
     expect(v.brandedRecognized).toBeNull();
     expect(v.categoryProbes).toEqual([]);
   });
 
   it("survives stages being absent entirely", () => {
-    const v = toReportView({ url: "https://acme.example/", businessName: null });
+    const v = toReportView(asReport({ url: "https://acme.example/", businessName: null }));
     expect(v.scores).toEqual({
       findability: null,
       readability: null,

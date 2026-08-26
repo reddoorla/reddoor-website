@@ -1,16 +1,13 @@
-// TODO: replace this local declaration with
-//   import type { ProspectAuditResult } from "@reddoorla/maintenance/audit";
-// once reddoorla/reddoor-maintenance#605 is released and this repo's dependency
-// is bumped past it. The `./audit` subpath exports the real type; it is not
-// published yet, and the caret on ^0.83.0 will not pick up a new export map
-// from an unpublished version.
+import type { ProspectAuditResult } from "@reddoorla/maintenance/audit";
+
+// The audit's own result type, imported rather than restated. The maintenance
+// repo produces this payload and exports the type that describes it, so the two
+// sides cannot drift — a shape change there becomes a compile error here.
 //
-// Declared structurally rather than copied: the full result type is ~200 lines,
-// and a duplicate of it is exactly the drift the package export exists to
-// prevent. This says only what this module needs — that the payload is an
-// object — and every consumer gets the real type the moment the import lands.
-// See docs/superpowers/plans/2026-08-25-prospect-report-route.md.
-export type AuditReport = Record<string, unknown>;
+// The subpath is types-only and carries no runtime import, which is what keeps
+// the audit's dependencies (the Anthropic SDK, Playwright) out of this bundle.
+// A test in that repo enforces it.
+export type AuditReport = ProspectAuditResult;
 
 /** Base64url, the shape `generateToken()` produces in the maintenance repo.
  *  Anchored at both ends: an unanchored pattern would let a valid-looking
