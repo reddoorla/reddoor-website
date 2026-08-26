@@ -89,6 +89,56 @@ export type AnswerSpace = {
   topRival: SourceCount | null;
 };
 
+/**
+ * The three checks that measure whether the site WORKS, as opposed to whether
+ * it can be found and read.
+ *
+ * Lighthouse audits one page and scores it. It does not crawl, so it never sees
+ * the link that 404s three pages in, and it reports a performance number
+ * without naming the image that caused it. "Your performance is 60" is a grade.
+ * "This one photograph is 2.25 MB and it is on every page" is a job.
+ *
+ * Declared structurally for the same reason as `AnswerSpace` — see `fetch.ts`
+ * for why this repo cannot yet import the real types.
+ */
+export type Journey = {
+  affordances: { kind: "form" | "tel" | "mailto"; page: string; detail: string }[];
+  pages: { url: string; clicksToContact: number | null; internalLinks: number }[];
+  deadEnds: string[];
+  worstClicksToContact: number | null;
+  pagesExamined: number;
+};
+
+export type Consistency = {
+  phones: { normalized: string; seenAs: string[]; pages: string[] }[];
+  emails: { normalized: string; seenAs: string[]; pages: string[] }[];
+  copyrightYears: number[];
+  newestCopyrightYear: number | null;
+  pagesOffTemplate: string[];
+  sharedNavLinks: number;
+  pagesExamined: number;
+};
+
+export type ProbedUrl = {
+  url: string;
+  status: number | null;
+  bytes: number | null;
+  error: string | null;
+  referencedBy: string[];
+};
+
+export type Assets = {
+  brokenLinks: ProbedUrl[];
+  brokenImages: ProbedUrl[];
+  heaviestImages: ProbedUrl[];
+  imageBytesMeasured: number | null;
+  imagesWithKnownSize: number;
+  linksFound: number;
+  linksChecked: number;
+  imagesFound: number;
+  imagesChecked: number;
+};
+
 export type ReportView = {
   url: string;
   businessName: string | null;
@@ -108,6 +158,14 @@ export type ReportView = {
    *  than reconstructing it here, so there is one implementation of this
    *  arithmetic and it is the one that has tests. */
   answerSpace: AnswerSpace | null;
+  /** Can a visitor reach a way of contacting you from where they landed? */
+  journey: Journey | null;
+  /** Does the site tell the same story on every page? */
+  consistency: Consistency | null;
+  /** What is broken, and what is heavy. Null when the stage did not run — the
+   *  page says "not measured" rather than "nothing broken", which are opposite
+   *  claims and only one of them is ours to make. */
+  assets: Assets | null;
   brandedRecognized: boolean | null;
   categoryProbes: ProbeAnswer[];
   brandedProbes: ProbeAnswer[];
@@ -204,6 +262,12 @@ export function toReportView(raw: AuditReport): ReportView {
     answerSpace?: AnswerSpace;
   }>(r.probes);
 
+  // `checks` carries the two pure site checks; `assets` is its own stage
+  // because it is the only one that makes requests. Both unwrap through the
+  // same `stage()` helper, so a failure becomes null and the page says so.
+  const checks = stage<{ journey?: Journey; consistency?: Consistency }>(r.checks);
+  const assets = stage<Assets>(r.assets);
+
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
   const answers = probes?.answers ?? [];
   const categoryProbes = answers.filter((a) => a.kind === "category");
@@ -248,6 +312,9 @@ export function toReportView(raw: AuditReport): ReportView {
         }
       : null,
     answerSpace: probes?.answerSpace ?? null,
+    journey: checks?.journey ?? null,
+    consistency: checks?.consistency ?? null,
+    assets,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
     brandedProbes: answers.filter((a) => a.kind === "branded"),

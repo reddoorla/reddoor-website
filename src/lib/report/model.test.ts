@@ -224,6 +224,64 @@ describe("toReportView — degraded stages", () => {
     expect(v.answerSpace).toEqual(answerSpace);
   });
 
+  // Opposite claims: "we did not measure" and "nothing is broken". Only one of
+  // them is ours to make, and a report stored before these checks existed has
+  // to produce the first.
+  it("reports the site checks as not measured when the run predates them", () => {
+    const v = toReportView(asReport(FULL));
+    expect(v.journey).toBeNull();
+    expect(v.consistency).toBeNull();
+    expect(v.assets).toBeNull();
+  });
+
+  it("passes the site checks through when the run recorded them", () => {
+    const journey = {
+      affordances: [{ kind: "tel" as const, page: "https://acme.example/", detail: "5550100" }],
+      pages: [{ url: "https://acme.example/", clicksToContact: 0, internalLinks: 3 }],
+      deadEnds: [],
+      worstClicksToContact: 0,
+      pagesExamined: 1,
+    };
+    const consistency = {
+      phones: [{ normalized: "5550100", seenAs: ["555-0100"], pages: ["https://acme.example/"] }],
+      emails: [],
+      copyrightYears: [2026],
+      newestCopyrightYear: 2026,
+      pagesOffTemplate: [],
+      sharedNavLinks: 5,
+      pagesExamined: 1,
+    };
+    const assets = {
+      brokenLinks: [],
+      brokenImages: [],
+      heaviestImages: [],
+      imageBytesMeasured: 1_000_000,
+      imagesWithKnownSize: 4,
+      linksFound: 20,
+      linksChecked: 20,
+      imagesFound: 4,
+      imagesChecked: 4,
+    };
+    // FULL carries no `checks` stage — this function never read one before, so
+    // the fixture never supplied it. Added here rather than to FULL so the
+    // other cases keep proving the absent-stage path.
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        checks: { ok: true, data: { journey, consistency } },
+        assets: { ok: true, data: assets },
+      }),
+    );
+    expect(v.journey).toEqual(journey);
+    expect(v.consistency).toEqual(consistency);
+    expect(v.assets).toEqual(assets);
+  });
+
+  it("reports no assets when that stage failed", () => {
+    const v = toReportView(asReport({ ...FULL, assets: { ok: false, error: "skipped" } }));
+    expect(v.assets).toBeNull();
+  });
+
   it("survives stages being absent entirely", () => {
     const v = toReportView(asReport({ url: "https://acme.example/", businessName: null }));
     expect(v.scores).toEqual({

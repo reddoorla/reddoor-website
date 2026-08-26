@@ -3,6 +3,7 @@
   import RailRow from "$lib/components/RailRow.svelte";
   import ReportDisclosure from "$lib/report/ReportDisclosure.svelte";
   import ScoreBars from "$lib/report/ScoreBars.svelte";
+  import SiteHealth from "$lib/report/SiteHealth.svelte";
   import Standing from "$lib/report/Standing.svelte";
   import QuestionMeter from "$lib/report/QuestionMeter.svelte";
   import FixList from "$lib/report/FixList.svelte";
@@ -90,12 +91,28 @@
     </RailRow>
   </section>
 
+  <!-- ── Does it work ────────────────────────────────────────────────────── -->
+  <!-- The other half of what they control, and the half Lighthouse cannot
+       reach: it audits one page and scores it, so it never sees the link that
+       404s three pages in and never names the image that cost the score.
+       Findings, not another score — a count of broken links is a fact the
+       reader can check in thirty seconds. -->
+  <section class="bg-paper w-full py-16 md:py-24">
+    <ContentWidth class="relative">
+      <h2 class="type-display m-0 max-w-[24ch] text-black">Does it work</h2>
+      <hr class="mt-7.5 mb-7.5 border-primary" />
+    </ContentWidth>
+    <RailRow label="The basics" labelAs="p">
+      <SiteHealth {view} />
+    </RailRow>
+  </section>
+
   <!-- ── What to fix ─────────────────────────────────────────────────────── -->
   <!-- Kept ahead of the evidence: the prior pass moved it here deliberately, on
        the argument that a prospect wants the remedy before the diagnosis. Now
        that the list is collapsed it costs a screen rather than five. -->
   {#if view.fixes.length}
-    <section class="bg-paper w-full py-16 md:py-24">
+    <section class="w-full py-16 md:py-24">
       <ContentWidth class="relative">
         <h2 class="type-display m-0 max-w-[24ch] text-primary">
           {view.fixes.length === 1
@@ -119,7 +136,7 @@
        same kind of claim as the three site scores and that it was ours to move.
        It is neither. See ScoreBars and Standing for the evidence. -->
   {#if view.categoryProbes.length}
-    <section class="w-full py-16 md:py-24">
+    <section class="bg-paper w-full py-16 md:py-24">
       <ContentWidth class="relative">
         <h2 class="type-display m-0 max-w-[26ch] text-black">Where you stand in AI answers</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
