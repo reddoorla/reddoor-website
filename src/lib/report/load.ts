@@ -22,7 +22,7 @@ export async function loadReport({
   params,
   fetch,
   setHeaders,
-}: LoadLike): Promise<{ report: AuditReport }> {
+}: LoadLike): Promise<{ report: AuditReport; meta_referrer: string }> {
   // Reject before fetching. fetchReport validates too, but these routes build a
   // URL from a public path segment and should not rely on a callee to catch it.
   if (!REPORT_TOKEN_PATTERN.test(params.token)) throw error(404, "Not found");
@@ -48,5 +48,13 @@ export async function loadReport({
   // are broken" must not look the same to the person holding the link.
   if (!report) throw error(404, "Not found");
 
-  return { report };
+  return {
+    report,
+    // Rendered by the root layout as <meta name="referrer">. The URL is the
+    // credential, so it must not travel in a Referer header when the reader
+    // follows a link out of the report — the same reason /cancel, /calendar,
+    // /reschedule and /meeting-outcome each set this. app.html separately keeps
+    // the URL out of analytics; this keeps it out of other people's logs.
+    meta_referrer: "no-referrer",
+  };
 }

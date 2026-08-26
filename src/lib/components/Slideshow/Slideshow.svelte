@@ -44,6 +44,21 @@
 
   const canAutoplay = $derived(autoplay && isCarousel && !reduceMotion);
 
+  // Touch: no hover, and no way to focus a control that is pointer-events-none.
+  // Both of the chrome's reveal triggers below are therefore unreachable, which
+  // left an autoplaying carousel with no pause on a phone — WCAG 2.2.2 (Pause,
+  // Stop, Hide), Level A. Desktop and keyboard both pass, which is why it went
+  // unnoticed: axe has no 2.2.2 rule and our suite runs desktop Chromium.
+  // SSR-safe (client only), same shape as the reduced-motion query above.
+  let coarsePointer = $state(false);
+  $effect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    coarsePointer = mq.matches;
+    const on = () => (coarsePointer = mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  });
+
   // Infinite loop via a tripled track (mirrors the original slice).
   const tripled = $derived([...slides, ...slides, ...slides]);
   const slideWidth = $derived(100 / tripled.length);
@@ -68,8 +83,12 @@
 
   // While actively auto-advancing, the chrome fades out (video-player style) and
   // returns on hover or keyboard focus; paused/non-autoplaying it stays put.
-  // Keyboard focus always reveals it, keeping the WCAG 2.2.2 pause reachable.
-  const chromeHidden = $derived(canAutoplay && isPlaying);
+  //
+  // NEVER hidden on a coarse pointer. Hover and focus are the only two ways
+  // back, and touch has neither — it cannot hover, and it cannot tap through
+  // `pointer-events-none` to focus the button. Hiding there would leave an
+  // autoplaying carousel with no reachable pause at all (WCAG 2.2.2, Level A).
+  const chromeHidden = $derived(canAutoplay && isPlaying && !coarsePointer);
   const controlReveal = $derived(
     chromeHidden
       ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"

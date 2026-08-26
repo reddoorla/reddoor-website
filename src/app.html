@@ -52,10 +52,34 @@
         }
         window.gtag = gtag;
 
+        // Paths whose URL *is* a credential. gtag reads location.href for
+        // page_location, so loading it here would put the secret into GA4
+        // property data — readable by anyone with access, exportable to
+        // BigQuery, retained on Google's schedule.
+        //
+        // This is the same hazard $lib/url/stripQueryParams.ts is written
+        // against ("anything that later reads location.href — gtag.js above
+        // all"), but a path segment is strictly worse than a query param:
+        // stripping cannot help, because you cannot strip the URL the page IS.
+        //
+        // A prefix list, not an exact match — /audit/{token} and
+        // /audit/{token}/print both qualify.
+        var CREDENTIAL_PATHS = ["/audit/"];
+        function urlIsSecret() {
+          return CREDENTIAL_PATHS.some(function (p) {
+            return location.pathname.indexOf(p) === 0;
+          });
+        }
+
         var events = ["pointerdown", "keydown", "scroll", "touchstart"];
         var loaded = false;
         function loadGA() {
           if (loaded) return;
+          // Checked here rather than at registration, and deliberately WITHOUT
+          // setting `loaded` or removing the listeners: this is a SPA, so a
+          // visitor can navigate from a report to an ordinary page in the same
+          // document. Bailing without latching lets analytics start there.
+          if (urlIsSecret()) return;
           loaded = true;
           events.forEach(function (e) {
             window.removeEventListener(e, loadGA);
