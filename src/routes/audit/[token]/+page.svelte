@@ -3,7 +3,7 @@
   import RailRow from "$lib/components/RailRow.svelte";
   import ReportDisclosure from "$lib/report/ReportDisclosure.svelte";
   import ScoreBars from "$lib/report/ScoreBars.svelte";
-  import CitationChart from "$lib/report/CitationChart.svelte";
+  import Standing from "$lib/report/Standing.svelte";
   import QuestionMeter from "$lib/report/QuestionMeter.svelte";
   import FixList from "$lib/report/FixList.svelte";
   import SearchResults from "$lib/report/SearchResults.svelte";
@@ -68,10 +68,25 @@
     </ContentWidth>
   </section>
 
-  <!-- ── The scorecard ───────────────────────────────────────────────────── -->
+  <!-- ── What you control ────────────────────────────────────────────────── -->
+  <!-- The report is split in two, and the split is the honest part of it.
+       These three measure the site, they move because we edit the site, and
+       every one of them has a before and an after. The visibility number does
+       not behave that way and is no longer printed beside them — see the
+       section below and the note in ScoreBars. -->
   <section class="w-full py-16 md:py-24">
-    <RailRow label="The scorecard" labelAs="h2">
-      <ScoreBars {view} />
+    <ContentWidth class="relative">
+      <h2 class="type-display m-0 max-w-[24ch] text-black">What you control</h2>
+      <hr class="mt-7.5 mb-7.5 border-primary" />
+    </ContentWidth>
+    <RailRow label="Your site" labelAs="p">
+      <div class="flex flex-col gap-10">
+        <p class="type-lede m-0 max-w-[52ch] text-black">
+          Everything in this section is work on your own site, so every number here is one we can
+          move and show you the before and after of.
+        </p>
+        <ScoreBars {view} />
+      </div>
     </RailRow>
   </section>
 
@@ -97,30 +112,29 @@
     </section>
   {/if}
 
-  <!-- ── The live test ───────────────────────────────────────────────────── -->
+  <!-- ── Where you stand ─────────────────────────────────────────────────── -->
+  <!-- The other half of the split, and the section this whole restructure is
+       for: measured out in the world, reported with receipts, promised never.
+       It used to be a fourth bar on the scorecard above, which said it was the
+       same kind of claim as the three site scores and that it was ours to move.
+       It is neither. See ScoreBars and Standing for the evidence. -->
   {#if view.categoryProbes.length}
     <section class="w-full py-16 md:py-24">
       <ContentWidth class="relative">
-        <h2 class="type-display m-0 max-w-[24ch] text-black">What buyers were shown instead</h2>
+        <h2 class="type-display m-0 max-w-[26ch] text-black">Where you stand in AI answers</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
       </ContentWidth>
-      <RailRow label="The test" labelAs="p">
+      <RailRow label="The world" labelAs="p">
         <div class="flex flex-col gap-10">
           <p class="type-lede m-0 max-w-[52ch] text-black">
             We asked a live AI assistant the questions a buyer types before they have heard of you,
             and recorded every source it cited back.
           </p>
 
-          <!-- The finding as a picture: who the engine named, on one scale,
-               with this business drawn on the same axis. -->
-          {#if view.citedDomains.length}
-            <CitationChart
-              domains={view.citedDomains}
-              url={view.url}
-              namedCount={view.visibility?.named ?? 0}
-              namesakeDomain={view.namesake?.domain ?? null}
-            />
-          {/if}
+          <!-- The finding, the ranked chart, the size of the tail, and the
+               limit — kept together in one component so the number cannot be
+               lifted out of the context that makes it honest. -->
+          <Standing {view} />
 
           <div class="flex flex-col border-t border-light">
             <ReportDisclosure title="See each search we ran, and what came back">

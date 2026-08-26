@@ -55,6 +55,40 @@ export type ProbeAnswer = {
 
 export type CitedDomain = { domain: string; count: number };
 
+export type SourceCount = { domain: string; count: number; share: number };
+
+/**
+ * How the engine answers this category, as opposed to how the prospect scored.
+ *
+ * The visibility score cannot carry a report on its own. Across the audits run
+ * so far it is zero for two thirds of sites and takes four distinct values in
+ * total, so most prospects cannot be told apart by it — and a bare zero invites
+ * the one question the audit cannot honestly answer.
+ *
+ * Two zeros can mean opposite things. A category answered by Stryker, Arthrex
+ * and the FDA is one no website work reaches, and the honest advice is to spend
+ * the money elsewhere. A category answered by five local practices the
+ * prospect's own size is plainly reachable, and they are simply not in it. The
+ * fields below are what let the page tell those apart instead of printing the
+ * same zero for both.
+ *
+ * Declared structurally rather than imported: the real type ships as part of
+ * `@reddoorla/maintenance/audit`, and this repo cannot take that dependency
+ * bump yet — see the note in `fetch.ts`.
+ */
+export type AnswerSpace = {
+  answersWithCitations: number;
+  queriesAsked: number;
+  citationsTotal: number;
+  distinctDomains: number;
+  topSources: SourceCount[];
+  domainsToHalf: number | null;
+  medianWidthPerAnswer: number | null;
+  ownDomainRank: number | null;
+  ownDomainCount: number;
+  topRival: SourceCount | null;
+};
+
 export type ReportView = {
   url: string;
   businessName: string | null;
@@ -69,6 +103,11 @@ export type ReportView = {
    *  argument; "named in 0 of 3 searches" invites a question. Null when the
    *  probe stage did not run at all — which is not the same as scoring zero. */
   visibility: { named: number; total: number } | null;
+  /** The shape of the answer the prospect is absent from. Null for a report
+   *  stored before the audit measured it — the page says "not measured" rather
+   *  than reconstructing it here, so there is one implementation of this
+   *  arithmetic and it is the one that has tests. */
+  answerSpace: AnswerSpace | null;
   brandedRecognized: boolean | null;
   categoryProbes: ProbeAnswer[];
   brandedProbes: ProbeAnswer[];
@@ -162,6 +201,7 @@ export function toReportView(raw: AuditReport): ReportView {
     brandedRecognized?: boolean;
     competitorsSeen?: CitedDomain[];
     categoryProbes?: { attempted: number; answered: number };
+    answerSpace?: AnswerSpace;
   }>(r.probes);
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
@@ -207,6 +247,7 @@ export function toReportView(raw: AuditReport): ReportView {
           total: visibilityTotal,
         }
       : null,
+    answerSpace: probes?.answerSpace ?? null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
     brandedProbes: answers.filter((a) => a.kind === "branded"),

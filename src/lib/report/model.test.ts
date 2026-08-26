@@ -195,6 +195,35 @@ describe("toReportView — degraded stages", () => {
     expect(v.categoryProbes).toEqual([]);
   });
 
+  // The audit began recording the answer space long after these reports
+  // started being stored, so most of what exists in the database lacks it. The
+  // page must say "not measured" for those rather than reconstructing the
+  // arithmetic here — there is one implementation of it and it has tests.
+  it("reports no answer space for a report stored before it was measured", () => {
+    const v = toReportView(asReport(FULL));
+    expect(v.answerSpace).toBeNull();
+  });
+
+  it("passes the answer space through when the run recorded one", () => {
+    const answerSpace = {
+      answersWithCitations: 4,
+      queriesAsked: 5,
+      citationsTotal: 30,
+      distinctDomains: 22,
+      topSources: [{ domain: "rival.example", count: 3, share: 0.1 }],
+      domainsToHalf: 9,
+      medianWidthPerAnswer: 7,
+      ownDomainRank: null,
+      ownDomainCount: 0,
+      topRival: { domain: "rival.example", count: 3, share: 0.1 },
+    };
+    const probes = FULL.probes as { ok: true; data: Record<string, unknown> };
+    const v = toReportView(
+      asReport({ ...FULL, probes: { ok: true, data: { ...probes.data, answerSpace } } }),
+    );
+    expect(v.answerSpace).toEqual(answerSpace);
+  });
+
   it("survives stages being absent entirely", () => {
     const v = toReportView(asReport({ url: "https://acme.example/", businessName: null }));
     expect(v.scores).toEqual({
