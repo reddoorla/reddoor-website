@@ -67,9 +67,13 @@ describe("/audit/[token] — de-indexing", () => {
 });
 
 describe("/audit/[token] — loading", () => {
-  it("returns the report", async () => {
+  it("returns the report, with the Referer suppressed", async () => {
     const { evt } = event(TOKEN, ok);
-    await expect(load(evt)).resolves.toEqual({ report: REPORT });
+    await expect(load(evt)).resolves.toEqual({
+      report: REPORT,
+      // The URL is the credential — it must not travel in a Referer header.
+      meta_referrer: "no-referrer",
+    });
   });
 
   it("404s a malformed token without fetching", async () => {

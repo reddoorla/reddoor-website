@@ -25,7 +25,11 @@ function event(token: string, fetchImpl: ReturnType<typeof respondWith>) {
 describe("loadReport — the guards both routes share", () => {
   it("returns the report", async () => {
     const { evt } = event(TOKEN, respondWith(200, REPORT));
-    await expect(loadReport(evt)).resolves.toEqual({ report: REPORT });
+    await expect(loadReport(evt)).resolves.toEqual({
+      report: REPORT,
+      // The URL is the credential; it must not travel in a Referer header.
+      meta_referrer: "no-referrer",
+    });
   });
 
   it("404s a malformed token without fetching", async () => {
@@ -72,7 +76,12 @@ describe("both routes use the shared loader", () => {
       expect(route.prerender).toBe(false);
 
       const { evt, setHeaders } = event(TOKEN, respondWith(200, REPORT));
-      await expect(route.load(evt as never)).resolves.toEqual({ report: REPORT });
+      // Both routes must carry no-referrer — the print route is fetched by our
+      // own runner, but it is served on the same public token.
+      await expect(route.load(evt as never)).resolves.toEqual({
+        report: REPORT,
+        meta_referrer: "no-referrer",
+      });
       const headers = setHeaders.mock.calls[0]![0] as Record<string, string>;
       expect(headers["x-robots-tag"]).toContain("noindex");
     }
