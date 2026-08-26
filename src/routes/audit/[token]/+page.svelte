@@ -279,7 +279,11 @@
        where every other page on the site ends, which is most of what makes it
        feel like part of the site rather than an attachment to it. -->
   <section class="bg-paper-red w-full py-16 md:py-24">
-    <RailRow label="Next" labelAs="p">
+    <!-- `labelClass` is not optional decoration here: RailRow's rail label
+         defaults to the board's red kicker, which on this band is #D71920 type
+         on a #D71920 ground — invisible. Every element inside a red band takes
+         its colour explicitly. -->
+    <RailRow label="Next" labelAs="p" labelClass="text-white">
       <div class="flex flex-col gap-5">
         <h2 class="type-display m-0 max-w-[22ch] text-white">
           Half an hour, and we will walk you through it

@@ -12,6 +12,7 @@
   import ValueBlock from "$lib/slices/ValueBlock/index.svelte";
   import CtaBanner from "$lib/slices/CtaBanner/index.svelte";
   import InquiryModal from "$lib/components/InquiryModal.svelte";
+  import RailRow from "$lib/components/RailRow.svelte";
 
   // Hydration marker for interaction tests: onMount only runs client-side after
   // hydration, so `html[data-hydrated]` is a deterministic "the page is now
@@ -580,4 +581,19 @@
       body: c.body,
     }))}
   />
+
+  <!-- A RailRow on the red band — the exact combination that shipped invisible
+       text. RailRow's rail label defaults to the board's red kicker, so placed
+       here without `labelClass` it draws #D71920 on #D71920.
+       `tests/smoke/red-band-contrast.spec.ts` reads the computed colour of every
+       leaf inside `.bg-paper-red`, which is the only way to catch it: the band
+       paints a background-IMAGE and no background-color, so axe resolves the
+       backdrop as the white body and scores red-on-red as red-on-white. -->
+  <section class="bg-paper-red w-full py-16" data-fixture="red-band">
+    <RailRow label="Next" labelAs="p" labelClass="text-white">
+      <p class="type-lede m-0 text-white">
+        Everything drawn on the red band takes its colour explicitly.
+      </p>
+    </RailRow>
+  </section>
 </div>

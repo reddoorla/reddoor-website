@@ -26,6 +26,15 @@
      *  single fade over the lot cannot express. Off by default so the rows that
      *  do read as one block keep doing so. */
     animateItems?: boolean;
+    /** Colour utility for the rail label. Defaults to the board's red kicker.
+     *
+     *  It exists because the red was hardcoded here, and a RailRow placed on the
+     *  `bg-paper-red` band therefore drew #D71920 text on a #D71920 ground — the
+     *  label was invisible, with nothing in the type system able to override it.
+     *  Pass `text-white` on any red band. A cascade rule on `.bg-paper-red`
+     *  cannot fix this: `text-primary` is a Tailwind utility and would still win
+     *  over anything declared in `@layer base` or `@layer components`. */
+    labelClass?: string;
     class?: string;
     /** Extra rail content under the label (CaseStudy's services + before/after
      *  switch). It flows after the label rather than being positioned against
@@ -43,6 +52,7 @@
     wide = false,
     animateIn = false,
     animateItems = false,
+    labelClass = "text-primary",
     class: className = "",
     rail,
     children,
@@ -77,7 +87,7 @@
         <svelte:element
           this={labelAs}
           use:anim={{ enabled: animateIn && animateItems }}
-          class="type-kicker text-primary"
+          class="type-kicker {labelClass}"
         >
           {railLabel}
         </svelte:element>
