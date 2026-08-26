@@ -13,11 +13,19 @@
 
   let {
     title,
+    label,
     headingTag = "h3",
     open = $bindable(false),
     children,
   }: {
     title: string;
+    /** Richer collapsed content for the toggle — a rank number, status chips —
+     *  where a bare string cannot carry it. `title` is still required when this
+     *  is passed: it stays the toggle's accessible name, so the button always
+     *  announces something a screen reader can act on regardless of how the
+     *  visible label is laid out. Added so the fix list could collapse without
+     *  forking a second disclosure pattern, per the note above. */
+    label?: Snippet;
     /** The report's sections are h2, so items nest as h3 by default. Pass a
      *  different level only to keep the document's heading order unbroken —
      *  never to change how it looks. */
@@ -46,7 +54,15 @@
       <span
         class="min-w-0 flex-1 wrap-break-word transition-colors group-hover:text-black motion-reduce:transition-none"
       >
-        {title}
+        {#if label}
+          <!-- The visible label. `title` still names the button for assistive
+               tech via the sr-only span, so a snippet that lays out chips and
+               numbers cannot leave the control unnamed. -->
+          <span class="sr-only">{title}</span>
+          <span aria-hidden="true">{@render label()}</span>
+        {:else}
+          {title}
+        {/if}
       </span>
       <!-- One glyph, rotated: down = collapsed, up = expanded. The bare
            `transition` is deliberate — v4's rotate-* sets the standalone
