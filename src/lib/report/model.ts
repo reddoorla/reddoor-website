@@ -38,6 +38,15 @@ export type ProbeAnswer = {
   kind: "branded" | "category" | "competitor";
   domainCited: boolean;
   brandMentioned: boolean;
+  /** The scorer's own verdict on this answer, recorded upstream so nothing has
+   *  to re-derive it. Re-deriving is exactly what went wrong: the audit only
+   *  counts an unprompted brand mention when the name could not be a
+   *  coincidence, and this file's looser `domainCited || brandMentioned` counted
+   *  it always — so a business called "Creative Studio" could be shown as named
+   *  in an answer that referenced nobody, above a score of zero derived from the
+   *  stricter rule. Optional: reports stored before it existed lack it, and the
+   *  loose rule remains their only available fallback. */
+  countedAsVisible?: boolean;
   citedDomains: string[];
   snippet: string;
   truncated: boolean;
@@ -152,11 +161,15 @@ export function toReportView(raw: AuditReport): ReportView {
     visibilityScore?: number | null;
     brandedRecognized?: boolean;
     competitorsSeen?: CitedDomain[];
+    categoryProbes?: { attempted: number; answered: number };
   }>(r.probes);
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
   const answers = probes?.answers ?? [];
   const categoryProbes = answers.filter((a) => a.kind === "category");
+  // Prefer what the run says it attempted; fall back to what answered for a
+  // report stored before the audit recorded attempts.
+  const visibilityTotal = probes?.categoryProbes?.attempted ?? categoryProbes.length;
   const buyerQuestions = analyze?.buyerQuestions ?? [];
   const citedDomains = probes?.competitorsSeen ?? [];
   const businessName = (r.businessName as string | null) ?? null;
@@ -172,12 +185,26 @@ export function toReportView(raw: AuditReport): ReportView {
       answers: scoresRaw.answers ?? null,
       aiVisibility: scoresRaw.aiVisibility ?? null,
     },
-    // Counted from the probe answers rather than derived from the score, so the
-    // denominator is always the number of searches actually run.
-    visibility: categoryProbes.length
+    // The denominator is what was ASKED, not what came back.
+    //
+    // This used to read `total: categoryProbes.length` and call it "the number
+    // of searches actually run" — but that array holds the probes that ANSWERED.
+    // A probe the engine errored on was dropped upstream and disappeared from
+    // the denominator too, so three dead probes out of five turned 1-of-5 into
+    // "named in 1 of 2" and a flakier run showed better. `categoryProbes.attempted`
+    // is the honest figure; the array length is the fallback for reports stored
+    // before that field existed, which is the best those reports can offer.
+    //
+    // `named` reads the scorer's own verdict for the same reason: the looser
+    // `domainCited || brandMentioned` here ignored the distinctive-name gate the
+    // score applies, so this line could claim the business was named in answers
+    // that contributed zero to the score printed beside it.
+    visibility: visibilityTotal
       ? {
-          named: categoryProbes.filter((a) => a.domainCited || a.brandMentioned).length,
-          total: categoryProbes.length,
+          named: categoryProbes.filter(
+            (a) => a.countedAsVisible ?? (a.domainCited || a.brandMentioned),
+          ).length,
+          total: visibilityTotal,
         }
       : null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
