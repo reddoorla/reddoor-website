@@ -105,6 +105,63 @@ describe("toReportView — a complete report", () => {
     expect(v.visibility).toEqual({ named: 1, total: 2 });
   });
 
+  // The regression: `total` was the number of probes that ANSWERED, so probes
+  // the engine errored on vanished from the denominator and a flakier run
+  // reported better. Five asked, two answered, one named → "1 of 5", not "1 of 2".
+  it("takes the denominator from what was attempted, not from what came back", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        probes: {
+          ok: true,
+          data: {
+            ...FULL.probes.data,
+            answers: [probe({ brandMentioned: true, countedAsVisible: true }), probe()],
+            categoryProbes: { attempted: 5, answered: 2 },
+          },
+        },
+      }),
+    );
+    expect(v.visibility).toEqual({ named: 1, total: 5 });
+  });
+
+  // Reports written before the audit recorded attempts have nothing better to
+  // offer, so they keep the old behaviour rather than losing the section.
+  it("falls back to the answered count for a report stored before attempts were recorded", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        probes: {
+          ok: true,
+          data: { ...FULL.probes.data, answers: [probe({ brandMentioned: true }), probe()] },
+        },
+      }),
+    );
+    expect(v.visibility).toEqual({ named: 1, total: 2 });
+  });
+
+  // The receipt line must not be able to contradict the score beside it: the
+  // audit only counts an unprompted mention when the name cannot be a
+  // coincidence, and this file used to ignore that gate entirely.
+  it("defers to the scorer's verdict rather than re-deriving it more loosely", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        probes: {
+          ok: true,
+          data: {
+            ...FULL.probes.data,
+            // Mentioned in prose, but the scorer judged the name too generic for
+            // the mention to mean anything. It must not be reported as named.
+            answers: [probe({ brandMentioned: true, countedAsVisible: false }), probe()],
+            categoryProbes: { attempted: 2, answered: 2 },
+          },
+        },
+      }),
+    );
+    expect(v.visibility).toEqual({ named: 0, total: 2 });
+  });
+
   it("tallies the buyer questions", () => {
     expect(toReportView(asReport(FULL)).questionTally).toEqual({ yes: 2, partial: 1, no: 2 });
   });
