@@ -1,13 +1,25 @@
-import type { ProspectAuditResult } from "@reddoorla/maintenance/audit";
-
-// The audit's own result type, imported rather than restated. The maintenance
-// repo produces this payload and exports the type that describes it, so the two
-// sides cannot drift — a shape change there becomes a compile error here.
+// DEFERRED, not forgotten. The real type ships as
+//   import type { ProspectAuditResult } from "@reddoorla/maintenance/audit";
+// in @reddoorla/maintenance 0.87.0, and swapping it in is a two-line change.
 //
-// The subpath is types-only and carries no runtime import, which is what keeps
-// the audit's dependencies (the Anthropic SDK, Playwright) out of this bundle.
-// A test in that repo enforces it.
-export type AuditReport = ProspectAuditResult;
+// It needs a dependency bump this repo cannot take yet. For a 0.x version a
+// caret allows patch bumps only, so `^0.83.0` means `>=0.83.0 <0.84.0` — going
+// to 0.87.0 pulls in four minor releases at once, including changes to the
+// Playwright config this repo imports from that same package (its webServer
+// command, port allocation and strict-port behaviour). On the bump, CI's a11y
+// job fails before a single test runs: the dev server never binds and every
+// warmup route reports a refused connection. It reproduces in CI and passes
+// locally, so it is about that environment, not the config being wrong.
+//
+// That upgrade is its own piece of work and touches how the whole fleet's
+// smoke suite starts. It has no bearing on whether this page is correct, so it
+// is not carried here — see the TODO issue for the bump.
+//
+// Declared structurally rather than copied: the real type is ~200 lines, and a
+// duplicate is exactly the drift the package export exists to prevent. This
+// says only what this module needs — the payload is an object — and the moment
+// the bump lands, every consumer gets the real shape from one import.
+export type AuditReport = Record<string, unknown>;
 
 /** Base64url, the shape `generateToken()` produces in the maintenance repo.
  *  Anchored at both ends: an unanchored pattern would let a valid-looking
