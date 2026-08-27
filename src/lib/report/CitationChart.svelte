@@ -91,33 +91,38 @@
     </div>
   {/each}
 
-  <!-- The prospect's own row, on the same scale and always drawn — including,
-       especially, at zero. A zero bar with a visible empty track is the point:
-       it shows the distance rather than asserting it. -->
-  <div class="flex flex-col gap-1.5 border-t border-primary/40 pt-5">
-    <div class="flex items-baseline justify-between gap-5">
-      <p
-        class="type-meta m-0 flex min-w-0 flex-wrap items-baseline gap-x-2.5 font-medium text-primary"
+  <!-- The prospect's own row, drawn only when there is a bar to draw.
+       It used to be drawn especially at zero — an empty track next to the word
+       "You", on the reasoning that showing the distance beats asserting it.
+       That reasoning was about honesty and it was not wrong, but the picture it
+       makes is a scoreboard with the reader last, and it is the one number in
+       this report that nothing we do reliably moves. A reader who meets it
+       spends the rest of the meeting on it.
+       The absence is still reported, in a sentence, above this chart. -->
+  {#if namedCount > 0}
+    <div class="flex flex-col gap-1.5 border-t border-primary/40 pt-5">
+      <div class="flex items-baseline justify-between gap-5">
+        <p
+          class="type-meta m-0 flex min-w-0 flex-wrap items-baseline gap-x-2.5 font-medium text-primary"
+        >
+          <span class="truncate">{ownDomain}</span>
+          <span class="type-eyebrow shrink-0">You</span>
+        </p>
+        <p class="type-meta m-0 shrink-0 tabular-nums text-primary">
+          {namedCount}&hairsp;×
+        </p>
+      </div>
+      <div
+        class="h-2.5 w-full bg-band"
+        role="img"
+        aria-label="{ownDomain}, the audited site, named {namedCount} {namedCount === 1
+          ? 'time'
+          : 'times'}"
       >
-        <span class="truncate">{ownDomain}</span>
-        <span class="type-eyebrow shrink-0">You</span>
-      </p>
-      <p class="type-meta m-0 shrink-0 tabular-nums text-primary">
-        {namedCount}&hairsp;×
-      </p>
-    </div>
-    <div
-      class="h-2.5 w-full bg-band"
-      role="img"
-      aria-label="{ownDomain}, the audited site, named {namedCount} {namedCount === 1
-        ? 'time'
-        : 'times'}"
-    >
-      {#if namedCount > 0}
         <div class="h-full bg-primary" style="width: {pct(namedCount)}%"></div>
-      {/if}
+      </div>
     </div>
-  </div>
+  {/if}
 
   {#if hidden > 0}
     <p class="type-meta m-0 text-muted">

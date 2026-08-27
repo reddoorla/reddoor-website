@@ -1,15 +1,28 @@
 <script lang="ts">
   import type { ReportView } from "./model";
 
-  // The scorecard, as lengths rather than four numerals in a row.
+  // The scorecard, as lengths rather than numerals in a row.
   //
-  // Four numbers side by side ask the reader to hold all four and compare them.
-  // Four bars do that comparison for them: 91 / 82 / 80 / 0 reads as "three
-  // long, one empty" before a single digit is parsed. That is the whole finding,
-  // and it should not require arithmetic.
+  // Numbers side by side ask the reader to hold all of them and compare. Bars
+  // do that comparison for them: 91 / 82 / 80 reads as a shape before a single
+  // digit is parsed. The numeral stays — it is the thing that gets quoted in a
+  // meeting — but it sits at the end of a bar instead of carrying the
+  // comparison alone.
   //
-  // The numeral stays — it is the thing that gets quoted in a meeting — but it
-  // now sits at the end of a bar instead of carrying the comparison alone.
+  // AI Visibility used to be the fourth bar here and has been removed, which is
+  // the point of this component rather than an omission from it.
+  //
+  // These three measure the site: whether crawlers reach it, whether they can
+  // read it, whether it answers what buyers ask. Every one of them moves
+  // because we edit the site, with a before and an after. AI visibility is
+  // measured out in the world and does not move that way — the published
+  // evidence puts its strongest predictors off the site entirely, in off-site
+  // brand mentions and existing search rank. Printing it as a fourth bar on
+  // this same track says the four are the same kind of claim and that this one
+  // is ours to move. Neither is true, so it now has its own section, with the
+  // evidence attached and no promise on it.
+  //
+  // See `Standing.svelte`.
 
   let { view }: { view: ReportView } = $props();
 
@@ -35,14 +48,6 @@
       label: "Answers",
       note: "Whether your own copy answers what buyers ask before hiring.",
       alert: false,
-    },
-    {
-      value: view.scores.aiVisibility,
-      label: "AI Visibility",
-      note: "Whether the engines name you when a buyer asks.",
-      // The one number that earns emphasis when it is bad, because it is the
-      // only one measured out in the world rather than on the site.
-      alert: view.scores.aiVisibility === 0,
     },
   ]);
 </script>
@@ -93,15 +98,6 @@
             {row.note}
           {/if}
         </p>
-
-        <!-- The denominator, only under the score it belongs to. A bare 0
-             invites an argument; "named in 0 of 5 searches" invites a question. -->
-        {#if row.label === "AI Visibility" && view.visibility}
-          <p class="type-meta m-0 font-medium text-primary">
-            Named in {view.visibility.named} of {view.visibility.total}
-            {view.visibility.total === 1 ? "search" : "searches"}.
-          </p>
-        {/if}
       </div>
     </div>
   {/each}

@@ -24,11 +24,19 @@
     high: "A larger piece of work",
   } as const;
 
+  // Three scores, all of them things we can move.
+  //
+  // AI Visibility used to sit here as a fourth and has been removed, not
+  // reformatted: it scored zero for six of the eleven sites we have audited,
+  // including our own, and nothing in this audit reliably moves it. A zero on
+  // the same row as three numbers we CAN move reads as a fourth failing grade
+  // and takes over the conversation — a reader spends the meeting on the one
+  // number nobody can act on. Where the business stands in AI answers is still
+  // reported in full further down, as a finding with its sources attached.
   const scoreCells = $derived([
     { v: view.scores.findability, l: "Findability" },
     { v: view.scores.readability, l: "Readability" },
     { v: view.scores.answers, l: "Answers" },
-    { v: view.scores.aiVisibility, l: "AI Visibility" },
   ]);
 
   function uniqueDomains(domains: string[]): string[] {

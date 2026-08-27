@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { toReportView, findNamesake, type ProbeAnswer } from "./model";
+import {
+  toReportView,
+  findNamesake,
+  goalVerdict,
+  fieldShape,
+  isListingSite,
+  citationsFrom,
+  type ProbeAnswer,
+} from "./model";
 import type { AuditReport } from "./fetch";
 
 /**
@@ -195,6 +203,93 @@ describe("toReportView — degraded stages", () => {
     expect(v.categoryProbes).toEqual([]);
   });
 
+  // The audit began recording the answer space long after these reports
+  // started being stored, so most of what exists in the database lacks it. The
+  // page must say "not measured" for those rather than reconstructing the
+  // arithmetic here — there is one implementation of it and it has tests.
+  it("reports no answer space for a report stored before it was measured", () => {
+    const v = toReportView(asReport(FULL));
+    expect(v.answerSpace).toBeNull();
+  });
+
+  it("passes the answer space through when the run recorded one", () => {
+    const answerSpace = {
+      answersWithCitations: 4,
+      queriesAsked: 5,
+      citationsTotal: 30,
+      distinctDomains: 22,
+      topSources: [{ domain: "rival.example", count: 3, share: 0.1 }],
+      domainsToHalf: 9,
+      medianWidthPerAnswer: 7,
+      ownDomainRank: null,
+      ownDomainCount: 0,
+      topRival: { domain: "rival.example", count: 3, share: 0.1 },
+    };
+    const probes = FULL.probes as { ok: true; data: Record<string, unknown> };
+    const v = toReportView(
+      asReport({ ...FULL, probes: { ok: true, data: { ...probes.data, answerSpace } } }),
+    );
+    expect(v.answerSpace).toEqual(answerSpace);
+  });
+
+  // Opposite claims: "we did not measure" and "nothing is broken". Only one of
+  // them is ours to make, and a report stored before these checks existed has
+  // to produce the first.
+  it("reports the site checks as not measured when the run predates them", () => {
+    const v = toReportView(asReport(FULL));
+    expect(v.journey).toBeNull();
+    expect(v.consistency).toBeNull();
+    expect(v.assets).toBeNull();
+  });
+
+  it("passes the site checks through when the run recorded them", () => {
+    const journey = {
+      affordances: [{ kind: "tel" as const, page: "https://acme.example/", detail: "5550100" }],
+      pages: [{ url: "https://acme.example/", clicksToContact: 0, internalLinks: 3 }],
+      deadEnds: [],
+      worstClicksToContact: 0,
+      pagesExamined: 1,
+    };
+    const consistency = {
+      phones: [{ normalized: "5550100", seenAs: ["555-0100"], pages: ["https://acme.example/"] }],
+      emails: [],
+      copyrightYears: [2026],
+      newestCopyrightYear: 2026,
+      pagesOffTemplate: [],
+      sharedNavLinks: 5,
+      pagesExamined: 1,
+    };
+    const assets = {
+      brokenLinks: [],
+      brokenImages: [],
+      heaviestImages: [],
+      imageBytesMeasured: 1_000_000,
+      imagesWithKnownSize: 4,
+      linksFound: 20,
+      linksChecked: 20,
+      imagesFound: 4,
+      imagesChecked: 4,
+    };
+    // FULL carries no `checks` stage — this function never read one before, so
+    // the fixture never supplied it. Added here rather than to FULL so the
+    // other cases keep proving the absent-stage path.
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        checks: { ok: true, data: { journey, consistency } },
+        assets: { ok: true, data: assets },
+      }),
+    );
+    expect(v.journey).toEqual(journey);
+    expect(v.consistency).toEqual(consistency);
+    expect(v.assets).toEqual(assets);
+  });
+
+  it("reports no assets when that stage failed", () => {
+    const v = toReportView(asReport({ ...FULL, assets: { ok: false, error: "skipped" } }));
+    expect(v.assets).toBeNull();
+  });
+
   it("survives stages being absent entirely", () => {
     const v = toReportView(asReport({ url: "https://acme.example/", businessName: null }));
     expect(v.scores).toEqual({
@@ -262,5 +357,151 @@ describe("findNamesake", () => {
       domain: "reddoorcreative.com",
       count: 13,
     });
+  });
+});
+
+describe("goalVerdict", () => {
+  // The first full sentence the client reads about their own business. The
+  // template this replaced rendered "1 of the 6 things it needs are not".
+  it("agrees in number", () => {
+    expect(goalVerdict(1, 6)).toBe("One of the six things it needs is not in place.");
+    expect(goalVerdict(2, 6)).toBe("Two of the six things it needs are not in place.");
+  });
+
+  it("does not count a site as failing everything when it fails everything measured", () => {
+    expect(goalVerdict(4, 4)).toBe("None of what it needs to do that is in place.");
+  });
+
+  it("says so plainly when nothing is missing", () => {
+    expect(goalVerdict(0, 5)).toBe("Everything it needs to do that is in place.");
+  });
+
+  it("never claims a verdict it could not measure", () => {
+    // Every requirement unmeasured. Reporting "everything is in place" here
+    // would turn a total absence of measurement into a clean bill of health.
+    expect(goalVerdict(0, 0)).toBe("We could not judge any of what it needs to do that.");
+  });
+
+  it("falls back to digits past the number words", () => {
+    expect(goalVerdict(12, 20)).toBe("12 of the 20 things it needs are not in place.");
+  });
+});
+
+describe("fieldShape", () => {
+  // Replaced the AI Visibility score. The score said "0" and stopped; a reader
+  // could do nothing with it but feel it. The same citations answer a useful
+  // question instead — is this a room of directories, or a room of businesses
+  // like yours? — because that is what decides whether being in it is
+  // reachable at all.
+  it("tells a directory from a business's own site", () => {
+    expect(isListingSite("yelp.com")).toBe(true);
+    expect(isListingSite("reviews.birdeye.com")).toBe(true);
+    expect(isListingSite("www.zocdoc.com")).toBe(true);
+    expect(isListingSite("hermosasmilesdentistry.com")).toBe(false);
+  });
+
+  it("does not mistake a suffix for a listing site", () => {
+    expect(isListingSite("notyelp.com")).toBe(false);
+    expect(isListingSite("myg2.com")).toBe(false);
+  });
+
+  it("splits citations by what kind of source they went to", () => {
+    // Beachfront's real field, trimmed.
+    const shape = fieldShape([
+      { domain: "yelp.com", count: 16 },
+      { domain: "patientconnect365.com", count: 9 },
+      { domain: "hermosasmilesdentistry.com", count: 8 },
+      { domain: "drpalani.com", count: 8 },
+      { domain: "reviews.birdeye.com", count: 4 },
+    ]);
+    expect(shape).toEqual({ listings: 29, other: 16, total: 45 });
+  });
+
+  it("counts two buckets and claims nothing about what the other one is", () => {
+    // An earlier version reported "the websites of N businesses" and real data
+    // killed it immediately: Reddoor's non-directory citations included
+    // rocketreach.co and the US Patent Office. Whatever image-ppubs.uspto.gov
+    // is, it is not a design agency, and a report that calls it one has lost
+    // the reader.
+    const shape = fieldShape([
+      { domain: "yelp.com", count: 3 },
+      { domain: "image-ppubs.uspto.gov", count: 4 },
+      { domain: "rocketreach.co", count: 5 },
+    ]);
+    expect(shape).toEqual({ listings: 3, other: 9, total: 12 });
+  });
+
+  it("survives an empty field", () => {
+    expect(fieldShape([])).toEqual({ listings: 0, other: 0, total: 0 });
+  });
+});
+
+describe("citationsFrom", () => {
+  const probe = (
+    query: string,
+    kind: ProbeAnswer["kind"],
+    citedDomains: string[],
+  ): ProbeAnswer => ({
+    engine: "claude",
+    query,
+    kind,
+    domainCited: false,
+    brandMentioned: false,
+    citedDomains,
+    snippet: "",
+    truncated: false,
+    askedAt: "2026-08-27T00:00:00.000Z",
+  });
+
+  it("counts only the category answers the chart's caption promises", () => {
+    // The real defect. Beachfront's chart led with yelp.com at 16 and showed
+    // dochopkins.com at 7 — every one of those seven came from asking about
+    // Beachfront BY NAME, none from a category search. The caption above it
+    // reads "the questions a buyer types before they have heard of you".
+    const category = [
+      probe("dentist redondo beach", "category", ["hermosasmiles.com", "yelp.com"]),
+      probe("cosmetic dentist south bay", "category", ["hermosasmiles.com"]),
+    ];
+    const out = citationsFrom(category, "https://beachfrontdentistry.com/", []);
+    expect(out).toEqual([
+      { domain: "hermosasmiles.com", count: 2 },
+      { domain: "yelp.com", count: 1 },
+    ]);
+  });
+
+  it("leaves the prospect's own domain out — it is charted as its own row", () => {
+    const out = citationsFrom(
+      [
+        probe("q", "category", [
+          "beachfrontdentistry.com",
+          "www.beachfrontdentistry.com",
+          "yelp.com",
+        ]),
+      ],
+      "https://beachfrontdentistry.com/",
+      [],
+    );
+    expect(out.map((d) => d.domain)).toEqual(["yelp.com"]);
+  });
+
+  it("normalises www and case so one source is not charted twice", () => {
+    const out = citationsFrom(
+      [probe("q", "category", ["Yelp.com", "www.yelp.com"])],
+      "https://x.com/",
+      [],
+    );
+    expect(out).toEqual([{ domain: "yelp.com", count: 2 }]);
+  });
+
+  it("falls back to the stored list when no category answers were kept", () => {
+    // An empty chart would read as "nobody was cited", which is a different
+    // and false claim from "we no longer have the per-answer detail".
+    const stored = [{ domain: "yelp.com", count: 3 }];
+    expect(citationsFrom([], "https://x.com/", stored)).toBe(stored);
+  });
+
+  it("survives an unparseable url without dropping every citation", () => {
+    const out = citationsFrom([probe("q", "category", ["yelp.com"])], "not a url", []);
+    expect(out).toEqual([{ domain: "yelp.com", count: 1 }]);
   });
 });

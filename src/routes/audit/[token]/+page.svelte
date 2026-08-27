@@ -3,7 +3,9 @@
   import RailRow from "$lib/components/RailRow.svelte";
   import ReportDisclosure from "$lib/report/ReportDisclosure.svelte";
   import ScoreBars from "$lib/report/ScoreBars.svelte";
-  import CitationChart from "$lib/report/CitationChart.svelte";
+  import GoalFit from "$lib/report/GoalFit.svelte";
+  import SiteHealth from "$lib/report/SiteHealth.svelte";
+  import Standing from "$lib/report/Standing.svelte";
   import QuestionMeter from "$lib/report/QuestionMeter.svelte";
   import FixList from "$lib/report/FixList.svelte";
   import SearchResults from "$lib/report/SearchResults.svelte";
@@ -36,6 +38,29 @@
   );
 
   const ANSWERED_LABEL = { yes: "Yes", partial: "Partial", no: "No" } as const;
+
+  /**
+   * The domains one answer cited, most-cited first, each named once.
+   *
+   * `citedDomains` is the raw list in the order the engine returned it, so a
+   * source it leaned on repeatedly appears repeatedly — one real answer listed
+   * clutch.co four times and behance.net twice. Printed verbatim that reads as
+   * a bug rather than as emphasis, and it buries the distinct names the reader
+   * is scanning for. Counted instead: repetition becomes a number, which is the
+   * useful form of the same fact.
+   */
+  const sourceList = (domains: string[]): string => {
+    // A plain record, not a Map: `svelte/prefer-svelte-reactivity` flags every
+    // built-in Map inside a component, and rightly — it cannot tell a local
+    // one in a pure helper from state that ought to be reactive. Nothing here
+    // needs reactivity, so the cheapest fix is to not reach for a Map at all.
+    const counts: Record<string, number> = {};
+    for (const d of domains) counts[d] = (counts[d] ?? 0) + 1;
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([domain, n]) => (n > 1 ? `${domain} (${n})` : domain))
+      .join(" · ");
+  };
 </script>
 
 <svelte:head>
@@ -68,10 +93,58 @@
     </ContentWidth>
   </section>
 
-  <!-- ── The scorecard ───────────────────────────────────────────────────── -->
+  <!-- ── Does it do its job ──────────────────────────────────────────────── -->
+  <!-- Deliberately first, ahead of every score. It is the only section framed
+       in the reader's terms rather than ours: "Findability 82" is a number
+       about our method, "nobody can book without calling you" is a sentence
+       about their business. Everything below is evidence for this. -->
+  {#if view.goalFit}
+    <section class="w-full py-16 md:py-24">
+      <ContentWidth class="relative">
+        <h2 class="type-display m-0 max-w-[26ch] text-black">Does your site do its job</h2>
+        <hr class="mt-7.5 mb-7.5 border-primary" />
+      </ContentWidth>
+      <RailRow label="The one thing" labelAs="p">
+        <GoalFit {view} />
+      </RailRow>
+    </section>
+  {/if}
+
+  <!-- ── What you control ────────────────────────────────────────────────── -->
+  <!-- The report is split in two, and the split is the honest part of it.
+       These three measure the site, they move because we edit the site, and
+       every one of them has a before and an after. The visibility number does
+       not behave that way and is no longer printed beside them — see the
+       section below and the note in ScoreBars. -->
+  <section class="bg-paper w-full py-16 md:py-24">
+    <ContentWidth class="relative">
+      <h2 class="type-display m-0 max-w-[24ch] text-black">What you control</h2>
+      <hr class="mt-7.5 mb-7.5 border-primary" />
+    </ContentWidth>
+    <RailRow label="Your site" labelAs="p">
+      <div class="flex flex-col gap-10">
+        <p class="type-lede m-0 max-w-[52ch] text-black">
+          Everything in this section is work on your own site, so every number here is one we can
+          move and show you the before and after of.
+        </p>
+        <ScoreBars {view} />
+      </div>
+    </RailRow>
+  </section>
+
+  <!-- ── Does it work ────────────────────────────────────────────────────── -->
+  <!-- The other half of what they control, and the half Lighthouse cannot
+       reach: it audits one page and scores it, so it never sees the link that
+       404s three pages in and never names the image that cost the score.
+       Findings, not another score — a count of broken links is a fact the
+       reader can check in thirty seconds. -->
   <section class="w-full py-16 md:py-24">
-    <RailRow label="The scorecard" labelAs="h2">
-      <ScoreBars {view} />
+    <ContentWidth class="relative">
+      <h2 class="type-display m-0 max-w-[24ch] text-black">Does it work</h2>
+      <hr class="mt-7.5 mb-7.5 border-primary" />
+    </ContentWidth>
+    <RailRow label="The basics" labelAs="p">
+      <SiteHealth {view} />
     </RailRow>
   </section>
 
@@ -97,30 +170,29 @@
     </section>
   {/if}
 
-  <!-- ── The live test ───────────────────────────────────────────────────── -->
+  <!-- ── Where you stand ─────────────────────────────────────────────────── -->
+  <!-- The other half of the split, and the section this whole restructure is
+       for: measured out in the world, reported with receipts, promised never.
+       It used to be a fourth bar on the scorecard above, which said it was the
+       same kind of claim as the three site scores and that it was ours to move.
+       It is neither. See ScoreBars and Standing for the evidence. -->
   {#if view.categoryProbes.length}
     <section class="w-full py-16 md:py-24">
       <ContentWidth class="relative">
-        <h2 class="type-display m-0 max-w-[24ch] text-black">What buyers were shown instead</h2>
+        <h2 class="type-display m-0 max-w-[26ch] text-black">Where you stand in AI answers</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
       </ContentWidth>
-      <RailRow label="The test" labelAs="p">
+      <RailRow label="The world" labelAs="p">
         <div class="flex flex-col gap-10">
           <p class="type-lede m-0 max-w-[52ch] text-black">
             We asked a live AI assistant the questions a buyer types before they have heard of you,
             and recorded every source it cited back.
           </p>
 
-          <!-- The finding as a picture: who the engine named, on one scale,
-               with this business drawn on the same axis. -->
-          {#if view.citedDomains.length}
-            <CitationChart
-              domains={view.citedDomains}
-              url={view.url}
-              namedCount={view.visibility?.named ?? 0}
-              namesakeDomain={view.namesake?.domain ?? null}
-            />
-          {/if}
+          <!-- The finding, the ranked chart, the size of the tail, and the
+               limit — kept together in one component so the number cannot be
+               lifted out of the context that makes it honest. -->
+          <Standing {view} />
 
           <div class="flex flex-col border-t border-light">
             <ReportDisclosure title="See each search we ran, and what came back">
@@ -136,12 +208,37 @@
                       <p class="m-0 max-w-[66ch] text-sm text-muted">
                         {probe.snippet}{probe.truncated ? "…" : ""}
                       </p>
+                      <!-- Who the engine listened to, for THIS site. Shown
+                           because third-party profiles — directories, review
+                           sites, recruiting pages — are where stale hours and
+                           old phone numbers live, and a reader can only judge
+                           that by seeing the list.
+
+                           Deliberately no cross-site claim here. The audits
+                           stored to date cover nine sites, four runs of which
+                           are our own, over a two-day window against a single
+                           engine; that is enough to notice a pattern and
+                           nowhere near enough to assert one. -->
+                      {#if probe.citedDomains.length}
+                        <p class="type-meta m-0 max-w-[66ch] text-light">
+                          Sources: {sourceList(probe.citedDomains)}
+                        </p>
+                      {/if}
                     </div>
                   {/each}
+                  <!-- This paragraph used to claim a branded search "echoes your
+                       name back whether or not the engine knows anything real
+                       about you". That is not true and it talked a real finding
+                       down: when the answer quotes specifics off your own site
+                       rather than inventing them, that is the thing working. It
+                       is excluded from the visibility score because it measures
+                       a different question, not because it measures nothing. -->
                   <p class="m-0 max-w-[66ch] text-sm text-muted">
-                    A branded search echoes your name back whether or not the engine knows anything
-                    real about you, so it is reported separately and never counted toward the
-                    visibility score.
+                    A branded search cannot tell you whether someone who has never heard of you
+                    would find you, which is why it is kept out of the visibility score above. It
+                    answers a different question, and for most businesses a more useful one: when an
+                    engine describes you, is it accurate, and is it reading your site or somebody
+                    else's page about you.
                   </p>
                 </div>
               </ReportDisclosure>
@@ -263,6 +360,22 @@
               <strong class="text-black">What we did not measure:</strong> we tested one AI assistant,
               not all of them. Results vary between engines and change over time, which is the argument
               for measuring again rather than treating any single number as fixed.
+            </p>
+            <!-- Deliberately in the methodology section rather than the findings.
+                 llms.txt used to be worth a quarter of the technical component
+                 of Findability, scored with the same confidence as sitemap.xml,
+                 and fed to the model that writes the fix list — so a prospect
+                 could be marked down for it AND handed it as a job. Search
+                 crawlers demonstrably read a sitemap; nobody has committed to
+                 reading llms.txt. Now it is neither scored nor recommended, and
+                 this paragraph says so instead of leaving its absence to be
+                 noticed. -->
+            <p class="m-0">
+              <strong class="text-black">A note on llms.txt.</strong> If you have been told to add one,
+              we are not going to tell you the same. We look for it, but we do not score it and it will
+              never appear in your fix list. It is a 2024 proposal that no answer engine has committed
+              to reading, and there is no measured evidence that having one changes whether you get cited.
+              If that changes, we will say so and start scoring it.
             </p>
             <p class="m-0">
               Every finding here is one you can reproduce. If any of it looks wrong, tell us — we
