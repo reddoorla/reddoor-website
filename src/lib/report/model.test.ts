@@ -413,12 +413,24 @@ describe("fieldShape", () => {
       { domain: "drpalani.com", count: 8 },
       { domain: "reviews.birdeye.com", count: 4 },
     ]);
-    expect(shape.listings).toBe(29);
-    expect(shape.sites).toBe(16);
-    expect(shape.businessCount).toBe(2);
+    expect(shape).toEqual({ listings: 29, other: 16, total: 45 });
+  });
+
+  it("counts two buckets and claims nothing about what the other one is", () => {
+    // An earlier version reported "the websites of N businesses" and real data
+    // killed it immediately: Reddoor's non-directory citations included
+    // rocketreach.co and the US Patent Office. Whatever image-ppubs.uspto.gov
+    // is, it is not a design agency, and a report that calls it one has lost
+    // the reader.
+    const shape = fieldShape([
+      { domain: "yelp.com", count: 3 },
+      { domain: "image-ppubs.uspto.gov", count: 4 },
+      { domain: "rocketreach.co", count: 5 },
+    ]);
+    expect(shape).toEqual({ listings: 3, other: 9, total: 12 });
   });
 
   it("survives an empty field", () => {
-    expect(fieldShape([])).toEqual({ listings: 0, sites: 0, businessCount: 0 });
+    expect(fieldShape([])).toEqual({ listings: 0, other: 0, total: 0 });
   });
 });

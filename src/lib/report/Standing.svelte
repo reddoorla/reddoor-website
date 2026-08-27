@@ -59,17 +59,15 @@
   const shape = $derived(fieldShape(view.citedDomains));
 
   const shapeSentence = $derived.by(() => {
-    if (!view.citedDomains.length) return "We recorded no sources for these answers.";
-    const { listings, sites, businessCount } = shape;
-    if (sites === 0) {
-      return "Every source it cited was a directory or review site — not one business's own website, including the businesses it named.";
+    const { listings, other, total } = shape;
+    if (total === 0) return "We recorded no sources for these answers.";
+    if (other === 0) {
+      return "Every source it cited was a directory or a review site — not one individual website.";
     }
     if (listings === 0) {
-      return `It answered entirely from businesses' own websites — ${businessCount} of them.`;
+      return "It cited no directories at all. Every source was an individual website.";
     }
-    const majority =
-      listings > sites ? "mostly directories and review sites" : "mostly businesses' own websites";
-    return `It answered ${majority}: ${listings} ${listings === 1 ? "citation" : "citations"} went to listing sites and ${sites} to the websites of ${businessCount} ${businessCount === 1 ? "business" : "businesses"}.`;
+    return `${listings} of the ${total} citations went to directories and review sites. The other ${other} went to individual websites, named below.`;
   });
 
   // The reader's own standing, stated plainly and AFTER the field is described.

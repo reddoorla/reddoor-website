@@ -321,10 +321,9 @@ export function isListingSite(domain: string): boolean {
 export type FieldShape = {
   /** Citations that went to a directory, review site or social profile. */
   listings: number;
-  /** Citations that went to somebody's own website. */
-  sites: number;
-  /** Distinct businesses with a site of their own in the cited set. */
-  businessCount: number;
+  /** Citations that went anywhere else. */
+  other: number;
+  total: number;
 };
 
 /**
@@ -332,23 +331,30 @@ export type FieldShape = {
  *
  * This is the reformat that replaced the visibility score. The score said "0"
  * and stopped; a reader could do nothing with it but feel it. The same data says
- * something useful when it is asked a different question — is this a room of
- * directories, or a room of businesses like yours? — because that is what
- * decides whether being in it is reachable at all.
+ * something useful when asked a different question — is this a room of
+ * directories, or a room of individual sites? — because that is what decides
+ * whether being in it is reachable at all.
+ *
+ * It counts two buckets and no more. A first version also reported "the websites
+ * of N businesses", and real data killed it inside a minute: Reddoor's own
+ * non-directory citations included rocketreach.co and the US Patent Office, and
+ * Beachfront's five "businesses" included dochopkins.com, which is Beachfront's
+ * own former site. Calling a patent database a business is the kind of error
+ * that ends a reader's trust in a page arguing that AI gets facts about them
+ * wrong.
+ *
+ * So the sentence claims only what the list can support, and the chart
+ * underneath it names every source. A reader recognises their own competitors
+ * faster than any classifier we could write.
  */
 export function fieldShape(domains: CitedDomain[]): FieldShape {
   let listings = 0;
-  let sites = 0;
-  let businessCount = 0;
+  let other = 0;
   for (const d of domains) {
-    if (isListingSite(d.domain)) {
-      listings += d.count;
-    } else {
-      sites += d.count;
-      businessCount += 1;
-    }
+    if (isListingSite(d.domain)) listings += d.count;
+    else other += d.count;
   }
-  return { listings, sites, businessCount };
+  return { listings, other, total: listings + other };
 }
 
 export type ReportView = {
