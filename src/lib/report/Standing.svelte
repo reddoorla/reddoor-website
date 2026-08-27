@@ -116,12 +116,23 @@
            from the published research, which says the same thing at a scale we
            could never reach ourselves. Deliberately no figures: a number in
            client copy has to be one we can defend on the spot. -->
+      <!-- Third pass on this paragraph, each one narrower than the last.
+           Draft 1 argued from our own nine audits. Draft 2 swapped in "the
+           published research says the strongest predictors are off-site" —
+           which an adversarial check then took apart: the study behind it
+           measured no on-site variables at all (so it cannot rank off-site
+           against on-site), and it sampled only established brands with strong
+           link profiles, which excludes every prospect we have.
+
+           What is left is the true and stronger claim: nobody has measured this
+           for a business their size. Saying so is better than borrowing
+           confidence from a study that did not include them. -->
       <p class="m-0 max-w-[62ch] text-muted">
         This is a measurement, not a scorecard, and nothing we can do to your website reliably moves
-        it. The published research points the same way: the strongest measured predictors of whether
-        an engine names you are off your site entirely — how often you are mentioned elsewhere, and
-        how you already rank in ordinary search. Anyone who promises to raise this number with
-        website work is selling you something they do not control.
+        it. Nobody has published a study of businesses your size showing what does. The research
+        that exists looked at large, established brands, and even there the signals that mattered
+        were off their websites — how often they were mentioned elsewhere. Anyone who promises to
+        raise this number with website work is selling you something they do not control.
       </p>
       <p class="m-0 max-w-[62ch] text-muted">
         What it is genuinely good for is knowing where you stand, seeing who the engines reach for
