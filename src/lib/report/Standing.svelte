@@ -8,11 +8,13 @@
   // This exists because the number alone was misleading in both directions.
   //
   // A zero looks like a failing grade and reads as something the reader ought
-  // to be able to fix. Across the audits run so far it is zero for two thirds
-  // of sites, and the sites that DO score are the worst-built ones measured —
-  // the best visibility in the set belongs to a site that blocks four AI
-  // crawlers and hides an eighth of its content behind JavaScript. So a low
-  // number is not a verdict on the site, and it must not read as one.
+  // to be able to fix. It is neither. The published evidence puts the strongest
+  // predictors of AI visibility off the site altogether — off-site brand
+  // mentions and existing search rank — so a low number is not a verdict on the
+  // site, and it must not read as one. (Our own audits point the same way, but
+  // they are nine hand-picked sites against one engine over two days and are
+  // not the basis for anything a client reads. See docs/aeo-evidence-base.md in
+  // reddoor-maintenance for what is actually supported.)
   //
   // And two zeros can mean opposite things. If the engine answers a category
   // with billion-dollar manufacturers and federal agencies, no website work
@@ -107,11 +109,19 @@
          above is measurement, and measurement is what is being sold here. -->
     <div class="flex flex-col gap-3 border-l-2 border-primary bg-paper p-7 md:p-10">
       <p class="type-lede m-0 max-w-[46ch] text-black">What this does and does not tell you</p>
+      <!-- This paragraph used to argue from our own audits: "the businesses the
+           engines named most often had the worst-built sites we measured". That
+           is nine hand-picked sites, one engine, a two-day window — enough to
+           notice something, nowhere near enough to tell a client. It now argues
+           from the published research, which says the same thing at a scale we
+           could never reach ourselves. Deliberately no figures: a number in
+           client copy has to be one we can defend on the spot. -->
       <p class="m-0 max-w-[62ch] text-muted">
-        This is a measurement, not a scorecard. We have not found anything on a website that
-        reliably moves it — in our own testing, the businesses the engines named most often had the
-        worst-built sites we measured, and some of the best-built ones were absent entirely. Anyone
-        who promises to raise this number is selling you something they do not control.
+        This is a measurement, not a scorecard, and nothing we can do to your website reliably moves
+        it. The published research points the same way: the strongest measured predictors of whether
+        an engine names you are off your site entirely — how often you are mentioned elsewhere, and
+        how you already rank in ordinary search. Anyone who promises to raise this number with
+        website work is selling you something they do not control.
       </p>
       <p class="m-0 max-w-[62ch] text-muted">
         What it is genuinely good for is knowing where you stand, seeing who the engines reach for

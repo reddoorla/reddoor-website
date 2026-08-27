@@ -37,6 +37,25 @@
   );
 
   const ANSWERED_LABEL = { yes: "Yes", partial: "Partial", no: "No" } as const;
+
+  /**
+   * The domains one answer cited, most-cited first, each named once.
+   *
+   * `citedDomains` is the raw list in the order the engine returned it, so a
+   * source it leaned on repeatedly appears repeatedly — one real answer listed
+   * clutch.co four times and behance.net twice. Printed verbatim that reads as
+   * a bug rather than as emphasis, and it buries the distinct names the reader
+   * is scanning for. Counted instead: repetition becomes a number, which is the
+   * useful form of the same fact.
+   */
+  const sourceList = (domains: string[]): string => {
+    const counts = new Map<string, number>();
+    for (const d of domains) counts.set(d, (counts.get(d) ?? 0) + 1);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([domain, n]) => (n > 1 ? `${domain} (${n})` : domain))
+      .join(" · ");
+  };
 </script>
 
 <svelte:head>
@@ -180,7 +199,7 @@
                            nowhere near enough to assert one. -->
                       {#if probe.citedDomains.length}
                         <p class="type-meta m-0 max-w-[66ch] text-light">
-                          Sources: {probe.citedDomains.join(" · ")}
+                          Sources: {sourceList(probe.citedDomains)}
                         </p>
                       {/if}
                     </div>
@@ -333,8 +352,8 @@
               <strong class="text-black">A note on llms.txt.</strong> If you have been told to add one,
               we are not going to tell you the same. We look for it, but we do not score it and it will
               never appear in your fix list. It is a 2024 proposal that no answer engine has committed
-              to reading, and there is no measured evidence that having one changes whether you get
-              cited. If that changes, we will say so and start scoring it.
+              to reading, and there is no measured evidence that having one changes whether you get cited.
+              If that changes, we will say so and start scoring it.
             </p>
             <p class="m-0">
               Every finding here is one you can reproduce. If any of it looks wrong, tell us — we

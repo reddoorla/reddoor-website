@@ -15,14 +15,12 @@
   // These three measure the site: whether crawlers reach it, whether they can
   // read it, whether it answers what buyers ask. Every one of them moves
   // because we edit the site, with a before and an after. AI visibility is
-  // measured out in the world and does not move that way — across the audits
-  // run so far it is zero for two thirds of sites, and the sites that DO score
-  // are the worst-built ones in the sample (the best visibility in the set
-  // belongs to a site that blocks four AI crawlers and hides an eighth of its
-  // content behind JavaScript). Printing it as a fourth bar on this same track
-  // says the four are the same kind of claim and that this one is ours to move.
-  // Neither is true, so it now has its own section, with the evidence attached
-  // and no promise on it.
+  // measured out in the world and does not move that way — the published
+  // evidence puts its strongest predictors off the site entirely, in off-site
+  // brand mentions and existing search rank. Printing it as a fourth bar on
+  // this same track says the four are the same kind of claim and that this one
+  // is ours to move. Neither is true, so it now has its own section, with the
+  // evidence attached and no promise on it.
   //
   // See `Standing.svelte`.
 
