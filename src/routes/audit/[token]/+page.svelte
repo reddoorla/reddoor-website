@@ -3,6 +3,7 @@
   import RailRow from "$lib/components/RailRow.svelte";
   import ReportDisclosure from "$lib/report/ReportDisclosure.svelte";
   import ScoreBars from "$lib/report/ScoreBars.svelte";
+  import GoalFit from "$lib/report/GoalFit.svelte";
   import SiteHealth from "$lib/report/SiteHealth.svelte";
   import Standing from "$lib/report/Standing.svelte";
   import QuestionMeter from "$lib/report/QuestionMeter.svelte";
@@ -88,13 +89,30 @@
     </ContentWidth>
   </section>
 
+  <!-- ── Does it do its job ──────────────────────────────────────────────── -->
+  <!-- Deliberately first, ahead of every score. It is the only section framed
+       in the reader's terms rather than ours: "Findability 82" is a number
+       about our method, "nobody can book without calling you" is a sentence
+       about their business. Everything below is evidence for this. -->
+  {#if view.goalFit}
+    <section class="w-full py-16 md:py-24">
+      <ContentWidth class="relative">
+        <h2 class="type-display m-0 max-w-[26ch] text-black">Does your site do its job</h2>
+        <hr class="mt-7.5 mb-7.5 border-primary" />
+      </ContentWidth>
+      <RailRow label="The one thing" labelAs="p">
+        <GoalFit {view} />
+      </RailRow>
+    </section>
+  {/if}
+
   <!-- ── What you control ────────────────────────────────────────────────── -->
   <!-- The report is split in two, and the split is the honest part of it.
        These three measure the site, they move because we edit the site, and
        every one of them has a before and an after. The visibility number does
        not behave that way and is no longer printed beside them — see the
        section below and the note in ScoreBars. -->
-  <section class="w-full py-16 md:py-24">
+  <section class="bg-paper w-full py-16 md:py-24">
     <ContentWidth class="relative">
       <h2 class="type-display m-0 max-w-[24ch] text-black">What you control</h2>
       <hr class="mt-7.5 mb-7.5 border-primary" />
@@ -116,7 +134,7 @@
        404s three pages in and never names the image that cost the score.
        Findings, not another score — a count of broken links is a fact the
        reader can check in thirty seconds. -->
-  <section class="bg-paper w-full py-16 md:py-24">
+  <section class="w-full py-16 md:py-24">
     <ContentWidth class="relative">
       <h2 class="type-display m-0 max-w-[24ch] text-black">Does it work</h2>
       <hr class="mt-7.5 mb-7.5 border-primary" />
@@ -131,7 +149,7 @@
        the argument that a prospect wants the remedy before the diagnosis. Now
        that the list is collapsed it costs a screen rather than five. -->
   {#if view.fixes.length}
-    <section class="w-full py-16 md:py-24">
+    <section class="bg-paper w-full py-16 md:py-24">
       <ContentWidth class="relative">
         <h2 class="type-display m-0 max-w-[24ch] text-primary">
           {view.fixes.length === 1
@@ -155,7 +173,7 @@
        same kind of claim as the three site scores and that it was ours to move.
        It is neither. See ScoreBars and Standing for the evidence. -->
   {#if view.categoryProbes.length}
-    <section class="bg-paper w-full py-16 md:py-24">
+    <section class="w-full py-16 md:py-24">
       <ContentWidth class="relative">
         <h2 class="type-display m-0 max-w-[26ch] text-black">Where you stand in AI answers</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />

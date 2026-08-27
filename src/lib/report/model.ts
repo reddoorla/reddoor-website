@@ -180,6 +180,53 @@ export type Assets = {
   imagesChecked: number;
 };
 
+/**
+ * Can a visitor do the one thing this site needs them to do?
+ *
+ * Every other section grades the site against questions that are the same for
+ * everyone. This one names a purpose and reads the findings through it, because
+ * a dental practice's site succeeds when somebody books and a branding studio's
+ * succeeds when a qualified enquiry arrives with a budget attached.
+ *
+ * `status` is deliberately three-valued. It was a boolean, and on real data
+ * that turned checks we could not measure into defects we reported — see the
+ * note in the audit's own `goals.ts`.
+ *
+ * Declared structurally for the same reason as `AnswerSpace` — see `fetch.ts`.
+ */
+export type RequirementStatus = "met" | "missing" | "unmeasured";
+
+export type GoalRequirement = {
+  key: string;
+  label: string;
+  status: RequirementStatus;
+  evidence: string | null;
+  why: string;
+  scope: "quick" | "content" | "structural";
+};
+
+export type GoalFit = {
+  goal: string;
+  source: "inferred" | "operator";
+  requirements: GoalRequirement[];
+  met: number;
+  total: number;
+};
+
+/** Mirrors GOAL_LABELS in the audit. Kept here rather than imported for the
+ *  same dependency reason, and kept short — it completes the sentence "your
+ *  site needs a visitor to …". */
+export const GOAL_LABELS: Record<string, string> = {
+  book: "book an appointment",
+  enquire: "start a project or ask for a quote",
+  call: "pick up the phone",
+  visit: "come to you in person",
+  buy: "buy something",
+  demo: "talk to your sales team",
+  partner: "ask about distribution or partnership",
+  unknown: "do something we could not identify",
+};
+
 export type ReportView = {
   url: string;
   businessName: string | null;
@@ -209,6 +256,10 @@ export type ReportView = {
   assets: Assets | null;
   /** The things a stranger checks first. Null when the stage did not run. */
   basics: Basics | null;
+  /** Whether the site does the one job it exists to do. Null when no goal was
+   *  supplied and none could be inferred — which is "not measured", and is
+   *  different from a goal of `unknown`, which IS a measurement. */
+  goalFit: GoalFit | null;
   /** Does every page carry a viewport meta? Read off `checks` rather than
    *  recomputed, so there is one implementation and it is the one with tests.
    *  Null when checks did not run. */
@@ -317,6 +368,7 @@ export function toReportView(raw: AuditReport): ReportView {
   );
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
+  const goalFit = stage<GoalFit>(r.goalFit);
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
   const answers = probes?.answers ?? [];
@@ -366,6 +418,7 @@ export function toReportView(raw: AuditReport): ReportView {
     consistency: checks?.consistency ?? null,
     assets,
     basics,
+    goalFit,
     viewportOk: checks?.viewportOk ?? null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
