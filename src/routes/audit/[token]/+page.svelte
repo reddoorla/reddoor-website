@@ -167,10 +167,17 @@
                       <p class="m-0 max-w-[66ch] text-sm text-muted">
                         {probe.snippet}{probe.truncated ? "…" : ""}
                       </p>
-                      <!-- Who the engine listened to. On every audit run so far
-                           the business's own site is cited — and so are Yelp,
-                           LinkedIn, ZoomInfo and Glassdoor, which is where the
-                           stale hours and the wrong phone number live. -->
+                      <!-- Who the engine listened to, for THIS site. Shown
+                           because third-party profiles — directories, review
+                           sites, recruiting pages — are where stale hours and
+                           old phone numbers live, and a reader can only judge
+                           that by seeing the list.
+
+                           Deliberately no cross-site claim here. The audits
+                           stored to date cover nine sites, four runs of which
+                           are our own, over a two-day window against a single
+                           engine; that is enough to notice a pattern and
+                           nowhere near enough to assert one. -->
                       {#if probe.citedDomains.length}
                         <p class="type-meta m-0 max-w-[66ch] text-light">
                           Sources: {probe.citedDomains.join(" · ")}
