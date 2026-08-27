@@ -5,6 +5,7 @@ import {
   goalVerdict,
   fieldShape,
   isListingSite,
+  citationsFrom,
   type ProbeAnswer,
 } from "./model";
 import type { AuditReport } from "./fetch";
@@ -432,5 +433,75 @@ describe("fieldShape", () => {
 
   it("survives an empty field", () => {
     expect(fieldShape([])).toEqual({ listings: 0, other: 0, total: 0 });
+  });
+});
+
+describe("citationsFrom", () => {
+  const probe = (
+    query: string,
+    kind: ProbeAnswer["kind"],
+    citedDomains: string[],
+  ): ProbeAnswer => ({
+    engine: "claude",
+    query,
+    kind,
+    domainCited: false,
+    brandMentioned: false,
+    citedDomains,
+    snippet: "",
+    truncated: false,
+    askedAt: "2026-08-27T00:00:00.000Z",
+  });
+
+  it("counts only the category answers the chart's caption promises", () => {
+    // The real defect. Beachfront's chart led with yelp.com at 16 and showed
+    // dochopkins.com at 7 — every one of those seven came from asking about
+    // Beachfront BY NAME, none from a category search. The caption above it
+    // reads "the questions a buyer types before they have heard of you".
+    const category = [
+      probe("dentist redondo beach", "category", ["hermosasmiles.com", "yelp.com"]),
+      probe("cosmetic dentist south bay", "category", ["hermosasmiles.com"]),
+    ];
+    const out = citationsFrom(category, "https://beachfrontdentistry.com/", []);
+    expect(out).toEqual([
+      { domain: "hermosasmiles.com", count: 2 },
+      { domain: "yelp.com", count: 1 },
+    ]);
+  });
+
+  it("leaves the prospect's own domain out — it is charted as its own row", () => {
+    const out = citationsFrom(
+      [
+        probe("q", "category", [
+          "beachfrontdentistry.com",
+          "www.beachfrontdentistry.com",
+          "yelp.com",
+        ]),
+      ],
+      "https://beachfrontdentistry.com/",
+      [],
+    );
+    expect(out.map((d) => d.domain)).toEqual(["yelp.com"]);
+  });
+
+  it("normalises www and case so one source is not charted twice", () => {
+    const out = citationsFrom(
+      [probe("q", "category", ["Yelp.com", "www.yelp.com"])],
+      "https://x.com/",
+      [],
+    );
+    expect(out).toEqual([{ domain: "yelp.com", count: 2 }]);
+  });
+
+  it("falls back to the stored list when no category answers were kept", () => {
+    // An empty chart would read as "nobody was cited", which is a different
+    // and false claim from "we no longer have the per-answer detail".
+    const stored = [{ domain: "yelp.com", count: 3 }];
+    expect(citationsFrom([], "https://x.com/", stored)).toBe(stored);
+  });
+
+  it("survives an unparseable url without dropping every citation", () => {
+    const out = citationsFrom([probe("q", "category", ["yelp.com"])], "not a url", []);
+    expect(out).toEqual([{ domain: "yelp.com", count: 1 }]);
   });
 });

@@ -184,9 +184,24 @@
         label: "Image weight",
         value: `${mb(assets.imageBytesMeasured)} MB across ${assets.imagesWithKnownSize} images`,
         alert: (heaviest?.bytes ?? 0) >= 1_000_000,
+        // Says what was actually measured, which is not what a phone downloads.
+        //
+        // The audit asks each image URL for its size as a desktop browser, and
+        // it reads only the `src` attribute — so on a site serving responsive
+        // images a phone gets a smaller file from `srcset`, and one serving
+        // AVIF or WebP by content negotiation gives us the heavier original.
+        // The total is also every distinct image across the whole crawl, not
+        // what any single page loads.
+        //
+        // This copy used to say "on a phone, that is the difference between a
+        // page that appears and one that is still loading" — attributing a
+        // sitewide desktop total to one mobile page load. The error can only
+        // ever run one way, upward, which is the wrong direction for the one
+        // document whose whole value is that its numbers hold up.
         detail: heaviest
-          ? `The heaviest single image is ${mb(heaviest.bytes ?? 0)} MB. On a phone, that is the ` +
-            `difference between a page that appears and one that is still loading when the visitor leaves.`
+          ? `The heaviest single image is ${mb(heaviest.bytes ?? 0)} MB — that one is worth ` +
+            `fixing on its own. The total is every image across the site, measured as a desktop ` +
+            `browser would receive it; if you serve smaller versions to phones, they download less.`
           : "No single image is large enough to be worth calling out.",
       });
     }

@@ -408,6 +408,60 @@ export type ReportView = {
   narrative: { findability: string; readability: string; answers: string } | null;
 };
 
+/**
+ * The citation field for the category questions, and ONLY those.
+ *
+ * The stored `competitorsSeen` counts every answer of every kind, and the chart
+ * rendered it under a caption promising "the questions a buyer types before they
+ * have heard of you". Those are the category questions. Mixing the branded ones
+ * in does not merely inflate the numbers, it changes who is at the top:
+ * Beachfront's chart led with yelp.com at 16, of which 12 came from asking about
+ * Beachfront BY NAME, and showed dochopkins.com at 7 — every one of them
+ * branded, none from a category search at all.
+ *
+ * It also disagreed with the paragraph beneath it, which reads its spread from
+ * `answerSpace` — already category-only. One section was reporting 145 citations
+ * across 50 domains directly above a sentence saying 39 sources across 4
+ * answers.
+ *
+ * Recomputed here rather than upstream because it is a rendering fault and every
+ * stored report should be corrected on next load, with no re-audit.
+ *
+ * Falls back to the stored list when there are no category answers to count
+ * from — a report from before per-answer citations were kept has nothing better,
+ * and an empty chart would read as "nobody was cited", which is a different and
+ * false claim.
+ */
+export function citationsFrom(
+  categoryProbes: ProbeAnswer[],
+  ownUrl: string,
+  stored: CitedDomain[],
+): CitedDomain[] {
+  if (categoryProbes.length === 0) return stored;
+
+  let own = "";
+  try {
+    own = new URL(ownUrl).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    own = "";
+  }
+
+  const counts = new Map<string, number>();
+  for (const probe of categoryProbes) {
+    for (const raw of probe.citedDomains) {
+      const d = raw.replace(/^www\./i, "").toLowerCase();
+      if (!d) continue;
+      // The prospect's own domain is charted separately, as their own row.
+      if (own && (d === own || d.endsWith(`.${own}`))) continue;
+      counts.set(d, (counts.get(d) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([domain, count]) => ({ domain, count }))
+    .sort((a, b) => b.count - a.count || a.domain.localeCompare(b.domain));
+}
+
 /** `{ok:true,data:T}` → T; anything else → null. */
 function stage<T>(value: unknown): T | null {
   if (!value || typeof value !== "object") return null;
@@ -507,9 +561,9 @@ export function toReportView(raw: AuditReport): ReportView {
   // report stored before the audit recorded attempts.
   const visibilityTotal = probes?.categoryProbes?.attempted ?? categoryProbes.length;
   const buyerQuestions = analyze?.buyerQuestions ?? [];
-  const citedDomains = probes?.competitorsSeen ?? [];
   const businessName = (r.businessName as string | null) ?? null;
   const url = (r.url as string) ?? "";
+  const citedDomains = citationsFrom(categoryProbes, url, probes?.competitorsSeen ?? []);
 
   return {
     url,
