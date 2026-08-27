@@ -109,14 +109,55 @@ export type Journey = {
   pagesExamined: number;
 };
 
+export type ContactVariant = {
+  normalized: string;
+  seenAs: string[];
+  pages: string[];
+  /** Written as a `tel:`/`mailto:` link anywhere on the site? Absent on reports
+   *  stored before it was recorded — which must read as "not measured", not as
+   *  "not a link". */
+  linked?: boolean;
+};
+
 export type Consistency = {
-  phones: { normalized: string; seenAs: string[]; pages: string[] }[];
-  emails: { normalized: string; seenAs: string[]; pages: string[] }[];
+  phones: ContactVariant[];
+  emails: ContactVariant[];
   copyrightYears: number[];
   newestCopyrightYear: number | null;
   pagesOffTemplate: string[];
   sharedNavLinks: number;
   pagesExamined: number;
+};
+
+/** One reachability answer. `measured: false` means the request itself failed —
+ *  which is ours or the network's, never reportable as the site's defect. */
+export type Reachability = {
+  measured: boolean;
+  url: string;
+  ok: boolean;
+  landedOn: string | null;
+  error: string | null;
+};
+
+/**
+ * The things a stranger would check first.
+ *
+ * This section used to be four findings and a copyright year, which meant that
+ * on a healthy site the loudest row in "Does it work" was one reading
+ * "2026 — current". A row that says nothing is wrong should not be the same size
+ * as a row that says eleven links are broken, and a heading that promises "does
+ * it work" should cover more than whether the footer is up to date.
+ *
+ * Three of these cost requests; the rest come free out of the crawl. Declared
+ * structurally for the same reason as `AnswerSpace` — see `fetch.ts`.
+ */
+export type Basics = {
+  insecureEntry: Reachability;
+  hostVariant: Reachability & { host: string };
+  notFound: Reachability & { status: number | null; linksBackToSite: boolean };
+  mixedContent: { measured: boolean; imageUrls: string[]; imagesSeen: number };
+  altText: { imagesTotal: number; imagesWithAlt: number; pagesExamined: number };
+  duplicateTitles: { title: string; pages: string[] }[];
 };
 
 export type ProbedUrl = {
@@ -166,6 +207,12 @@ export type ReportView = {
    *  page says "not measured" rather than "nothing broken", which are opposite
    *  claims and only one of them is ours to make. */
   assets: Assets | null;
+  /** The things a stranger checks first. Null when the stage did not run. */
+  basics: Basics | null;
+  /** Does every page carry a viewport meta? Read off `checks` rather than
+   *  recomputed, so there is one implementation and it is the one with tests.
+   *  Null when checks did not run. */
+  viewportOk: boolean | null;
   brandedRecognized: boolean | null;
   categoryProbes: ProbeAnswer[];
   brandedProbes: ProbeAnswer[];
@@ -265,8 +312,11 @@ export function toReportView(raw: AuditReport): ReportView {
   // `checks` carries the two pure site checks; `assets` is its own stage
   // because it is the only one that makes requests. Both unwrap through the
   // same `stage()` helper, so a failure becomes null and the page says so.
-  const checks = stage<{ journey?: Journey; consistency?: Consistency }>(r.checks);
+  const checks = stage<{ journey?: Journey; consistency?: Consistency; viewportOk?: boolean }>(
+    r.checks,
+  );
   const assets = stage<Assets>(r.assets);
+  const basics = stage<Basics>(r.basics);
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
   const answers = probes?.answers ?? [];
@@ -315,6 +365,8 @@ export function toReportView(raw: AuditReport): ReportView {
     journey: checks?.journey ?? null,
     consistency: checks?.consistency ?? null,
     assets,
+    basics,
+    viewportOk: checks?.viewportOk ?? null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
     brandedProbes: answers.filter((a) => a.kind === "branded"),

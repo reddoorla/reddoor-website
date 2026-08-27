@@ -167,12 +167,30 @@
                       <p class="m-0 max-w-[66ch] text-sm text-muted">
                         {probe.snippet}{probe.truncated ? "…" : ""}
                       </p>
+                      <!-- Who the engine listened to. On every audit run so far
+                           the business's own site is cited — and so are Yelp,
+                           LinkedIn, ZoomInfo and Glassdoor, which is where the
+                           stale hours and the wrong phone number live. -->
+                      {#if probe.citedDomains.length}
+                        <p class="type-meta m-0 max-w-[66ch] text-light">
+                          Sources: {probe.citedDomains.join(" · ")}
+                        </p>
+                      {/if}
                     </div>
                   {/each}
+                  <!-- This paragraph used to claim a branded search "echoes your
+                       name back whether or not the engine knows anything real
+                       about you". That is not true and it talked a real finding
+                       down: when the answer quotes specifics off your own site
+                       rather than inventing them, that is the thing working. It
+                       is excluded from the visibility score because it measures
+                       a different question, not because it measures nothing. -->
                   <p class="m-0 max-w-[66ch] text-sm text-muted">
-                    A branded search echoes your name back whether or not the engine knows anything
-                    real about you, so it is reported separately and never counted toward the
-                    visibility score.
+                    A branded search cannot tell you whether someone who has never heard of you
+                    would find you, which is why it is kept out of the visibility score above. It
+                    answers a different question, and for most businesses a more useful one: when an
+                    engine describes you, is it accurate, and is it reading your site or somebody
+                    else's page about you.
                   </p>
                 </div>
               </ReportDisclosure>
