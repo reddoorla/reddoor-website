@@ -320,6 +320,22 @@
               not all of them. Results vary between engines and change over time, which is the argument
               for measuring again rather than treating any single number as fixed.
             </p>
+            <!-- Deliberately in the methodology section rather than the findings.
+                 llms.txt used to be worth a quarter of the technical component
+                 of Findability, scored with the same confidence as sitemap.xml,
+                 and fed to the model that writes the fix list — so a prospect
+                 could be marked down for it AND handed it as a job. Search
+                 crawlers demonstrably read a sitemap; nobody has committed to
+                 reading llms.txt. Now it is neither scored nor recommended, and
+                 this paragraph says so instead of leaving its absence to be
+                 noticed. -->
+            <p class="m-0">
+              <strong class="text-black">A note on llms.txt.</strong> If you have been told to add one,
+              we are not going to tell you the same. We look for it, but we do not score it and it will
+              never appear in your fix list. It is a 2024 proposal that no answer engine has committed
+              to reading, and there is no measured evidence that having one changes whether you get
+              cited. If that changes, we will say so and start scoring it.
+            </p>
             <p class="m-0">
               Every finding here is one you can reproduce. If any of it looks wrong, tell us — we
               would rather correct it than defend it.
