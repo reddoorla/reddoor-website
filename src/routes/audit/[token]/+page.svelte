@@ -50,9 +50,13 @@
    * useful form of the same fact.
    */
   const sourceList = (domains: string[]): string => {
-    const counts = new Map<string, number>();
-    for (const d of domains) counts.set(d, (counts.get(d) ?? 0) + 1);
-    return [...counts.entries()]
+    // A plain record, not a Map: `svelte/prefer-svelte-reactivity` flags every
+    // built-in Map inside a component, and rightly — it cannot tell a local
+    // one in a pure helper from state that ought to be reactive. Nothing here
+    // needs reactivity, so the cheapest fix is to not reach for a Map at all.
+    const counts: Record<string, number> = {};
+    for (const d of domains) counts[d] = (counts[d] ?? 0) + 1;
+    return Object.entries(counts)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([domain, n]) => (n > 1 ? `${domain} (${n})` : domain))
       .join(" · ");

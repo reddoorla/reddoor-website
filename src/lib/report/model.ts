@@ -439,12 +439,15 @@ export function citationsFrom(
 ): CitedDomain[] {
   if (categoryProbes.length === 0) return stored;
 
-  let own = "";
-  try {
-    own = new URL(ownUrl).hostname.replace(/^www\./i, "").toLowerCase();
-  } catch {
-    own = "";
-  }
+  // A report can carry an unparseable url; an empty own-domain simply means
+  // nothing is filtered out, which is better than dropping every citation.
+  const own = ((): string => {
+    try {
+      return new URL(ownUrl).hostname.replace(/^www\./i, "").toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
 
   const counts = new Map<string, number>();
   for (const probe of categoryProbes) {
