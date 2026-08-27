@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { GOAL_LABELS, type GoalRequirement, type ReportView } from "./model";
+  import { GOAL_LABELS, goalVerdict, type GoalRequirement, type ReportView } from "./model";
 
   // Whether the site does the one job it exists to do.
   //
@@ -39,6 +39,8 @@
   const missing = $derived(ordered.filter((r) => r.status === "missing"));
   const unmeasured = $derived(ordered.filter((r) => r.status === "unmeasured"));
   const judged = $derived(ordered.filter((r) => r.status !== "unmeasured"));
+
+  const verdict = $derived(goalVerdict(missing.length, judged.length));
 </script>
 
 {#if !fit}
@@ -72,13 +74,7 @@
     <div class="flex flex-col gap-4">
       <p class="type-lede m-0 max-w-[52ch] text-black">
         Your site is built to get a visitor to <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
-        {#if missing.length === 0}
-          Everything it needs to do that is in place.
-        {:else}
-          {missing.length === judged.length
-            ? "None of what it needs to do that is in place."
-            : `${missing.length} of the ${judged.length} things it needs are not.`}
-        {/if}
+        {verdict}
       </p>
       {#if fit.source === "inferred"}
         <!-- Said plainly. If we inferred it wrong the reader should be able to
@@ -107,7 +103,7 @@
           {#if row.status === "missing"}
             <p class="type-meta m-0 max-w-[62ch] text-muted">{row.why}</p>
           {:else if row.evidence}
-            <p class="type-meta m-0 max-w-[62ch] break-words text-light">{row.evidence}</p>
+            <p class="type-meta m-0 max-w-[62ch] wrap-break-word text-light">{row.evidence}</p>
           {/if}
         </div>
       {/each}

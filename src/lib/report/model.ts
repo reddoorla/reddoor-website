@@ -227,6 +227,29 @@ export const GOAL_LABELS: Record<string, string> = {
   unknown: "do something we could not identify",
 };
 
+/**
+ * The verdict sentence that opens the report.
+ *
+ * A pure function rather than markup because it is the first full sentence the
+ * client reads about their own business, and it has to survive every count —
+ * the template it replaced rendered "1 of the 6 things it needs are not".
+ *
+ * `judged` counts only what we could actually measure, so a site where half the
+ * checks were unmeasured never has our own gaps folded into its denominator.
+ */
+const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+
+export function goalVerdict(missing: number, judged: number): string {
+  if (judged === 0) return "We could not judge any of what it needs to do that.";
+  if (missing === 0) return "Everything it needs to do that is in place.";
+  if (missing >= judged) return "None of what it needs to do that is in place.";
+  const word = NUMBER_WORDS[missing] ?? String(missing);
+  const subject = word.charAt(0).toUpperCase() + word.slice(1);
+  const verb = missing === 1 ? "is" : "are";
+  const total = NUMBER_WORDS[judged] ?? String(judged);
+  return `${subject} of the ${total} things it needs ${verb} not in place.`;
+}
+
 export type ReportView = {
   url: string;
   businessName: string | null;

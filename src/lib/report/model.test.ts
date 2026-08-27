@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toReportView, findNamesake, type ProbeAnswer } from "./model";
+import { toReportView, findNamesake, goalVerdict, type ProbeAnswer } from "./model";
 import type { AuditReport } from "./fetch";
 
 /**
@@ -349,5 +349,32 @@ describe("findNamesake", () => {
       domain: "reddoorcreative.com",
       count: 13,
     });
+  });
+});
+
+describe("goalVerdict", () => {
+  // The first full sentence the client reads about their own business. The
+  // template this replaced rendered "1 of the 6 things it needs are not".
+  it("agrees in number", () => {
+    expect(goalVerdict(1, 6)).toBe("One of the six things it needs is not in place.");
+    expect(goalVerdict(2, 6)).toBe("Two of the six things it needs are not in place.");
+  });
+
+  it("does not count a site as failing everything when it fails everything measured", () => {
+    expect(goalVerdict(4, 4)).toBe("None of what it needs to do that is in place.");
+  });
+
+  it("says so plainly when nothing is missing", () => {
+    expect(goalVerdict(0, 5)).toBe("Everything it needs to do that is in place.");
+  });
+
+  it("never claims a verdict it could not measure", () => {
+    // Every requirement unmeasured. Reporting "everything is in place" here
+    // would turn a total absence of measurement into a clean bill of health.
+    expect(goalVerdict(0, 0)).toBe("We could not judge any of what it needs to do that.");
+  });
+
+  it("falls back to digits past the number words", () => {
+    expect(goalVerdict(12, 20)).toBe("12 of the 20 things it needs are not in place.");
   });
 });
