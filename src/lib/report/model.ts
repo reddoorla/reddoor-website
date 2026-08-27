@@ -250,6 +250,69 @@ export function goalVerdict(missing: number, judged: number): string {
   return `${subject} of the ${total} things it needs ${verb} not in place.`;
 }
 
+/**
+ * Sites whose whole business is hosting listings about other businesses.
+ *
+ * Mirrors PLATFORMS in reddoor-maintenance's ownership.ts, and kept here rather
+ * than imported for the same dependency reason as GOAL_LABELS: the report
+ * renders from stored JSON and must not pull the audit toolchain in with it.
+ *
+ * It is used for one thing — telling the reader what KIND of thing the engine
+ * reached for. A field of directories and a field of businesses the reader's own
+ * size are the same number and opposite advice, and the number alone cannot
+ * tell them apart.
+ */
+const LISTING_SITES = [
+  "yelp.com", "bbb.org", "yellowpages.com", "angi.com", "angieslist.com", "thumbtack.com",
+  "houzz.com", "tripadvisor.com", "nextdoor.com", "foursquare.com", "mapquest.com",
+  "trustpilot.com", "manta.com", "chamberofcommerce.com", "birdeye.com", "opentable.com",
+  "zocdoc.com", "healthgrades.com", "vitals.com", "ratemds.com", "webmd.com",
+  "patientconnect365.com", "carecredit.com", "sharecare.com", "wellness.com",
+  "google.com", "bing.com", "apple.com", "duckduckgo.com",
+  "facebook.com", "instagram.com", "linkedin.com", "twitter.com", "x.com", "tiktok.com",
+  "youtube.com", "pinterest.com", "reddit.com",
+  "crunchbase.com", "glassdoor.com", "indeed.com", "clutch.co", "g2.com", "capterra.com",
+  "zoominfo.com", "dnb.com", "bloomberg.com", "wikipedia.org",
+];
+
+export function isListingSite(domain: string): boolean {
+  const d = domain.toLowerCase().replace(/^www\./, "");
+  return LISTING_SITES.some((p) => d === p || d.endsWith(`.${p}`));
+}
+
+export type FieldShape = {
+  /** Citations that went to a directory, review site or social profile. */
+  listings: number;
+  /** Citations that went to somebody's own website. */
+  sites: number;
+  /** Distinct businesses with a site of their own in the cited set. */
+  businessCount: number;
+};
+
+/**
+ * What kind of sources the engine reached for.
+ *
+ * This is the reformat that replaced the visibility score. The score said "0"
+ * and stopped; a reader could do nothing with it but feel it. The same data says
+ * something useful when it is asked a different question — is this a room of
+ * directories, or a room of businesses like yours? — because that is what
+ * decides whether being in it is reachable at all.
+ */
+export function fieldShape(domains: CitedDomain[]): FieldShape {
+  let listings = 0;
+  let sites = 0;
+  let businessCount = 0;
+  for (const d of domains) {
+    if (isListingSite(d.domain)) {
+      listings += d.count;
+    } else {
+      sites += d.count;
+      businessCount += 1;
+    }
+  }
+  return { listings, sites, businessCount };
+}
+
 export type ReportView = {
   url: string;
   businessName: string | null;

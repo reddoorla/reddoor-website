@@ -1,6 +1,6 @@
 <script lang="ts">
   import CitationChart from "./CitationChart.svelte";
-  import type { ReportView } from "./model";
+  import { fieldShape, type ReportView } from "./model";
 
   // Where the prospect stands in AI answers — reported as a finding with its
   // evidence attached, never as a score on the same track as the site work.
@@ -49,6 +49,39 @@
   // Written inline in the markup it needed an {#if} for the optional clause,
   // and Svelte collapses the newline that follows a block tag — which is how it
   // shipped reading "of the citations.It takes 14 sources".
+  // What KIND of source the engine reached for.
+  //
+  // The same count means opposite things depending on this. A field of
+  // directories is one where no amount of website work puts the reader in the
+  // answer, and the honest counsel is to spend the money elsewhere. A field of
+  // businesses their own size is plainly reachable, and they are simply not in
+  // it yet. The old lede printed the same zero for both.
+  const shape = $derived(fieldShape(view.citedDomains));
+
+  const shapeSentence = $derived.by(() => {
+    if (!view.citedDomains.length) return "We recorded no sources for these answers.";
+    const { listings, sites, businessCount } = shape;
+    if (sites === 0) {
+      return "Every source it cited was a directory or review site — not one business's own website, including the businesses it named.";
+    }
+    if (listings === 0) {
+      return `It answered entirely from businesses' own websites — ${businessCount} of them.`;
+    }
+    const majority =
+      listings > sites ? "mostly directories and review sites" : "mostly businesses' own websites";
+    return `It answered ${majority}: ${listings} ${listings === 1 ? "citation" : "citations"} went to listing sites and ${sites} to the websites of ${businessCount} ${businessCount === 1 ? "business" : "businesses"}.`;
+  });
+
+  // The reader's own standing, stated plainly and AFTER the field is described.
+  const standingSentence = $derived.by(() => {
+    if (!view.visibility) return "";
+    const { named, total } = view.visibility;
+    if (named === 0) {
+      return `${who} was not among them, in any of the ${total} questions we asked.`;
+    }
+    return `${who} was cited in ${named} of the ${total} questions we asked.`;
+  });
+
   const spreadSentence = $derived.by(() => {
     if (!space || topShare === null) return "";
     const answers = `${space.answersWithCitations} ${space.answersWithCitations === 1 ? "answer" : "answers"}`;
@@ -70,13 +103,17 @@
          The section above it already says what was asked and why, so this does
          not restate the method — an earlier draft repeated "before they have
          heard of you" verbatim two paragraphs running. -->
+    <!-- Leads with the SHAPE of the field, not the reader's count in it.
+         It used to open "It did not name {who} in any of the 5", which is true,
+         unactionable, and the only sentence anyone remembered — a zero at the
+         top of a section takes over the meeting, and this is the one number in
+         the report that nothing we do reliably moves. The standing is still
+         reported, one paragraph down, once the reader knows what room it is. -->
     <p class="type-lede m-0 max-w-[52ch] text-black">
-      {#if view.visibility.named === 0}
-        It did not name {who} in any of the {view.visibility.total}.
-      {:else}
-        It named {who} in {view.visibility.named} of the {view.visibility.total}.
-      {/if}
+      {shapeSentence}
     </p>
+
+    <p class="m-0 max-w-[62ch] text-muted">{standingSentence}</p>
 
     {#if view.citedDomains.length}
       <CitationChart

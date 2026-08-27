@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { toReportView, findNamesake, goalVerdict, type ProbeAnswer } from "./model";
+import {
+  toReportView,
+  findNamesake,
+  goalVerdict,
+  fieldShape,
+  isListingSite,
+  type ProbeAnswer,
+} from "./model";
 import type { AuditReport } from "./fetch";
 
 /**
@@ -376,5 +383,42 @@ describe("goalVerdict", () => {
 
   it("falls back to digits past the number words", () => {
     expect(goalVerdict(12, 20)).toBe("12 of the 20 things it needs are not in place.");
+  });
+});
+
+describe("fieldShape", () => {
+  // Replaced the AI Visibility score. The score said "0" and stopped; a reader
+  // could do nothing with it but feel it. The same citations answer a useful
+  // question instead — is this a room of directories, or a room of businesses
+  // like yours? — because that is what decides whether being in it is
+  // reachable at all.
+  it("tells a directory from a business's own site", () => {
+    expect(isListingSite("yelp.com")).toBe(true);
+    expect(isListingSite("reviews.birdeye.com")).toBe(true);
+    expect(isListingSite("www.zocdoc.com")).toBe(true);
+    expect(isListingSite("hermosasmilesdentistry.com")).toBe(false);
+  });
+
+  it("does not mistake a suffix for a listing site", () => {
+    expect(isListingSite("notyelp.com")).toBe(false);
+    expect(isListingSite("myg2.com")).toBe(false);
+  });
+
+  it("splits citations by what kind of source they went to", () => {
+    // Beachfront's real field, trimmed.
+    const shape = fieldShape([
+      { domain: "yelp.com", count: 16 },
+      { domain: "patientconnect365.com", count: 9 },
+      { domain: "hermosasmilesdentistry.com", count: 8 },
+      { domain: "drpalani.com", count: 8 },
+      { domain: "reviews.birdeye.com", count: 4 },
+    ]);
+    expect(shape.listings).toBe(29);
+    expect(shape.sites).toBe(16);
+    expect(shape.businessCount).toBe(2);
+  });
+
+  it("survives an empty field", () => {
+    expect(fieldShape([])).toEqual({ listings: 0, sites: 0, businessCount: 0 });
   });
 });
