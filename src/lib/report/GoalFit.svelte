@@ -102,6 +102,16 @@
           </div>
           {#if row.status === "missing"}
             <p class="type-meta m-0 max-w-[62ch] text-muted">{row.why}</p>
+            <!--
+              A missing row can carry evidence too, and dropping it was a real
+              loss: "A route to you from wherever they land — Not on the site"
+              tells a reader nothing they can act on, while the evidence names
+              the stranded pages and how many of how many we examined. Shown
+              under the reason, not instead of it.
+            -->
+            {#if row.evidence}
+              <p class="type-meta m-0 max-w-[62ch] wrap-break-word text-light">{row.evidence}</p>
+            {/if}
           {:else if row.evidence}
             <p class="type-meta m-0 max-w-[62ch] wrap-break-word text-light">{row.evidence}</p>
           {/if}
