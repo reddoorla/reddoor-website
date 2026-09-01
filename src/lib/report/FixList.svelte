@@ -1,5 +1,17 @@
 <script lang="ts">
+  import ReportDisclosure from "./ReportDisclosure.svelte";
   import type { Fix } from "./model";
+
+  // The ranked fix list, collapsed.
+  //
+  // Every fix used to render fully expanded, which put roughly two thousand
+  // words of remediation detail between the scorecard and everything after it —
+  // on a page whose reader is deciding whether any of this is worth half an
+  // hour. The rank, the headline and the two costs are what that decision needs;
+  // the reasoning is what they need once one of them has caught their eye.
+  //
+  // The order is the recommendation, so the number is content rather than
+  // decoration — these are ranked by what to do first.
 
   let { fixes }: { fixes: Fix[] } = $props();
 
@@ -21,36 +33,39 @@
 
 <ol class="m-0 flex list-none flex-col border-t border-light p-0">
   {#each fixes as fix, i (fix.title)}
-    <li class="grid grid-cols-[2.5rem_1fr] gap-x-4 border-b border-light py-7">
-      <!-- Numbered because the order is the recommendation: these are ranked by
-           what to do first, not merely listed. -->
-      <span class="type-question m-0 leading-snug text-primary" aria-hidden="true">
-        {String(i + 1).padStart(2, "0")}
-      </span>
-
-      <div class="flex min-w-0 flex-col gap-3">
-        <h3 class="type-question m-0 max-w-[34ch] text-black">
-          <span class="sr-only">Fix {i + 1}:</span>{fix.title}
-        </h3>
-
-        <div class="flex flex-wrap gap-2">
-          <span
-            class="border border-light px-2 py-0.5 text-xs tracking-widest uppercase {fix.impact ===
-            'high'
-              ? 'text-primary'
-              : 'text-muted'}"
-          >
-            {IMPACT_LABEL[fix.impact]}
+    <li>
+      <ReportDisclosure title="Fix {i + 1}: {fix.title}">
+        {#snippet label()}
+          <span class="grid grid-cols-[2.5rem_1fr] gap-x-4">
+            <span class="type-question leading-snug text-primary tabular-nums">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span class="flex min-w-0 flex-col gap-2.5">
+              <span class="type-question max-w-[46ch] text-black">{fix.title}</span>
+              <span class="flex flex-wrap gap-2">
+                <!-- High impact is the only chip that takes colour. Colouring
+                     every chip would make the list uniformly loud and leave the
+                     reader no way to triage it at a glance — which is the one
+                     job the collapsed state has. -->
+                <span
+                  class="type-eyebrow border px-2 py-0.5 leading-tight {fix.impact === 'high'
+                    ? 'border-primary/40 text-primary'
+                    : 'border-light text-muted'}"
+                >
+                  {IMPACT_LABEL[fix.impact]}
+                </span>
+                <span class="type-eyebrow border border-light px-2 py-0.5 leading-tight text-muted">
+                  {EFFORT_LABEL[fix.effort]}
+                </span>
+              </span>
+            </span>
           </span>
-          <span
-            class="border border-light px-2 py-0.5 text-xs tracking-widest text-muted uppercase"
-          >
-            {EFFORT_LABEL[fix.effort]}
-          </span>
-        </div>
+        {/snippet}
 
-        <p class="m-0 max-w-[66ch] text-muted">{fix.why}</p>
-      </div>
+        <!-- Indented to the title's column so the reasoning reads as belonging
+             to the headline above it rather than to the list. -->
+        <p class="m-0 max-w-[66ch] pl-0 text-muted sm:pl-14">{fix.why}</p>
+      </ReportDisclosure>
     </li>
   {/each}
 </ol>
