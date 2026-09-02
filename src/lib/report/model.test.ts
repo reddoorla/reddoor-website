@@ -50,12 +50,15 @@ const FULL = {
   businessName: "Reddoor Creative",
   generatedAt: "2026-08-25T20:52:00.000Z",
   scores: { findability: 91, readability: 83, answers: 65, aiVisibility: 0 },
+  // `agentAccess` sits on CRAWL, where the pipeline actually writes it. These
+  // fixtures had it on `checks`, which is where the renderer was reading it
+  // from — so the test agreed with the bug instead of with the payload.
+  crawl: { ok: true, data: { agentAccess: [{ agent: "GPTBot" }, { agent: "ClaudeBot" }] } },
   checks: {
     ok: true,
     data: {
       crawlerAccessMeasured: true,
       crawlerAccess: { blockedAi: [], blockedClassical: [] },
-      agentAccess: [{ agent: "GPTBot" }, { agent: "ClaudeBot" }],
     },
   },
   analyze: {
@@ -229,7 +232,6 @@ describe("toReportView — a complete report", () => {
             ...FULL.checks.data,
             crawlerAccessMeasured: true,
             crawlerAccess: { blockedAi: ["GPTBot"], blockedClassical: [] },
-            agentAccess: [{ agent: "GPTBot" }, { agent: "ClaudeBot" }],
           },
         },
       }),

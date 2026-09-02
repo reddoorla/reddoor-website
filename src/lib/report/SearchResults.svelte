@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ProbeAnswer } from "./model";
+  import { wasNamed, type ProbeAnswer } from "./model";
 
   let { probes, businessName }: { probes: ProbeAnswer[]; businessName: string | null } = $props();
 
@@ -16,7 +16,7 @@
 <div class="flex flex-col border-t border-light">
   {#each probes as probe (probe.query)}
     {@const domains = uniqueDomains(probe.citedDomains)}
-    {@const named = probe.domainCited || probe.brandMentioned}
+    {@const named = wasNamed(probe)}
     <div class="flex flex-col gap-3 border-b border-light py-6">
       <p class="type-question m-0 text-black">
         <span class="text-primary" aria-hidden="true">&ldquo;</span>{probe.query}<span

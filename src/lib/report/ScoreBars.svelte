@@ -67,7 +67,7 @@
         ? 'text-primary'
         : 'text-dark'}"
     >
-      Can the AI crawlers reach you
+      What your robots.txt allows
     </p>
     <p
       class="type-lede m-0 max-w-[52ch] {reach.measured && reach.blocked.length > 0
@@ -77,9 +77,9 @@
       {#if !reach.measured}
         We could not check.
       {:else if reach.blocked.length > 0}
-        No — your robots.txt turns away {reach.blocked.join(", ")}.
+        It turns away {reach.blocked.join(", ")}.
       {:else}
-        Yes — all {reach.checked} of the crawlers we checked are allowed in.
+        It turns away none of the {reach.checked} AI crawlers we checked.
       {/if}
     </p>
     <p class="type-meta m-0 max-w-[62ch] text-muted">
@@ -91,7 +91,9 @@
         cannot quote it. This is the first thing to fix.
       {:else}
         This is a pass/fail, not a score. Almost every site passes it, so a number here would only
-        have made the two below look like the same kind of measurement.
+        have made the two below look like the same kind of measurement. It is also the limit of what
+        a file can tell us: a CDN&rsquo;s bot rules are enforced separately and can turn a crawler
+        away that your robots.txt welcomes.
       {/if}
     </p>
   </div>
