@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import { resolvePadding } from "$lib/utils/slicePadding";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
@@ -57,7 +58,7 @@
               <PrismicImage
                 field={{ ...avatar, alt: avatarAlt }}
                 fallbackAlt=""
-                imgixParams={{ auto: ["format", "compress"] }}
+                imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                 widths={[100, 200, 300, 400]}
                 sizes="(min-width: 768px) 100px, 72px"
                 loading="lazy"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import placeholder from "../../assets/images/background_placeholder.svg";
   import { PrismicImage } from "@prismicio/svelte";
   import Img from "$lib/components/Img.svelte";
@@ -71,7 +72,7 @@
       <PrismicImage
         {field}
         class="absolute h-full w-full object-cover -z-10"
-        imgixParams={{ auto: ["format", "compress"] }}
+        imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
         widths={[640, 960, 1280, 1920, 2560]}
         sizes="100vw"
         loading="lazy"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import { PrismicImage, PrismicLink } from "@prismicio/svelte";
   import type { LogoSoupDocumentData, LogoSoupDocumentDataBrandsItem } from "../../prismicio-types";
   import ContentWidth from "./ContentWidth/ContentWidth.svelte";
@@ -135,7 +136,7 @@
             alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
         {showImage && brandIndex === i ? '' : 'opacity-0'}"
-            imgixParams={{ auto: ["format", "compress"] }}
+            imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
             widths={[640, 960, 1280, 1920, 2560]}
             sizes="100vw"
             loading="lazy"
@@ -187,7 +188,7 @@
                     brandIndex === i
                       ? ''
                       : 'opacity-0'}"
-                    imgixParams={{ auto: ["compress"] }}
+                    imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                     widths={[120, 240, 360]}
                     sizes="(min-width: 768px) 25vw, 50vw"
                     loading="lazy"
@@ -200,7 +201,7 @@
                     brandIndex > -1
                       ? 'opacity-0'
                       : ''}"
-                    imgixParams={{ auto: ["compress"] }}
+                    imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                     widths={[120, 240, 360]}
                     sizes="(min-width: 768px) 25vw, 50vw"
                     loading="lazy"
@@ -286,7 +287,7 @@
             alt=""
             class="absolute h-full w-full object-cover transition-opacity duration-700 ease-fast-slow
             {mobileScrollActive && brandIndex === i ? '' : 'opacity-0'}"
-            imgixParams={{ auto: ["format", "compress"] }}
+            imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
             widths={[640, 960, 1280, 1920, 2560]}
             sizes="100vw"
             loading="lazy"
@@ -317,7 +318,7 @@
                   brandIndex === i
                     ? ''
                     : 'opacity-0'}"
-                  imgixParams={{ auto: ["compress"] }}
+                  imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                   widths={[120, 240, 360]}
                   sizes="(min-width: 768px) 25vw, 50vw"
                   loading="lazy"

@@ -11,12 +11,21 @@
     yes,
     partial,
     no,
+    unknown = 0,
   }: {
     yes: number;
     partial: number;
     no: number;
+    /** Questions we asked and got no verdict back for. Deliberately NOT a
+     *  fourth segment: every segment on this bar is a claim about their site,
+     *  and this is a claim about our measurement. It is stated underneath in
+     *  words instead, the same way goals.ts sinks an unmeasured requirement. */
+    unknown?: number;
   } = $props();
 
+  // Judged questions only. Including the unmeasured ones in the denominator
+  // would quietly shrink the "answered clearly" share every time OUR side of
+  // the measurement came up short.
   const total = $derived(yes + partial + no);
 
   // Guarded because a report whose question stage returned nothing would
@@ -71,5 +80,14 @@
         </div>
       {/each}
     </dl>
+
+    {#if unknown > 0}
+      <p class="type-meta m-0 max-w-[62ch] text-muted">
+        {unknown === 1
+          ? "One further question could not be judged on this audit and is not counted above"
+          : `${unknown} further questions could not be judged on this audit and are not counted above`}
+        — that is a gap in our measurement, not a finding about your site.
+      </p>
+    {/if}
   </div>
 {/if}

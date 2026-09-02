@@ -4,6 +4,7 @@
   import ReportDisclosure from "$lib/report/ReportDisclosure.svelte";
   import ScoreBars from "$lib/report/ScoreBars.svelte";
   import GoalFit from "$lib/report/GoalFit.svelte";
+  import SourceCheck from "$lib/report/SourceCheck.svelte";
   import SiteHealth from "$lib/report/SiteHealth.svelte";
   import Standing from "$lib/report/Standing.svelte";
   import QuestionMeter from "$lib/report/QuestionMeter.svelte";
@@ -37,7 +38,12 @@
       : null,
   );
 
-  const ANSWERED_LABEL = { yes: "Yes", partial: "Partial", no: "No" } as const;
+  const ANSWERED_LABEL = {
+    yes: "Yes",
+    partial: "Partial",
+    no: "No",
+    unknown: "Not measured",
+  } as const;
 
   /**
    * The domains one answer cited, most-cited first, each named once.
@@ -64,7 +70,7 @@
 </script>
 
 <svelte:head>
-  <title>Can AI find {who}?</title>
+  <title>When AI answers for {who}</title>
   <!-- The third of three independent guards, with robots.txt and the
        x-robots-tag set in +page.server.ts. Letting a prospect's report reach a
        search index is the one mistake here that cannot be walked back. -->
@@ -83,7 +89,17 @@
         {#if auditedOn}<span>Audited {auditedOn}</span>{/if}
       </p>
 
-      <h1 class="type-hero m-0 max-w-[20ch] text-black">Can AI find {who}?</h1>
+      <!-- "Can AI find you?" was a discovery promise on an instrument that
+           measures verification, and the published evidence says those are
+           different questions with different levers. In a study of 500+
+           discovery-stage queries across three engines, 85% of brand mentions
+           cited a third-party domain and 13.2% the brand's own; a site's own
+           pages get reached when the intent turns from "who should I consider"
+           to "show me the details". Almost everything we measure and everything
+           we can fix lives on that second question. So the report says what it
+           can stand behind: when an engine — or a buyer — comes to check you
+           out, what do they find. -->
+      <h1 class="type-hero m-0 max-w-[20ch] text-black">When AI answers for {who}</h1>
 
       {#if view.narrative?.answers}
         <p class="type-lede m-0 max-w-[52ch] border-l-2 border-primary pl-6 text-black">
@@ -110,6 +126,31 @@
     </section>
   {/if}
 
+  <!-- ── What an AI already says about you ───────────────────────────────── -->
+  <!-- Second, immediately after the one thing the site is for, and deliberately
+       AHEAD of every score. It is the section this report is named for: an
+       engine describes them to strangers right now and they have never seen
+       what it says. Unlike the visibility number it points at something they
+       control, and unlike a score it needs no explanation of our method.
+       Goal fit still opens the report — see the note in GoalFit.svelte — but
+       nothing else outranks this. -->
+  <section class="w-full py-16 md:py-24">
+    <ContentWidth class="relative">
+      <h2 class="type-display m-0 max-w-[26ch] text-black">What an AI already says about you</h2>
+      <hr class="mt-7.5 mb-7.5 border-primary" />
+    </ContentWidth>
+    <RailRow label="Right now" labelAs="p">
+      <div class="flex flex-col gap-10">
+        <p class="type-lede m-0 max-w-[52ch] text-black">
+          We asked a live AI assistant about {who} and took its answer apart statement by statement. Each
+          one is sorted by where it came from — never by whether it is true. We cannot know that; you
+          can.
+        </p>
+        <SourceCheck {view} />
+      </div>
+    </RailRow>
+  </section>
+
   <!-- ── What you control ────────────────────────────────────────────────── -->
   <!-- The report is split in two, and the split is the honest part of it.
        These three measure the site, they move because we edit the site, and
@@ -125,7 +166,9 @@
       <div class="flex flex-col gap-10">
         <p class="type-lede m-0 max-w-[52ch] text-black">
           Everything in this section is work on your own site, so every number here is one we can
-          move and show you the before and after of.
+          move and show you the before and after of. The first line is a pass or a fail rather than
+          a score — nearly every site passes it, and a number would only have made the two below
+          look like the same kind of measurement.
         </p>
         <ScoreBars {view} />
       </div>
@@ -215,10 +258,14 @@
                            that by seeing the list.
 
                            Deliberately no cross-site claim here. The audits
-                           stored to date cover nine sites, four runs of which
-                           are our own, over a two-day window against a single
-                           engine; that is enough to notice a pattern and
-                           nowhere near enough to assert one. -->
+                           stored to date cover 29 sites over 65 runs, six of
+                           them our own, against a single engine — and the sites
+                           were hand-picked rather than sampled, so the set can
+                           find a pattern and can never establish a rate. (This
+                           note said "nine sites over two days" for a week after
+                           it stopped being true; if it is the stated reason for
+                           an editorial choice it has to be checked against the
+                           table, not remembered.) -->
                       {#if probe.citedDomains.length}
                         <p class="type-meta m-0 max-w-[66ch] text-light">
                           Sources: {sourceList(probe.citedDomains)}
@@ -289,6 +336,7 @@
             yes={view.questionTally.yes}
             partial={view.questionTally.partial}
             no={view.questionTally.no}
+            unknown={view.questionTally.unknown}
           />
 
           <div class="flex flex-col border-t border-light">

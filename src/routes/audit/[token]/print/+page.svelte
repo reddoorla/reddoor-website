@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toReportView } from "$lib/report/model";
+  import { toReportView, wasNamed } from "$lib/report/model";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -17,7 +17,12 @@
       : null,
   );
 
-  const ANSWERED_LABEL = { yes: "Yes", partial: "Partial", no: "No" } as const;
+  const ANSWERED_LABEL = {
+    yes: "Yes",
+    partial: "Partial",
+    no: "No",
+    unknown: "Not measured",
+  } as const;
   const EFFORT_LABEL = {
     low: "About an hour",
     medium: "A few days",
@@ -33,11 +38,19 @@
   // and takes over the conversation — a reader spends the meeting on the one
   // number nobody can act on. Where the business stands in AI answers is still
   // reported in full further down, as a finding with its sources attached.
+  // Findability is not here for the same reason AI Visibility is not: it never
+  // varied. 26 of the 29 sites audited to date score 88 or above, because 40 of
+  // its 100 points are crawler access and nearly every site allows everyone in.
+  // On paper especially, a bar that is always long lends the two beside it a
+  // steadiness they have not earned. The yes/no it actually establishes is
+  // printed as a line instead — see crawlerReach below.
   const scoreCells = $derived([
-    { v: view.scores.findability, l: "Findability" },
     { v: view.scores.readability, l: "Readability" },
     { v: view.scores.answers, l: "Answers" },
   ]);
+
+  const reach = $derived(view.crawlerReach);
+  const accuracy = $derived(view.accuracy);
 
   function uniqueDomains(domains: string[]): string[] {
     return [...new Set(domains)];
@@ -69,7 +82,7 @@
 <article class="sheet">
   <header>
     <p class="eyebrow">Prospect audit</p>
-    <h1>Can AI find {who}?</h1>
+    <h1>When AI answers for {who}</h1>
     <p class="meta">
       {view.url}{#if auditedOn}
         &middot; audited {auditedOn}{/if}
@@ -85,6 +98,20 @@
     {/each}
   </section>
 
+  {#if reach}
+    <p class="denominator">
+      {#if !reach.measured}
+        The robots.txt could not be read on this audit.
+      {:else if reach.blocked.length > 0}
+        AI crawlers blocked by robots.txt: {reach.blocked.join(", ")}. Nothing else in this report
+        can help while that is true.
+      {:else}
+        The robots.txt turns away none of the {reach.checked} AI crawlers we checked. A CDN can still
+        refuse one it welcomes.
+      {/if}
+    </p>
+  {/if}
+
   {#if view.visibility}
     <p class="denominator">
       Named in {view.visibility.named} of {view.visibility.total}
@@ -94,6 +121,39 @@
 
   {#if view.narrative?.answers}
     <p class="verdict">{view.narrative.answers}</p>
+  {/if}
+
+  <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
+       cannot know whether a claim is right; saying "the AI got this wrong"
+       about something a client knows is true would discredit the page. -->
+  {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
+    <section>
+      <h2>What an AI already says about you</h2>
+      {#each accuracy.assertions.filter((a) => a.verdict !== "unverified") as a (a.claim + a.query)}
+        <div class="fix">
+          <p class="fix-t">
+            {a.claim}
+            <span class="answered {a.verdict}">
+              {a.verdict === "confirmed"
+                ? "your site says this"
+                : a.verdict === "contradicted"
+                  ? "your site says otherwise"
+                  : "not on your site"}
+            </span>
+          </p>
+          <p class="fix-w">The AI said: &ldquo;{a.engineQuote}&rdquo;</p>
+          {#if a.sourceDomains.length}
+            <p class="fix-w">Cited: {uniqueDomains(a.sourceDomains).join(", ")}</p>
+          {/if}
+        </div>
+      {/each}
+      {#if !accuracy.siteFullyRead}
+        <p class="fix-w">
+          We read {accuracy.pagesRead} of {accuracy.pagesTotal} pages for this check. Nothing above is
+          reported as missing on the strength of pages we did not read.
+        </p>
+      {/if}
+    </section>
   {/if}
 
   {#if view.fixes.length}
@@ -121,7 +181,7 @@
         <div class="probe">
           <h3>&ldquo;{probe.query}&rdquo;</h3>
           <p class="outcome">
-            {#if probe.domainCited || probe.brandMentioned}
+            {#if wasNamed(probe)}
               {who} appeared in this answer.
             {:else}
               {who} was not named. {domains.length}
@@ -395,7 +455,17 @@
     color: #d71920;
   }
   .answered.yes,
-  .answered.partial {
+  .answered.partial,
+  .answered.unknown {
+    color: #6e6f72;
+  }
+  /* The accuracy verdicts share this chip. Red for the two that are findings
+     about the site, grey for the one that is proof the engine reads it. */
+  .answered.contradicted,
+  .answered.absent {
+    color: #d71920;
+  }
+  .answered.confirmed {
     color: #6e6f72;
   }
 

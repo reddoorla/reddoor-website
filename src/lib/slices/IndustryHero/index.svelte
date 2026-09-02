@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
@@ -81,7 +82,7 @@
         field={slice.primary.image}
         fallbackAlt=""
         class="h-full w-full object-cover"
-        imgixParams={{ auto: ["format", "compress"] }}
+        imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
         widths={[640, 828, 1080, 1280, 1920, 2560, 3058]}
         sizes="100vw"
         loading="eager"

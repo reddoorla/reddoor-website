@@ -14,14 +14,61 @@ import type { AuditReport } from "./fetch";
  * the page says plainly that it could not be measured.
  */
 
-export type Answered = "yes" | "partial" | "no";
+/** "unknown" is ours, not a verdict about the site: we asked a question from
+ *  the fixed set and did not get an answer back for it. It is rendered, and it
+ *  is excluded from every proportion — a gap in our measurement must never be
+ *  counted as something their site failed to say. */
+export type Answered = "yes" | "partial" | "no" | "unknown";
 
 export type BuyerQuestion = {
+  /** Key from the fixed set; absent on reports stored before the set existed. */
+  id?: string;
   question: string;
   answered: Answered;
   quotable: boolean;
   page: string | null;
   evidence: string | null;
+};
+
+/**
+ * One statement an engine made about this business, sorted by SOURCE.
+ *
+ * Never by truth. We cannot know whether a claim is right — the engine may be
+ * perfectly correct about a fact the site simply never mentions — and telling a
+ * client "the AI got this wrong" about something they know is true would
+ * discredit every other line in the report. "Your site does not say this, and
+ * here is who the engine read instead" is both the honest framing and the
+ * stronger one, because it points at something they control.
+ */
+export type Assertion = {
+  claim: string;
+  verdict: "confirmed" | "contradicted" | "absent" | "unverified";
+  engineQuote: string;
+  siteQuote: string | null;
+  unverifiedReason: string | null;
+  /** Something related the site DOES say, on a claim we still call absent —
+   *  the client's first objection, answered before it is raised. */
+  nearbyMention: string | null;
+  sourceDomains: string[];
+  query: string;
+  engine: string;
+};
+
+export type SourceVerdict = {
+  domain: string;
+  owner: "yours" | "platform" | "theirs" | "unknown";
+  because: string;
+};
+
+export type Accuracy = {
+  assertions: Assertion[];
+  sources: SourceVerdict[];
+  siteFullyRead: boolean;
+  pagesRead: number;
+  pagesTotal: number;
+  /** Zero means we had no engine answer to read. The section must then say it
+   *  was not measured — never "nothing wrong was found". */
+  answersRead: number;
 };
 
 export type Fix = {
@@ -390,10 +437,25 @@ export type ReportView = {
    *  supplied and none could be inferred — which is "not measured", and is
    *  different from a goal of `unknown`, which IS a measurement. */
   goalFit: GoalFit | null;
+  accuracy: Accuracy | null;
   /** Does every page carry a viewport meta? Read off `checks` rather than
    *  recomputed, so there is one implementation and it is the one with tests.
    *  Null when checks did not run. */
   viewportOk: boolean | null;
+  /**
+   * Whether the AI crawlers can reach the pages at all — the one thing the
+   * Findability score actually established, stated as a fact instead.
+   *
+   * As a bar it was decoration: 26 of the 29 sites audited to date score 88 or
+   * above, because 40 of its 100 points are crawler access and almost every
+   * site allows everything. A number that never varies is not a measurement of
+   * the site, it is a measurement of our formula — and printing it beside
+   * Readability and Answers told the reader all three were the same kind of
+   * claim and equally worth moving.
+   *
+   * Null when the checks stage did not run at all.
+   */
+  crawlerReach: { measured: boolean; blocked: string[]; checked: number } | null;
   brandedRecognized: boolean | null;
   categoryProbes: ProbeAnswer[];
   brandedProbes: ProbeAnswer[];
@@ -404,7 +466,7 @@ export type ReportView = {
   namesake: CitedDomain | null;
   fixes: Fix[];
   buyerQuestions: BuyerQuestion[];
-  questionTally: { yes: number; partial: number; no: number };
+  questionTally: { yes: number; partial: number; no: number; unknown: number };
   narrative: { findability: string; readability: string; answers: string } | null;
 };
 
@@ -529,6 +591,24 @@ export function findNamesake(
   return null;
 }
 
+/**
+ * Did the engine name this business in this answer? THE answer to that
+ * question — every surface asks here rather than deciding for itself.
+ *
+ * `countedAsVisible` is the scorer's own verdict, recorded upstream. The looser
+ * `domainCited || brandMentioned` ignores the distinctive-name gate the score
+ * applies, so a business called "Creative Studio" reads as named in an answer
+ * that referenced nobody. Three surfaces derived this independently and two used
+ * the loose rule, which put "was not among them, in any of the 5 questions we
+ * asked" and "Creative Studio appeared in this answer" on the same printed page.
+ *
+ * The loose rule survives only as the fallback for reports stored before the
+ * verdict existed, where it is the best answer available rather than a choice.
+ */
+export function wasNamed(a: ProbeAnswer): boolean {
+  return a.countedAsVisible ?? (a.domainCited || a.brandMentioned);
+}
+
 export function toReportView(raw: AuditReport): ReportView {
   const r = raw as Record<string, unknown>;
 
@@ -550,12 +630,22 @@ export function toReportView(raw: AuditReport): ReportView {
   // `checks` carries the two pure site checks; `assets` is its own stage
   // because it is the only one that makes requests. Both unwrap through the
   // same `stage()` helper, so a failure becomes null and the page says so.
-  const checks = stage<{ journey?: Journey; consistency?: Consistency; viewportOk?: boolean }>(
-    r.checks,
-  );
+  const checks = stage<{
+    journey?: Journey;
+    consistency?: Consistency;
+    viewportOk?: boolean;
+    crawlerAccessMeasured?: boolean;
+    crawlerAccess?: { blockedAi?: string[]; blockedClassical?: string[] };
+  }>(r.checks);
+  // `agentAccess` is on CRAWL — one entry per agent in crawl.ts's ALL_AGENTS.
+  // It was read off `checks` here, against an optional field invented on the
+  // checks type, so nothing objected and every report said "all 0 of the
+  // crawlers we checked".
+  const crawl = stage<{ agentAccess?: { agent: string }[] }>(r.crawl);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
   const goalFit = stage<GoalFit>(r.goalFit);
+  const accuracy = stage<Accuracy>(r.accuracy);
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
   const answers = probes?.answers ?? [];
@@ -594,9 +684,7 @@ export function toReportView(raw: AuditReport): ReportView {
     // that contributed zero to the score printed beside it.
     visibility: visibilityTotal
       ? {
-          named: categoryProbes.filter(
-            (a) => a.countedAsVisible ?? (a.domainCited || a.brandMentioned),
-          ).length,
+          named: categoryProbes.filter(wasNamed).length,
           total: visibilityTotal,
         }
       : null,
@@ -606,7 +694,18 @@ export function toReportView(raw: AuditReport): ReportView {
     assets,
     basics,
     goalFit,
+    accuracy,
     viewportOk: checks?.viewportOk ?? null,
+    crawlerReach: checks
+      ? {
+          // An explicit true only. A robots.txt fetch that failed leaves the
+          // blocked lists empty out of ignorance, and reading that as "nobody
+          // is blocked" would print an all-clear we never verified.
+          measured: checks.crawlerAccessMeasured === true,
+          blocked: checks.crawlerAccess?.blockedAi ?? [],
+          checked: crawl?.agentAccess?.length ?? 0,
+        }
+      : null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
     brandedProbes: answers.filter((a) => a.kind === "branded"),
@@ -618,6 +717,7 @@ export function toReportView(raw: AuditReport): ReportView {
       yes: buyerQuestions.filter((q) => q.answered === "yes").length,
       partial: buyerQuestions.filter((q) => q.answered === "partial").length,
       no: buyerQuestions.filter((q) => q.answered === "no").length,
+      unknown: buyerQuestions.filter((q) => q.answered === "unknown").length,
     },
     narrative: analyze?.narrative ?? null,
   };

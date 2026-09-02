@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
   import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
@@ -48,7 +49,7 @@
     <PrismicImage
       class="w-screen h-full object-cover absolute {pad.padTop ? 'top-12' : 'top-0'} left-0 z-0"
       field={slice.primary.image}
-      imgixParams={{ auto: ["format", "compress"] }}
+      imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
       widths={[640, 960, 1280, 1920, 2560]}
       sizes="100vw"
       loading="lazy"
@@ -66,7 +67,7 @@
     <PrismicImage
       class="w-screen object-cover {aspectClass}"
       field={slice.primary.image}
-      imgixParams={{ auto: ["format", "compress"] }}
+      imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
       widths={[640, 960, 1280, 1920, 2560]}
       sizes="100vw"
       loading="lazy"

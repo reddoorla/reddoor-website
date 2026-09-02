@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import { PrismicImage, SliceZone } from "@prismicio/svelte";
   import { ChevronLeft, ChevronRight } from "@lucide/svelte";
 
@@ -9,7 +10,7 @@
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
   import type { PageData } from "./$types";
   import { mediumString } from "$lib/utils/projectServices";
-  import { imgixSrcset } from "$lib/utils/imgix";
+  import { imgixSrc, imgixSrcset } from "$lib/utils/imgix";
 
   let { data }: { data: PageData } = $props();
 
@@ -19,7 +20,7 @@
 <div class="w-screen h-[80vh] relative">
   <PrismicImage
     field={data.page.data.hero}
-    imgixParams={{ auto: ["format", "compress"] }}
+    imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
     widths={[640, 960, 1280, 1920, 2560]}
     sizes="100vw"
     class="w-full h-full absolute object-cover"
@@ -88,7 +89,7 @@
             class="h-full w-full flex flex-col justify-end relative"
           >
             <img
-              src={data.relatedProjectOne.data.hero.url || ""}
+              src={imgixSrc(data.relatedProjectOne.data.hero.url)}
               srcset={imgixSrcset(data.relatedProjectOne.data.hero.url)}
               sizes="(min-width: 768px) 40vw, 100vw"
               alt={(data.relatedProjectOne.data.title || "") + " Hero Image"}
@@ -124,7 +125,7 @@
             class="h-full w-full flex flex-col justify-end relative"
           >
             <img
-              src={data.relatedProjectTwo.data.hero.url || ""}
+              src={imgixSrc(data.relatedProjectTwo.data.hero.url)}
               srcset={imgixSrcset(data.relatedProjectTwo.data.hero.url)}
               sizes="(min-width: 768px) 40vw, 100vw"
               alt={(data.relatedProjectTwo.data.title || "") + " Hero Image"}

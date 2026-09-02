@@ -268,17 +268,27 @@
     // ── Saying the same thing everywhere ─────────────────────────────────
     if (consistency) {
       if (consistency.phones.length > 0) {
+        // A receipt, never an alert.
+        //
+        // This row used to flag any site publishing more than one number as
+        // "disagreeing with itself". Replayed across every stored audit that
+        // rule fired on 8 of 22 sites and was wrong every time: two labelled
+        // offices (including ours), a nonprofit listing partner helplines, a
+        // fax line, separate general and business-inquiry lines. A business
+        // with two numbers is not confused — it has two numbers, and the
+        // client could refute the finding from their own contact page.
+        //
+        // Whether the number is TAPPABLE is the real, fixable version of this
+        // question, and the goal section asks it there.
         out.push({
           key: "phones",
-          label: "Phone numbers",
-          value:
-            consistency.phones.length === 1
-              ? "One, used consistently"
-              : `${consistency.phones.length} different numbers`,
-          alert: consistency.phones.length > 1,
+          label: "Phone numbers published",
+          value: `${consistency.phones.length} ${plural(consistency.phones.length, "number", "numbers")}`,
+          alert: false,
           detail:
-            "A visitor cannot tell which one is current, and anything trying to reconcile your business across " +
-            "sources sees it disagreeing with itself.",
+            consistency.phones.length > 1
+              ? "Listed so you can check them, not as a problem — a second number is usually a second office."
+              : "",
         });
       }
 

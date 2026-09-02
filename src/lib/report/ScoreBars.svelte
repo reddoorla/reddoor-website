@@ -10,10 +10,20 @@
   // comparison alone.
   //
   // AI Visibility used to be the fourth bar here and has been removed, which is
-  // the point of this component rather than an omission from it.
+  // the point of this component rather than an omission from it. Findability
+  // has now gone the same way, for the opposite reason: not that it promised
+  // too much, but that it never said anything. Across the 29 sites audited to
+  // date, 26 score 88 or above — because 40 of its 100 points are crawler
+  // access and almost every site allows every crawler. A bar that is always
+  // long is a picture of our formula, not of their site, and standing beside
+  // two bars that DO vary it lent them its own false steadiness.
   //
-  // These three measure the site: whether crawlers reach it, whether they can
-  // read it, whether it answers what buyers ask. Every one of them moves
+  // What it actually established is a yes/no, and that is now stated as one
+  // above the bars: can the crawlers get in. Kept, because when the answer is
+  // no it is the most important line in the report — just not scored.
+  //
+  // These two measure the site: whether crawlers can read it, whether it
+  // answers what buyers ask. Both of them move
   // because we edit the site, with a before and an after. AI visibility is
   // measured out in the world and does not move that way — the published
   // evidence puts its strongest predictors off the site entirely, in off-site
@@ -30,13 +40,9 @@
   // a zero — "we could not check" and "you scored nothing" are different claims
   // about the prospect, and only one of them is ours to make. A null row draws
   // no track at all, so an unmeasured stage cannot be mistaken for a short bar.
+  const reach = $derived(view.crawlerReach);
+
   const rows = $derived([
-    {
-      value: view.scores.findability,
-      label: "Findability",
-      note: "Whether the AI crawlers can reach your pages at all.",
-      alert: false,
-    },
     {
       value: view.scores.readability,
       label: "Readability",
@@ -51,6 +57,47 @@
     },
   ]);
 </script>
+
+<!-- The demoted Findability score: a fact, stated once, above the two numbers
+     that actually move. -->
+{#if reach}
+  <div class="flex flex-col gap-1.5 pb-8">
+    <p
+      class="type-eyebrow m-0 {reach.measured && reach.blocked.length > 0
+        ? 'text-primary'
+        : 'text-dark'}"
+    >
+      What your robots.txt allows
+    </p>
+    <p
+      class="type-lede m-0 max-w-[52ch] {reach.measured && reach.blocked.length > 0
+        ? 'text-primary'
+        : 'text-black'}"
+    >
+      {#if !reach.measured}
+        We could not check.
+      {:else if reach.blocked.length > 0}
+        It turns away {reach.blocked.join(", ")}.
+      {:else}
+        It turns away none of the {reach.checked} AI crawlers we checked.
+      {/if}
+    </p>
+    <p class="type-meta m-0 max-w-[62ch] text-muted">
+      {#if !reach.measured}
+        The robots.txt fetch itself failed, so we do not know who you allow in. That is a gap in our
+        measurement, not a finding about your site — and it is not counted against you anywhere.
+      {:else if reach.blocked.length > 0}
+        Nothing else in this report can help while this is true: an engine that cannot fetch a page
+        cannot quote it. This is the first thing to fix.
+      {:else}
+        This is a pass/fail, not a score. Almost every site passes it, so a number here would only
+        have made the two below look like the same kind of measurement. It is also the limit of what
+        a file can tell us: a CDN&rsquo;s bot rules are enforced separately and can turn a crawler
+        away that your robots.txt welcomes.
+      {/if}
+    </p>
+  </div>
+{/if}
 
 <dl class="m-0 flex w-full flex-col">
   {#each rows as row (row.label)}
