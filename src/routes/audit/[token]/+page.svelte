@@ -37,7 +37,12 @@
       : null,
   );
 
-  const ANSWERED_LABEL = { yes: "Yes", partial: "Partial", no: "No" } as const;
+  const ANSWERED_LABEL = {
+    yes: "Yes",
+    partial: "Partial",
+    no: "No",
+    unknown: "Not measured",
+  } as const;
 
   /**
    * The domains one answer cited, most-cited first, each named once.
@@ -289,6 +294,7 @@
             yes={view.questionTally.yes}
             partial={view.questionTally.partial}
             no={view.questionTally.no}
+            unknown={view.questionTally.unknown}
           />
 
           <div class="flex flex-col border-t border-light">

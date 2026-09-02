@@ -17,7 +17,12 @@
       : null,
   );
 
-  const ANSWERED_LABEL = { yes: "Yes", partial: "Partial", no: "No" } as const;
+  const ANSWERED_LABEL = {
+    yes: "Yes",
+    partial: "Partial",
+    no: "No",
+    unknown: "Not measured",
+  } as const;
   const EFFORT_LABEL = {
     low: "About an hour",
     medium: "A few days",

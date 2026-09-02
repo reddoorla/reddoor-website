@@ -171,7 +171,35 @@ describe("toReportView — a complete report", () => {
   });
 
   it("tallies the buyer questions", () => {
-    expect(toReportView(asReport(FULL)).questionTally).toEqual({ yes: 2, partial: 1, no: 2 });
+    expect(toReportView(asReport(FULL)).questionTally).toEqual({
+      yes: 2,
+      partial: 1,
+      no: 2,
+      unknown: 0,
+    });
+  });
+
+  it("counts a question we could not get an answer for apart from the rest", () => {
+    // "unknown" is our own gap — the model skipped a question we asked. It has
+    // to be visible (the reader should see what we asked) and it has to stay
+    // out of yes/partial/no, because every one of those is a claim about their
+    // site and this is a claim about our measurement.
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        analyze: {
+          ...FULL.analyze,
+          data: {
+            ...FULL.analyze.data,
+            buyerQuestions: [
+              { question: "a", answered: "yes", quotable: true, page: null, evidence: "x" },
+              { question: "b", answered: "unknown", quotable: false, page: null, evidence: null },
+            ],
+          },
+        },
+      }),
+    );
+    expect(v.questionTally).toEqual({ yes: 1, partial: 0, no: 0, unknown: 1 });
   });
 
   it("carries the fixes and narrative through", () => {

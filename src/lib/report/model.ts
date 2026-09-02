@@ -14,9 +14,15 @@ import type { AuditReport } from "./fetch";
  * the page says plainly that it could not be measured.
  */
 
-export type Answered = "yes" | "partial" | "no";
+/** "unknown" is ours, not a verdict about the site: we asked a question from
+ *  the fixed set and did not get an answer back for it. It is rendered, and it
+ *  is excluded from every proportion — a gap in our measurement must never be
+ *  counted as something their site failed to say. */
+export type Answered = "yes" | "partial" | "no" | "unknown";
 
 export type BuyerQuestion = {
+  /** Key from the fixed set; absent on reports stored before the set existed. */
+  id?: string;
   question: string;
   answered: Answered;
   quotable: boolean;
@@ -404,7 +410,7 @@ export type ReportView = {
   namesake: CitedDomain | null;
   fixes: Fix[];
   buyerQuestions: BuyerQuestion[];
-  questionTally: { yes: number; partial: number; no: number };
+  questionTally: { yes: number; partial: number; no: number; unknown: number };
   narrative: { findability: string; readability: string; answers: string } | null;
 };
 
@@ -618,6 +624,7 @@ export function toReportView(raw: AuditReport): ReportView {
       yes: buyerQuestions.filter((q) => q.answered === "yes").length,
       partial: buyerQuestions.filter((q) => q.answered === "partial").length,
       no: buyerQuestions.filter((q) => q.answered === "no").length,
+      unknown: buyerQuestions.filter((q) => q.answered === "unknown").length,
     },
     narrative: analyze?.narrative ?? null,
   };
