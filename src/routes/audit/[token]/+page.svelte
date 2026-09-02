@@ -69,7 +69,7 @@
 </script>
 
 <svelte:head>
-  <title>Can AI find {who}?</title>
+  <title>When AI answers for {who}</title>
   <!-- The third of three independent guards, with robots.txt and the
        x-robots-tag set in +page.server.ts. Letting a prospect's report reach a
        search index is the one mistake here that cannot be walked back. -->
@@ -88,7 +88,17 @@
         {#if auditedOn}<span>Audited {auditedOn}</span>{/if}
       </p>
 
-      <h1 class="type-hero m-0 max-w-[20ch] text-black">Can AI find {who}?</h1>
+      <!-- "Can AI find you?" was a discovery promise on an instrument that
+           measures verification, and the published evidence says those are
+           different questions with different levers. In a study of 500+
+           discovery-stage queries across three engines, 85% of brand mentions
+           cited a third-party domain and 13.2% the brand's own; a site's own
+           pages get reached when the intent turns from "who should I consider"
+           to "show me the details". Almost everything we measure and everything
+           we can fix lives on that second question. So the report says what it
+           can stand behind: when an engine — or a buyer — comes to check you
+           out, what do they find. -->
+      <h1 class="type-hero m-0 max-w-[20ch] text-black">When AI answers for {who}</h1>
 
       {#if view.narrative?.answers}
         <p class="type-lede m-0 max-w-[52ch] border-l-2 border-primary pl-6 text-black">
@@ -130,7 +140,9 @@
       <div class="flex flex-col gap-10">
         <p class="type-lede m-0 max-w-[52ch] text-black">
           Everything in this section is work on your own site, so every number here is one we can
-          move and show you the before and after of.
+          move and show you the before and after of. The first line is a pass or a fail rather than
+          a score — nearly every site passes it, and a number would only have made the two below
+          look like the same kind of measurement.
         </p>
         <ScoreBars {view} />
       </div>
@@ -220,10 +232,14 @@
                            that by seeing the list.
 
                            Deliberately no cross-site claim here. The audits
-                           stored to date cover nine sites, four runs of which
-                           are our own, over a two-day window against a single
-                           engine; that is enough to notice a pattern and
-                           nowhere near enough to assert one. -->
+                           stored to date cover 29 sites over 65 runs, six of
+                           them our own, against a single engine — and the sites
+                           were hand-picked rather than sampled, so the set can
+                           find a pattern and can never establish a rate. (This
+                           note said "nine sites over two days" for a week after
+                           it stopped being true; if it is the stated reason for
+                           an editorial choice it has to be checked against the
+                           table, not remembered.) -->
                       {#if probe.citedDomains.length}
                         <p class="type-meta m-0 max-w-[66ch] text-light">
                           Sources: {sourceList(probe.citedDomains)}

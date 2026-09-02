@@ -38,11 +38,18 @@
   // and takes over the conversation — a reader spends the meeting on the one
   // number nobody can act on. Where the business stands in AI answers is still
   // reported in full further down, as a finding with its sources attached.
+  // Findability is not here for the same reason AI Visibility is not: it never
+  // varied. 26 of the 29 sites audited to date score 88 or above, because 40 of
+  // its 100 points are crawler access and nearly every site allows everyone in.
+  // On paper especially, a bar that is always long lends the two beside it a
+  // steadiness they have not earned. The yes/no it actually establishes is
+  // printed as a line instead — see crawlerReach below.
   const scoreCells = $derived([
-    { v: view.scores.findability, l: "Findability" },
     { v: view.scores.readability, l: "Readability" },
     { v: view.scores.answers, l: "Answers" },
   ]);
+
+  const reach = $derived(view.crawlerReach);
 
   function uniqueDomains(domains: string[]): string[] {
     return [...new Set(domains)];
@@ -74,7 +81,7 @@
 <article class="sheet">
   <header>
     <p class="eyebrow">Prospect audit</p>
-    <h1>Can AI find {who}?</h1>
+    <h1>When AI answers for {who}</h1>
     <p class="meta">
       {view.url}{#if auditedOn}
         &middot; audited {auditedOn}{/if}
@@ -89,6 +96,19 @@
       </div>
     {/each}
   </section>
+
+  {#if reach}
+    <p class="denominator">
+      {#if !reach.measured}
+        Whether AI crawlers can reach the site could not be checked on this audit.
+      {:else if reach.blocked.length > 0}
+        AI crawlers blocked by robots.txt: {reach.blocked.join(", ")}. Nothing else in this report
+        can help while that is true.
+      {:else}
+        All {reach.checked} AI crawlers we checked are allowed in.
+      {/if}
+    </p>
+  {/if}
 
   {#if view.visibility}
     <p class="denominator">

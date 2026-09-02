@@ -50,6 +50,14 @@ const FULL = {
   businessName: "Reddoor Creative",
   generatedAt: "2026-08-25T20:52:00.000Z",
   scores: { findability: 91, readability: 83, answers: 65, aiVisibility: 0 },
+  checks: {
+    ok: true,
+    data: {
+      crawlerAccessMeasured: true,
+      crawlerAccess: { blockedAi: [], blockedClassical: [] },
+      agentAccess: [{ agent: "GPTBot" }, { agent: "ClaudeBot" }],
+    },
+  },
   analyze: {
     ok: true,
     data: {
@@ -200,6 +208,46 @@ describe("toReportView — a complete report", () => {
       }),
     );
     expect(v.questionTally).toEqual({ yes: 1, partial: 0, no: 0, unknown: 1 });
+  });
+
+  it("reports crawler reach as a fact, not a score", () => {
+    // Findability saturates — 26 of the 29 sites audited so far score 88 or
+    // above — so as a bar it is decoration that makes the two bars beside it
+    // look like the same kind of claim. What it actually establishes is one
+    // yes/no: can the crawlers get in.
+    const v = toReportView(asReport(FULL));
+    expect(v.crawlerReach).toEqual({ measured: true, blocked: [], checked: 2 });
+  });
+
+  it("names the crawlers that are blocked", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        checks: {
+          ...FULL.checks,
+          data: {
+            ...FULL.checks.data,
+            crawlerAccessMeasured: true,
+            crawlerAccess: { blockedAi: ["GPTBot"], blockedClassical: [] },
+            agentAccess: [{ agent: "GPTBot" }, { agent: "ClaudeBot" }],
+          },
+        },
+      }),
+    );
+    expect(v.crawlerReach).toEqual({ measured: true, blocked: ["GPTBot"], checked: 2 });
+  });
+
+  it("says so when the robots fetch failed, rather than reporting open access", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        checks: {
+          ...FULL.checks,
+          data: { ...FULL.checks.data, crawlerAccessMeasured: false },
+        },
+      }),
+    );
+    expect(v.crawlerReach?.measured).toBe(false);
   });
 
   it("carries the fixes and narrative through", () => {

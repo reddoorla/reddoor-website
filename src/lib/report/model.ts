@@ -400,6 +400,20 @@ export type ReportView = {
    *  recomputed, so there is one implementation and it is the one with tests.
    *  Null when checks did not run. */
   viewportOk: boolean | null;
+  /**
+   * Whether the AI crawlers can reach the pages at all — the one thing the
+   * Findability score actually established, stated as a fact instead.
+   *
+   * As a bar it was decoration: 26 of the 29 sites audited to date score 88 or
+   * above, because 40 of its 100 points are crawler access and almost every
+   * site allows everything. A number that never varies is not a measurement of
+   * the site, it is a measurement of our formula — and printing it beside
+   * Readability and Answers told the reader all three were the same kind of
+   * claim and equally worth moving.
+   *
+   * Null when the checks stage did not run at all.
+   */
+  crawlerReach: { measured: boolean; blocked: string[]; checked: number } | null;
   brandedRecognized: boolean | null;
   categoryProbes: ProbeAnswer[];
   brandedProbes: ProbeAnswer[];
@@ -556,9 +570,14 @@ export function toReportView(raw: AuditReport): ReportView {
   // `checks` carries the two pure site checks; `assets` is its own stage
   // because it is the only one that makes requests. Both unwrap through the
   // same `stage()` helper, so a failure becomes null and the page says so.
-  const checks = stage<{ journey?: Journey; consistency?: Consistency; viewportOk?: boolean }>(
-    r.checks,
-  );
+  const checks = stage<{
+    journey?: Journey;
+    consistency?: Consistency;
+    viewportOk?: boolean;
+    crawlerAccessMeasured?: boolean;
+    crawlerAccess?: { blockedAi?: string[]; blockedClassical?: string[] };
+    agentAccess?: { agent: string }[];
+  }>(r.checks);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
   const goalFit = stage<GoalFit>(r.goalFit);
@@ -613,6 +632,16 @@ export function toReportView(raw: AuditReport): ReportView {
     basics,
     goalFit,
     viewportOk: checks?.viewportOk ?? null,
+    crawlerReach: checks
+      ? {
+          // An explicit true only. A robots.txt fetch that failed leaves the
+          // blocked lists empty out of ignorance, and reading that as "nobody
+          // is blocked" would print an all-clear we never verified.
+          measured: checks.crawlerAccessMeasured === true,
+          blocked: checks.crawlerAccess?.blockedAi ?? [],
+          checked: checks.agentAccess?.length ?? 0,
+        }
+      : null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
     brandedProbes: answers.filter((a) => a.kind === "branded"),
