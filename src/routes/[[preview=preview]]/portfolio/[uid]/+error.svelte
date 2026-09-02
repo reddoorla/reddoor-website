@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { imgixSrc } from "$lib/utils/imgix";
   import { page } from "$app/state";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
@@ -39,7 +40,7 @@
             class="h-full w-full flex flex-col justify-end relative"
           >
             <img
-              src={project.data.hero.url || ""}
+              src={imgixSrc(project.data.hero.url)}
               alt={project.data.title + " Hero Image"}
               class="absolute w-full h-full object-cover"
             />

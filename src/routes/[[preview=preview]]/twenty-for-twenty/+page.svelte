@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
@@ -378,7 +379,7 @@
                     <PrismicImage
                       field={card.image}
                       class="w-full h-full object-cover"
-                      imgixParams={{ auto: ["format", "compress"] }}
+                      imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                       widths={[400, 640, 800, 1000]}
                       sizes="(min-width: 768px) 30vw, 100vw"
                       loading="lazy"

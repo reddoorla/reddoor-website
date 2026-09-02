@@ -23,7 +23,7 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import type { PageData } from "./$types";
   import { mediumString, toSearchRecord } from "$lib/utils/projectServices";
-  import { imgixSrcset } from "$lib/utils/imgix";
+  import { imgixSrc, imgixSrcset } from "$lib/utils/imgix";
   import { ArrowDown, ChevronDown, Minus, Search, X } from "@lucide/svelte";
 
   let { data }: { data: PageData } = $props();
@@ -902,7 +902,7 @@
             class="h-full w-full flex flex-col justify-end relative"
           >
             <img
-              src={project.data.hero.url || ""}
+              src={imgixSrc(project.data.hero.url)}
               srcset={imgixSrcset(project.data.hero.url)}
               sizes="(min-width: 1024px) 50vw, 100vw"
               alt={project.data.title + " Hero Image"}

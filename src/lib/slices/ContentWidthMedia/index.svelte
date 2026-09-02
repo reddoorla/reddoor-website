@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { PrismicImage } from "@prismicio/svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
@@ -109,7 +110,7 @@
                   <PrismicImage
                     class="w-full h-full object-cover"
                     field={(media as GalleryDocumentDataImagesItem).image}
-                    imgixParams={{ auto: ["format", "compress"] }}
+                    imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                     widths={[400, 640, 800, 1200, 1600]}
                     sizes="(min-width: 1024px) 50vw, 100vw"
                     loading="lazy"
@@ -158,7 +159,7 @@
                   <PrismicImage
                     class="w-full h-full object-cover absolute top-0 left-0 z-0"
                     field={item.image}
-                    imgixParams={{ auto: ["format", "compress"] }}
+                    imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                     widths={[400, 640, 800, 1200, 1600]}
                     sizes="(min-width: 1024px) 50vw, 100vw"
                     loading="lazy"
@@ -178,7 +179,7 @@
                       ? 'h-full'
                       : ''} object-cover cursor-pointer"
                     field={item.image}
-                    imgixParams={{ auto: ["format", "compress"] }}
+                    imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                     widths={[400, 640, 800, 1200, 1600]}
                     sizes="(min-width: 1024px) 50vw, 100vw"
                     loading="lazy"
@@ -224,7 +225,7 @@
                     ? 'w-[calc(100%-1.5rem)] h-[calc(100%-1.5rem)]'
                     : 'w-full h-full'}"
                   field={item.image}
-                  imgixParams={{ auto: ["format", "compress"] }}
+                  imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                   widths={[400, 640, 800, 1200, 1600]}
                   sizes="(min-width: 1024px) 50vw, 100vw"
                   loading="lazy"
@@ -240,7 +241,7 @@
                 <PrismicImage
                   class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
                   field={item.image}
-                  imgixParams={{ auto: ["format", "compress"] }}
+                  imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                   widths={[400, 640, 800, 1200, 1600]}
                   sizes="(min-width: 1024px) 50vw, 100vw"
                   loading="lazy"

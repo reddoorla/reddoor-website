@@ -50,6 +50,14 @@ const FULL = {
   businessName: "Reddoor Creative",
   generatedAt: "2026-08-25T20:52:00.000Z",
   scores: { findability: 91, readability: 83, answers: 65, aiVisibility: 0 },
+  checks: {
+    ok: true,
+    data: {
+      crawlerAccessMeasured: true,
+      crawlerAccess: { blockedAi: [], blockedClassical: [] },
+      agentAccess: [{ agent: "GPTBot" }, { agent: "ClaudeBot" }],
+    },
+  },
   analyze: {
     ok: true,
     data: {
@@ -171,7 +179,115 @@ describe("toReportView — a complete report", () => {
   });
 
   it("tallies the buyer questions", () => {
-    expect(toReportView(asReport(FULL)).questionTally).toEqual({ yes: 2, partial: 1, no: 2 });
+    expect(toReportView(asReport(FULL)).questionTally).toEqual({
+      yes: 2,
+      partial: 1,
+      no: 2,
+      unknown: 0,
+    });
+  });
+
+  it("counts a question we could not get an answer for apart from the rest", () => {
+    // "unknown" is our own gap — the model skipped a question we asked. It has
+    // to be visible (the reader should see what we asked) and it has to stay
+    // out of yes/partial/no, because every one of those is a claim about their
+    // site and this is a claim about our measurement.
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        analyze: {
+          ...FULL.analyze,
+          data: {
+            ...FULL.analyze.data,
+            buyerQuestions: [
+              { question: "a", answered: "yes", quotable: true, page: null, evidence: "x" },
+              { question: "b", answered: "unknown", quotable: false, page: null, evidence: null },
+            ],
+          },
+        },
+      }),
+    );
+    expect(v.questionTally).toEqual({ yes: 1, partial: 0, no: 0, unknown: 1 });
+  });
+
+  it("reports crawler reach as a fact, not a score", () => {
+    // Findability saturates — 26 of the 29 sites audited so far score 88 or
+    // above — so as a bar it is decoration that makes the two bars beside it
+    // look like the same kind of claim. What it actually establishes is one
+    // yes/no: can the crawlers get in.
+    const v = toReportView(asReport(FULL));
+    expect(v.crawlerReach).toEqual({ measured: true, blocked: [], checked: 2 });
+  });
+
+  it("names the crawlers that are blocked", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        checks: {
+          ...FULL.checks,
+          data: {
+            ...FULL.checks.data,
+            crawlerAccessMeasured: true,
+            crawlerAccess: { blockedAi: ["GPTBot"], blockedClassical: [] },
+            agentAccess: [{ agent: "GPTBot" }, { agent: "ClaudeBot" }],
+          },
+        },
+      }),
+    );
+    expect(v.crawlerReach).toEqual({ measured: true, blocked: ["GPTBot"], checked: 2 });
+  });
+
+  it("says so when the robots fetch failed, rather than reporting open access", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        checks: {
+          ...FULL.checks,
+          data: { ...FULL.checks.data, crawlerAccessMeasured: false },
+        },
+      }),
+    );
+    expect(v.crawlerReach?.measured).toBe(false);
+  });
+
+  it("carries the accuracy stage through", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        accuracy: {
+          ok: true,
+          data: {
+            assertions: [
+              {
+                claim: "Open on Saturdays",
+                verdict: "absent",
+                engineQuote: "open on Saturdays",
+                siteQuote: null,
+                unverifiedReason: null,
+                nearbyMention: null,
+                sourceDomains: ["yelp.com"],
+                query: "who is Reddoor Creative",
+                engine: "claude",
+              },
+            ],
+            sources: [{ domain: "yelp.com", owner: "platform", because: "A listing site." }],
+            siteFullyRead: true,
+            pagesRead: 9,
+            pagesTotal: 9,
+            answersRead: 2,
+          },
+        },
+      }),
+    );
+    expect(v.accuracy?.assertions).toHaveLength(1);
+    expect(v.accuracy?.sources[0]?.owner).toBe("platform");
+  });
+
+  it("reads a failed accuracy stage as not measured, not as nothing found", () => {
+    // The distinction the section lives or dies on: "we had no engine answer to
+    // read" and "the engine said nothing wrong about you" are opposite claims.
+    const v = toReportView(asReport({ ...FULL, accuracy: { ok: false, error: "skipped" } }));
+    expect(v.accuracy).toBeNull();
   });
 
   it("carries the fixes and narrative through", () => {

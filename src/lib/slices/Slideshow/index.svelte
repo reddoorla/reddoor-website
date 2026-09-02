@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import type { SlideshowSlice } from "../../../prismicio-types";
   import { PrismicImage } from "@prismicio/svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
@@ -64,7 +65,7 @@
               <PrismicImage
                 field={(media as (typeof slice.primary.images)[number]).image}
                 class="h-full w-full object-contain"
-                imgixParams={{ auto: ["format", "compress"] }}
+                imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
                 widths={[400, 640, 800, 1200, 1600]}
                 sizes="(min-width: 768px) 80vw, 100vw"
                 loading="lazy"

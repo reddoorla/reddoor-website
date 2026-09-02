@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
@@ -185,7 +186,7 @@
   <PrismicImage
     field={item as Content.CaseStudySlice["primary"]["after_image"]}
     fallbackAlt=""
-    imgixParams={{ auto: ["format", "compress"] }}
+    imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
     widths={imageWidths}
     sizes="100vw"
     loading="lazy"
@@ -259,7 +260,7 @@
             <PrismicImage
               field={baseImage}
               fallbackAlt=""
-              imgixParams={{ auto: ["format", "compress"] }}
+              imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
               widths={imageWidths}
               sizes="100vw"
               loading="lazy"
@@ -285,7 +286,7 @@
           <PrismicImage
             field={slice.primary.before_image}
             fallbackAlt=""
-            imgixParams={{ auto: ["format", "compress"] }}
+            imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
             widths={imageWidths}
             sizes="100vw"
             loading="lazy"
