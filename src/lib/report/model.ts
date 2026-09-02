@@ -591,6 +591,24 @@ export function findNamesake(
   return null;
 }
 
+/**
+ * Did the engine name this business in this answer? THE answer to that
+ * question — every surface asks here rather than deciding for itself.
+ *
+ * `countedAsVisible` is the scorer's own verdict, recorded upstream. The looser
+ * `domainCited || brandMentioned` ignores the distinctive-name gate the score
+ * applies, so a business called "Creative Studio" reads as named in an answer
+ * that referenced nobody. Three surfaces derived this independently and two used
+ * the loose rule, which put "was not among them, in any of the 5 questions we
+ * asked" and "Creative Studio appeared in this answer" on the same printed page.
+ *
+ * The loose rule survives only as the fallback for reports stored before the
+ * verdict existed, where it is the best answer available rather than a choice.
+ */
+export function wasNamed(a: ProbeAnswer): boolean {
+  return a.countedAsVisible ?? (a.domainCited || a.brandMentioned);
+}
+
 export function toReportView(raw: AuditReport): ReportView {
   const r = raw as Record<string, unknown>;
 
@@ -618,8 +636,12 @@ export function toReportView(raw: AuditReport): ReportView {
     viewportOk?: boolean;
     crawlerAccessMeasured?: boolean;
     crawlerAccess?: { blockedAi?: string[]; blockedClassical?: string[] };
-    agentAccess?: { agent: string }[];
   }>(r.checks);
+  // `agentAccess` is on CRAWL — one entry per agent in crawl.ts's ALL_AGENTS.
+  // It was read off `checks` here, against an optional field invented on the
+  // checks type, so nothing objected and every report said "all 0 of the
+  // crawlers we checked".
+  const crawl = stage<{ agentAccess?: { agent: string }[] }>(r.crawl);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
   const goalFit = stage<GoalFit>(r.goalFit);
@@ -662,9 +684,7 @@ export function toReportView(raw: AuditReport): ReportView {
     // that contributed zero to the score printed beside it.
     visibility: visibilityTotal
       ? {
-          named: categoryProbes.filter(
-            (a) => a.countedAsVisible ?? (a.domainCited || a.brandMentioned),
-          ).length,
+          named: categoryProbes.filter(wasNamed).length,
           total: visibilityTotal,
         }
       : null,
@@ -683,7 +703,7 @@ export function toReportView(raw: AuditReport): ReportView {
           // is blocked" would print an all-clear we never verified.
           measured: checks.crawlerAccessMeasured === true,
           blocked: checks.crawlerAccess?.blockedAi ?? [],
-          checked: checks.agentAccess?.length ?? 0,
+          checked: crawl?.agentAccess?.length ?? 0,
         }
       : null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,

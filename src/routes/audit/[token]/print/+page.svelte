@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toReportView } from "$lib/report/model";
+  import { toReportView, wasNamed } from "$lib/report/model";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -101,12 +101,13 @@
   {#if reach}
     <p class="denominator">
       {#if !reach.measured}
-        Whether AI crawlers can reach the site could not be checked on this audit.
+        The robots.txt could not be read on this audit.
       {:else if reach.blocked.length > 0}
         AI crawlers blocked by robots.txt: {reach.blocked.join(", ")}. Nothing else in this report
         can help while that is true.
       {:else}
-        All {reach.checked} AI crawlers we checked are allowed in.
+        The robots.txt turns away none of the {reach.checked} AI crawlers we checked. A CDN can still
+        refuse one it welcomes.
       {/if}
     </p>
   {/if}
@@ -180,7 +181,7 @@
         <div class="probe">
           <h3>&ldquo;{probe.query}&rdquo;</h3>
           <p class="outcome">
-            {#if probe.domainCited || probe.brandMentioned}
+            {#if wasNamed(probe)}
               {who} appeared in this answer.
             {:else}
               {who} was not named. {domains.length}
