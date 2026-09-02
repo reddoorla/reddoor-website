@@ -69,7 +69,19 @@ export type Accuracy = {
   /** Zero means we had no engine answer to read. The section must then say it
    *  was not measured — never "nothing wrong was found". */
   answersRead: number;
+  /** The assistant described more than one business under this name. For a
+   *  common name that is the headline of the branded search. Absent on reports
+   *  stored before it was recorded, which read as not-detected. */
+  conflation: Conflation;
 };
+
+export type Conflation = {
+  detected: boolean;
+  otherNames: string[];
+  engineQuote: string | null;
+};
+
+const NO_CONFLATION: Conflation = { detected: false, otherNames: [], engineQuote: null };
 
 export type Fix = {
   title: string;
@@ -77,6 +89,11 @@ export type Fix = {
   impact: "high" | "medium" | "low";
   effort: "low" | "medium" | "high";
   tier: "crawl" | "content" | "technical";
+  /** "measured": code wrote it from a check that ran — a finding, printed
+   *  first. "recommendation": the model wrote it — judgement, printed below
+   *  and labelled as such. Reports stored before the split were all
+   *  model-written and read as recommendations. */
+  origin: "measured" | "recommendation";
 };
 
 export type ProbeAnswer = {
@@ -309,6 +326,89 @@ export function goalVerdict(missing: number, judged: number): string {
  * size are the same number and opposite advice, and the number alone cannot
  * tell them apart.
  */
+const COUNT_WORDS = [
+  "no",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+];
+const count = (n: number): string => COUNT_WORDS[n] ?? String(n);
+
+/**
+ * The first sentence of the report, derived from the same verdicts the
+ * question table prints — so it cannot say an answer exists where the table
+ * says No. The model still writes the fix rationales; it no longer writes the
+ * summary of what it found. Questions we did not judge are left out of the
+ * count and the list, the same way an unmeasured requirement leaves the goal
+ * checklist's denominator.
+ */
+export function openingSummary(view: ReportView): string | null {
+  const judged = view.buyerQuestions.filter((q) => q.answered !== "unknown");
+  if (judged.length === 0) return null;
+  const parts: string[] = [];
+  if (view.goalFit && view.goalFit.goal !== "unknown") {
+    parts.push(
+      `Your site is built to get a visitor to ${GOAL_LABELS[view.goalFit.goal] ?? view.goalFit.goal}.`,
+    );
+  }
+  const yes = judged.filter((q) => q.answered === "yes").length;
+  const partial = judged.filter((q) => q.answered === "partial").length;
+  const unanswered = judged
+    .filter((q) => q.answered === "no")
+    .map((q) =>
+      q.question
+        .trim()
+        .replace(/[?.]$/, "")
+        .replace(/^./, (c) => c.toLowerCase()),
+    );
+  const answered =
+    yes === 0 && partial === 0
+      ? "it answers none of them"
+      : `it answers ${count(yes)} clearly${partial ? ` and ${count(partial)} partly` : ""}`;
+  parts.push(`Of the ${count(judged.length)} questions buyers ask first, ${answered}.`);
+  if (unanswered.length) {
+    const list =
+      unanswered.length === 1
+        ? unanswered[0]
+        : `${unanswered.slice(0, -1).join(", ")}, or ${unanswered.at(-1)}`;
+    parts.push(`It does not answer: ${list}.`);
+  }
+  return parts.join(" ");
+}
+
+const bareHost = (d: string): string =>
+  d
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "");
+
+/**
+ * How many times the assistant cited the site itself across the branded
+ * answers. The accuracy section lists what the assistant read INSTEAD, and
+ * without this number a reader sees "reading your own site" over a list that
+ * never names it. Subdomains count; a look-alike domain never does.
+ */
+export function ownSiteCitations(view: ReportView): number {
+  let own: string;
+  try {
+    own = bareHost(new URL(view.url).hostname);
+  } catch {
+    return 0;
+  }
+  const isOwn = (d: string): boolean => {
+    const h = bareHost(d);
+    return h === own || h.endsWith(`.${own}`);
+  };
+  return view.brandedProbes.reduce((n, p) => n + p.citedDomains.filter(isOwn).length, 0);
+}
+
 const LISTING_SITES = [
   "yelp.com",
   "bbb.org",
@@ -358,6 +458,11 @@ const LISTING_SITES = [
   "dnb.com",
   "bloomberg.com",
   "wikipedia.org",
+  "dribbble.com",
+  "behance.net",
+  "medium.com",
+  "businesswire.com",
+  "prnewswire.com",
 ];
 
 export function isListingSite(domain: string): boolean {
@@ -614,7 +719,7 @@ export function toReportView(raw: AuditReport): ReportView {
 
   const analyze = stage<{
     buyerQuestions?: BuyerQuestion[];
-    fixes?: Fix[];
+    fixes?: (Omit<Fix, "origin"> & { origin?: Fix["origin"] })[];
     narrative?: { findability: string; readability: string; answers: string };
   }>(r.analyze);
 
@@ -645,7 +750,10 @@ export function toReportView(raw: AuditReport): ReportView {
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
   const goalFit = stage<GoalFit>(r.goalFit);
-  const accuracy = stage<Accuracy>(r.accuracy);
+  const accuracyRaw = stage<Omit<Accuracy, "conflation"> & { conflation?: Conflation }>(r.accuracy);
+  const accuracy: Accuracy | null = accuracyRaw
+    ? { ...accuracyRaw, conflation: accuracyRaw.conflation ?? NO_CONFLATION }
+    : null;
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
   const answers = probes?.answers ?? [];
@@ -711,7 +819,7 @@ export function toReportView(raw: AuditReport): ReportView {
     brandedProbes: answers.filter((a) => a.kind === "branded"),
     citedDomains,
     namesake: findNamesake(businessName, url, citedDomains),
-    fixes: analyze?.fixes ?? [],
+    fixes: (analyze?.fixes ?? []).map((f) => ({ ...f, origin: f.origin ?? "recommendation" })),
     buyerQuestions,
     questionTally: {
       yes: buyerQuestions.filter((q) => q.answered === "yes").length,
