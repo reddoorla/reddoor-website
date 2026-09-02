@@ -53,8 +53,29 @@
     (acc?.assertions ?? []).filter((a) => a.verdict === v);
 
   const unverified = $derived(of("unverified"));
+
+  /**
+   * Every claim pulled out of one engine answer carries that answer's citations,
+   * so a group whose rows all came from the same answer printed the identical
+   * six domains six times. On the first real run that was most of the section's
+   * height, and repetition of a list nobody is comparing reads as a bug rather
+   * than as emphasis.
+   *
+   * Shown once above the rows when the whole group shares a list, per row when
+   * they genuinely differ — because then the difference is the information.
+   */
+  const sameList = (rows: Assertion[]): string[] | null => {
+    const first = rows[0]?.sourceDomains ?? [];
+    if (first.length === 0) return null;
+    const key = (d: string[]) => [...d].sort().join("|");
+    return rows.every((r) => key(r.sourceDomains) === key(first)) ? first : null;
+  };
+
   const groups = $derived(
-    GROUPS.map((g) => ({ ...g, rows: of(g.verdict) })).filter((g) => g.rows.length),
+    GROUPS.map((g) => {
+      const rows = of(g.verdict);
+      return { ...g, rows, shared: sameList(rows) };
+    }).filter((g) => g.rows.length),
   );
 
   // Only what the engine read INSTEAD of them. A domain we judged to be their
@@ -93,6 +114,11 @@
             {group.title}
           </h3>
           <p class="type-meta m-0 max-w-[62ch] text-muted">{group.lede}</p>
+          {#if group.shared}
+            <p class="type-meta m-0 max-w-[66ch] wrap-break-word text-light">
+              All from one answer, which cited: {group.shared.join(" · ")}
+            </p>
+          {/if}
         </div>
 
         <dl class="m-0 flex flex-col">
@@ -122,7 +148,7 @@
                 </dd>
               {/if}
 
-              {#if row.sourceDomains.length}
+              {#if !group.shared && row.sourceDomains.length}
                 <dd class="type-meta m-0 max-w-[66ch] wrap-break-word text-light">
                   Cited on that answer: {row.sourceDomains.join(" · ")}
                 </dd>
