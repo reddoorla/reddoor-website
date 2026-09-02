@@ -50,6 +50,7 @@
   ]);
 
   const reach = $derived(view.crawlerReach);
+  const accuracy = $derived(view.accuracy);
 
   function uniqueDomains(domains: string[]): string[] {
     return [...new Set(domains)];
@@ -119,6 +120,39 @@
 
   {#if view.narrative?.answers}
     <p class="verdict">{view.narrative.answers}</p>
+  {/if}
+
+  <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
+       cannot know whether a claim is right; saying "the AI got this wrong"
+       about something a client knows is true would discredit the page. -->
+  {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
+    <section>
+      <h2>What an AI already says about you</h2>
+      {#each accuracy.assertions.filter((a) => a.verdict !== "unverified") as a (a.claim + a.query)}
+        <div class="fix">
+          <p class="fix-t">
+            {a.claim}
+            <span class="answered {a.verdict}">
+              {a.verdict === "confirmed"
+                ? "your site says this"
+                : a.verdict === "contradicted"
+                  ? "your site says otherwise"
+                  : "not on your site"}
+            </span>
+          </p>
+          <p class="fix-w">The AI said: &ldquo;{a.engineQuote}&rdquo;</p>
+          {#if a.sourceDomains.length}
+            <p class="fix-w">Cited: {uniqueDomains(a.sourceDomains).join(", ")}</p>
+          {/if}
+        </div>
+      {/each}
+      {#if !accuracy.siteFullyRead}
+        <p class="fix-w">
+          We read {accuracy.pagesRead} of {accuracy.pagesTotal} pages for this check. Nothing above is
+          reported as missing on the strength of pages we did not read.
+        </p>
+      {/if}
+    </section>
   {/if}
 
   {#if view.fixes.length}
@@ -420,7 +454,17 @@
     color: #d71920;
   }
   .answered.yes,
-  .answered.partial {
+  .answered.partial,
+  .answered.unknown {
+    color: #6e6f72;
+  }
+  /* The accuracy verdicts share this chip. Red for the two that are findings
+     about the site, grey for the one that is proof the engine reads it. */
+  .answered.contradicted,
+  .answered.absent {
+    color: #d71920;
+  }
+  .answered.confirmed {
     color: #6e6f72;
   }
 

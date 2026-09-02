@@ -250,6 +250,46 @@ describe("toReportView — a complete report", () => {
     expect(v.crawlerReach?.measured).toBe(false);
   });
 
+  it("carries the accuracy stage through", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        accuracy: {
+          ok: true,
+          data: {
+            assertions: [
+              {
+                claim: "Open on Saturdays",
+                verdict: "absent",
+                engineQuote: "open on Saturdays",
+                siteQuote: null,
+                unverifiedReason: null,
+                nearbyMention: null,
+                sourceDomains: ["yelp.com"],
+                query: "who is Reddoor Creative",
+                engine: "claude",
+              },
+            ],
+            sources: [{ domain: "yelp.com", owner: "platform", because: "A listing site." }],
+            siteFullyRead: true,
+            pagesRead: 9,
+            pagesTotal: 9,
+            answersRead: 2,
+          },
+        },
+      }),
+    );
+    expect(v.accuracy?.assertions).toHaveLength(1);
+    expect(v.accuracy?.sources[0]?.owner).toBe("platform");
+  });
+
+  it("reads a failed accuracy stage as not measured, not as nothing found", () => {
+    // The distinction the section lives or dies on: "we had no engine answer to
+    // read" and "the engine said nothing wrong about you" are opposite claims.
+    const v = toReportView(asReport({ ...FULL, accuracy: { ok: false, error: "skipped" } }));
+    expect(v.accuracy).toBeNull();
+  });
+
   it("carries the fixes and narrative through", () => {
     const v = toReportView(asReport(FULL));
     expect(v.fixes).toHaveLength(1);

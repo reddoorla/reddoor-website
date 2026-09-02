@@ -30,6 +30,47 @@ export type BuyerQuestion = {
   evidence: string | null;
 };
 
+/**
+ * One statement an engine made about this business, sorted by SOURCE.
+ *
+ * Never by truth. We cannot know whether a claim is right — the engine may be
+ * perfectly correct about a fact the site simply never mentions — and telling a
+ * client "the AI got this wrong" about something they know is true would
+ * discredit every other line in the report. "Your site does not say this, and
+ * here is who the engine read instead" is both the honest framing and the
+ * stronger one, because it points at something they control.
+ */
+export type Assertion = {
+  claim: string;
+  verdict: "confirmed" | "contradicted" | "absent" | "unverified";
+  engineQuote: string;
+  siteQuote: string | null;
+  unverifiedReason: string | null;
+  /** Something related the site DOES say, on a claim we still call absent —
+   *  the client's first objection, answered before it is raised. */
+  nearbyMention: string | null;
+  sourceDomains: string[];
+  query: string;
+  engine: string;
+};
+
+export type SourceVerdict = {
+  domain: string;
+  owner: "yours" | "platform" | "theirs" | "unknown";
+  because: string;
+};
+
+export type Accuracy = {
+  assertions: Assertion[];
+  sources: SourceVerdict[];
+  siteFullyRead: boolean;
+  pagesRead: number;
+  pagesTotal: number;
+  /** Zero means we had no engine answer to read. The section must then say it
+   *  was not measured — never "nothing wrong was found". */
+  answersRead: number;
+};
+
 export type Fix = {
   title: string;
   why: string;
@@ -396,6 +437,7 @@ export type ReportView = {
    *  supplied and none could be inferred — which is "not measured", and is
    *  different from a goal of `unknown`, which IS a measurement. */
   goalFit: GoalFit | null;
+  accuracy: Accuracy | null;
   /** Does every page carry a viewport meta? Read off `checks` rather than
    *  recomputed, so there is one implementation and it is the one with tests.
    *  Null when checks did not run. */
@@ -581,6 +623,7 @@ export function toReportView(raw: AuditReport): ReportView {
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
   const goalFit = stage<GoalFit>(r.goalFit);
+  const accuracy = stage<Accuracy>(r.accuracy);
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
   const answers = probes?.answers ?? [];
@@ -631,6 +674,7 @@ export function toReportView(raw: AuditReport): ReportView {
     assets,
     basics,
     goalFit,
+    accuracy,
     viewportOk: checks?.viewportOk ?? null,
     crawlerReach: checks
       ? {

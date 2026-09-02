@@ -4,6 +4,7 @@
   import ReportDisclosure from "$lib/report/ReportDisclosure.svelte";
   import ScoreBars from "$lib/report/ScoreBars.svelte";
   import GoalFit from "$lib/report/GoalFit.svelte";
+  import SourceCheck from "$lib/report/SourceCheck.svelte";
   import SiteHealth from "$lib/report/SiteHealth.svelte";
   import Standing from "$lib/report/Standing.svelte";
   import QuestionMeter from "$lib/report/QuestionMeter.svelte";
@@ -124,6 +125,31 @@
       </RailRow>
     </section>
   {/if}
+
+  <!-- ── What an AI already says about you ───────────────────────────────── -->
+  <!-- Second, immediately after the one thing the site is for, and deliberately
+       AHEAD of every score. It is the section this report is named for: an
+       engine describes them to strangers right now and they have never seen
+       what it says. Unlike the visibility number it points at something they
+       control, and unlike a score it needs no explanation of our method.
+       Goal fit still opens the report — see the note in GoalFit.svelte — but
+       nothing else outranks this. -->
+  <section class="w-full py-16 md:py-24">
+    <ContentWidth class="relative">
+      <h2 class="type-display m-0 max-w-[26ch] text-black">What an AI already says about you</h2>
+      <hr class="mt-7.5 mb-7.5 border-primary" />
+    </ContentWidth>
+    <RailRow label="Right now" labelAs="p">
+      <div class="flex flex-col gap-10">
+        <p class="type-lede m-0 max-w-[52ch] text-black">
+          We asked a live AI assistant about {who} and took its answer apart statement by statement. Each
+          one is sorted by where it came from — never by whether it is true. We cannot know that; you
+          can.
+        </p>
+        <SourceCheck {view} />
+      </div>
+    </RailRow>
+  </section>
 
   <!-- ── What you control ────────────────────────────────────────────────── -->
   <!-- The report is split in two, and the split is the honest part of it.
