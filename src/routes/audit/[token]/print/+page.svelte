@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toReportView, wasNamed } from "$lib/report/model";
+  import { openingSummary, toReportView, wasNamed, type Assertion } from "$lib/report/model";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -55,6 +55,20 @@
   function uniqueDomains(domains: string[]): string[] {
     return [...new Set(domains)];
   }
+
+  // Same rule as the web page: a row prints its sources only when they differ
+  // from the row above, because rows from one answer share one list.
+  const judgedRows = $derived.by(() => {
+    const rows = (accuracy?.assertions ?? []).filter((a) => a.verdict !== "unverified");
+    const key = (d: string[]) => [...d].sort().join("|");
+    let previous = "";
+    return rows.map((row: Assertion) => {
+      const k = key(row.sourceDomains);
+      const show = row.sourceDomains.length > 0 && k !== previous;
+      previous = k;
+      return { row, showCitations: show };
+    });
+  });
 </script>
 
 <svelte:head>
@@ -117,10 +131,14 @@
       Named in {view.visibility.named} of {view.visibility.total}
       {view.visibility.total === 1 ? "buyer search" : "buyer searches"}.
     </p>
+    <p class="caveat">
+      This is a measurement, not a scorecard — nothing we can do to your website reliably moves it.
+      What it is good for is knowing where you stand and who the assistant reaches for instead.
+    </p>
   {/if}
 
-  {#if view.narrative?.answers}
-    <p class="verdict">{view.narrative.answers}</p>
+  {#if openingSummary(view)}
+    <p class="verdict">{openingSummary(view)}</p>
   {/if}
 
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
@@ -129,21 +147,41 @@
   {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
     <section>
       <h2>What an AI already says about you</h2>
-      {#each accuracy.assertions.filter((a) => a.verdict !== "unverified") as a (a.claim + a.query)}
+      {#if accuracy.conflation.detected}
+        <div class="callout">
+          <h3>The assistant is not sure which {who} you are</h3>
+          <p>
+            Asked about you by name, it described more than one business{accuracy.conflation
+              .otherNames.length
+              ? ` — including ${accuracy.conflation.otherNames.join(", ")}`
+              : ""}. Until your own pages make the name, the place and the work unambiguous,
+            anything it says about &ldquo;{who}&rdquo; may be about someone else.
+          </p>
+          {#if accuracy.conflation.engineQuote}
+            <p class="fix-w">The AI said: &ldquo;{accuracy.conflation.engineQuote}&rdquo;</p>
+          {/if}
+        </div>
+      {/if}
+      {#each judgedRows as { row, showCitations } (row.claim + row.query)}
         <div class="fix">
           <p class="fix-t">
-            {a.claim}
-            <span class="answered {a.verdict}">
-              {a.verdict === "confirmed"
+            {row.claim}
+            <span class="answered {row.verdict}">
+              {row.verdict === "confirmed"
                 ? "your site says this"
-                : a.verdict === "contradicted"
+                : row.verdict === "contradicted"
                   ? "your site says otherwise"
                   : "not on your site"}
             </span>
           </p>
-          <p class="fix-w">The AI said: &ldquo;{a.engineQuote}&rdquo;</p>
-          {#if a.sourceDomains.length}
-            <p class="fix-w">Cited: {uniqueDomains(a.sourceDomains).join(", ")}</p>
+          <p class="fix-w">The AI said: &ldquo;{row.engineQuote}&rdquo;</p>
+          {#if row.siteQuote}
+            <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+          {/if}
+          {#if showCitations}
+            <p class="fix-w">
+              Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
+            </p>
           {/if}
         </div>
       {/each}
@@ -201,7 +239,7 @@
         Across the searches we ran, <strong>{view.namesake.domain}</strong> was cited
         {view.namesake.count}
         {view.namesake.count === 1 ? "time" : "times"} — more than any other source. It is a different
-        company with a name close enough to yours that the engines have to disambiguate between you.
+        company with a name close enough to yours that the assistant has to disambiguate between you.
       </p>
       <p>This is not something a page edit fixes on its own. It is worth a conversation.</p>
     </section>
@@ -216,19 +254,23 @@
       </p>
       <table>
         <thead>
-          <tr><th>What buyers ask</th><th>On your site</th></tr>
+          <tr><th>What buyers ask</th><th>On your site</th><th>What it says</th></tr>
         </thead>
         <tbody>
           {#each view.buyerQuestions as q (q.question)}
             <tr>
               <td>{q.question}</td>
               <td class="answered {q.answered}">{ANSWERED_LABEL[q.answered]}</td>
+              <td class="evidence">
+                {#if q.evidence}&ldquo;{q.evidence}&rdquo;{:else if q.answered === "unknown"}not
+                  judged on this audit{:else}no passage an assistant could quote{/if}
+              </td>
             </tr>
           {/each}
         </tbody>
       </table>
       <p class="note">
-        &ldquo;Partial&rdquo; means the information exists but not in a passage an engine could
+        &ldquo;Partial&rdquo; means the information exists but not in a passage an assistant could
         quote back — usually a list of terms rather than a sentence.
       </p>
     </section>
@@ -249,8 +291,17 @@
     {/if}
     <p>
       <strong>What we did not measure:</strong> we tested one AI assistant, not all of them. Results vary
-      between engines and change over time, which is the argument for measuring again rather than treating
+      between assistants and change over time, which is the argument for measuring again rather than treating
       any single number as fixed.
+    </p>
+  </section>
+
+  <section class="next">
+    <h2>Next</h2>
+    <p>
+      Half an hour, and we will walk you through it. No pitch deck — we go through these findings
+      live and tell you honestly which parts you can handle in-house. Reply to whoever sent you
+      this, or start at reddoorla.com/contact.
     </p>
   </section>
 
@@ -264,6 +315,23 @@
   @page {
     size: A4;
     margin: 18mm 16mm;
+  }
+
+  /* Paper carries none of the site's chrome. */
+  :global(header),
+  :global(nav),
+  :global(body > footer) {
+    display: none;
+  }
+
+  .caveat {
+    color: #57544f;
+    font-size: 9.5pt;
+    margin: 4pt 0 0;
+  }
+  .evidence {
+    color: #57544f;
+    font-size: 9pt;
   }
 
   :global(body) {

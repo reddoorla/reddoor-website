@@ -73,7 +73,13 @@
   <div class="flex flex-col gap-10">
     <div class="flex flex-col gap-4">
       <p class="type-lede m-0 max-w-[52ch] text-black">
-        Your site is built to get a visitor to <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
+        {#if fit.source === "operator"}
+          You told us your site is built to get a visitor to
+          <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
+        {:else}
+          As far as we can tell from reading it, your site is built to get a visitor to
+          <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
+        {/if}
         {verdict}
       </p>
       {#if fit.source === "inferred"}

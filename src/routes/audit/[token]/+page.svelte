@@ -10,7 +10,7 @@
   import QuestionMeter from "$lib/report/QuestionMeter.svelte";
   import FixList from "$lib/report/FixList.svelte";
   import SearchResults from "$lib/report/SearchResults.svelte";
-  import { toReportView } from "$lib/report/model";
+  import { openingSummary, toReportView } from "$lib/report/model";
   import type { PageData } from "./$types";
 
   // The report is laid out on the same band rhythm as the industry landing
@@ -101,9 +101,12 @@
            out, what do they find. -->
       <h1 class="type-hero m-0 max-w-[20ch] text-black">When AI answers for {who}</h1>
 
-      {#if view.narrative?.answers}
+      <!-- Derived from the same verdicts the question table prints, so it
+           cannot say an answer exists where the table says No. The model's own
+           summary did exactly that on a real run. -->
+      {#if openingSummary(view)}
         <p class="type-lede m-0 max-w-[52ch] border-l-2 border-primary pl-6 text-black">
-          {view.narrative.answers}
+          {openingSummary(view)}
         </p>
       {/if}
     </ContentWidth>
@@ -166,9 +169,7 @@
       <div class="flex flex-col gap-10">
         <p class="type-lede m-0 max-w-[52ch] text-black">
           Everything in this section is work on your own site, so every number here is one we can
-          move and show you the before and after of. The first line is a pass or a fail rather than
-          a score — nearly every site passes it, and a number would only have made the two below
-          look like the same kind of measurement.
+          move and show you the before and after of.
         </p>
         <ScoreBars {view} />
       </div>
@@ -243,7 +244,7 @@
             </ReportDisclosure>
 
             {#if view.brandedProbes.length}
-              <ReportDisclosure title="What the engines said when asked about you by name">
+              <ReportDisclosure title="What the assistant said when asked about you by name">
                 <div class="flex flex-col gap-5 pt-1">
                   {#each view.brandedProbes as probe (probe.query)}
                     <div class="flex flex-col gap-2">
@@ -282,10 +283,9 @@
                        a different question, not because it measures nothing. -->
                   <p class="m-0 max-w-[66ch] text-sm text-muted">
                     A branded search cannot tell you whether someone who has never heard of you
-                    would find you, which is why it is kept out of the visibility score above. It
-                    answers a different question, and for most businesses a more useful one: when an
-                    engine describes you, is it accurate, and is it reading your site or somebody
-                    else's page about you.
+                    would find you. It answers a different question, and for most businesses a more
+                    useful one: when an engine describes you, is it accurate, and is it reading your
+                    site or somebody else's page about you.
                   </p>
                 </div>
               </ReportDisclosure>
@@ -311,7 +311,7 @@
             Across the searches we ran, <strong class="text-black">{view.namesake.domain}</strong>
             was cited {view.namesake.count}
             {view.namesake.count === 1 ? "time" : "times"} — more than any other source. It is a different
-            company with a name close enough to yours that the engines have to disambiguate between you.
+            company with a name close enough to yours that the assistant has to disambiguate between you.
           </p>
           <p class="m-0 max-w-[62ch] text-muted">
             This is not something a page edit fixes on its own. It is worth a conversation.
@@ -351,8 +351,11 @@
                       <th class="type-eyebrow border-b border-light py-2 pr-4 text-left text-muted">
                         What buyers ask
                       </th>
-                      <th class="type-eyebrow border-b border-light py-2 text-left text-muted">
+                      <th class="type-eyebrow border-b border-light py-2 pr-4 text-left text-muted">
                         On your site
+                      </th>
+                      <th class="type-eyebrow border-b border-light py-2 text-left text-muted">
+                        What it says
                       </th>
                     </tr>
                   </thead>
@@ -369,6 +372,19 @@
                             : 'text-muted'}"
                         >
                           {ANSWERED_LABEL[q.answered]}
+                        </td>
+                        <!-- The receipt. A verdict with no passage beside it
+                             is a claim the reader cannot check. -->
+                        <td
+                          class="max-w-[38ch] border-b border-light py-2.5 align-top text-sm text-muted"
+                        >
+                          {#if q.evidence}
+                            &ldquo;{q.evidence}&rdquo;
+                          {:else if q.answered === "unknown"}
+                            not judged on this audit
+                          {:else}
+                            no passage an assistant could quote
+                          {/if}
                         </td>
                       </tr>
                     {/each}
@@ -405,9 +421,9 @@
               </p>
             {/if}
             <p class="m-0">
-              <strong class="text-black">What we did not measure:</strong> we tested one AI assistant,
-              not all of them. Results vary between engines and change over time, which is the argument
-              for measuring again rather than treating any single number as fixed.
+              <strong class="text-black">What we did not measure:</strong> we tested one AI assistant
+              (Claude), not all of them. Results vary between assistants and change over time, which is
+              the argument for measuring again rather than treating any single number as fixed.
             </p>
             <!-- Deliberately in the methodology section rather than the findings.
                  llms.txt used to be worth a quarter of the technical component
@@ -426,8 +442,8 @@
               If that changes, we will say so and start scoring it.
             </p>
             <p class="m-0">
-              Every finding here is one you can reproduce. If any of it looks wrong, tell us — we
-              would rather correct it than defend it.
+              Every finding here comes with the receipt we based it on. If any of it looks wrong,
+              tell us — we would rather correct it than defend it.
             </p>
           </div>
         </ReportDisclosure>

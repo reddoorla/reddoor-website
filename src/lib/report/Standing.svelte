@@ -67,7 +67,7 @@
     if (listings === 0) {
       return "It cited no directories at all. Every source was an individual website.";
     }
-    return `${listings} of the ${total} citations went to directories and review sites. The other ${other} went to individual websites, named below.`;
+    return `${listings} of the ${total} citations went to directories, review sites and platforms we recognise. The other ${other} went to individual websites, named below.`;
   });
 
   // The reader's own standing, stated plainly and AFTER the field is described.
@@ -133,7 +133,7 @@
            string where the spacing is explicit removes the class of bug rather
            than patching this instance of it. -->
       <p class="type-meta m-0 max-w-[62ch] text-muted">
-        Those are the most-cited names, not the whole field. The engine drew on
+        Those are the most-cited names, not the whole field. The assistant drew on
         <strong class="text-black">{space.distinctDomains} different sources</strong>
         {spreadSentence}
       </p>
@@ -170,9 +170,9 @@
         raise this number with website work is selling you something they do not control.
       </p>
       <p class="m-0 max-w-[62ch] text-muted">
-        What it is genuinely good for is knowing where you stand, seeing who the engines reach for
-        instead, and judging whether that is a room you could realistically be in. We will re-run it
-        whenever you like and tell you honestly whether anything moved.
+        What it is genuinely good for is knowing where you stand, seeing who the assistant reaches
+        for instead, and judging whether that is a room you could realistically be in. We will
+        re-run it whenever you like and tell you honestly whether anything moved.
       </p>
     </div>
   </div>

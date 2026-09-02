@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   toReportView,
+  openingSummary,
+  ownSiteCitations,
   findNamesake,
   goalVerdict,
   fieldShape,
@@ -621,5 +623,191 @@ describe("citationsFrom", () => {
   it("survives an unparseable url without dropping every citation", () => {
     const out = citationsFrom([probe("q", "category", ["yelp.com"])], "not a url", []);
     expect(out).toEqual([{ domain: "yelp.com", count: 1 }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/** A report whose questions have real text, for the sentence the page opens with. */
+const SPOKEN = {
+  url: "https://reddoorla.com/",
+  businessName: "Reddoor Creative",
+  scores: {},
+  goalFit: {
+    ok: true,
+    data: { goal: "enquire", source: "operator", requirements: [], met: 0, total: 0 },
+  },
+  analyze: {
+    ok: true,
+    data: {
+      buyerQuestions: [
+        {
+          question: "What does this cost?",
+          answered: "no",
+          quotable: false,
+          page: null,
+          evidence: null,
+        },
+        {
+          question: "Is this for someone like me?",
+          answered: "partial",
+          quotable: false,
+          page: null,
+          evidence: "x",
+        },
+        {
+          question: "Why should I believe you can do this?",
+          answered: "yes",
+          quotable: true,
+          page: null,
+          evidence: "y",
+        },
+        {
+          question: "Who will I actually be dealing with?",
+          answered: "yes",
+          quotable: true,
+          page: null,
+          evidence: "z",
+        },
+        {
+          question: "Is there a minimum size of project you take on?",
+          answered: "no",
+          quotable: false,
+          page: null,
+          evidence: null,
+        },
+        {
+          question: "How long does a project take?",
+          answered: "unknown",
+          quotable: false,
+          page: null,
+          evidence: null,
+        },
+      ],
+      fixes: [],
+    },
+  },
+};
+
+describe("openingSummary — the first sentence, built from the verdicts", () => {
+  // The model-written opener said pricing answers "exist" on a page while the
+  // table two screens down said No. The opener is now derived from the same
+  // verdicts the table prints, so it cannot disagree with them.
+  it("names the goal, the count, and the unanswered questions — and skips what we did not judge", () => {
+    expect(openingSummary(toReportView(asReport(SPOKEN)))).toBe(
+      "Your site is built to get a visitor to start a project or ask for a quote. Of the five questions buyers ask first, it answers two clearly and one partly. It does not answer: what does this cost, or is there a minimum size of project you take on.",
+    );
+  });
+
+  it("says nothing about a goal when none was measured", () => {
+    const { goalFit: _drop, ...noGoal } = SPOKEN;
+    expect(openingSummary(toReportView(asReport(noGoal)))).toMatch(/^Of the five questions/);
+  });
+
+  it("says so when nothing is answered", () => {
+    const none = {
+      ...SPOKEN,
+      analyze: {
+        ok: true,
+        data: {
+          buyerQuestions: [
+            {
+              question: "What does this cost?",
+              answered: "no",
+              quotable: false,
+              page: null,
+              evidence: null,
+            },
+          ],
+          fixes: [],
+        },
+      },
+    };
+    expect(openingSummary(toReportView(asReport(none)))).toContain(
+      "it answers none of them. It does not answer: what does this cost.",
+    );
+  });
+
+  it("is null when no question was judged", () => {
+    expect(
+      openingSummary(toReportView(asReport({ ...SPOKEN, analyze: { ok: false, error: "x" } }))),
+    ).toBeNull();
+  });
+});
+
+describe("ownSiteCitations — how often the assistant cited the site itself", () => {
+  it("counts the site's own host across branded answers, ignoring www and subdomains, never a look-alike", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        probes: {
+          ok: true,
+          data: {
+            answers: [
+              probe({
+                kind: "branded",
+                citedDomains: [
+                  "www.reddoorla.com",
+                  "yelp.com",
+                  "reddoorla.com",
+                  "blog.reddoorla.com",
+                ],
+              }),
+              probe({
+                kind: "branded",
+                citedDomains: ["linkedin.com", "reddoorla.co", "reddoorcreative.com"],
+              }),
+              probe({ kind: "category", citedDomains: ["reddoorla.com"] }),
+            ],
+          },
+        },
+      }),
+    );
+    expect(ownSiteCitations(v)).toBe(3);
+  });
+});
+
+describe("fixes keep their origin, and old reports read as recommendations", () => {
+  const fix = (over: Record<string, unknown>) => ({
+    title: "t",
+    why: "w",
+    impact: "high",
+    effort: "low",
+    tier: "content",
+    ...over,
+  });
+  it("passes origin through and defaults it", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        analyze: {
+          ok: true,
+          data: { ...FULL.analyze.data, fixes: [fix({ origin: "measured" }), fix({})] },
+        },
+      }),
+    );
+    expect(v.fixes.map((f) => f.origin)).toEqual(["measured", "recommendation"]);
+  });
+});
+
+describe("accuracy.conflation", () => {
+  it("reads as not-detected on a report stored before the field existed", () => {
+    const v = toReportView(
+      asReport({
+        ...FULL,
+        accuracy: {
+          ok: true,
+          data: {
+            assertions: [],
+            sources: [],
+            siteFullyRead: true,
+            pagesRead: 1,
+            pagesTotal: 1,
+            answersRead: 1,
+          },
+        },
+      }),
+    );
+    expect(v.accuracy?.conflation).toEqual({ detected: false, otherNames: [], engineQuote: null });
   });
 });

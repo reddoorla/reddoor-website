@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Assertion, ReportView } from "./model";
+  import { ownSiteCitations, type Assertion, type ReportView } from "./model";
 
   // What an AI already says about this business, and where it got it.
   //
@@ -31,8 +31,8 @@
   const GROUPS = [
     {
       verdict: "confirmed" as const,
-      title: "The engine is reading your own site",
-      lede: "It quoted these back from your pages. This is the proof that editing them changes the answer.",
+      title: "The assistant is reading your own site",
+      lede: "Each of these matches a passage on your pages. That is the proof that editing them changes the answer.",
       alert: false,
     },
     {
@@ -44,7 +44,7 @@
     {
       verdict: "absent" as const,
       title: "Your site does not say this",
-      lede: "The engine got it from somewhere else. That somewhere is named beside each one.",
+      lede: "The assistant got it from somewhere else. That somewhere is named beside each one.",
       alert: true,
     },
   ];
@@ -102,18 +102,40 @@
 {#if !acc || acc.answersRead === 0}
   <p class="type-lede m-0 max-w-[52ch] text-muted">
     <!-- Never "we found nothing wrong". We had nothing to read. -->
-    We could not check this on this audit — no engine answer about {who} was captured to check against.
+    We could not check this on this audit — no assistant answer about {who} was captured to check against.
     That is a gap in the measurement, not a finding about your site.
   </p>
 {:else if acc.assertions.length === 0}
   <p class="type-lede m-0 max-w-[52ch] text-black">
     We read {acc.answersRead === 1 ? "one answer" : `${acc.answersRead} answers`} about {who} and could
     not pull a checkable statement out of {acc.answersRead === 1 ? "it" : "them"}. That usually
-    means the engine spoke in generalities, which is its own finding: there was nothing specific
+    means the assistant spoke in generalities, which is its own finding: there was nothing specific
     enough about you to repeat.
   </p>
 {:else}
   <div class="flex flex-col gap-12">
+    <!-- For a common name this is the headline of the branded search, and it
+         used to be visible only inside a truncated quote. -->
+    {#if acc.conflation.detected}
+      <div class="flex flex-col gap-2 border-l-2 border-primary pl-6">
+        <p class="type-question m-0 max-w-[40ch] text-primary">
+          The assistant is not sure which {who} you are
+        </p>
+        <p class="type-meta m-0 max-w-[62ch] text-muted">
+          Asked about you by name, it described more than one business{acc.conflation.otherNames
+            .length
+            ? ` — including ${acc.conflation.otherNames.join(", ")}`
+            : ""}. Until your own pages make the name, the place and the work unambiguous, anything
+          it says about &ldquo;{who}&rdquo; may be about someone else.
+        </p>
+        {#if acc.conflation.engineQuote}
+          <p class="type-meta m-0 max-w-[66ch] border-l-2 border-light pl-4 text-muted">
+            The AI said: &ldquo;{acc.conflation.engineQuote}&rdquo;
+          </p>
+        {/if}
+      </div>
+    {/if}
+
     {#each groups as group (group.verdict)}
       <div class="flex flex-col gap-5">
         <div class="flex flex-col gap-1.5">
@@ -121,6 +143,15 @@
             {group.title}
           </h3>
           <p class="type-meta m-0 max-w-[62ch] text-muted">{group.lede}</p>
+          {#if group.verdict === "confirmed"}
+            <!-- The sources under each statement are what it read ALONGSIDE the
+                 site, never the site itself, so the count has to be said here or
+                 the heading and the list contradict each other. -->
+            <p class="type-meta m-0 max-w-[62ch] text-muted">
+              Across the answers we checked, the assistant cited your own site
+              {ownSiteCitations(view) === 1 ? "once" : `${ownSiteCitations(view)} times`}.
+            </p>
+          {/if}
         </div>
 
         <dl class="m-0 flex flex-col">
@@ -152,7 +183,7 @@
 
               {#if showCitations}
                 <dd class="type-meta m-0 max-w-[66ch] wrap-break-word text-light">
-                  Cited on that answer: {row.sourceDomains.join(" · ")}
+                  Also read for that answer: {row.sourceDomains.join(" · ")}
                 </dd>
               {/if}
             </div>
@@ -163,7 +194,7 @@
 
     {#if elsewhere.length}
       <div class="flex flex-col gap-3 border-t border-light pt-6">
-        <p class="type-eyebrow m-0 text-dark">Who the engine read instead of you</p>
+        <p class="type-eyebrow m-0 text-dark">Who else the assistant read</p>
         <dl class="m-0 flex flex-col gap-2">
           {#each elsewhere as source (source.domain)}
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
@@ -175,9 +206,9 @@
           {/each}
         </dl>
         <p class="type-meta m-0 max-w-[62ch] text-muted">
-          These are where stale hours, old phone numbers and a previous owner's name live. You
-          cannot edit most of them, but you can make your own pages say the thing plainly enough
-          that they stop being the best available source.
+          These are the pages about you that you did not write. You cannot edit most of them, but
+          you can make your own pages say the thing plainly enough that they stop being the best
+          available source.
         </p>
       </div>
     {/if}
@@ -189,14 +220,16 @@
       <div class="flex flex-col gap-2 border-t border-light pt-6">
         <p class="type-eyebrow m-0 text-dark">Not judged on this audit</p>
         {#if unverified.length}
-          <p class="type-meta m-0 max-w-[62ch] text-muted">
-            {unverified.length === 1
-              ? "One further statement could not be judged"
-              : `${unverified.length} further statements could not be judged`}: {unverified
-              .map((u) => u.unverifiedReason)
-              .filter(Boolean)
-              .join("; ") || "we could not check them against your pages"}.
-          </p>
+          <!-- Each statement with its own reason. A joined string of reasons
+               with no statements beside them read as an error dump. -->
+          <ul class="m-0 flex list-none flex-col gap-1.5 p-0">
+            {#each unverified as u (u.claim + u.query)}
+              <li class="type-meta max-w-[62ch] text-muted">
+                &ldquo;{u.claim}&rdquo; — {u.unverifiedReason ??
+                  "we could not check it against your pages"}
+              </li>
+            {/each}
+          </ul>
         {/if}
         {#if !acc.siteFullyRead}
           <p class="type-meta m-0 max-w-[62ch] text-muted">
