@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import { resolvePadding } from "$lib/utils/slicePadding";
   // Static client-logo grid on the paper band: rail label + "Our Work" CTA on
   // the left, a 3-up logo grid in the wide (1004px) content column.
@@ -201,7 +202,7 @@
       field={item.logo}
       alt=""
       class={swapClass}
-      imgixParams={{ auto: ["format", "compress"] }}
+      imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
       widths={[220, 440, 660]}
       sizes="220px"
       loading="lazy"
@@ -215,7 +216,7 @@
       field={item.logo}
       fallbackAlt=""
       class={swapClass}
-      imgixParams={{ auto: ["format", "compress"] }}
+      imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
       widths={[220, 440, 660]}
       sizes="220px"
       loading="lazy"
@@ -237,7 +238,7 @@
       i
         ? 'opacity-100'
         : 'opacity-0'}"
-      imgixParams={{ auto: ["format", "compress"] }}
+      imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
       widths={[220, 440, 660]}
       sizes="220px"
       loading="lazy"

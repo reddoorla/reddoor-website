@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import type { ScreenWidthColumnsSlice } from "../../../prismicio-types";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
@@ -61,7 +62,7 @@
             <PrismicImage
               class="w-full h-full object-cover absolute top-0 left-0"
               field={item.image}
-              imgixParams={{ auto: ["format", "compress"] }}
+              imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
               widths={[400, 640, 800, 1200, 1600]}
               sizes="(min-width: 1024px) 50vw, 100vw"
               loading="lazy"
@@ -80,7 +81,7 @@
             <PrismicImage
               class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
               field={item.image}
-              imgixParams={{ auto: ["format", "compress"] }}
+              imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
               widths={[400, 640, 800, 1200, 1600]}
               sizes="(min-width: 1024px) 50vw, 100vw"
               loading="lazy"
@@ -122,7 +123,7 @@
           <PrismicImage
             class="w-full h-full object-cover absolute top-0 left-0"
             field={item.image}
-            imgixParams={{ auto: ["format", "compress"] }}
+            imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
             widths={[400, 640, 800, 1200, 1600]}
             sizes="(min-width: 1024px) 50vw, 100vw"
             loading="lazy"
@@ -141,7 +142,7 @@
           <PrismicImage
             class="w-full {item.aspect !== 'free' ? 'h-full' : ''} object-cover"
             field={item.image}
-            imgixParams={{ auto: ["format", "compress"] }}
+            imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
             widths={[400, 640, 800, 1200, 1600]}
             sizes="(min-width: 1024px) 50vw, 100vw"
             loading="lazy"

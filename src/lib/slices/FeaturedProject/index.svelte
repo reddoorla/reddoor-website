@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { PrismicImage } from "@prismicio/svelte";
@@ -67,7 +68,7 @@
     <PrismicImage
       class="h-full w-full object-cover"
       field={slice.primary.image}
-      imgixParams={{ auto: ["format", "compress"] }}
+      imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
       widths={[640, 960, 1280, 1600, 1920, 2400]}
       sizes="(min-width: 1566px) 1180px, (min-width: 1024px) calc(92vw - 260px), 92vw"
       loading="lazy"

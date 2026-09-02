@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MAX_IMAGE_W } from "$lib/images";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import { fade, fly } from "svelte/transition";
@@ -253,7 +254,7 @@
             fetchpriority={index === 0 ? "high" : "auto"}
             sizes="100vw"
             widths={[640, 828, 1080, 1280, 1920, 2560]}
-            imgixParams={{ auto: ["format", "compress"] }}
+            imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
             class="absolute h-full w-full object-cover will-change-[opacity,filter] transition-all duration-1200 ease-fast-slow {index ===
             safeIndex
               ? 'opacity-100'
