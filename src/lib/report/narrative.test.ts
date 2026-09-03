@@ -287,6 +287,19 @@ describe("displayQuote", () => {
     expect(displayQuote("__led__ by *Tim* Holmes")).toBe("led by Tim Holmes");
     expect(displayQuote("2 * 3 = 6")).toBe("2 * 3 = 6");
   });
+
+  it("drops one pair of wrapping quote marks, since the page supplies its own", () => {
+    expect(displayQuote('"with $2 million in revenue and 5 employees"')).toBe(
+      "with $2 million in revenue and 5 employees",
+    );
+    expect(displayQuote("“Tim and Reddoor have unsurpassed taste.”")).toBe(
+      "Tim and Reddoor have unsurpassed taste.",
+    );
+    // An inner quote is content, not wrapping.
+    expect(displayQuote('go by "Reddoor Creative" or "Red Door"')).toBe(
+      'go by "Reddoor Creative" or "Red Door"',
+    );
+  });
 });
 
 describe("collisionFix / allFixes", () => {

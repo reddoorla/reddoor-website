@@ -251,9 +251,15 @@ export function passCount(view: ReportView): number {
  * the quote still survives being checked against the answer.
  */
 export function displayQuote(text: string): string {
-  return text
+  const unemphasised = text
     .replace(/(\*\*|__)(?=\S)([\s\S]+?)(?<=\S)\1/g, "$2")
-    .replace(/(?<!\S)\*(?=\S)([^*\n]+?)(?<=\S)\*(?!\S)/g, "$1");
+    .replace(/(?<!\S)\*(?=\S)([^*\n]+?)(?<=\S)\*(?!\S)/g, "$1")
+    .trim();
+  // The page wraps every quote in its own marks, so a quote that arrives
+  // already wrapped printed doubled: ""with $2 million in revenue"". One
+  // outer pair goes; a quote mark inside the sentence is content and stays.
+  const wrapped = unemphasised.match(/^["“]([\s\S]*)["”]$/);
+  return wrapped && !/["“”]/.test(wrapped[1] ?? "") ? (wrapped[1] ?? "").trim() : unemphasised;
 }
 
 /**
