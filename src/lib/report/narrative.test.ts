@@ -7,7 +7,14 @@ import {
   type ReportView,
 } from "./model";
 import type { AuditReport } from "./fetch";
-import { allFixes, collisionFix, headlineFinding, passes, passCount } from "./narrative";
+import {
+  allFixes,
+  collisionFix,
+  displayQuote,
+  headlineFinding,
+  passes,
+  passCount,
+} from "./narrative";
 import { healthRows } from "./health";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 
@@ -279,8 +286,7 @@ describe("passes", () => {
 });
 
 describe("displayQuote", () => {
-  it("drops markdown emphasis markers from an engine quote without changing the words", async () => {
-    const { displayQuote } = await import("./narrative");
+  it("drops markdown emphasis markers from an engine quote without changing the words", () => {
     expect(displayQuote('there are **multiple, unrelated companies** that go by "Reddoor"')).toBe(
       'there are multiple, unrelated companies that go by "Reddoor"',
     );
