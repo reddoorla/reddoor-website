@@ -561,6 +561,10 @@ export type ReportView = {
    * Null when the checks stage did not run at all.
    */
   crawlerReach: { measured: boolean; blocked: string[]; checked: number } | null;
+  /** How many URLs the site's sitemap lists, when it has one. The crawl reads
+   *  at most a fixed number of pages, so "we read 14 of your 20 pages" was
+   *  the crawl cap presented as the site; this is the honest denominator. */
+  sitemapUrlCount: number | null;
   brandedRecognized: boolean | null;
   categoryProbes: ProbeAnswer[];
   brandedProbes: ProbeAnswer[];
@@ -746,7 +750,10 @@ export function toReportView(raw: AuditReport): ReportView {
   // It was read off `checks` here, against an optional field invented on the
   // checks type, so nothing objected and every report said "all 0 of the
   // crawlers we checked".
-  const crawl = stage<{ agentAccess?: { agent: string }[] }>(r.crawl);
+  const crawl = stage<{
+    agentAccess?: { agent: string }[];
+    sitemap?: { present?: boolean; urlCount?: number };
+  }>(r.crawl);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
   const goalFit = stage<GoalFit>(r.goalFit);
@@ -814,6 +821,10 @@ export function toReportView(raw: AuditReport): ReportView {
           checked: crawl?.agentAccess?.length ?? 0,
         }
       : null,
+    sitemapUrlCount:
+      crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
+        ? crawl.sitemap.urlCount
+        : null,
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
     brandedProbes: answers.filter((a) => a.kind === "branded"),

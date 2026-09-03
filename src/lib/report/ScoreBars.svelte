@@ -59,8 +59,9 @@
 </script>
 
 <!-- The demoted Findability score: a fact, stated once, above the two numbers
-     that actually move. -->
-{#if reach}
+     that actually move — and only when it is a finding. A robots.txt that
+     turns nobody away is a pass, and passes are listed together elsewhere. -->
+{#if reach && (!reach.measured || reach.blocked.length > 0)}
   <div class="flex flex-col gap-1.5 pb-8">
     <p
       class="type-eyebrow m-0 {reach.measured && reach.blocked.length > 0
@@ -70,7 +71,7 @@
       What your robots.txt allows
     </p>
     <p
-      class="type-lede m-0 max-w-[52ch] {reach.measured && reach.blocked.length > 0
+      class="type-lede m-0 {reach.measured && reach.blocked.length > 0
         ? 'text-primary'
         : 'text-black'}"
     >
@@ -82,50 +83,46 @@
         It turns away none of the {reach.checked} AI crawlers we checked.
       {/if}
     </p>
-    <p class="type-meta m-0 max-w-[62ch] text-muted">
+    <p class="type-meta m-0 text-muted">
       {#if !reach.measured}
         The robots.txt fetch itself failed, so we do not know who you allow in. That is a gap in our
         measurement, not a finding about your site — and it is not counted against you anywhere.
-      {:else if reach.blocked.length > 0}
-        Nothing else in this report can help while this is true: an engine that cannot fetch a page
-        cannot quote it. This is the first thing to fix.
       {:else}
-        This is a pass/fail, not a score. Almost every site passes it, so a number here would only
-        have made the two below look like the same kind of measurement. It is also the limit of what
-        a file can tell us: a CDN&rsquo;s bot rules are enforced separately and can turn a crawler
-        away that your robots.txt welcomes.
+        Nothing else in this report can help while this is true: an engine that cannot fetch a page
+        cannot quote it. This is the first thing to fix. It is a pass/fail, not a score, and it is
+        the limit of what a file can tell us: a CDN&rsquo;s bot rules are enforced separately.
       {/if}
     </p>
   </div>
 {/if}
 
-<dl class="m-0 flex w-full flex-col">
+<ul class="m-0 flex w-full flex-col list-none p-0">
   {#each rows as row (row.label)}
     <!-- Numeral and bar share a row so the two halves of one measurement read as
          one object. An earlier pass put the numeral at the far right of the
          content column with the bar beneath the label on the left; the eye had
          to cross the column to pair them, and four rows of that is four
          crossings for information that should cost none. -->
-    <div
+    <li
       class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-5 border-t border-light py-6 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-x-7.5"
     >
       <!-- Tabular figures so the four numerals share a right edge; a
            proportional "1" is narrow enough to break the column visibly. -->
-      <dd
+      <p
         class="type-display m-0 text-right leading-none tabular-nums {row.alert
           ? 'text-primary'
           : 'text-black'}"
       >
         {row.value ?? "—"}
-      </dd>
+      </p>
 
       <div class="flex min-w-0 flex-col gap-2.5">
-        <dt class="type-eyebrow m-0 {row.alert ? 'text-primary' : 'text-dark'}">{row.label}</dt>
+        <p class="type-eyebrow m-0 {row.alert ? 'text-primary' : 'text-dark'}">{row.label}</p>
 
         {#if row.value !== null}
           <!-- The track is the measurement, so it is described to assistive tech
                as one: a bare styled div would announce nothing at all, and the
-               numeral is already in the <dd>. `aria-hidden` here would hide a
+               numeral is already in the <p>. `aria-hidden` here would hide a
                duplicate, not information. -->
           <div class="h-2 w-full bg-band" role="img" aria-label="{row.value} out of 100">
             <!-- Width is the datum, so it is inline: a Tailwind class cannot
@@ -138,7 +135,7 @@
           </div>
         {/if}
 
-        <p class="type-meta m-0 max-w-[46ch] text-muted">
+        <p class="type-meta m-0 text-muted">
           {#if row.value === null}
             Not measured on this run.
           {:else}
@@ -146,6 +143,6 @@
           {/if}
         </p>
       </div>
-    </div>
+    </li>
   {/each}
-</dl>
+</ul>
