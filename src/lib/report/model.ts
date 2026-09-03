@@ -247,6 +247,33 @@ export type SiteCheck = {
   scope: "quick" | "content" | "structural";
 };
 
+/**
+ * What the axe rule set found, run against the rendered DOM.
+ *
+ * `measured: false` means the rules did not run — never that nothing was
+ * found. `rulesPassed` is what had something to check and was fine, NOT the
+ * size of the rule set: the default set is 90 rules and roughly half have
+ * nothing to apply to on any given page, so `rulesInapplicable` is carried to
+ * keep the arithmetic honest.
+ */
+export type Accessibility = {
+  measured: boolean;
+  pagesExamined: number;
+  rulesPassed: number;
+  rulesIncomplete: number;
+  rulesInapplicable: number;
+  violations: {
+    id: string;
+    impact: "minor" | "moderate" | "serious" | "critical" | null;
+    help: string;
+    helpUrl: string;
+    nodes: number;
+    sample: string | null;
+    pages: string[];
+  }[];
+  violationsTotal: number;
+};
+
 export type Basics = {
   insecureEntry: Reachability;
   hostVariant: Reachability & { host: string };
@@ -577,6 +604,8 @@ export type ReportView = {
   /** The Tier 0 battery. Null for a report stored before it existed; an empty
    *  array would read as "we ran no checks", which is a different claim. */
   siteChecks: SiteCheck[] | null;
+  /** The axe rule set. Null for a report stored before it existed. */
+  accessibility: Accessibility | null;
   /** Whether the site does the one job it exists to do. Null when no goal was
    *  supplied and none could be inferred — which is "not measured", and is
    *  different from a goal of `unknown`, which IS a measurement. */
@@ -797,6 +826,7 @@ export function toReportView(raw: AuditReport): ReportView {
   const basics = stage<Basics>(r.basics);
   const stack = stage<StackReadout>(r.stack);
   const siteChecks = stage<SiteCheck[]>(r.siteChecks);
+  const accessibility = stage<Accessibility>(r.accessibility);
   const goalFit = stage<GoalFit>(r.goalFit);
   const accuracyRaw = stage<Omit<Accuracy, "conflation"> & { conflation?: Conflation }>(r.accuracy);
   const accuracy: Accuracy | null = accuracyRaw
@@ -851,6 +881,7 @@ export function toReportView(raw: AuditReport): ReportView {
     basics,
     stack,
     siteChecks,
+    accessibility,
     goalFit,
     accuracy,
     viewportOk: checks?.viewportOk ?? null,

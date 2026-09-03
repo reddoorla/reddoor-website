@@ -26,6 +26,7 @@ const COMPONENTS = [
   "src/lib/report/Standing.svelte",
   "src/lib/report/SiteHealth.svelte",
   "src/lib/report/Stack.svelte",
+  "src/lib/report/Accessibility.svelte",
   "src/lib/report/QuestionMeter.svelte",
   "src/lib/report/SearchResults.svelte",
   "src/lib/report/CitationChart.svelte",
