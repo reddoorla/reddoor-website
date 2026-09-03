@@ -104,6 +104,23 @@ describe("one story, on every surface", () => {
     }
   });
 
+  it("checked-and-fine and under-the-hood come after the fixes, on both surfaces", () => {
+    const report = code(REPORT);
+    const fixes = report.indexOf('id="fixes"');
+    const passes = report.indexOf("<WhatPasses");
+    const hood = report.indexOf("Under the hood");
+    expect(fixes).toBeGreaterThan(0);
+    expect(passes).toBeGreaterThan(fixes);
+    expect(hood).toBeGreaterThan(passes);
+    const print = code(PRINT);
+    expect(print.indexOf("<h2>What passes</h2>")).toBeGreaterThan(
+      print.indexOf("<h2>Our recommendations</h2>"),
+    );
+    expect(print.indexOf("<h2>How we measured this</h2>")).toBeGreaterThan(
+      print.indexOf("<h2>What passes</h2>"),
+    );
+  });
+
   it("every mention of a pass links to the checked-and-fine section, and the reader can come back", () => {
     for (const p of ["src/lib/report/SiteHealth.svelte", "src/lib/report/GoalFit.svelte", SOURCE]) {
       expect(code(p), p).toMatch(/href="#passes"/);

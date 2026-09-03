@@ -319,20 +319,11 @@
     {/if}
   </section>
 
-  <!-- ── What passes ─────────────────────────────────────────────────────── -->
-  <!-- Every pass on the page, in one openable section. Nothing above lists a
-       pass; this is where the receipts for breadth live. -->
-  <section class="w-full py-16 md:py-24">
-    <RailRow label="Checked and fine" labelAs="p" fill>
-      <WhatPasses {view} />
-    </RailRow>
-  </section>
-
   <!-- ── What to fix ─────────────────────────────────────────────────────── -->
   <!-- Anchored from the hero: a reader who wants the remedy before the
        diagnosis jumps straight here. -->
   {#if fixes.length}
-    <section id="fixes" class="bg-paper w-full scroll-mt-24 py-16 md:py-24">
+    <section id="fixes" class="w-full scroll-mt-24 py-16 md:py-24">
       <ContentWidth class="relative">
         <h2 class="type-display m-0 text-primary">
           {fixes.length === 1 ? "One thing to fix" : `${fixes.length} things to fix, in order`}
@@ -357,6 +348,16 @@
       ↑ Back to where you were
     </button>
   {/if}
+
+  <!-- ── What passes ─────────────────────────────────────────────────────── -->
+  <!-- Every pass on the page, in one openable section, after the fixes: it is
+       an appendix, not a finding. Nothing above lists a pass; this is where the
+       receipts for breadth live, and the in-page links land here. -->
+  <section class="bg-paper w-full py-16 md:py-24">
+    <RailRow label="Checked and fine" labelAs="p" fill>
+      <WhatPasses {view} />
+    </RailRow>
+  </section>
 
   <!-- ── How we measured ─────────────────────────────────────────────────── -->
   <section class="w-full py-16 md:py-24">

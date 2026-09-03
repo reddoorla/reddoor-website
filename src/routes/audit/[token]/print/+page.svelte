@@ -330,20 +330,6 @@
     {/if}
   </section>
 
-  {#if passGroups.length}
-    <section class="passes">
-      <h2>What passes</h2>
-      {#each passGroups as group (group.title)}
-        <h3>{group.title}</h3>
-        <ul>
-          {#each group.items as item, i (group.title + i)}
-            <li>{item}</li>
-          {/each}
-        </ul>
-      {/each}
-    </section>
-  {/if}
-
   {#if orderedFixes.length}
     <section>
       <h2>Our recommendations</h2>
@@ -361,6 +347,20 @@
           </p>
           <p>{fix.why}</p>
         </div>
+      {/each}
+    </section>
+  {/if}
+
+  {#if passGroups.length}
+    <section class="passes">
+      <h2>What passes</h2>
+      {#each passGroups as group (group.title)}
+        <h3>{group.title}</h3>
+        <ul>
+          {#each group.items as item, i (group.title + i)}
+            <li>{item}</li>
+          {/each}
+        </ul>
       {/each}
     </section>
   {/if}
