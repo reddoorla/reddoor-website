@@ -6,6 +6,7 @@
   import GoalFit from "./GoalFit.svelte";
   import SourceCheck from "./SourceCheck.svelte";
   import SiteHealth from "./SiteHealth.svelte";
+  import Stack from "./Stack.svelte";
   import Standing from "./Standing.svelte";
   import QuestionMeter from "./QuestionMeter.svelte";
   import FixList from "./FixList.svelte";
@@ -226,6 +227,16 @@
         <ScoreBars {view} />
       </div>
     </RailRow>
+
+    <!-- Ahead of every finding, and the only section that grades nothing.
+         "Here is what you are running" answers the reader's first silent
+         question — do these people know what they are talking about — before
+         they are asked to accept anything we found. -->
+    {#if view.stack}
+      <RailRow label="What you're running" labelAs="h3" fill class="mt-16 md:mt-24">
+        <Stack {view} />
+      </RailRow>
+    {/if}
 
     <!-- Findings, not a score: a count of broken links is a fact the reader
          can check in thirty seconds. -->

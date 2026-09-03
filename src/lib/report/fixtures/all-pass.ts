@@ -127,6 +127,41 @@ export const ALL_PASS_REPORT: AuditReport = {
       imagesChecked: 18,
     },
   },
+  // The readout, not a check — nothing here passes or fails, so an "all pass"
+  // fixture carries it for layout rather than for a verdict. A modern stack on
+  // purpose: the section has to look right for a site doing everything well,
+  // not only for the WordPress install it is most useful on.
+  stack: {
+    ok: true,
+    data: {
+      measured: true,
+      pagesExamined: 5,
+      headersExamined: true,
+      items: [
+        {
+          layer: "framework",
+          name: "SvelteKit",
+          evidence: "https://example-studio.test/_app/immutable/entry/start.a1b2c3.js",
+        },
+        {
+          layer: "forms",
+          name: "Formspree",
+          evidence: "https://formspree.io/f/xyzabc",
+        },
+        {
+          layer: "analytics",
+          name: "Plausible",
+          evidence: "https://plausible.io/js/script.js",
+        },
+        {
+          layer: "fonts",
+          name: "Adobe Fonts (Typekit)",
+          evidence: "https://use.typekit.net/abc1def.js",
+        },
+        { layer: "hosting", name: "Netlify", evidence: "x-nf-request-id header" },
+      ],
+    },
+  },
   basics: {
     ok: true,
     data: {

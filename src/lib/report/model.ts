@@ -215,6 +215,21 @@ export type Reachability = {
  * Three of these cost requests; the rest come free out of the crawl. Declared
  * structurally for the same reason as `AnswerSpace` — see `fetch.ts`.
  */
+/**
+ * What they are running. NOT a check — see the module comment in the audit's
+ * `stack.ts`. Nothing here passes or fails and nothing enters a denominator;
+ * it opens the report so a reader knows we looked before they read a finding.
+ *
+ * `measured: false` means we could not see, which the page must render as "we
+ * could not tell" rather than as an absence of technology.
+ */
+export type StackReadout = {
+  measured: boolean;
+  items: { layer: string; name: string; evidence: string }[];
+  pagesExamined: number;
+  headersExamined: boolean;
+};
+
 export type Basics = {
   insecureEntry: Reachability;
   hostVariant: Reachability & { host: string };
@@ -538,6 +553,10 @@ export type ReportView = {
   assets: Assets | null;
   /** The things a stranger checks first. Null when the stage did not run. */
   basics: Basics | null;
+  /** What they are running, named back to them. Null for a report stored
+   *  before the stage existed — which the page renders as nothing at all
+   *  rather than as "we found no technology". */
+  stack: StackReadout | null;
   /** Whether the site does the one job it exists to do. Null when no goal was
    *  supplied and none could be inferred — which is "not measured", and is
    *  different from a goal of `unknown`, which IS a measurement. */
@@ -756,6 +775,7 @@ export function toReportView(raw: AuditReport): ReportView {
   }>(r.crawl);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
+  const stack = stage<StackReadout>(r.stack);
   const goalFit = stage<GoalFit>(r.goalFit);
   const accuracyRaw = stage<Omit<Accuracy, "conflation"> & { conflation?: Conflation }>(r.accuracy);
   const accuracy: Accuracy | null = accuracyRaw
@@ -808,6 +828,7 @@ export function toReportView(raw: AuditReport): ReportView {
     consistency: checks?.consistency ?? null,
     assets,
     basics,
+    stack,
     goalFit,
     accuracy,
     viewportOk: checks?.viewportOk ?? null,

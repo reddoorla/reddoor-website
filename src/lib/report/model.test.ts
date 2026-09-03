@@ -811,3 +811,47 @@ describe("accuracy.conflation", () => {
     expect(v.accuracy?.conflation).toEqual({ detected: false, otherNames: [], engineQuote: null });
   });
 });
+
+describe("toReportView — the stack readout", () => {
+  const withStack = (stack: unknown): AuditReport => asReport({ url: "https://x.test/", stack });
+
+  it("passes the readout through when the stage ran", () => {
+    const view = toReportView(
+      withStack({
+        ok: true,
+        data: {
+          measured: true,
+          pagesExamined: 4,
+          headersExamined: true,
+          items: [{ layer: "cms", name: "WordPress", evidence: "/wp-content/themes/astra/a.js" }],
+        },
+      }),
+    );
+    expect(view.stack?.measured).toBe(true);
+    expect(view.stack?.items).toHaveLength(1);
+  });
+
+  it("is null when the stage never existed, so the section renders nothing", () => {
+    // A report stored before the stage must not sprout an empty "what you're
+    // running" heading that reads as "we found no technology".
+    expect(toReportView(asReport({ url: "https://x.test/" })).stack).toBeNull();
+  });
+
+  it("is null when the stage failed, rather than an empty readout", () => {
+    expect(toReportView(withStack({ ok: false, error: "boom" })).stack).toBeNull();
+  });
+
+  it("keeps measured:false distinct from an empty item list", () => {
+    // Opposite claims. "We could not read your markup" and "we read it and you
+    // run nothing we recognise" must not collapse into one shape.
+    const view = toReportView(
+      withStack({
+        ok: true,
+        data: { measured: false, pagesExamined: 0, headersExamined: false, items: [] },
+      }),
+    );
+    expect(view.stack).not.toBeNull();
+    expect(view.stack?.measured).toBe(false);
+    expect(view.stack?.items).toEqual([]);
+  });
+});
