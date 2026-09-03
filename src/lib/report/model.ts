@@ -230,6 +230,23 @@ export type StackReadout = {
   headersExamined: boolean;
 };
 
+/**
+ * One Tier 0 check — the things a careful person would check with a browser
+ * and ten minutes. See `site-checks.ts` in the audit.
+ *
+ * FOUR states. `unmeasured` is our gap and `not-applicable` is a check this
+ * site has nothing for; both must render as neither a pass nor a failure, and
+ * both must stay out of any count the page prints.
+ */
+export type SiteCheck = {
+  key: string;
+  label: string;
+  status: "pass" | "fail" | "unmeasured" | "not-applicable";
+  evidence: string | null;
+  why: string;
+  scope: "quick" | "content" | "structural";
+};
+
 export type Basics = {
   insecureEntry: Reachability;
   hostVariant: Reachability & { host: string };
@@ -557,6 +574,9 @@ export type ReportView = {
    *  before the stage existed — which the page renders as nothing at all
    *  rather than as "we found no technology". */
   stack: StackReadout | null;
+  /** The Tier 0 battery. Null for a report stored before it existed; an empty
+   *  array would read as "we ran no checks", which is a different claim. */
+  siteChecks: SiteCheck[] | null;
   /** Whether the site does the one job it exists to do. Null when no goal was
    *  supplied and none could be inferred — which is "not measured", and is
    *  different from a goal of `unknown`, which IS a measurement. */
@@ -776,6 +796,7 @@ export function toReportView(raw: AuditReport): ReportView {
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
   const stack = stage<StackReadout>(r.stack);
+  const siteChecks = stage<SiteCheck[]>(r.siteChecks);
   const goalFit = stage<GoalFit>(r.goalFit);
   const accuracyRaw = stage<Omit<Accuracy, "conflation"> & { conflation?: Conflation }>(r.accuracy);
   const accuracy: Accuracy | null = accuracyRaw
@@ -829,6 +850,7 @@ export function toReportView(raw: AuditReport): ReportView {
     assets,
     basics,
     stack,
+    siteChecks,
     goalFit,
     accuracy,
     viewportOk: checks?.viewportOk ?? null,

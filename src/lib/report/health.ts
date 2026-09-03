@@ -284,5 +284,28 @@ export function healthRows(view: ReportView): HealthRow[] {
     }
   }
 
+  // ── The Tier 0 battery ─────────────────────────────────────────────────
+  //
+  // Thirty-five checks that are pure functions of the crawl, each already
+  // carrying its own label, receipt and reason — so this is a mapping, not a
+  // second place where the copy lives.
+  //
+  // ONLY the two verdict states become rows. `unmeasured` is our gap and
+  // `not-applicable` is a check this site has nothing for, and a row for
+  // either would put it in front of the reader as though we had judged it:
+  // "we did not measure" and "nothing was wrong" are opposite claims. They
+  // also stay out of every count the page prints, because `passes()` and the
+  // "of N checks" line are both derived from these rows.
+  for (const c of view.siteChecks ?? []) {
+    if (c.status !== "pass" && c.status !== "fail") continue;
+    out.push({
+      key: c.key,
+      label: c.label,
+      value: c.evidence ?? (c.status === "pass" ? "Fine" : "Needs attention"),
+      alert: c.status === "fail",
+      detail: c.why,
+    });
+  }
+
   return out;
 }

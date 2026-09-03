@@ -83,7 +83,12 @@ describe("the all-pass fixture is actually all pass", () => {
 describe("healthRows", () => {
   it("lifts the same rows the section used to compute, none alerting on the fixture", () => {
     const rows = healthRows(view());
-    expect(rows.map((r) => r.key)).toEqual([
+    // The named rows come first, in this order, and the Tier 0 battery is
+    // appended after them. Asserted as a prefix rather than an exact list so
+    // adding a check to the battery does not require editing this test — but
+    // the battery's own count is pinned below, so a check silently vanishing
+    // still fails something.
+    expect(rows.slice(0, 12).map((r) => r.key)).toEqual([
       "https",
       "host",
       "notfound",
@@ -98,6 +103,18 @@ describe("healthRows", () => {
       "copyright",
     ]);
     expect(rows.every((r) => !r.alert)).toBe(true);
+  });
+
+  it("appends every Tier 0 check that reached a verdict, and no others", () => {
+    const rows = healthRows(view());
+    const battery = ALL_PASS_REPORT.siteChecks as { data: { status: string }[] };
+    const withVerdict = battery.data.filter(
+      (c) => c.status === "pass" || c.status === "fail",
+    ).length;
+    expect(rows).toHaveLength(12 + withVerdict);
+    // The not-applicable one must not have become a row: a row for it would
+    // put a check we never judged in front of the reader as though we had.
+    expect(rows.some((r) => r.key === "schema-self-review")).toBe(false);
   });
 
   it("alerts on a broken link and says the denominator", () => {
@@ -116,7 +133,12 @@ describe("healthRows", () => {
   });
 
   it("returns nothing when no check ran", () => {
-    const v = view({ checks: { ok: false }, assets: { ok: false }, basics: { ok: false } });
+    const v = view({
+      checks: { ok: false },
+      assets: { ok: false },
+      basics: { ok: false },
+      siteChecks: { ok: false },
+    });
     expect(healthRows(v)).toEqual([]);
   });
 });
@@ -228,6 +250,7 @@ describe("headlineFinding — priority", () => {
       goalFit: { ok: false },
       accuracy: { ok: false },
       analyze: { ok: false },
+      siteChecks: { ok: false },
     });
     const h = headlineFinding(v);
     expect(h.kind).toBe("unmeasured");
