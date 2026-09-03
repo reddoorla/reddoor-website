@@ -104,6 +104,15 @@ describe("one story, on every surface", () => {
     }
   });
 
+  it("the methods never assert what crawlers do with JavaScript; the assumption is named as one", () => {
+    for (const p of [REPORT, PRINT]) {
+      expect(code(p), p).not.toMatch(/Most AI crawlers run none/);
+      expect(code(p), p).not.toMatch(/crawlers (run|execute) no/i);
+      expect(code(p), p).toMatch(/working assumption/);
+      expect(code(p), p).toMatch(/testing that assumption/);
+    }
+  });
+
   it("checked-and-fine and under-the-hood come after the fixes, on both surfaces", () => {
     const report = code(REPORT);
     const fixes = report.indexOf('id="fixes"');
