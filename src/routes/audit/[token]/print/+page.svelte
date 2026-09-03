@@ -369,10 +369,7 @@
     <h2>How we measured this</h2>
     <p>
       We crawled the site twice over — once as a plain request and once with a real browser — so we
-      could measure how much of each page depends on JavaScript. The readability score counts that
-      on the working assumption that an AI crawler reads the plain page and runs no scripts. That is
-      an assumption, not a measurement: we are testing that assumption on our own site, and this
-      paragraph will change when we know.
+      could measure how much of each page depends on JavaScript.
     </p>
     {#if view.categoryProbes.length || view.brandedProbes.length}
       <p>

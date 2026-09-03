@@ -367,10 +367,7 @@
           <div class="flex flex-col gap-3 pt-1 text-muted">
             <p class="m-0">
               We crawled your site twice over — once as a plain request and once with a real browser
-              — so we could measure how much of each page depends on JavaScript. The readability
-              score counts that on the working assumption that an AI crawler reads the plain page
-              and runs no scripts. That is an assumption, not a measurement: we are testing that
-              assumption on our own site, and this paragraph will change when we know.
+              — so we could measure how much of each page depends on JavaScript.
             </p>
             {#if view.categoryProbes.length || view.brandedProbes.length}
               <p class="m-0">
