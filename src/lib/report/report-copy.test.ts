@@ -104,12 +104,13 @@ describe("one story, on every surface", () => {
     }
   });
 
-  it("the methods never assert what crawlers do with JavaScript; the assumption is named as one", () => {
+  it("the methods say what we did and assert nothing about what crawlers do with JavaScript", () => {
     for (const p of [REPORT, PRINT]) {
-      expect(code(p), p).not.toMatch(/Most AI crawlers run none/);
-      expect(code(p), p).not.toMatch(/crawlers (run|execute) no/i);
-      expect(code(p), p).toMatch(/working assumption/);
-      expect(code(p), p).toMatch(/testing that assumption/);
+      const src = code(p).replace(/\s+/g, " ");
+      expect(src, p).toMatch(/so we could measure how much of each page depends on JavaScript\./);
+      expect(src, p).not.toMatch(/Most AI crawlers/);
+      expect(src, p).not.toMatch(/crawlers (run|execute) no/i);
+      expect(src, p).not.toMatch(/assumption/);
     }
   });
 
