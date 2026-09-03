@@ -114,8 +114,10 @@ test("404 page renders the custom error component", async ({ page }) => {
     waitUntil: "domcontentloaded",
   });
   expect(response?.status()).toBe(404);
-  // Our +error.svelte renders a giant "404" headline.
-  await expect(page.getByText("404", { exact: false }).first()).toBeVisible();
+  // The designed page's own copy. The giant "404" is CSS-generated decoration
+  // now, so it is not text a locator can find — and "404" was never a safe
+  // assertion anyway: the plain fallback page printed "Error 404" too.
+  await expect(page.getByText("Nothing to see here")).toBeVisible();
   expect(errors).toEqual([]);
 });
 

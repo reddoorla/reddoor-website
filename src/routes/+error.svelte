@@ -32,13 +32,19 @@
 </svelte:head>
 
 {#if notFound}
-  <div class="fixed top-0 left-0 h-screen w-screen">
+  <!-- The giant "404" is a watermark — a 20% tint of the brand red, which no
+       text can pass a contrast check at. It is pure decoration, which WCAG
+       exempts from contrast, so it is not text: CSS-generated content inside
+       an aria-hidden wrapper. The page's real heading is the visually-hidden
+       h1 below it. -->
+  <div class="fixed top-0 left-0 h-screen w-screen" aria-hidden="true">
     <ContentWidth class="flex flex-row py-24 md:py-64">
-      <h1 class="text-primary/20">404</h1>
+      <p class="watermark text-primary/20"></p>
     </ContentWidth>
   </div>
   <section class="">
     <ContentWidth class="flex flex-col items-end py-24 md:py-48">
+      <h1 class="sr-only">Page not found</h1>
       <h4 class="md:w-4/5">
         Nothing to see here...<br />Let’s get you back on track.
       </h4>
@@ -96,7 +102,12 @@
 {/if}
 
 <style>
-  h1 {
+  .watermark::before {
+    content: "404";
+  }
+
+  .watermark {
+    margin: 0;
     font-family: Pragmatica;
     font-size: 200px;
     font-style: normal;
