@@ -25,7 +25,7 @@
         >
       </p>
 
-      <p class="m-0 text-sm font-medium {named ? 'text-dark' : 'text-primary'}">
+      <p class="type-meta m-0 font-medium {named ? 'text-dark' : 'text-primary'}">
         {#if named}
           {who} appeared in this answer.
         {:else if domains.length}
@@ -42,7 +42,9 @@
              know. -->
         <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
           {#each domains as domain (domain)}
-            <li class="border border-light px-2 py-0.5 text-xs text-muted">{domain}</li>
+            <li class="type-meta border border-light px-2 py-0.5 leading-tight text-muted">
+              {domain}
+            </li>
           {/each}
         </ul>
       {/if}

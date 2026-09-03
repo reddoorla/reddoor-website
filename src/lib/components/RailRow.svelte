@@ -18,6 +18,11 @@
     labelAs?: "h2" | "h3" | "p";
     /** Widen the content column to the logo grid's 1004px. */
     wide?: boolean;
+    /** Let the content column take the whole ContentWidth beside the rail.
+     *  The 760px column is the industry board's measure; the audit report is
+     *  a document with tables and lists, and at 760px on a 1220px page it read
+     *  as compressed. `fill` wins over `wide`. */
+    fill?: boolean;
     animateIn?: boolean;
     /** Animate the rail's own parts individually and leave the content column
      *  to its children, instead of fading the whole row as one block. The
@@ -50,6 +55,7 @@
     label = "",
     labelAs = "h2",
     wide = false,
+    fill = false,
     animateIn = false,
     animateItems = false,
     labelClass = "text-primary",
@@ -72,9 +78,11 @@
      (LogoGrid absolutely-positions its rail block against this box). -->
 <ContentWidth animateIn={animateIn && !animateItems} class="relative">
   <div
-    class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {wide
-      ? 'lg:grid-cols-[240px_minmax(0,1004px)]'
-      : 'lg:grid-cols-[240px_minmax(0,760px)]'} {className}"
+    class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {fill
+      ? 'lg:grid-cols-[240px_minmax(0,1fr)]'
+      : wide
+        ? 'lg:grid-cols-[240px_minmax(0,1004px)]'
+        : 'lg:grid-cols-[240px_minmax(0,760px)]'} {className}"
   >
     <!-- `contents` below `lg` so the label and any rail extra become siblings of
          the content column in the mobile flex order; a real grid cell from `lg`. -->

@@ -10,16 +10,16 @@
   // hour. The rank, the headline and the two costs are what that decision needs;
   // the reasoning is what they need once one of them has caught their eye.
   //
-  // The order is the recommendation, so the number is content rather than
-  // decoration — these are ranked by what to do first.
+  // One list, not two. A first pass split it under "What we measured" and "Our
+  // recommendations", and in this context the split made no sense: the reader
+  // has just read the measurements as findings, and what they want here is the
+  // order of work. Provenance survives as a chip on the rows that came straight
+  // from a measurement, and the honesty line under the heading covers the rest.
 
+  // In the order given: `allFixes` in narrative.ts decides it (the collision
+  // fix first, then measured, then recommendations), and the print sheet
+  // uses the same function so the two lists cannot disagree.
   let { fixes }: { fixes: Fix[] } = $props();
-
-  // Findings first, judgement second, and the line between them is the
-  // honesty: a measured fix names its count; a recommendation is what we
-  // would do next and promises nothing about what an engine will do.
-  const measured = $derived(fixes.filter((f) => f.origin === "measured"));
-  const recommended = $derived(fixes.filter((f) => f.origin !== "measured"));
 
   // The audit grades effort as low/medium/high. A prospect reads that as a
   // judgement of them; a rough duration reads as a plan. Same information,
@@ -37,60 +37,53 @@
   };
 </script>
 
-{#snippet fixRow(fix: Fix, n: number)}
-  <li>
-    <ReportDisclosure title="Fix {n}: {fix.title}">
-      {#snippet label()}
-        <span class="grid grid-cols-[2.5rem_1fr] gap-x-4">
-          <span class="type-question leading-snug text-primary tabular-nums">
-            {String(n).padStart(2, "0")}
-          </span>
-          <span class="flex min-w-0 flex-col gap-2.5">
-            <span class="type-question max-w-[46ch] text-black">{fix.title}</span>
-            <span class="flex flex-wrap gap-2">
-              <!-- High impact is the only chip that takes colour. Colouring
+<p class="type-eyebrow m-0 pb-1 text-dark">Our recommendations</p>
+<p class="type-meta m-0 pb-4 text-muted">
+  What we would do next, in order. The rows marked measured come straight from a check above; the
+  rest are judgement. None of them is a promise about what an engine will do.
+</p>
+<ol class="m-0 flex list-none flex-col border-t border-light p-0">
+  {#each fixes as fix, i (fix.title)}
+    <li>
+      <ReportDisclosure title="Fix {i + 1}: {fix.title}">
+        {#snippet label()}
+          <span class="grid grid-cols-[2.5rem_1fr] gap-x-4">
+            <span class="type-question leading-snug text-primary tabular-nums">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span class="flex min-w-0 flex-col gap-2.5">
+              <span class="type-question text-black">{fix.title}</span>
+              <span class="flex flex-wrap gap-2">
+                <!-- High impact is the only chip that takes colour. Colouring
                      every chip would make the list uniformly loud and leave the
                      reader no way to triage it at a glance — which is the one
                      job the collapsed state has. -->
-              <span
-                class="type-eyebrow border px-2 py-0.5 leading-tight {fix.impact === 'high'
-                  ? 'border-primary/40 text-primary'
-                  : 'border-light text-muted'}"
-              >
-                {IMPACT_LABEL[fix.impact]}
-              </span>
-              <span class="type-eyebrow border border-light px-2 py-0.5 leading-tight text-muted">
-                {EFFORT_LABEL[fix.effort]}
+                <span
+                  class="type-eyebrow border px-2 py-0.5 leading-tight {fix.impact === 'high'
+                    ? 'border-primary/40 text-primary'
+                    : 'border-light text-muted'}"
+                >
+                  {IMPACT_LABEL[fix.impact]}
+                </span>
+                <span class="type-eyebrow border border-light px-2 py-0.5 leading-tight text-muted">
+                  {EFFORT_LABEL[fix.effort]}
+                </span>
+                {#if fix.origin === "measured"}
+                  <span
+                    class="type-eyebrow border border-light px-2 py-0.5 leading-tight text-dark"
+                  >
+                    Measured
+                  </span>
+                {/if}
               </span>
             </span>
           </span>
-        </span>
-      {/snippet}
+        {/snippet}
 
-      <!-- Indented to the title's column so the reasoning reads as belonging
+        <!-- Indented to the title's column so the reasoning reads as belonging
              to the headline above it rather than to the list. -->
-      <p class="m-0 max-w-[66ch] pl-0 text-muted sm:pl-14">{fix.why}</p>
-    </ReportDisclosure>
-  </li>
-{/snippet}
-
-{#if measured.length}
-  <p class="type-eyebrow m-0 pb-3 text-dark">What we measured</p>
-  <ol class="m-0 flex list-none flex-col border-t border-light p-0">
-    {#each measured as fix, i (fix.title)}
-      {@render fixRow(fix, i + 1)}
-    {/each}
-  </ol>
-{/if}
-{#if recommended.length}
-  <p class="type-eyebrow m-0 pt-8 pb-1 text-dark">Our recommendations</p>
-  <p class="type-meta m-0 max-w-[62ch] pb-3 text-muted">
-    These are judgement, not measurement: what we would do next, in order. None of them is a promise
-    about what an engine will do.
-  </p>
-  <ol class="m-0 flex list-none flex-col border-t border-light p-0">
-    {#each recommended as fix, i (fix.title)}
-      {@render fixRow(fix, measured.length + i + 1)}
-    {/each}
-  </ol>
-{/if}
+        <p class="m-0 pl-0 text-muted sm:pl-14">{fix.why}</p>
+      </ReportDisclosure>
+    </li>
+  {/each}
+</ol>

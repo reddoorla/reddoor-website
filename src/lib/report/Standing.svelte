@@ -107,11 +107,11 @@
          top of a section takes over the meeting, and this is the one number in
          the report that nothing we do reliably moves. The standing is still
          reported, one paragraph down, once the reader knows what room it is. -->
-    <p class="type-lede m-0 max-w-[52ch] text-black">
+    <p class="type-lede m-0 text-black">
       {shapeSentence}
     </p>
 
-    <p class="m-0 max-w-[62ch] text-muted">{standingSentence}</p>
+    <p class="m-0 text-muted">{standingSentence}</p>
 
     {#if view.citedDomains.length}
       <CitationChart
@@ -132,7 +132,7 @@
            rendered as "of the citations.It takes 14 sources". Building the
            string where the spacing is explicit removes the class of bug rather
            than patching this instance of it. -->
-      <p class="type-meta m-0 max-w-[62ch] text-muted">
+      <p class="type-meta m-0 text-muted">
         Those are the most-cited names, not the whole field. The assistant drew on
         <strong class="text-black">{space.distinctDomains} different sources</strong>
         {spreadSentence}
@@ -143,7 +143,7 @@
          promise. This is the product's position, not a disclaimer: everything
          above is measurement, and measurement is what is being sold here. -->
     <div class="flex flex-col gap-3 border-l-2 border-primary bg-paper p-7 md:p-10">
-      <p class="type-lede m-0 max-w-[46ch] text-black">What this does and does not tell you</p>
+      <p class="type-lede m-0 text-black">What this does and does not tell you</p>
       <!-- This paragraph used to argue from our own audits: "the businesses the
            engines named most often had the worst-built sites we measured". That
            is nine hand-picked sites, one engine, a two-day window — enough to
@@ -162,14 +162,14 @@
            What is left is the true and stronger claim: nobody has measured this
            for a business their size. Saying so is better than borrowing
            confidence from a study that did not include them. -->
-      <p class="m-0 max-w-[62ch] text-muted">
+      <p class="m-0 text-muted">
         This is a measurement, not a scorecard, and nothing we can do to your website reliably moves
         it. Nobody has published a study of businesses your size showing what does. The research
         that exists looked at large, established brands, and even there the signals that mattered
         were off their websites — how often they were mentioned elsewhere. Anyone who promises to
         raise this number with website work is selling you something they do not control.
       </p>
-      <p class="m-0 max-w-[62ch] text-muted">
+      <p class="m-0 text-muted">
         What it is genuinely good for is knowing where you stand, seeing who the assistant reaches
         for instead, and judging whether that is a room you could realistically be in. We will
         re-run it whenever you like and tell you honestly whether anything moved.
@@ -177,7 +177,7 @@
     </div>
   </div>
 {:else}
-  <p class="type-lede m-0 max-w-[52ch] text-muted">
+  <p class="type-lede m-0 text-muted">
     The live visibility test did not run on this audit, so there is nothing to report here. That is
     a gap in the measurement, not a finding about your site.
   </p>
