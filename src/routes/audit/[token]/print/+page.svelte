@@ -1,6 +1,6 @@
 <script lang="ts">
   import { openingSummary, toReportView, wasNamed, type Assertion } from "$lib/report/model";
-  import { displayQuote, headlineFinding, passes } from "$lib/report/narrative";
+  import { allFixes, displayQuote, headlineFinding, passes } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
   import type { PageData } from "./$types";
 
@@ -47,23 +47,34 @@
     return [...new Set(domains)];
   }
 
-  // Findings only, the same rule as the web page: confirmed statements are
-  // counted in one line and listed under "What passes". A row prints its
-  // sources only when they differ from the row above, because rows from one
-  // answer share one list.
-  const findingRows = $derived.by(() => {
-    const rows = (accuracy?.assertions ?? []).filter(
-      (a) => a.verdict === "contradicted" || a.verdict === "absent",
-    );
+  // The same rules as the web page: a contradiction is a finding; a statement
+  // the site does not make is not (the engine may be right); the statements
+  // we could not judge are printed in full because they are what a buyer
+  // hears; confirmed statements are one line and live under "What passes".
+  // A row prints its sources only when they differ from the row above.
+  const withCitations = (rows: Assertion[]) => {
     const key = (d: string[]) => [...d].sort().join("|");
     let previous = "";
-    return rows.map((row: Assertion) => {
+    return rows.map((row) => {
       const k = key(row.sourceDomains);
       const show = row.sourceDomains.length > 0 && k !== previous;
       previous = k;
       return { row, showCitations: show };
     });
-  });
+  };
+  const contradictedRows = $derived(
+    withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
+  );
+  const unjudgedRows = $derived(
+    withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "unverified")),
+  );
+  const elsewhere = $derived((accuracy?.sources ?? []).filter((s) => s.owner !== "yours"));
+  const sampled = $derived(
+    Boolean(accuracy && !accuracy.siteFullyRead) ||
+      (view.sitemapUrlCount !== null &&
+        accuracy !== null &&
+        view.sitemapUrlCount > accuracy.pagesTotal),
+  );
   const confirmed = $derived(
     (accuracy?.assertions ?? []).filter((a) => a.verdict === "confirmed").length,
   );
@@ -74,10 +85,7 @@
     (view.goalFit?.requirements ?? []).filter((r) => r.status === "missing"),
   );
   const passGroups = $derived(passes(view));
-  const orderedFixes = $derived([
-    ...view.fixes.filter((f) => f.origin === "measured"),
-    ...view.fixes.filter((f) => f.origin !== "measured"),
-  ]);
+  const orderedFixes = $derived(allFixes(view));
 </script>
 
 <svelte:head>
@@ -178,31 +186,14 @@
               company with a name close enough to yours that the assistant has to tell you apart.
             </p>
           {/if}
-          <p class="tags">What to do about it</p>
-          <ol>
-            <li>
-              Put the full name, the place and the work in one sentence at the top of the home page
-              and the About page, and in both page titles.
-            </li>
-            <li>Make the profiles it read instead say the same sentence.</li>
-            <li>
-              Mark the organisation up: a schema.org Organization block with the name, the address
-              and links to the profiles you own.
-            </li>
-          </ol>
-          <p class="note">
-            These are our recommendations, not measurements, and none of them is a promise about
-            what an assistant will do.
-          </p>
+          <p class="note">The remedy is the first item under Our recommendations.</p>
         </div>
       {/if}
-      {#each findingRows as { row, showCitations } (row.claim + row.query)}
+      {#each contradictedRows as { row, showCitations } (row.claim + row.query)}
         <div class="fix">
           <p class="fix-t">
             {row.claim}
-            <span class="answered {row.verdict}">
-              {row.verdict === "contradicted" ? "your site says otherwise" : "not on your site"}
-            </span>
+            <span class="answered contradicted">your site says otherwise</span>
           </p>
           <p class="fix-w">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
           {#if row.siteQuote}
@@ -215,6 +206,28 @@
           {/if}
         </div>
       {/each}
+      {#if unjudgedRows.length}
+        <h3>What else it says about you</h3>
+        <p class="note">
+          Statements we could not check against your pages, either because no page of yours could
+          confirm or deny them, or because we did not read the page that might. They are what a
+          buyer hears, so they are here in full.
+        </p>
+        {#each unjudgedRows as { row, showCitations } (row.claim + row.query)}
+          <div class="fix">
+            <p class="fix-t">{row.claim}</p>
+            <p class="fix-w">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
+            {#if row.unverifiedReason}
+              <p class="fix-w">Why we could not check it: {row.unverifiedReason}</p>
+            {/if}
+            {#if showCitations}
+              <p class="fix-w">
+                Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
+              </p>
+            {/if}
+          </div>
+        {/each}
+      {/if}
       {#if confirmed > 0}
         <p class="note">
           {confirmed}
@@ -222,10 +235,21 @@
           {confirmed === 1 ? "matches" : "match"} a passage on your own site — listed under What passes.
         </p>
       {/if}
-      {#if !accuracy.siteFullyRead}
+      {#if elsewhere.length}
+        <h3>
+          Who else the assistant read: {elsewhere.length}
+          {elsewhere.length === 1 ? "source" : "sources"}
+        </h3>
+        <p class="domains">
+          {elsewhere.map((s) => s.domain).join(" · ")}
+        </p>
+      {/if}
+      {#if sampled}
         <p class="fix-w">
-          We read {accuracy.pagesRead} of {accuracy.pagesTotal} pages for this check. Nothing above is
-          reported as missing on the strength of pages we did not read.
+          We read {accuracy.pagesRead} of the {accuracy.pagesTotal} pages we crawled for this check{view.sitemapUrlCount !==
+          null
+            ? `; your sitemap lists ${view.sitemapUrlCount}`
+            : ""}. Nothing above is reported as missing on the strength of pages we did not read.
         </p>
       {/if}
     </section>
@@ -454,7 +478,6 @@
     margin: 0 0 7pt;
   }
 
-  ol,
   ul {
     margin: 0 0 7pt;
     padding-left: 14pt;

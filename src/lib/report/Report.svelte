@@ -12,7 +12,7 @@
   import SearchResults from "./SearchResults.svelte";
   import WhatPasses from "./WhatPasses.svelte";
   import { openingSummary, type ReportView } from "./model";
-  import { headlineFinding } from "./narrative";
+  import { allFixes, headlineFinding } from "./narrative";
 
   // The report body, shared by the token route and the fixture route.
   //
@@ -35,6 +35,37 @@
 
   const who = $derived(view.businessName ?? "your business");
   const headline = $derived(headlineFinding(view));
+  const fixes = $derived(allFixes(view));
+
+  // Back to where you were reading.
+  //
+  // The page sends the reader down to the passes and the fixes with in-page
+  // links, and a reader who follows one is then at the bottom of a long
+  // document with no way back but the scrollbar. The browser's Back button
+  // does return, but nobody trusts it to. So: on any in-page jump, remember
+  // where the reader was, and offer a single control that takes them back
+  // and then disappears. Delegated from the root so every link in every
+  // section gets it without each one being wired.
+  let root: HTMLElement | undefined = $state();
+  let returnTo: number | null = $state(null);
+
+  $effect(() => {
+    const el = root;
+    if (!el) return;
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('a[href^="#"]');
+      if (!a || !el.contains(a)) return;
+      returnTo = window.scrollY;
+    };
+    el.addEventListener("click", onClick);
+    return () => el.removeEventListener("click", onClick);
+  });
+
+  function goBack() {
+    const y = returnTo;
+    returnTo = null;
+    if (y !== null) window.scrollTo({ top: y, behavior: "auto" });
+  }
 
   const auditedOn = $derived(
     view.generatedAt
@@ -68,7 +99,7 @@
   };
 </script>
 
-<div class="flex w-full flex-col">
+<div bind:this={root} class="flex w-full flex-col">
   <!-- ── Masthead ────────────────────────────────────────────────────────── -->
   <!-- `pt-32` clears the fixed nav; the paper tile is the site's own texture. -->
   <section class="bg-paper w-full pt-32 pb-16 md:pb-24">
@@ -300,20 +331,31 @@
   <!-- ── What to fix ─────────────────────────────────────────────────────── -->
   <!-- Anchored from the hero: a reader who wants the remedy before the
        diagnosis jumps straight here. -->
-  {#if view.fixes.length}
+  {#if fixes.length}
     <section id="fixes" class="bg-paper w-full scroll-mt-24 py-16 md:py-24">
       <ContentWidth class="relative">
         <h2 class="type-display m-0 text-primary">
-          {view.fixes.length === 1
-            ? "One thing to fix"
-            : `${view.fixes.length} things to fix, in order`}
+          {fixes.length === 1 ? "One thing to fix" : `${fixes.length} things to fix, in order`}
         </h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
       </ContentWidth>
       <RailRow label="Start here" labelAs="p" fill>
-        <FixList fixes={view.fixes} />
+        <FixList {fixes} />
       </RailRow>
     </section>
+  {/if}
+
+  {#if returnTo !== null}
+    <!-- Fixed, bottom right, above the closing band. Rendered only after an
+         in-page jump and gone after one use, so it never competes with the
+         page when nobody needs it. -->
+    <button
+      type="button"
+      class="type-eyebrow fixed right-6 bottom-6 z-30 rounded-full border border-dark bg-white px-4 py-2.5 text-dark shadow-md transition-colors hover:bg-dark hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      onclick={goBack}
+    >
+      ↑ Back to where you were
+    </button>
   {/if}
 
   <!-- ── How we measured ─────────────────────────────────────────────────── -->

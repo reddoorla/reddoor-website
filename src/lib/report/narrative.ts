@@ -1,5 +1,5 @@
 import { healthRows } from "./health";
-import { GOAL_LABELS, type ReportView } from "./model";
+import { GOAL_LABELS, type Fix, type ReportView } from "./model";
 
 /**
  * The narrative layer: one sentence the page leads with, and one list of
@@ -25,7 +25,6 @@ export type HeadlineKind =
   | "contradicted"
   | "unanswered"
   | "partial"
-  | "absent"
   | "site-check"
   | "all-clear"
   | "unmeasured";
@@ -149,16 +148,10 @@ export function headlineFinding(view: ReportView): Headline {
     };
   }
 
-  const absent = acc?.assertions.filter((a) => a.verdict === "absent") ?? [];
-  if (absent.length > 0) {
-    return {
-      kind: "absent",
-      text:
-        `The assistant describes you from other people's pages: ${numberWord(absent.length)} ` +
-        `${absent.length === 1 ? "statement" : "statements"} it made about you ${absent.length === 1 ? "is" : "are"} ` +
-        `not on your site.`,
-    };
-  }
+  // A statement the site does not make is deliberately NOT a finding. The
+  // engine may be right about something the site never says — a Texas
+  // registration, a revenue figure — and "your site does not say this" about a
+  // true fact reads as an accusation. The page shows who was read instead.
 
   const problems = rows.filter((r) => r.alert);
   if (problems.length > 0) {
@@ -261,4 +254,46 @@ export function displayQuote(text: string): string {
   return text
     .replace(/(\*\*|__)(?=\S)([\s\S]+?)(?<=\S)\1/g, "$2")
     .replace(/(?<!\S)\*(?=\S)([^*\n]+?)(?<=\S)\*(?!\S)/g, "$1");
+}
+
+/**
+ * The remedy for a name collision, as a fix in the list rather than an aside.
+ *
+ * The collision block used to carry its own three-step "what to do about it",
+ * which broke the narrative: the reader was handed a plan in the middle of
+ * the findings and then met the real plan a screen later. One fix, first in
+ * the list, marked measured because it follows from a check rather than from
+ * the model's judgement.
+ */
+export function collisionFix(view: ReportView): Fix | null {
+  const acc = view.accuracy;
+  if (!acc?.conflation.detected && view.namesake === null) return null;
+  const who = view.businessName ?? "your business";
+  return {
+    title: `Say which ${who} you are, in one sentence, on your own pages`,
+    why:
+      "Put the full name, the place and the work in one sentence at the top of the home page and the " +
+      "About page, and in both page titles — that is the sentence an assistant quotes when it has to " +
+      "say which one you are. Make the profiles it read instead say the same sentence. Then mark the " +
+      "organisation up: a schema.org Organization block with the name, the address and links to the " +
+      "profiles you own, so the connections are stated rather than guessed.",
+    impact: "high",
+    effort: "low",
+    tier: "content",
+    origin: "measured",
+  };
+}
+
+/**
+ * Every fix on the page, in the order the list prints them: the collision fix
+ * first when there is one, then the audit's measured fixes, then its
+ * recommendations, each group in the audit's own order.
+ */
+export function allFixes(view: ReportView): Fix[] {
+  const collision = collisionFix(view);
+  return [
+    ...(collision ? [collision] : []),
+    ...view.fixes.filter((f) => f.origin === "measured"),
+    ...view.fixes.filter((f) => f.origin !== "measured"),
+  ];
 }

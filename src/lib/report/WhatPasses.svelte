@@ -19,7 +19,7 @@
   const count = $derived(passCount(view));
 </script>
 
-<div id="passes" class="flex flex-col border-t border-light">
+<div id="passes" class="flex scroll-mt-24 flex-col border-t border-light">
   {#if groups.length}
     <ReportDisclosure
       {headingTag}

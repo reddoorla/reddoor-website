@@ -16,13 +16,10 @@
   // order of work. Provenance survives as a chip on the rows that came straight
   // from a measurement, and the honesty line under the heading covers the rest.
 
+  // In the order given: `allFixes` in narrative.ts decides it (the collision
+  // fix first, then measured, then recommendations), and the print sheet
+  // uses the same function so the two lists cannot disagree.
   let { fixes }: { fixes: Fix[] } = $props();
-
-  // Measured first, then judgement, each in the audit's own order.
-  const ordered = $derived([
-    ...fixes.filter((f) => f.origin === "measured"),
-    ...fixes.filter((f) => f.origin !== "measured"),
-  ]);
 
   // The audit grades effort as low/medium/high. A prospect reads that as a
   // judgement of them; a rough duration reads as a plan. Same information,
@@ -46,7 +43,7 @@
   rest are judgement. None of them is a promise about what an engine will do.
 </p>
 <ol class="m-0 flex list-none flex-col border-t border-light p-0">
-  {#each ordered as fix, i (fix.title)}
+  {#each fixes as fix, i (fix.title)}
     <li>
       <ReportDisclosure title="Fix {i + 1}: {fix.title}">
         {#snippet label()}

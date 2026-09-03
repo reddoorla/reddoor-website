@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ReportDisclosure from "./ReportDisclosure.svelte";
   import { displayQuote, numberWord } from "./narrative";
   import { ownSiteCitations, type Assertion, type ReportView } from "./model";
 
@@ -12,41 +11,30 @@
   //
   // EVERY STATEMENT IS SORTED BY SOURCE, NEVER BY TRUTH. We cannot know whether
   // a claim is right: the engine may be perfectly correct about something the
-  // site never mentions. Telling a client "the AI got this wrong" about a fact
-  // they know is true would discredit every other line in the document. "Your
-  // site does not say this, and here is who it read instead" is both the honest
-  // framing and the stronger one.
+  // site never mentions. On our own report it said we were registered in
+  // Texas, which is true and which our site does not say — and "your site does
+  // not say this" read as an accusation about a fact. So a statement the site
+  // does not make is not printed as a finding at all. What the reader gets
+  // instead is who the assistant read, which is the actionable part.
   //
-  // FINDINGS ONLY. The first real run spent three screens here on statements
-  // the assistant had got right, straight after the one finding that actually
-  // mattered — that it could not tell which business it was describing. That
-  // is the wrong shape: a confirmed statement is proof the engine reads the
-  // site, which is worth one sentence and a place in the passes list, not a
-  // row each. So: the collision first, with what to do about it; then what the
-  // site contradicts; then what the site does not say; then the count.
+  // What IS printed, in this order: the collision (with its remedy pointed at,
+  // not inlined — the fix list is where the plan lives); what the site
+  // contradicts; then, in full, the statements no page of ours could confirm or
+  // deny. Those last ones are the important ones: "shows very low business
+  // activity compared with other companies in its sector" is what a buyer
+  // hears, and it is the sentence that makes someone want to change something.
+  // They were behind a disclosure once. Never again.
 
   let { view }: { view: ReportView } = $props();
 
   const acc = $derived(view.accuracy);
   const who = $derived(view.businessName ?? "this business");
 
-  const GROUPS = [
-    {
-      verdict: "contradicted" as const,
-      title: "Your site says something different",
-      lede: "Two answers to the same question exist in public, and only one of them is yours.",
-    },
-    {
-      verdict: "absent" as const,
-      title: "Your site does not say this",
-      lede: "The assistant got it from somewhere else. That somewhere is named beside each one.",
-    },
-  ];
-
   const of = (v: Assertion["verdict"]): Assertion[] =>
     (acc?.assertions ?? []).filter((a) => a.verdict === v);
 
-  const unverified = $derived(of("unverified"));
+  const contradicted = $derived(of("contradicted"));
+  const unjudged = $derived(of("unverified"));
   const confirmed = $derived(of("confirmed").length);
 
   /**
@@ -66,10 +54,6 @@
     });
   };
 
-  const groups = $derived(
-    GROUPS.map((g) => ({ ...g, rows: withCitations(of(g.verdict)) })).filter((g) => g.rows.length),
-  );
-
   // Only what the engine read INSTEAD of them. A domain we judged to be their
   // own is not "somewhere else the engine looked".
   const elsewhere = $derived((acc?.sources ?? []).filter((s) => s.owner !== "yours"));
@@ -85,6 +69,14 @@
   // than one business, or a namesake domain cited across the buyer searches.
   // One block, because a reader does not care which of our checks noticed.
   const collision = $derived(Boolean(acc?.conflation.detected) || view.namesake !== null);
+
+  // The honest denominator. `pagesTotal` is how many pages the crawl read,
+  // which is capped — it is not how many pages the site has. The sitemap count
+  // is, when there is one.
+  const sampled = $derived(
+    Boolean(acc && !acc.siteFullyRead) ||
+      (view.sitemapUrlCount !== null && acc !== null && view.sitemapUrlCount > acc.pagesTotal),
+  );
 </script>
 
 {#if !acc || acc.answersRead === 0}
@@ -103,10 +95,10 @@
 {:else}
   <div class="flex flex-col gap-12">
     {#if collision}
-      <!-- The finding that outranks everything else in this section, with the
-           remedy attached. It used to end at the diagnosis and go straight
-           into the things that were working, which read as a shrug. One
-           bordered block, nothing bordered inside it. -->
+      <!-- The finding that outranks everything else in this section. The
+           remedy is the first fix in the list, and this points at it rather
+           than repeating it: a plan in the middle of the findings broke the
+           narrative. One bordered block, nothing bordered inside it. -->
       <div class="flex flex-col gap-4 border-l-2 border-primary pl-6">
         <h4 class="type-question m-0 text-primary">
           {acc.conflation.detected
@@ -137,65 +129,36 @@
             company with a name close enough to yours that the assistant has to tell you apart.
           </p>
         {/if}
-
-        <p class="type-eyebrow m-0 pt-2 text-dark">What to do about it</p>
-        <ol class="m-0 flex list-decimal flex-col gap-2 pl-5 text-muted">
-          <li>
-            Put the full name, the place and the work in one sentence at the top of the home page
-            and the About page, and in both page titles. That is the sentence an assistant quotes
-            when it has to say which one you are.
-          </li>
-          <li>
-            Make the profiles it read instead say the same sentence. The listing sites named below
-            carry your name, and any of them can be the one it picks.
-          </li>
-          <li>
-            Mark the organisation up: a schema.org Organization block on the home page with the
-            name, the address and links to the profiles you own, so the connections are stated
-            rather than guessed.
-          </li>
-        </ol>
         <p class="type-meta m-0 text-muted">
-          These are our recommendations, not measurements. They make you easier to tell apart, and
-          none of them is a promise about what an assistant will do.
+          The remedy is the first item in <a class="underline" href="#fixes">what to fix</a>.
         </p>
       </div>
     {/if}
 
-    {#each groups as group (group.verdict)}
+    {#if contradicted.length}
       <div class="flex flex-col gap-5">
         <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-primary">{group.title}</h4>
-          <p class="type-meta m-0 text-muted">{group.lede}</p>
+          <h4 class="type-question m-0 text-primary">Your site says something different</h4>
+          <p class="type-meta m-0 text-muted">
+            Two answers to the same question exist in public, and only one of them is yours.
+          </p>
         </div>
 
-        <ul class="m-0 flex flex-col list-none p-0">
-          {#each group.rows as { row, showCitations } (row.claim + row.query)}
+        <ul class="m-0 flex list-none flex-col p-0">
+          {#each withCitations(contradicted) as { row, showCitations } (row.claim + row.query)}
             <li class="flex flex-col gap-2 border-t border-light py-6">
               <p class="m-0 font-medium text-black">{row.claim}</p>
-
               <!-- The engine's words, verified as a real substring of its answer
                    rather than paraphrased. A client checking us on this is the
                    best possible outcome, so it has to survive being checked. -->
               <p class="type-meta m-0 text-muted">
                 The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
               </p>
-
               {#if row.siteQuote}
                 <p class="type-meta m-0 text-muted">
                   Your site says: &ldquo;{row.siteQuote}&rdquo;
                 </p>
               {/if}
-
-              <!-- The obvious objection, answered before it is raised: a client
-                   who opens their own team page and finds something similar
-                   would otherwise conclude we cannot read. -->
-              {#if row.nearbyMention}
-                <p class="type-meta m-0 text-muted">
-                  The closest your site comes: &ldquo;{row.nearbyMention}&rdquo;
-                </p>
-              {/if}
-
               {#if showCitations}
                 <p class="type-meta m-0 wrap-break-word text-muted">
                   Also read for that answer: {row.sourceDomains.join(" · ")}
@@ -205,12 +168,54 @@
           {/each}
         </ul>
       </div>
-    {/each}
+    {/if}
+
+    {#if unjudged.length}
+      <!-- In full, visibly. These are the statements no page of theirs can
+           confirm or deny — reputation, size, activity — and they are what a
+           buyer hears. Sorted by nothing: we have no basis to rank them. -->
+      <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-1.5">
+          <h4 class="type-question m-0 text-black">What else it says about you</h4>
+          <p class="type-meta m-0 text-muted">
+            Statements we could not check against your pages, either because no page of yours could
+            confirm or deny them, or because we did not read the page that might. They are what a
+            buyer hears, so they are here in full.
+          </p>
+        </div>
+
+        <ul class="m-0 flex list-none flex-col p-0">
+          {#each withCitations(unjudged) as { row: u, showCitations } (u.claim + u.query)}
+            <li class="flex flex-col gap-2 border-t border-light py-6">
+              <p class="m-0 font-medium text-black">{u.claim}</p>
+              <p class="type-meta m-0 text-muted">
+                The AI said: &ldquo;{displayQuote(u.engineQuote)}&rdquo;
+              </p>
+              {#if u.nearbyMention}
+                <p class="type-meta m-0 text-muted">
+                  The closest your site comes: &ldquo;{u.nearbyMention}&rdquo;
+                </p>
+              {/if}
+              {#if u.unverifiedReason}
+                <p class="type-meta m-0 text-muted">
+                  Why we could not check it: {u.unverifiedReason}
+                </p>
+              {/if}
+              {#if showCitations}
+                <p class="type-meta m-0 wrap-break-word text-muted">
+                  Also read for that answer: {u.sourceDomains.join(" · ")}
+                </p>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
 
     {#if confirmed > 0}
       <!-- The proof that editing the site changes the answer, in one sentence.
            The statements themselves are in the passes list. -->
-      <p class="type-meta m-0 {groups.length ? 'border-t border-light pt-6' : ''} text-muted">
+      <p class="type-meta m-0 border-t border-light pt-6 text-muted">
         {numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())}
         {confirmed === 1 ? "statement" : "statements"} the assistant made
         {confirmed === 1 ? "matches" : "match"} a passage on your own site, and across the answers we
@@ -222,64 +227,45 @@
     {/if}
 
     {#if elsewhere.length}
-      <div class="flex flex-col border-t border-light">
-        <ReportDisclosure
-          headingTag="h4"
-          title="Who else the assistant read: {elsewhere.length} {elsewhere.length === 1
-            ? 'source'
-            : 'sources'}"
-        >
-          <div class="flex flex-col gap-3 pt-1">
-            <ul class="m-0 flex flex-col gap-2 list-none p-0">
-              {#each elsewhere as source (source.domain)}
-                <li class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                  <p class="m-0 font-medium text-black">{source.domain}</p>
-                  <p class="type-meta m-0 text-muted">
-                    {OWNER_LABEL[source.owner]} — {source.because}
-                  </p>
-                </li>
-              {/each}
-            </ul>
-            <p class="type-meta m-0 text-muted">
-              These are the pages about you that you did not write. You cannot edit most of them,
-              but you can make your own pages say the thing plainly enough that they stop being the
-              best available source.
-            </p>
-          </div>
-        </ReportDisclosure>
+      <!-- Visible, not collapsed. "Your site does not say this" used to be the
+           finding here; the useful part of that finding was always the list of
+           pages about them that they did not write. -->
+      <div class="flex flex-col gap-4 border-t border-light pt-6">
+        <div class="flex flex-col gap-1.5">
+          <h4 class="type-question m-0 text-black">
+            Who else the assistant read: {elsewhere.length}
+            {elsewhere.length === 1 ? "source" : "sources"}
+          </h4>
+          <p class="type-meta m-0 text-muted">
+            These are the pages about you that you did not write. You cannot edit most of them, but
+            you can make your own pages say the thing plainly enough that they stop being the best
+            available source.
+          </p>
+        </div>
+        <ul class="m-0 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2">
+          {#each elsewhere as source (source.domain)}
+            <li
+              class="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-light/60 py-1.5"
+            >
+              <span class="type-meta text-black">{source.domain}</span>
+              <span class="type-meta text-muted">{OWNER_LABEL[source.owner]}</span>
+            </li>
+          {/each}
+        </ul>
       </div>
     {/if}
 
-    <!-- Ours, not theirs, so it sits at the bottom, collapsed, and is excluded
-         from every count above. The one line that stays visible is the caveat
-         on how much of the site we read, because it qualifies the findings. -->
-    {#if unverified.length || !acc.siteFullyRead}
-      <div class="flex flex-col border-t border-light">
-        {#if unverified.length}
-          <ReportDisclosure
-            headingTag="h4"
-            title="Not judged on this audit: {unverified.length} {unverified.length === 1
-              ? 'statement'
-              : 'statements'} we could not check"
-          >
-            <ul class="m-0 flex list-none flex-col gap-1.5 p-0 pt-1">
-              {#each unverified as u (u.claim + u.query)}
-                <li class="type-meta text-muted">
-                  &ldquo;{u.claim}&rdquo; — {u.unverifiedReason ??
-                    "we could not check it against your pages"}
-                </li>
-              {/each}
-            </ul>
-          </ReportDisclosure>
-        {/if}
-        {#if !acc.siteFullyRead}
-          <p class="type-meta m-0 pt-5 text-muted">
-            We read {acc.pagesRead} of your {acc.pagesTotal} pages for this check — the site was too large
-            to send whole. Nothing above is reported as missing from your site on the strength of pages
-            we did not read.
-          </p>
-        {/if}
-      </div>
+    {#if sampled}
+      <!-- Ours, not theirs. The crawl reads a capped number of pages, so the
+           count is "pages we crawled", never "your pages" — and the sitemap
+           says how many there really are. -->
+      <p class="type-meta m-0 border-t border-light pt-6 text-muted">
+        We read {acc.pagesRead} of the {acc.pagesTotal} pages we crawled for this check{view.sitemapUrlCount !==
+        null
+          ? `; your sitemap lists ${view.sitemapUrlCount}`
+          : ""}. Nothing above is reported as missing from your site on the strength of pages we did
+        not read.
+      </p>
     {/if}
   </div>
 {/if}

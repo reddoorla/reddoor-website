@@ -67,10 +67,45 @@ describe("one story, on every surface", () => {
     expect(code(SOURCE)).not.toMatch(/The assistant is reading your own site/);
   });
 
-  it("the name collision leads with what to do about it, and the namesake is part of it", () => {
-    expect(code(SOURCE)).toMatch(/What to do about it/);
+  it("the name collision names its remedy as a fix in the list, not an inline aside", () => {
+    expect(code(SOURCE)).not.toMatch(/What to do about it/);
+    expect(code(SOURCE)).toMatch(/href="#fixes"/);
     expect(code(SOURCE)).toMatch(/view\.namesake/);
+    expect(code(REPORT)).toContain("allFixes(view)");
+    expect(code(PRINT)).toContain("allFixes(view)");
     expect(code(REPORT)).not.toMatch(/Someone else is answering to your name/);
+  });
+
+  it("a statement the site does not make is never printed as a finding; the sources are shown instead", () => {
+    for (const p of [SOURCE, PRINT]) {
+      expect(code(p), p).not.toMatch(/Your site does not say this/);
+      expect(code(p), p).not.toMatch(/not on your site/);
+    }
+    // Visible, not behind a disclosure: no title= carries the heading.
+    expect(code(SOURCE)).toMatch(/Who else the assistant read/);
+    expect(code(SOURCE)).not.toMatch(/title="Who else/);
+  });
+
+  it("the statements we could not judge are shown in full, because they are what a buyer hears", () => {
+    expect(code(SOURCE)).toMatch(/What else it says about you/);
+    expect(code(SOURCE)).not.toMatch(/title="Not judged/);
+    expect(code(SOURCE)).toMatch(/u\.engineQuote/);
+    expect(code(PRINT)).toMatch(/What else it says about you/);
+  });
+
+  it("the page count is the pages we crawled, never a claim about how many pages the site has", () => {
+    for (const p of [SOURCE, PRINT]) {
+      expect(code(p), p).toMatch(/pages we crawled/);
+      expect(code(p), p).not.toMatch(/of your \{acc(uracy)?\.pagesTotal\} pages/);
+    }
+  });
+
+  it("every mention of a pass links to the checked-and-fine section, and the reader can come back", () => {
+    for (const p of ["src/lib/report/SiteHealth.svelte", "src/lib/report/GoalFit.svelte", SOURCE]) {
+      expect(code(p), p).toMatch(/href="#passes"/);
+    }
+    expect(code("src/lib/report/WhatPasses.svelte")).toMatch(/id="passes"[^>]*scroll-mt/);
+    expect(code(REPORT)).toMatch(/Back to where you were/);
   });
 
   it("the report uses the whole content column: no measure caps outside the hero headline", () => {
@@ -96,7 +131,7 @@ describe("one story, on every surface", () => {
     expect(src).not.toMatch(/previous owner/);
   });
 
-  it("'not judged' names the statements it did not judge", () => {
+  it("each unjudged statement is named, never a joined string of reasons", () => {
     const src = code(SOURCE);
     expect(src).toMatch(/u\.claim/);
     expect(src).not.toMatch(/\.join\("; "\)/);

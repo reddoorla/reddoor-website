@@ -7,7 +7,7 @@ import {
   type ReportView,
 } from "./model";
 import type { AuditReport } from "./fetch";
-import { headlineFinding, passes, passCount } from "./narrative";
+import { allFixes, collisionFix, headlineFinding, passes, passCount } from "./narrative";
 import { healthRows } from "./health";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 
@@ -226,9 +226,11 @@ describe("headlineFinding — priority", () => {
     expect(h.text).toMatch(/gap in our measurement/);
   });
 
-  it("never says all clear while a statement is absent from the site", () => {
-    // Absent is not a headline (the engine may be right about something the
-    // site never mentions) but it is not a pass either.
+  it("a statement the site does not make is not a finding, and does not block all clear", () => {
+    // The engine may be right about something the site never mentions — a
+    // Texas registration, a revenue figure — and telling a client "your site
+    // does not say this" about a true fact reads as an accusation. So absent
+    // is neither a finding nor a headline; the page shows who was read instead.
     const v = view(
       stage("accuracy", (d) => ({
         ...d,
@@ -237,7 +239,7 @@ describe("headlineFinding — priority", () => {
         ),
       })),
     );
-    expect(headlineFinding(v).kind).not.toBe("all-clear");
+    expect(headlineFinding(v).kind).toBe("all-clear");
   });
 });
 
@@ -284,5 +286,64 @@ describe("displayQuote", () => {
     );
     expect(displayQuote("__led__ by *Tim* Holmes")).toBe("led by Tim Holmes");
     expect(displayQuote("2 * 3 = 6")).toBe("2 * 3 = 6");
+  });
+});
+
+describe("collisionFix / allFixes", () => {
+  it("adds no fix when nobody is confused about the name", () => {
+    expect(collisionFix(view())).toBeNull();
+    expect(allFixes(view())).toHaveLength(view().fixes.length);
+  });
+
+  it("turns a name collision into the first fix in the list, marked measured", () => {
+    const v = view(
+      stage("accuracy", (d) => ({
+        ...d,
+        conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+      })),
+    );
+    const fix = collisionFix(v);
+    expect(fix?.origin).toBe("measured");
+    expect(fix?.title).toMatch(/which Example Studio you are/);
+    expect(fix?.why).toMatch(/home page/);
+    expect(fix?.why).toMatch(/schema\.org/);
+    const all = allFixes(v);
+    expect(all[0]).toEqual(fix);
+    expect(all).toHaveLength(v.fixes.length + 1);
+  });
+
+  it("orders measured fixes ahead of recommendations, keeping the audit's order within each", () => {
+    const v = view(
+      stage("analyze", (d) => ({
+        ...d,
+        fixes: [
+          {
+            title: "r1",
+            why: "",
+            impact: "low",
+            effort: "low",
+            tier: "content",
+            origin: "recommendation",
+          },
+          {
+            title: "m1",
+            why: "",
+            impact: "low",
+            effort: "low",
+            tier: "content",
+            origin: "measured",
+          },
+          {
+            title: "r2",
+            why: "",
+            impact: "low",
+            effort: "low",
+            tier: "content",
+            origin: "recommendation",
+          },
+        ],
+      })),
+    );
+    expect(allFixes(v).map((f) => f.title)).toEqual(["m1", "r1", "r2"]);
   });
 });
