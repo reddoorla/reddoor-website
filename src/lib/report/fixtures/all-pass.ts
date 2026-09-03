@@ -184,6 +184,21 @@ export const ALL_PASS_REPORT: AuditReport = {
   //
   // Regenerate rather than edit:
   //   pnpm tsx scripts/gen-report-fixture.mts   (in reddoor-maintenance)
+  // The whole check battery — 76 checks, 70 passing and 6 not-applicable — GENERATED
+  // by `scripts/gen-report-fixture.mts` in reddoor-maintenance rather than
+  // written by hand. A hand-written all-pass fixture drifts out of reach of the
+  // checks and then passes forever while proving nothing; generated from the
+  // real `runSiteChecks`, this has caught four instrument bugs, every one of
+  // them overstating the client's fault.
+  //
+  // The 6 not-applicable are the fourth state earning its keep: this site
+  // publishes no rating markup, no language alternates and no link that opens a
+  // new tab; its published addresses are on its own domain; and /index.html and
+  // a differently-cased path both 404, which is what we were hoping for. None
+  // of those is a pass, and none is counted in the denominator.
+  //
+  // Regenerate rather than edit:
+  //   pnpm tsx scripts/gen-report-fixture.mts   (in reddoor-maintenance)
   siteChecks: {
     ok: true,
     data: [
@@ -665,6 +680,22 @@ export const ALL_PASS_REPORT: AuditReport = {
         status: "pass",
         evidence: "3 internal links, none redirecting twice",
         why: "A link that redirects more than once makes every visitor wait through each hop, and search engines pass less credit along a chain than a direct link.",
+        scope: "quick",
+      },
+      {
+        key: "form-rejects-empty",
+        label: "A form that catches an empty submission",
+        status: "pass",
+        evidence: "the browser blocks it \u2014 the form marks its fields required",
+        why: "Somebody who taps send too early should be told what is missing. A form that submits anyway puts a blank enquiry in your inbox and tells them it worked, so they never follow up and you have nothing to follow up on.",
+        scope: "quick",
+      },
+      {
+        key: "form-rejects-bad-email",
+        label: "A form that catches a mistyped email",
+        status: "pass",
+        evidence: "the browser catches it \u2014 the field is typed as an email",
+        why: "A mistyped address is the one mistake that costs you the whole enquiry: the message arrives, and there is no way to answer it. Catching it while the visitor is still on the page is the only chance to fix it.",
         scope: "quick",
       },
       {
