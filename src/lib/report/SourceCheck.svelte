@@ -19,11 +19,11 @@
   //
   // What IS printed, in this order: the collision (with its remedy pointed at,
   // not inlined — the fix list is where the plan lives); what the site
-  // contradicts; then, in full, the statements no page of ours could confirm or
-  // deny. Those last ones are the important ones: "shows very low business
-  // activity compared with other companies in its sector" is what a buyer
-  // hears, and it is the sentence that makes someone want to change something.
-  // They were behind a disclosure once. Never again.
+  // contradicts; then, as headlines only, everything the assistant said that we
+  // did not find on the site. Those are the important ones: "shows very low
+  // business activity compared with other companies in its sector" is what a
+  // buyer hears, and it is the sentence that makes someone want to change
+  // something. They were behind a disclosure once. Never again.
 
   let { view }: { view: ReportView } = $props();
 
@@ -34,7 +34,12 @@
     (acc?.assertions ?? []).filter((a) => a.verdict === v);
 
   const contradicted = $derived(of("contradicted"));
-  const unjudged = $derived(of("unverified"));
+  // Everything the assistant said that we did not find on the site: the
+  // statements it plainly does not make and the ones we could not settle. One
+  // list, headlines only. The engine's wording, the reason we could not check
+  // and the source lists were three lines of ours under each line of theirs,
+  // and on our own report they buried the one sentence that mattered.
+  const notOnSite = $derived([...of("absent"), ...of("unverified")]);
   const confirmed = $derived(of("confirmed").length);
 
   /**
@@ -170,43 +175,20 @@
       </div>
     {/if}
 
-    {#if unjudged.length}
-      <!-- In full, visibly. These are the statements no page of theirs can
-           confirm or deny — reputation, size, activity — and they are what a
-           buyer hears. Sorted by nothing: we have no basis to rank them. -->
+    {#if notOnSite.length}
+      <!-- Headlines, nothing under them. These are what a buyer hears; the
+           reader knows their own business and needs no help judging each. -->
       <div class="flex flex-col gap-5">
         <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-black">What else it says about you</h4>
-          <p class="type-meta m-0 text-muted">
-            Statements we could not check against your pages, either because no page of yours could
-            confirm or deny them, or because we did not read the page that might. They are what a
-            buyer hears, so they are here in full.
-          </p>
+          <h4 class="type-question m-0 text-black">
+            What the AI says about you that is not on your site
+          </h4>
+          <p class="type-meta m-0 text-muted">We did not find these on your site.</p>
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each withCitations(unjudged) as { row: u, showCitations } (u.claim + u.query)}
-            <li class="flex flex-col gap-2 border-t border-light py-6">
-              <p class="m-0 font-medium text-black">{u.claim}</p>
-              <p class="type-meta m-0 text-muted">
-                The AI said: &ldquo;{displayQuote(u.engineQuote)}&rdquo;
-              </p>
-              {#if u.nearbyMention}
-                <p class="type-meta m-0 text-muted">
-                  The closest your site comes: &ldquo;{u.nearbyMention}&rdquo;
-                </p>
-              {/if}
-              {#if u.unverifiedReason}
-                <p class="type-meta m-0 text-muted">
-                  Why we could not check it: {u.unverifiedReason}
-                </p>
-              {/if}
-              {#if showCitations}
-                <p class="type-meta m-0 wrap-break-word text-muted">
-                  Also read for that answer: {u.sourceDomains.join(" · ")}
-                </p>
-              {/if}
-            </li>
+          {#each notOnSite as u (u.claim + u.query)}
+            <li class="border-t border-light py-4 font-medium text-black">{u.claim}</li>
           {/each}
         </ul>
       </div>

@@ -76,21 +76,25 @@ describe("one story, on every surface", () => {
     expect(code(REPORT)).not.toMatch(/Someone else is answering to your name/);
   });
 
-  it("a statement the site does not make is never printed as a finding; the sources are shown instead", () => {
+  it("a statement the site does not make is never printed as an accusation; the sources are shown instead", () => {
     for (const p of [SOURCE, PRINT]) {
       expect(code(p), p).not.toMatch(/Your site does not say this/);
-      expect(code(p), p).not.toMatch(/not on your site/);
+      expect(code(p), p).not.toMatch(/does not say this/i);
     }
     // Visible, not behind a disclosure: no title= carries the heading.
     expect(code(SOURCE)).toMatch(/Who else the assistant read/);
     expect(code(SOURCE)).not.toMatch(/title="Who else/);
   });
 
-  it("the statements we could not judge are shown in full, because they are what a buyer hears", () => {
-    expect(code(SOURCE)).toMatch(/What else it says about you/);
-    expect(code(SOURCE)).not.toMatch(/title="Not judged/);
-    expect(code(SOURCE)).toMatch(/u\.engineQuote/);
-    expect(code(PRINT)).toMatch(/What else it says about you/);
+  it("what the AI says that is not on the site is a list of headlines, nothing under them", () => {
+    for (const p of [SOURCE, PRINT]) {
+      expect(code(p), p).toMatch(/What the AI says about you that is not on your site/);
+      expect(code(p), p).toMatch(/We did not find these on your site/);
+      expect(code(p), p).not.toMatch(/Why we could not check/);
+      expect(code(p), p).not.toMatch(/could not judge|Not judged/);
+    }
+    expect(code(SOURCE)).toMatch(/u\.claim/);
+    expect(code(SOURCE)).not.toMatch(/u\.engineQuote|u\.unverifiedReason|u\.sourceDomains/);
   });
 
   it("the page count is the pages we crawled, never a claim about how many pages the site has", () => {

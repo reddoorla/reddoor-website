@@ -65,8 +65,10 @@
   const contradictedRows = $derived(
     withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
   );
-  const unjudgedRows = $derived(
-    withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "unverified")),
+  const notOnSite = $derived(
+    (accuracy?.assertions ?? []).filter(
+      (a) => a.verdict === "absent" || a.verdict === "unverified",
+    ),
   );
   const elsewhere = $derived((accuracy?.sources ?? []).filter((s) => s.owner !== "yours"));
   const sampled = $derived(
@@ -206,27 +208,14 @@
           {/if}
         </div>
       {/each}
-      {#if unjudgedRows.length}
-        <h3>What else it says about you</h3>
-        <p class="note">
-          Statements we could not check against your pages, either because no page of yours could
-          confirm or deny them, or because we did not read the page that might. They are what a
-          buyer hears, so they are here in full.
-        </p>
-        {#each unjudgedRows as { row, showCitations } (row.claim + row.query)}
-          <div class="fix">
-            <p class="fix-t">{row.claim}</p>
-            <p class="fix-w">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
-            {#if row.unverifiedReason}
-              <p class="fix-w">Why we could not check it: {row.unverifiedReason}</p>
-            {/if}
-            {#if showCitations}
-              <p class="fix-w">
-                Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
-              </p>
-            {/if}
-          </div>
-        {/each}
+      {#if notOnSite.length}
+        <h3>What the AI says about you that is not on your site</h3>
+        <p class="note">We did not find these on your site.</p>
+        <ul>
+          {#each notOnSite as u (u.claim + u.query)}
+            <li>{u.claim}</li>
+          {/each}
+        </ul>
       {/if}
       {#if confirmed > 0}
         <p class="note">
