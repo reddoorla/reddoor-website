@@ -114,8 +114,27 @@ test("404 page renders the custom error component", async ({ page }) => {
     waitUntil: "domcontentloaded",
   });
   expect(response?.status()).toBe(404);
-  // Our +error.svelte renders a giant "404" headline.
-  await expect(page.getByText("404", { exact: false }).first()).toBeVisible();
+  // The designed page's own copy. The giant "404" is CSS-generated decoration
+  // now, so it is not text a locator can find — and "404" was never a safe
+  // assertion anyway: the plain fallback page printed "Error 404" too.
+  await expect(page.getByText("Nothing to see here")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a path with two segments gets the same 404 page as a path with one", async ({ page }) => {
+  // No route matches `/a/b` unless it is portfolio, showcase, audit or preview,
+  // so this lands on the ROOT error boundary — which used to be a plain
+  // "Error 404 / Back to home" page while single-segment misses got the
+  // designed one. Assert on the designed page's own copy, not on "404": the
+  // plain page said "Error 404" too, which is how the split went unnoticed.
+  const errors = attachConsoleWatcher(page, [/Failed to load resource.*404/i]);
+  const response = await page.goto("/this/path-does-not-exist", {
+    waitUntil: "domcontentloaded",
+  });
+  expect(response?.status()).toBe(404);
+  await expect(page.getByText("Nothing to see here")).toBeVisible();
+  await expect(page.getByText("Enjoy our most recent work")).toBeVisible();
+  await expect(page).toHaveTitle(/Page not found/i);
   expect(errors).toEqual([]);
 });
 
