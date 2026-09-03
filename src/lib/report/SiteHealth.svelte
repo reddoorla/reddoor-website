@@ -71,6 +71,9 @@
           </li>
         {/each}
       </ul>
+      <p class="type-meta m-0 text-muted">
+        Each of these has a matching item in <a class="underline" href="#fixes">what to fix</a>.
+      </p>
     {/if}
 
     <!-- The receipts. Every finding above names something a reader can open in

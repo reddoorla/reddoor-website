@@ -12,6 +12,7 @@ import {
   collisionFix,
   displayQuote,
   headlineFinding,
+  healthFixes,
   passes,
   passCount,
 } from "./narrative";
@@ -364,5 +365,178 @@ describe("collisionFix / allFixes", () => {
       })),
     );
     expect(allFixes(v).map((f) => f.title)).toEqual(["m1", "r1", "r2"]);
+  });
+});
+
+describe("healthFixes — every failed check becomes a fix", () => {
+  const URL = "https://example-studio.test/";
+  const plainPhone = stage("checks", (d) => ({
+    ...d,
+    consistency: {
+      ...(d.consistency as Record<string, unknown>),
+      phones: [
+        { normalized: "+15125550142", seenAs: ["(512) 555-0142"], pages: [URL], linked: true },
+        { normalized: "+15125550199", seenAs: ["(512) 555-0199"], pages: [URL], linked: false },
+      ],
+    },
+  }));
+  const fix = (title: string, origin: "measured" | "recommendation") => ({
+    title,
+    why: "",
+    impact: "low",
+    effort: "low",
+    tier: "technical",
+    origin,
+  });
+
+  it("adds nothing on the fixture, where every check passes", () => {
+    expect(healthFixes(view())).toEqual([]);
+  });
+
+  it("puts a plain-text phone number in the fix list even when the goal checklist judged the phone", () => {
+    // The audit suppresses its own phone fix whenever the goal checklist has a
+    // tappable-phone row, and that row reads "met" when ANY number is tappable
+    // — so a second, plain-text number alerted under "Does it work" and
+    // reached no fix. That is the reddoorla report, verbatim.
+    const v = view(plainPhone);
+    expect(healthRows(v).find((r) => r.key === "tappable")?.alert).toBe(true);
+    const f = healthFixes(v).find((x) => /phone number/i.test(x.title));
+    expect(f?.origin).toBe("measured");
+    expect(f?.title).toMatch(/tappable/i);
+    expect(f?.why).toMatch(/one tap/);
+    expect(allFixes(v)).toContainEqual(f);
+  });
+
+  it("does not say the same finding twice when the audit already wrote the fix", () => {
+    const v = view({
+      ...plainPhone,
+      ...stage("analyze", (d) => ({
+        ...d,
+        fixes: [fix("Make your phone number tappable", "measured")],
+      })),
+    });
+    const titles = allFixes(v).map((f) => f.title);
+    expect(titles.filter((t) => /phone number/i.test(t))).toHaveLength(1);
+  });
+
+  it("orders health fixes after the audit's measured fixes and before its recommendations", () => {
+    const v = view({
+      ...plainPhone,
+      ...stage("analyze", (d) => ({
+        ...d,
+        fixes: [fix("r1", "recommendation"), fix("m1", "measured")],
+      })),
+    });
+    expect(allFixes(v).map((f) => f.title)).toEqual([
+      "m1",
+      "Make your phone number tappable",
+      "r1",
+    ]);
+  });
+
+  const failing: [string, Record<string, unknown>, RegExp][] = [
+    [
+      "https",
+      stage("basics", (d) => ({
+        ...d,
+        insecureEntry: { ...(d.insecureEntry as object), ok: false },
+      })),
+      /plain http/i,
+    ],
+    [
+      "host",
+      stage("basics", (d) => ({
+        ...d,
+        hostVariant: { ...(d.hostVariant as object), ok: false },
+      })),
+      /www\.example-studio\.test/,
+    ],
+    [
+      "notfound",
+      stage("basics", (d) => ({
+        ...d,
+        notFound: { ...(d.notFound as object), ok: false, status: 200, landedOn: null },
+      })),
+      /missing page/i,
+    ],
+    ["viewport", stage("checks", (d) => ({ ...d, viewportOk: false })), /phone/i],
+    [
+      "broken",
+      stage("assets", (d) => ({
+        ...d,
+        brokenLinks: [
+          { url: `${URL}a`, status: 404, bytes: null, error: null, referencedBy: [URL] },
+        ],
+      })),
+      /Repair 1 broken link/,
+    ],
+    [
+      "mixed",
+      stage("basics", (d) => ({
+        ...d,
+        mixedContent: { measured: true, imageUrls: ["http://cdn.test/a.jpg"], imagesSeen: 18 },
+      })),
+      /image.*https/i,
+    ],
+    [
+      "weight",
+      stage("assets", (d) => ({
+        ...d,
+        heaviestImages: [{ url: `${URL}hero.jpg`, bytes: 2_400_000 }],
+      })),
+      /heaviest image/i,
+    ],
+    [
+      "contact",
+      stage("checks", (d) => ({
+        ...d,
+        journey: { ...(d.journey as object), deadEnds: [`${URL}about`] },
+      })),
+      /every page a way to reach you/i,
+    ],
+    [
+      "alt",
+      stage("basics", (d) => ({
+        ...d,
+        altText: { imagesTotal: 18, imagesWithAlt: 4, pagesExamined: 5 },
+      })),
+      /describe your images/i,
+    ],
+    [
+      "titles",
+      stage("basics", (d) => ({
+        ...d,
+        duplicateTitles: [{ title: "Home", pages: [URL, `${URL}about`] }],
+      })),
+      /its own title/i,
+    ],
+    [
+      "copyright",
+      stage("checks", (d) => ({
+        ...d,
+        consistency: { ...(d.consistency as object), newestCopyrightYear: 2023 },
+      })),
+      /copyright year/i,
+    ],
+    [
+      "template",
+      stage("checks", (d) => ({
+        ...d,
+        consistency: { ...(d.consistency as object), pagesOffTemplate: [`${URL}old`] },
+      })),
+      /back into your site.s template/i,
+    ],
+  ];
+
+  it.each(failing)("writes one measured fix for a failed %s check", (key, over, title) => {
+    const v = view(over);
+    const row = healthRows(v).find((r) => r.key === key);
+    expect(row?.alert, `${key} should alert`).toBe(true);
+    const fixes = healthFixes(v);
+    expect(fixes).toHaveLength(1);
+    expect(fixes[0]?.title).toMatch(title);
+    expect(fixes[0]?.origin).toBe("measured");
+    // The reasoning is the row's own detail, so the fix and the finding cannot drift apart.
+    expect(fixes[0]?.why).toContain(row?.detail.slice(0, 40));
   });
 });

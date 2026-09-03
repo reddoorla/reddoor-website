@@ -349,19 +349,19 @@
     </button>
   {/if}
 
-  <!-- ── What passes ─────────────────────────────────────────────────────── -->
-  <!-- Every pass on the page, in one openable section, after the fixes: it is
-       an appendix, not a finding. Nothing above lists a pass; this is where the
-       receipts for breadth live, and the in-page links land here. -->
+  <!-- ── What passes, and how we measured ────────────────────────────────── -->
+  <!-- The appendix: every pass on the page in one openable list, then the
+       method, in one paper band after the fixes. Neither is a finding, which is
+       why they share a band and sit last. Nothing above lists a pass; this is
+       where the receipts for breadth live, and the in-page links land here. -->
   <section class="bg-paper w-full py-16 md:py-24">
     <RailRow label="Checked and fine" labelAs="p" fill>
       <WhatPasses {view} />
     </RailRow>
-  </section>
 
-  <!-- ── How we measured ─────────────────────────────────────────────────── -->
-  <section class="w-full py-16 md:py-24">
-    <RailRow label="Under the hood" labelAs="h2" fill>
+    <!-- Tighter than the section rhythm: the method is the second half of the
+         appendix, not a section of its own. -->
+    <RailRow label="Under the hood" labelAs="h2" fill class="mt-12 md:mt-16">
       <div class="flex flex-col border-t border-light">
         <ReportDisclosure title="What we ran, and what we could not measure">
           <div class="flex flex-col gap-3 pt-1 text-muted">

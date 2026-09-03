@@ -139,6 +139,18 @@ describe("one story, on every surface", () => {
     expect(code(REPORT)).toMatch(/Back to where you were/);
   });
 
+  it("checked-and-fine and under-the-hood share one paper band, and a failed check points at the fixes", () => {
+    const report = code(REPORT);
+    const passes = report.indexOf("<WhatPasses");
+    const hood = report.indexOf("Under the hood");
+    // No section boundary between them: one band, two rails.
+    expect(report.slice(passes, hood)).not.toMatch(/<\/section>|<section\b/);
+    const open = report.lastIndexOf("<section", passes);
+    expect(report.slice(open, passes)).toMatch(/bg-paper/);
+    // A finding under "Does it work" always has a matching fix, and says so.
+    expect(code("src/lib/report/SiteHealth.svelte")).toMatch(/href="#fixes"/);
+  });
+
   it("the report uses the whole content column: no measure caps outside the hero headline", () => {
     for (const p of COMPONENTS) {
       const hits = code(p).match(/max-w-\[\d+ch\]/g) ?? [];

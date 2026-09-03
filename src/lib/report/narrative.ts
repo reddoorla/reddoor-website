@@ -1,4 +1,4 @@
-import { healthRows } from "./health";
+import { healthRows, type HealthRow } from "./health";
 import { GOAL_LABELS, type Fix, type ReportView } from "./model";
 
 /**
@@ -291,15 +291,195 @@ export function collisionFix(view: ReportView): Fix | null {
 }
 
 /**
+ * A fix for every check under "Does it work" that came back with a finding.
+ *
+ * The audit writes measured fixes for some of these (a plain-text phone, a
+ * broken link) and not others (a stale year, a page outside the template), and
+ * it suppresses its own phone fix whenever the goal checklist judged the phone
+ * — a row that reads "met" when any one number is tappable. So a finding could
+ * alert two sections above the list and never reach it, which is exactly what
+ * the first real report did. The rule now lives here, on the rendered rows:
+ * alert → fix, one for one, unless the audit's own list already carries it.
+ * Renderer-side, so every stored report gets it without a re-run.
+ *
+ * The reasoning on each fix is the row's own detail, after one sentence on
+ * what to do — so the finding and its fix cannot drift apart.
+ */
+type HealthFixSpec = {
+  title: (row: HealthRow, view: ReportView) => string;
+  /** What to do, in a sentence. The row's detail follows it as the why. */
+  what: string;
+  impact: Fix["impact"];
+  effort: Fix["effort"];
+  tier: Fix["tier"];
+  /** The title of a fix the audit may already have written for the same
+   *  finding — one match and this row writes nothing. */
+  covers: RegExp;
+};
+
+const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+
+const HEALTH_FIXES: Record<string, HealthFixSpec> = {
+  https: {
+    title: () => "Redirect plain http to your secure site",
+    what: "One redirect rule at the host: every http:// address should land on its https:// twin.",
+    impact: "high",
+    effort: "low",
+    tier: "technical",
+    covers: /plain http|https/i,
+  },
+  host: {
+    title: (_, view) =>
+      `Make ${view.basics?.hostVariant.host ?? "the other spelling of your address"} land on your site`,
+    what:
+      "Point the other spelling of your address at this one with a redirect, so both end up in the " +
+      "same place.",
+    impact: "high",
+    effort: "low",
+    tier: "technical",
+    covers: /\bwww\b/i,
+  },
+  notfound: {
+    title: () => "Answer a missing page with a real error page",
+    what:
+      "A page that does not exist should answer 404, on a page with your own navigation — not a " +
+      "quiet redirect, and not an empty page that claims to be found.",
+    impact: "medium",
+    effort: "low",
+    tier: "technical",
+    covers: /\b404\b|missing page|error page/i,
+  },
+  viewport: {
+    title: () => "Tell phones how wide the page is",
+    what: "One viewport meta tag in the head of every page.",
+    impact: "high",
+    effort: "low",
+    tier: "technical",
+    covers: /viewport|phone screen/i,
+  },
+  tappable: {
+    title: () => "Make your phone number tappable",
+    what: "Wrap every number on the site in a tel: link.",
+    impact: "medium",
+    effort: "low",
+    tier: "technical",
+    covers: /phone number|\btap/i,
+  },
+  broken: {
+    title: (_, view) => {
+      const links = view.assets?.brokenLinks.length ?? 0;
+      const images = view.assets?.brokenImages.length ?? 0;
+      const parts = [
+        ...(links > 0 ? [plural(links, "broken link", "broken links")] : []),
+        ...(images > 0 ? [plural(images, "broken image", "broken images")] : []),
+      ];
+      return `Repair ${parts.join(" and ")}`;
+    },
+    what: "Each one is listed under Does it work with its address: fix the link or put the file back.",
+    impact: "medium",
+    effort: "low",
+    tier: "technical",
+    covers: /broken (link|image)/i,
+  },
+  mixed: {
+    title: () => "Serve every image over https",
+    what: "Change the image addresses from http:// to https://, or host the files on your own site.",
+    impact: "medium",
+    effort: "low",
+    tier: "technical",
+    covers: /insecure|over plain http|image.*https/i,
+  },
+  weight: {
+    title: () => "Shrink your heaviest image",
+    what: "Resize it to the size it is shown at and export it as WebP or AVIF — well under a megabyte.",
+    impact: "medium",
+    effort: "low",
+    tier: "technical",
+    covers: /heaviest|image weight|compress|resize/i,
+  },
+  contact: {
+    title: () => "Give every page a way to reach you",
+    what:
+      "Put the phone number, the email or a contact link in the header or footer, so it is on every " +
+      "page rather than only the contact page.",
+    impact: "high",
+    effort: "low",
+    tier: "technical",
+    covers: /reach you|route to you|way to (make )?contact|contact (link|route)/i,
+  },
+  alt: {
+    title: () => "Describe your images",
+    what:
+      "Give every image that carries meaning an alt text saying what it shows, and an empty alt to " +
+      "the decorative ones.",
+    impact: "medium",
+    effort: "medium",
+    tier: "content",
+    covers: /alt text|describ\w* (your |the )?images|image descriptions/i,
+  },
+  titles: {
+    title: () => "Give each page its own title",
+    what:
+      "The title tag is the browser tab, the bookmark and the search result; write one that names " +
+      "the page.",
+    impact: "medium",
+    effort: "low",
+    tier: "technical",
+    covers: /\btitles?\b/i,
+  },
+  copyright: {
+    title: () => "Update the copyright year",
+    what: "Print the current year in the footer, or drop the year altogether.",
+    impact: "low",
+    effort: "low",
+    tier: "technical",
+    covers: /copyright|\byear\b/i,
+  },
+  template: {
+    title: (_, view) =>
+      `Bring ${plural(view.consistency?.pagesOffTemplate.length ?? 0, "page", "pages")} back into ` +
+      "your site's template",
+    what:
+      "Give them the same header and navigation as the rest of the site, or redirect them to the " +
+      "page that replaced them.",
+    impact: "medium",
+    effort: "medium",
+    tier: "technical",
+    covers: /template|navigation/i,
+  },
+};
+
+export function healthFixes(view: ReportView): Fix[] {
+  const written = view.fixes.map((f) => f.title);
+  const out: Fix[] = [];
+  for (const row of healthRows(view)) {
+    if (!row.alert) continue;
+    const spec = HEALTH_FIXES[row.key];
+    if (!spec || written.some((t) => spec.covers.test(t))) continue;
+    out.push({
+      title: spec.title(row, view),
+      why: `${spec.what} ${row.detail}`.trim(),
+      impact: spec.impact,
+      effort: spec.effort,
+      tier: spec.tier,
+      origin: "measured",
+    });
+  }
+  return out;
+}
+
+/**
  * Every fix on the page, in the order the list prints them: the collision fix
- * first when there is one, then the audit's measured fixes, then its
- * recommendations, each group in the audit's own order.
+ * first when there is one, then the audit's measured fixes, then the fixes
+ * written here for whatever else failed under "Does it work", then the
+ * audit's recommendations — each group in its own order.
  */
 export function allFixes(view: ReportView): Fix[] {
   const collision = collisionFix(view);
   return [
     ...(collision ? [collision] : []),
     ...view.fixes.filter((f) => f.origin === "measured"),
+    ...healthFixes(view),
     ...view.fixes.filter((f) => f.origin !== "measured"),
   ];
 }
