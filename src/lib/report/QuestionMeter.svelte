@@ -63,26 +63,26 @@
       {/each}
     </div>
 
-    <dl class="m-0 grid grid-cols-1 gap-5 sm:grid-cols-3">
+    <ul class="m-0 grid grid-cols-1 gap-5 sm:grid-cols-3 list-none p-0">
       {#each segments as seg (seg.label)}
-        <div class="flex flex-col gap-1">
+        <li class="flex flex-col gap-1">
           <div class="flex items-center gap-2.5">
             <span class="h-2.5 w-2.5 shrink-0 {seg.fill}" aria-hidden="true"></span>
-            <dd
+            <p
               class="type-display m-0 leading-none tabular-nums {seg.alert
                 ? 'text-primary'
                 : 'text-black'}"
             >
               {seg.n}
-            </dd>
+            </p>
           </div>
-          <dt class="type-meta m-0 text-muted">{seg.label}</dt>
-        </div>
+          <p class="type-meta m-0 text-muted">{seg.label}</p>
+        </li>
       {/each}
-    </dl>
+    </ul>
 
     {#if unknown > 0}
-      <p class="type-meta m-0 max-w-[62ch] text-muted">
+      <p class="type-meta m-0 text-muted">
         {unknown === 1
           ? "One further question could not be judged on this audit and is not counted above"
           : `${unknown} further questions could not be judged on this audit and are not counted above`}

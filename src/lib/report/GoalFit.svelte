@@ -1,5 +1,6 @@
 <script lang="ts">
   import { GOAL_LABELS, goalVerdict, type GoalRequirement, type ReportView } from "./model";
+  import { numberWord } from "./narrative";
 
   // Whether the site does the one job it exists to do.
   //
@@ -44,7 +45,7 @@
 </script>
 
 {#if !fit}
-  <p class="type-lede m-0 max-w-[52ch] text-muted">
+  <p class="type-lede m-0 text-muted">
     This check did not run on this audit. That is a gap in the measurement, not a finding about your
     site.
   </p>
@@ -55,16 +56,16 @@
        grading against a purpose we could not identify would report our own
        guess as their failing. -->
   <div class="flex flex-col gap-5">
-    <p class="type-lede m-0 max-w-[52ch] text-primary">
+    <p class="type-lede m-0 text-primary">
       We read every page and could not tell what {who} wants a visitor to actually do.
     </p>
-    <p class="m-0 max-w-[62ch] text-muted">
+    <p class="m-0 text-muted">
       That is not a criticism of the writing — it is a finding about the structure. Sites that
       convert push toward one action, and the whole page arranges itself around it. When nothing is
       being asked for, a visitor who is interested has to invent their own next step, and most of
       them do not.
     </p>
-    <p class="m-0 max-w-[62ch] text-muted">
+    <p class="m-0 text-muted">
       It is also the first thing worth fixing, because every other finding in this report is
       measured against it.
     </p>
@@ -72,7 +73,7 @@
 {:else}
   <div class="flex flex-col gap-10">
     <div class="flex flex-col gap-4">
-      <p class="type-lede m-0 max-w-[52ch] text-black">
+      <p class="type-lede m-0 text-black">
         {#if fit.source === "operator"}
           You told us your site is built to get a visitor to
           <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
@@ -86,49 +87,45 @@
         <!-- Said plainly. If we inferred it wrong the reader should be able to
              tell us, and a reader who disagrees with the premise has just told
              us something more useful than any check below. -->
-        <p class="type-meta m-0 max-w-[62ch] text-muted">
+        <p class="type-meta m-0 text-muted">
           We worked that out from the site itself rather than asking you. If it is wrong, say so —
           that in itself is worth knowing, because it is what a visitor would have concluded too.
         </p>
       {/if}
     </div>
 
-    <dl class="m-0 flex w-full flex-col">
-      {#each judged as row (row.key)}
-        <div class="flex flex-col gap-1.5 border-t border-light py-6">
-          <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-            <dt class="type-eyebrow m-0 {row.status === 'missing' ? 'text-primary' : 'text-dark'}">
-              {row.label}
-            </dt>
-            <dd
-              class="type-question m-0 {row.status === 'missing' ? 'text-primary' : 'text-black'}"
-            >
-              {row.status === "missing" ? "Not on the site" : "Yes"}
-            </dd>
-          </div>
-          {#if row.status === "missing"}
-            <p class="type-meta m-0 max-w-[62ch] text-muted">{row.why}</p>
-            <!--
-              A missing row can carry evidence too, and dropping it was a real
-              loss: "A route to you from wherever they land — Not on the site"
-              tells a reader nothing they can act on, while the evidence names
-              the stranded pages and how many of how many we examined. Shown
-              under the reason, not instead of it.
-            -->
+    <!-- Findings only. The requirements that are met are receipts, not
+         findings, and they are listed with every other pass on the page
+         rather than given a row each here. -->
+    {#if missing.length > 0}
+      <ul class="m-0 flex w-full flex-col list-none p-0">
+        {#each missing as row (row.key)}
+          <li class="flex flex-col gap-1.5 border-t border-light py-6">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+              <p class="type-eyebrow m-0 text-primary">{row.label}</p>
+              <p class="type-question m-0 text-primary">Not on the site</p>
+            </div>
+            <p class="type-meta m-0 text-muted">{row.why}</p>
+            <!-- A missing row can carry evidence too: it names the stranded
+                 pages and how many of how many we examined. Shown under the
+                 reason, not instead of it. -->
             {#if row.evidence}
-              <p class="type-meta m-0 max-w-[62ch] wrap-break-word text-light">{row.evidence}</p>
+              <p class="type-meta m-0 wrap-break-word text-muted">{row.evidence}</p>
             {/if}
-          {:else if row.evidence}
-            <p class="type-meta m-0 max-w-[62ch] wrap-break-word text-light">{row.evidence}</p>
-          {/if}
-        </div>
-      {/each}
-    </dl>
+          </li>
+        {/each}
+      </ul>
+    {:else if judged.length > 0}
+      <p class="type-meta m-0 text-muted">
+        All {numberWord(judged.length)} of the things it needs are in place. They are listed under
+        <a class="underline" href="#passes">what passes</a>.
+      </p>
+    {/if}
 
     {#if unmeasured.length > 0}
       <div class="flex flex-col gap-2 border-t border-light pt-6">
         <p class="type-eyebrow m-0 text-dark">Not measured on this audit</p>
-        <p class="type-meta m-0 max-w-[62ch] text-muted">
+        <p class="type-meta m-0 text-muted">
           {unmeasured.map((r) => r.label.toLowerCase()).join(", ")} — these are not counted above in either
           direction. We could not check them here, which is a gap in the measurement rather than a finding
           about your site.

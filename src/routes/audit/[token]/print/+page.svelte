@@ -1,11 +1,14 @@
 <script lang="ts">
   import { openingSummary, toReportView, wasNamed, type Assertion } from "$lib/report/model";
+  import { displayQuote, headlineFinding, passes } from "$lib/report/narrative";
+  import { healthRows } from "$lib/report/health";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
 
   const view = $derived(toReportView(data.report));
   const who = $derived(view.businessName ?? "your business");
+  const headline = $derived(headlineFinding(view));
 
   const auditedOn = $derived(
     view.generatedAt
@@ -29,21 +32,9 @@
     high: "A larger piece of work",
   } as const;
 
-  // Three scores, all of them things we can move.
-  //
-  // AI Visibility used to sit here as a fourth and has been removed, not
-  // reformatted: it scored zero for six of the eleven sites we have audited,
-  // including our own, and nothing in this audit reliably moves it. A zero on
-  // the same row as three numbers we CAN move reads as a fourth failing grade
-  // and takes over the conversation — a reader spends the meeting on the one
-  // number nobody can act on. Where the business stands in AI answers is still
-  // reported in full further down, as a finding with its sources attached.
-  // Findability is not here for the same reason AI Visibility is not: it never
-  // varied. 26 of the 29 sites audited to date score 88 or above, because 40 of
-  // its 100 points are crawler access and nearly every site allows everyone in.
-  // On paper especially, a bar that is always long lends the two beside it a
-  // steadiness they have not earned. The yes/no it actually establishes is
-  // printed as a line instead — see crawlerReach below.
+  // Two scores, both things we can move. AI Visibility and Findability are not
+  // here, for the reasons given in ScoreBars.svelte: one nothing we do moves,
+  // the other never varied.
   const scoreCells = $derived([
     { v: view.scores.readability, l: "Readability" },
     { v: view.scores.answers, l: "Answers" },
@@ -56,10 +47,14 @@
     return [...new Set(domains)];
   }
 
-  // Same rule as the web page: a row prints its sources only when they differ
-  // from the row above, because rows from one answer share one list.
-  const judgedRows = $derived.by(() => {
-    const rows = (accuracy?.assertions ?? []).filter((a) => a.verdict !== "unverified");
+  // Findings only, the same rule as the web page: confirmed statements are
+  // counted in one line and listed under "What passes". A row prints its
+  // sources only when they differ from the row above, because rows from one
+  // answer share one list.
+  const findingRows = $derived.by(() => {
+    const rows = (accuracy?.assertions ?? []).filter(
+      (a) => a.verdict === "contradicted" || a.verdict === "absent",
+    );
     const key = (d: string[]) => [...d].sort().join("|");
     let previous = "";
     return rows.map((row: Assertion) => {
@@ -69,6 +64,20 @@
       return { row, showCitations: show };
     });
   });
+  const confirmed = $derived(
+    (accuracy?.assertions ?? []).filter((a) => a.verdict === "confirmed").length,
+  );
+  const collision = $derived(Boolean(accuracy?.conflation.detected) || view.namesake !== null);
+
+  const healthProblems = $derived(healthRows(view).filter((r) => r.alert));
+  const goalMissing = $derived(
+    (view.goalFit?.requirements ?? []).filter((r) => r.status === "missing"),
+  );
+  const passGroups = $derived(passes(view));
+  const orderedFixes = $derived([
+    ...view.fixes.filter((f) => f.origin === "measured"),
+    ...view.fixes.filter((f) => f.origin !== "measured"),
+  ]);
 </script>
 
 <svelte:head>
@@ -78,12 +87,10 @@
 
 <!--
   The PDF leave-behind, and deliberately NOT the interactive page with a print
-  stylesheet over it.
-
-  The page collapses its evidence behind disclosures, which is right on screen
-  and wrong on paper: a leave-behind that hides half its content is worse than
-  the long version it replaced. So everything here is flat and visible, in one
-  pass, with nothing to click.
+  stylesheet over it. The page collapses its evidence behind disclosures, which
+  is right on screen and wrong on paper, so everything here is flat and visible
+  in one pass — in the same order as the page, telling the same story: the
+  headline, what an AI says, what you control, what passes, the fixes.
 
   Self-contained styles rather than the site's utilities: this document is
   printed by a headless browser at a fixed page size, never rendered beside the
@@ -103,6 +110,8 @@
     </p>
   </header>
 
+  <p class="verdict">{headline.text}</p>
+
   <section class="scores">
     {#each scoreCells as cell (cell.l)}
       <div class="score">
@@ -112,16 +121,13 @@
     {/each}
   </section>
 
-  {#if reach}
+  {#if reach && (!reach.measured || reach.blocked.length > 0)}
     <p class="denominator">
       {#if !reach.measured}
         The robots.txt could not be read on this audit.
-      {:else if reach.blocked.length > 0}
+      {:else}
         AI crawlers blocked by robots.txt: {reach.blocked.join(", ")}. Nothing else in this report
         can help while that is true.
-      {:else}
-        The robots.txt turns away none of the {reach.checked} AI crawlers we checked. A CDN can still
-        refuse one it welcomes.
       {/if}
     </p>
   {/if}
@@ -137,44 +143,68 @@
     </p>
   {/if}
 
-  {#if openingSummary(view)}
-    <p class="verdict">{openingSummary(view)}</p>
-  {/if}
-
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
        cannot know whether a claim is right; saying "the AI got this wrong"
        about something a client knows is true would discredit the page. -->
   {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
     <section>
-      <h2>What an AI already says about you</h2>
-      {#if accuracy.conflation.detected}
+      <h2>What an AI says about you</h2>
+      {#if collision}
         <div class="callout">
-          <h3>The assistant is not sure which {who} you are</h3>
-          <p>
-            Asked about you by name, it described more than one business{accuracy.conflation
-              .otherNames.length
-              ? ` — including ${accuracy.conflation.otherNames.join(", ")}`
-              : ""}. Until your own pages make the name, the place and the work unambiguous,
-            anything it says about &ldquo;{who}&rdquo; may be about someone else.
-          </p>
-          {#if accuracy.conflation.engineQuote}
-            <p class="fix-w">The AI said: &ldquo;{accuracy.conflation.engineQuote}&rdquo;</p>
+          <h3>
+            {accuracy.conflation.detected
+              ? `The assistant is not sure which ${who} you are`
+              : "Someone else is answering to your name"}
+          </h3>
+          {#if accuracy.conflation.detected}
+            <p>
+              Asked about you by name, it described more than one business{accuracy.conflation
+                .otherNames.length
+                ? ` — including ${accuracy.conflation.otherNames.join(", ")}`
+                : ""}. Until your own pages make the name, the place and the work unambiguous,
+              anything it says about &ldquo;{who}&rdquo; may be about someone else.
+            </p>
+            {#if accuracy.conflation.engineQuote}
+              <p class="fix-w">
+                The AI said: &ldquo;{displayQuote(accuracy.conflation.engineQuote)}&rdquo;
+              </p>
+            {/if}
           {/if}
+          {#if view.namesake}
+            <p>
+              Across the buyer searches we ran, <strong>{view.namesake.domain}</strong> was cited
+              {view.namesake.count}
+              {view.namesake.count === 1 ? "time" : "times"} — more than any other source. It is a different
+              company with a name close enough to yours that the assistant has to tell you apart.
+            </p>
+          {/if}
+          <p class="tags">What to do about it</p>
+          <ol>
+            <li>
+              Put the full name, the place and the work in one sentence at the top of the home page
+              and the About page, and in both page titles.
+            </li>
+            <li>Make the profiles it read instead say the same sentence.</li>
+            <li>
+              Mark the organisation up: a schema.org Organization block with the name, the address
+              and links to the profiles you own.
+            </li>
+          </ol>
+          <p class="note">
+            These are our recommendations, not measurements, and none of them is a promise about
+            what an assistant will do.
+          </p>
         </div>
       {/if}
-      {#each judgedRows as { row, showCitations } (row.claim + row.query)}
+      {#each findingRows as { row, showCitations } (row.claim + row.query)}
         <div class="fix">
           <p class="fix-t">
             {row.claim}
             <span class="answered {row.verdict}">
-              {row.verdict === "confirmed"
-                ? "your site says this"
-                : row.verdict === "contradicted"
-                  ? "your site says otherwise"
-                  : "not on your site"}
+              {row.verdict === "contradicted" ? "your site says otherwise" : "not on your site"}
             </span>
           </p>
-          <p class="fix-w">The AI said: &ldquo;{row.engineQuote}&rdquo;</p>
+          <p class="fix-w">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
           {#if row.siteQuote}
             <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
           {/if}
@@ -185,6 +215,13 @@
           {/if}
         </div>
       {/each}
+      {#if confirmed > 0}
+        <p class="note">
+          {confirmed}
+          {confirmed === 1 ? "statement" : "statements"} the assistant made
+          {confirmed === 1 ? "matches" : "match"} a passage on your own site — listed under What passes.
+        </p>
+      {/if}
       {#if !accuracy.siteFullyRead}
         <p class="fix-w">
           We read {accuracy.pagesRead} of {accuracy.pagesTotal} pages for this check. Nothing above is
@@ -194,22 +231,9 @@
     </section>
   {/if}
 
-  {#if view.fixes.length}
-    <section>
-      <h2>What to fix, in order</h2>
-      {#each view.fixes as fix, i (fix.title)}
-        <div class="fix">
-          <h3>{i + 1}. {fix.title}</h3>
-          <p class="tags">{EFFORT_LABEL[fix.effort]} &middot; {fix.impact} impact</p>
-          <p>{fix.why}</p>
-        </div>
-      {/each}
-    </section>
-  {/if}
-
   {#if view.categoryProbes.length}
     <section>
-      <h2>What buyers were shown instead</h2>
+      <h2>Where you stand in AI answers</h2>
       <p class="lede">
         Each of these is a search a buyer would type before they had heard of you, asked of a live
         AI assistant. Every site listed is one it cited back.
@@ -232,26 +256,43 @@
     </section>
   {/if}
 
-  {#if view.namesake}
-    <section class="callout">
-      <h2>Someone else is answering to your name</h2>
-      <p>
-        Across the searches we ran, <strong>{view.namesake.domain}</strong> was cited
-        {view.namesake.count}
-        {view.namesake.count === 1 ? "time" : "times"} — more than any other source. It is a different
-        company with a name close enough to yours that the assistant has to disambiguate between you.
-      </p>
-      <p>This is not something a page edit fixes on its own. It is worth a conversation.</p>
-    </section>
-  {/if}
+  <section>
+    <h2>What you control</h2>
 
-  {#if view.buyerQuestions.length}
-    <section>
-      <h2>What buyers can and cannot learn from your site</h2>
-      <p class="lede">
-        {view.questionTally.yes} answered clearly, {view.questionTally.partial} partly,
-        {view.questionTally.no} not at all.
-      </p>
+    <h3>Does it work</h3>
+    {#if healthProblems.length === 0}
+      <p class="note">Every check on whether the site works came back clean — see What passes.</p>
+    {:else}
+      {#each healthProblems as row (row.key)}
+        <div class="fix">
+          <p class="fix-t">{row.label} <span class="answered no">{row.value}</span></p>
+          <p class="fix-w">{row.detail}</p>
+        </div>
+      {/each}
+    {/if}
+
+    {#if view.goalFit}
+      <h3>Does your site do its job</h3>
+      {#if view.goalFit.goal === "unknown"}
+        <p>We read every page and could not tell what {who} wants a visitor to do.</p>
+      {:else if goalMissing.length === 0}
+        <p class="note">Everything the site needs for that job is in place — see What passes.</p>
+      {:else}
+        {#each goalMissing as row (row.key)}
+          <div class="fix">
+            <p class="fix-t">{row.label} <span class="answered no">Not on the site</span></p>
+            <p class="fix-w">{row.why}</p>
+            {#if row.evidence}<p class="fix-w">{row.evidence}</p>{/if}
+          </div>
+        {/each}
+      {/if}
+    {/if}
+
+    {#if view.buyerQuestions.length}
+      <h3>What buyers can and cannot learn from your site</h3>
+      {#if openingSummary(view)}
+        <p class="lede">{openingSummary(view)}</p>
+      {/if}
       <table>
         <thead>
           <tr><th>What buyers ask</th><th>On your site</th><th>What it says</th></tr>
@@ -273,6 +314,41 @@
         &ldquo;Partial&rdquo; means the information exists but not in a passage an assistant could
         quote back — usually a list of terms rather than a sentence.
       </p>
+    {/if}
+  </section>
+
+  {#if passGroups.length}
+    <section class="passes">
+      <h2>What passes</h2>
+      {#each passGroups as group (group.title)}
+        <h3>{group.title}</h3>
+        <ul>
+          {#each group.items as item, i (group.title + i)}
+            <li>{item}</li>
+          {/each}
+        </ul>
+      {/each}
+    </section>
+  {/if}
+
+  {#if orderedFixes.length}
+    <section>
+      <h2>Our recommendations</h2>
+      <p class="lede">
+        What we would do next, in order. The rows marked measured come straight from a check above;
+        the rest are judgement. None of them is a promise about what an engine will do.
+      </p>
+      {#each orderedFixes as fix, i (fix.title)}
+        <div class="fix">
+          <h3>{i + 1}. {fix.title}</h3>
+          <p class="tags">
+            {EFFORT_LABEL[fix.effort]} &middot; {fix.impact} impact{fix.origin === "measured"
+              ? " · measured"
+              : ""}
+          </p>
+          <p>{fix.why}</p>
+        </div>
+      {/each}
     </section>
   {/if}
 
@@ -285,8 +361,8 @@
     {#if view.categoryProbes.length || view.brandedProbes.length}
       <p>
         The visibility test ran {view.categoryProbes.length + view.brandedProbes.length} live searches.
-        Every source listed is a citation the engine actually returned, not something inferred from its
-        wording.
+        Every source listed is a citation the assistant actually returned, not something inferred from
+        its wording.
       </p>
     {/if}
     <p>
@@ -370,9 +446,18 @@
     font-size: 11.5pt;
     margin-bottom: 3pt;
   }
+  section > h3 {
+    margin-top: 10pt;
+  }
 
   p {
     margin: 0 0 7pt;
+  }
+
+  ol,
+  ul {
+    margin: 0 0 7pt;
+    padding-left: 14pt;
   }
 
   header {
@@ -483,10 +568,20 @@
     border: 1pt solid #d71920;
     background: #fdf2f2;
     padding: 10pt 12pt;
+    margin-bottom: 11pt;
   }
-  .callout h2 {
-    border-bottom: 0;
-    padding-bottom: 0;
+  .callout h3 {
+    margin-bottom: 6pt;
+  }
+
+  .passes ul {
+    columns: 2;
+    column-gap: 14pt;
+    font-size: 9pt;
+    color: #57544f;
+  }
+  .passes li {
+    break-inside: avoid;
   }
 
   table {
@@ -519,21 +614,14 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  .answered.no {
+  .answered.no,
+  .answered.contradicted,
+  .answered.absent {
     color: #d71920;
   }
   .answered.yes,
   .answered.partial,
   .answered.unknown {
-    color: #6e6f72;
-  }
-  /* The accuracy verdicts share this chip. Red for the two that are findings
-     about the site, grey for the one that is proof the engine reads it. */
-  .answered.contradicted,
-  .answered.absent {
-    color: #d71920;
-  }
-  .answered.confirmed {
     color: #6e6f72;
   }
 
