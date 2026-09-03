@@ -57,7 +57,11 @@ export const ALL_PASS_REPORT: AuditReport = {
   url: URL,
   businessName: "Example Studio",
   generatedAt: "2026-09-03T09:00:00.000Z",
-  scores: { findability: 96, readability: 94, answers: 100, aiVisibility: 50 },
+  // What computeScores (reddoor-maintenance src/prospect/checks.ts) gives a
+  // perfect site: findability and readability are deterministic and reach 100
+  // (the scorer's own test pins this); answers is ten of ten; visibility is a
+  // measurement, not a score, and one of two searches named the site.
+  scores: { findability: 100, readability: 100, answers: 100, aiVisibility: 50 },
   crawl: {
     ok: true,
     data: {
