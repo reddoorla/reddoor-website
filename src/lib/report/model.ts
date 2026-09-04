@@ -261,6 +261,10 @@ export type Accessibility = {
   pagesExamined: number;
   rulesPassed: number;
   rulesIncomplete: number;
+  /** The undecided rules by name. Optional: reports stored before this was
+   *  captured have the count and not the names, which reads as "we did not
+   *  record which", never as "there were none". */
+  incompleteIds?: string[];
   rulesInapplicable: number;
   violations: {
     id: string;

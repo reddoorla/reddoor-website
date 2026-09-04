@@ -119,6 +119,14 @@
               contrast over an image or a gradient, where the scanner cannot tell what is behind the text.
               These are neither passes nor failures, and they are not counted as either above.
             </p>
+            {#if a.incompleteIds && a.incompleteIds.length > 0}
+              <!-- Named, because a count on its own is a worry and a name is
+                   something to go and look at. -->
+              <p class="type-meta m-0 pt-2 text-muted">
+                The {a.incompleteIds.length === 1 ? "rule" : "rules"}:
+                <code class="wrap-anywhere">{a.incompleteIds.join(", ")}</code>
+              </p>
+            {/if}
           </ReportDisclosure>
         </div>
       {/if}
