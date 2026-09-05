@@ -429,8 +429,8 @@ export const ALL_PASS_REPORT: AuditReport = {
       {
         key: "favicon-declared",
         label: "An icon for the browser tab",
-        status: "pass",
-        evidence: 'rel="icon" \u2192 /favicon.ico',
+        status: "not-applicable",
+        evidence: "the icon your pages declare is the one we fetched, reported below",
         why: "Without one the browser shows a blank page icon in the tab and the bookmark, which is the smallest possible thing to fix and the most often seen.",
         scope: "quick",
       },
@@ -496,14 +496,6 @@ export const ALL_PASS_REPORT: AuditReport = {
         status: "pass",
         evidence: "every enquiry form marks at least one field required",
         why: "Without it the browser cannot stop a half-filled form being sent, and the visitor finds out something was missing only if somebody tells them.",
-        scope: "quick",
-      },
-      {
-        key: "noopener",
-        label: 'New-tab links carrying rel="noopener"',
-        status: "not-applicable",
-        evidence: "no link on these pages opens a new tab",
-        why: 'Adding rel="noopener" to links that open a new tab is a one-line habit that keeps older browsers from handing the new page a reference back to yours.',
         scope: "quick",
       },
       {
