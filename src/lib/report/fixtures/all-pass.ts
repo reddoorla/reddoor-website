@@ -220,10 +220,10 @@ export const ALL_PASS_REPORT: AuditReport = {
       },
       {
         key: "insecure-links",
-        label: "Links that drop out of https",
+        label: "Links back to your own http address",
         status: "pass",
-        evidence: "every link stays on https",
-        why: "A link back to plain http shows a \u201cnot secure\u201d warning on a site that had earned the padlock.",
+        evidence: "every link to your own pages stays on https",
+        why: "A link to the http:// spelling of your own address makes the visitor ask for the page in the clear before your redirect sends them back, and costs them a round trip to do it.",
         scope: "quick",
       },
       {
@@ -294,7 +294,7 @@ export const ALL_PASS_REPORT: AuditReport = {
         key: "under-construction",
         label: "Pages that say they are unfinished",
         status: "pass",
-        evidence: "none across the 3 pages we read",
+        evidence: "no page announces itself unfinished, across the 3 we read",
         why: "A live page announcing it is coming soon is a page better unlinked until it is not.",
         scope: "content",
       },
