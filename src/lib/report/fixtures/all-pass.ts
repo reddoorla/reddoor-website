@@ -439,7 +439,7 @@ export const ALL_PASS_REPORT: AuditReport = {
         label: "Pages that point at themselves",
         status: "pass",
         evidence: "all 3 canonicals point at their own page",
-        why: "A canonical pointing somewhere else tells search engines to index that page instead of this one. Pointed at the home page, or at one page from many, it takes the rest of the site out of search results.",
+        why: "A canonical naming another page tells search engines to index that page instead of this one. That is right for a genuine duplicate, and the fastest way to remove real pages from search results when it is not.",
         scope: "structural",
       },
       {
