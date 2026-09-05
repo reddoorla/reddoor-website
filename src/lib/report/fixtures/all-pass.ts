@@ -307,11 +307,19 @@ export const ALL_PASS_REPORT: AuditReport = {
         scope: "quick",
       },
       {
-        key: "single-h1",
-        label: "One headline per page",
+        key: "h1-present",
+        label: "A headline on every page",
         status: "pass",
-        evidence: "all 3 pages carry exactly one",
-        why: "The h1 is the page's headline. None leaves a reader \u2014 and an assistant \u2014 guessing what the page is about; several means none of them is.",
+        evidence: "all 3 pages carry one",
+        why: "The h1 is the page's headline. A page without one gives a reader \u2014 and an assistant looking for something to quote \u2014 nothing that says what the page is about.",
+        scope: "content",
+      },
+      {
+        key: "h1-one-headline",
+        label: "One headline, not a list of them",
+        status: "pass",
+        evidence: "no page marks more than two of its lines as the headline, across the 3 we read",
+        why: "When everything on the page is marked as the page's headline, none of it is, and whatever gets quoted back is whichever one came first in the markup.",
         scope: "content",
       },
       {
