@@ -66,15 +66,15 @@ test.describe("portfolio featured-project sticky label", () => {
     expect(Math.abs(arrowBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
     expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(wrapBox!.x + wrapBox!.width / 5 + 0.5);
 
-    // The arrow is red on a translucent white disc. It is drawn as a CSS mask
-    // over the link's colour, so if the mask fails to parse (an unquoted data:
-    // URL did, once) the span renders as a solid red square — check the mask
-    // resolved, not just that the span is there.
+    // The pin sits on a translucent white pad, and the arrow is red. The arrow
+    // is drawn as a CSS mask over the link's colour, so if the mask fails to
+    // parse (an unquoted data: URL did, once) the span renders as a solid red
+    // square — check the mask resolved, not just that the span is there.
     const glyph = link.locator("span");
     await expect(glyph).toHaveCSS("background-color", "rgb(215, 25, 32)");
     const [maskImage, disc] = await Promise.all([
       glyph.evaluate((el) => getComputedStyle(el).maskImage),
-      link.evaluate((el) => getComputedStyle(el).backgroundColor),
+      rubrik.evaluate((el) => getComputedStyle(el).backgroundColor),
     ]);
     expect(maskImage).toMatch(/^url\("data:image\/svg/);
     // Tailwind emits the 30% white as oklab(… / 0.3) — assert the alpha only.
