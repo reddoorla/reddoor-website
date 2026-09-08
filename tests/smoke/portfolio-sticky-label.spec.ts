@@ -53,6 +53,20 @@ test.describe("portfolio featured-project sticky label", () => {
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute("href", "/portfolio/rubrik-zero-labs");
 
+    // The arrow is centred on the name, and the name is set at subheading
+    // size — the homepage's h3 scale — not body size.
+    const name = rubrik.locator("p").first();
+    const [nameBox, arrowBox] = await Promise.all([name.boundingBox(), link.boundingBox()]);
+    const mid = (b: { y: number; height: number }) => b.y + b.height / 2;
+    expect(Math.abs(mid(nameBox!) - mid(arrowBox!))).toBeLessThanOrEqual(1);
+    expect(await name.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBe(30);
+    // The pinned arrow is the button SVG masked over the name's red. If the
+    // mask fails to parse (an unquoted data: URL did, once) the span is a red
+    // square — so check the mask resolved, not just that the span exists.
+    const arrow = link.locator("span");
+    await expect(arrow).toHaveCSS("background-color", "rgb(215, 25, 32)");
+    expect(await arrow.evaluate((el) => getComputedStyle(el).maskImage)).toMatch(/^url\(/);
+
     // Past the group: Rubrik's chip is pushed out and Revogen's has taken over.
     await scrollTo(page, top + height + 400);
     await expect.poll(() => yOf(rubrik)).toBeLessThan(TOP - 2);

@@ -520,6 +520,14 @@
      80% column), and 2-col paper-card + image. The recurring red-label /
      services / arrow row is the `featureLabel` snippet. Imagery exported from
      Figma (node 725:1226).
+
+     `pinned` is the sticky variant (below): the name alone at the homepage's
+     h3 scale (.type-subhead), centred on the arrow, the arrow in the same red
+     (a grey arrow is invisible over light imagery, and the pin floats over
+     anything), and shrunk so its stroke weighs the same as the type. Pragmatica 200 draws a 1.72px stem at
+     30px; the arrow's ring and shaft are 5.07% of its rendered size, so 1.1em
+     (33px) puts them within a tenth of a pixel of each other — and, being em,
+     the match survives the 22px step at 1024 (1.27px against 1.23px).
      ───────────────────────────────────────────────────────────────────────── -->
 {#snippet featureLabel({
   name,
@@ -527,26 +535,45 @@
   href,
   aria,
   onDark = false,
+  pinned = false,
 }: {
   name: string;
   services: string;
   href: string;
   aria: string;
   onDark?: boolean;
+  pinned?: boolean;
 })}
-  <div class="w-full flex flex-row justify-between items-start gap-5">
+  <div class="flex flex-row gap-5 {pinned ? 'items-center' : 'w-full justify-between items-start'}">
     <div>
-      <p class="uppercase {onDark ? 'text-white' : 'text-primary'}">{name}</p>
+      <p class="uppercase {pinned ? 'type-subhead ' : ''}{onDark ? 'text-white' : 'text-primary'}">
+        {name}
+      </p>
       {#if services}
         <p class={onDark ? "text-white" : "text-light"}>{services}</p>
       {/if}
     </div>
     <a
       {href}
-      class="shrink-0 {onDark ? 'brightness-200 ' : ''}hover:brightness-50 transition bump"
+      class="shrink-0 flex {pinned ? 'type-subhead text-primary ' : ''}{onDark
+        ? 'brightness-200 '
+        : ''}hover:brightness-50 transition bump"
       aria-label={aria}
     >
-      <img src={arrowButton} alt="" class="size-12.5" />
+      {#if pinned}
+        <!-- The same arrow, but as a mask so it takes the name's red: the grey
+             #BBBDBF fill vanishes over light imagery (Revogen's grafts). The
+             url() MUST be quoted: Vite inlines this SVG as a data: URL full of
+             single quotes, which an unquoted url() cannot hold, and the whole
+             declaration is dropped — a solid red square. -->
+        <span
+          class="block size-[1.1em] bg-current"
+          style={`-webkit-mask:url("${arrowButton}") center/contain no-repeat;mask:url("${arrowButton}") center/contain no-repeat`}
+          aria-hidden="true"
+        ></span>
+      {:else}
+        <img src={arrowButton} alt="" class="size-12.5" />
+      {/if}
     </a>
   </div>
 {/snippet}
@@ -556,17 +583,23 @@
      wrapped in a `relative` group, and this rides high in the viewport — the
      label sits 112px down, a clear 64px under the fixed h-12 nav — for as long
      as that group is on screen, floating over whatever scrolls past as bare
-     type — the name and the arrow only (Tucker: no services line, no halo) — above every layer of the page (z-[15]: over the banners' own z-10
-     layers and every card) but under the fixed nav (z-20) — an outgoing pin
-     leaves the viewport through the nav band, and must slide under it, not
-     over the wordmark.
+     type — the name and the arrow only (Tucker: no services line, no halo),
+     at subheading size, the arrow packed right after the name rather than at
+     a column edge (a fixed column orphans the arrow 200px from "Revogen"); the
+     chip shrinks to fit and only caps wrapping at 36% of the content width
+     (the longest name, St. James' Episcopal School, is 441px at 30px: one
+     line once ContentWidth hits its 1440px cap, two below; the 304px floor
+     keeps every name but that one on a line at the 22px step) — above every layer of the
+     page (z-[15]: over the banners' own z-10 layers and every card) but under
+     the fixed nav (z-20) — an outgoing pin leaves the viewport through the nav
+     band, and must slide under it, not over the wordmark.
      It takes no room in flow — each group is a one-cell grid and this box and
      the content share that cell (col-start-1 row-start-1), so nothing below it
      moves and, unlike a negative margin, the group's full height is the box's
      containing block (a sticky element's MARGIN box is what gets constrained,
      so -mb-80 let the pin run 320px past its group). The sticky box is
      deliberately taller than the tallest label: 112px of lead-in
-     (pt-28) plus up to ~180px of label inside 320px, so the group's end pushes
+     (pt-28) plus up to ~140px of label (three 46px lines) inside 320px, so the group's end pushes
      the outgoing label out at least 28px before the group ends, and the next
      label starts 112px into its own group — two pins never touch. Below md the
      in-card label stays and this is not rendered; at md+ the in-card label is
@@ -577,8 +610,8 @@
     data-sticky-label={props.href.replace("/portfolio/", "")}
   >
     <ContentWidth class="relative">
-      <div class="pointer-events-auto w-[18%] min-w-40 pl-4" data-sticky-chip>
-        {@render featureLabel({ ...props, services: "" })}
+      <div class="pointer-events-auto w-fit max-w-[36%] min-w-76 pl-4" data-sticky-chip>
+        {@render featureLabel({ ...props, services: "", pinned: true })}
       </div>
     </ContentWidth>
   </div>
