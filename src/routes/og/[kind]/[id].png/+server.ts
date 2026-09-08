@@ -3,7 +3,7 @@ import { asText, isFilled } from "@prismicio/client";
 import type { EntryGenerator, RequestHandler } from "./$types";
 import { createClient } from "$lib/prismicio";
 import { renderCard } from "$lib/og/card";
-import { SITE_HEADLINES, docHeadline } from "$lib/og/headline";
+import { SITE_TITLES, docHeadline } from "$lib/og/headline";
 import { isOgId, isOgKind, type OgKind } from "$lib/og/url";
 import { cardAssets } from "$lib/server/og/assets";
 import { loadRouteMeta } from "$lib/server/route-meta";
@@ -28,11 +28,13 @@ type DocKind = Exclude<OgKind, "site">;
 async function headlineFor(kind: OgKind, id: string, fetch: typeof globalThis.fetch) {
   const client = createClient({ fetch });
   if (kind === "site") {
-    const line = SITE_HEADLINES[id];
-    if (!line) throw error(404, "Not found");
-    // An editor can retitle the card from the page's route_meta document.
+    const title = SITE_TITLES[id];
+    if (!title) throw error(404, "Not found");
+    // The card says what the page's title says. An editor overrides it from
+    // the page's route_meta document — card_headline for card-only copy, else
+    // whatever they retitled the page to.
     const meta = await loadRouteMeta(client, id);
-    return meta?.card_headline || line;
+    return docHeadline(meta?.card_headline || meta?.meta_title || title);
   }
   const doc = await client.getByUID(kind as DocKind, id).catch(() => null);
   if (!doc) throw error(404, "Not found");
@@ -63,7 +65,7 @@ export const entries: EntryGenerator = async () => {
     (d) => !isFilled.image(d.data.meta_image) && !isFilled.image(d.data.hero),
   );
   return [
-    ...Object.keys(SITE_HEADLINES).map((id) => ({ kind: "site", id })),
+    ...Object.keys(SITE_TITLES).map((id) => ({ kind: "site", id })),
     ...pages.map((d) => ({ kind: "page", id: d.uid! })),
     ...industries.map((d) => ({ kind: "industry", id: d.uid! })),
     ...showcases.map((d) => ({ kind: "showcase", id: d.uid! })),
