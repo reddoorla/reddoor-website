@@ -1,7 +1,8 @@
 import { createClient } from "$lib/prismicio";
 import { filter } from "@prismicio/client";
 import { error } from "@sveltejs/kit";
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import { ogCardPath } from "$lib/og/url";
+import { loadRouteMeta } from "$lib/server/route-meta";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
@@ -23,11 +24,15 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
     throw error(503, { message: "Content is temporarily unavailable — please try again." });
   }
 
+  // Editor overrides from the page's route_meta document, if one exists.
+  const meta = await loadRouteMeta(client, "portfolio");
   return {
     allProjects: allProjects,
-    title: "Portfolio | Reddoor Creative",
-    meta_description: "We design beautiful marketing materials that help you thrive. See our work.",
-    meta_title: "Portfolio | Reddoor Creative",
-    meta_image: metaImage,
+    title: meta?.meta_title || "Portfolio | Reddoor Creative",
+    meta_description:
+      meta?.meta_description ||
+      "We design beautiful marketing materials that help you thrive. See our work.",
+    meta_title: meta?.meta_title || "Portfolio | Reddoor Creative",
+    meta_image: meta?.meta_image || ogCardPath("site", "portfolio"),
   };
 };

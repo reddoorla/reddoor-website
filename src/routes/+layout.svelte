@@ -96,13 +96,20 @@
   // origin (SITE_URL) instead — otherwise the baked-in og:image points at a
   // non-existent host. Real request origins (SSR pages, previews, dev) are used
   // as-is so each host advertises its own image.
+  const canonicalOrigin = $derived(
+    page.url.origin.includes("sveltekit-prerender") ? SITE_URL : page.url.origin,
+  );
   const metaImageUrl = $derived.by(() => {
     const img = page.data.meta_image;
     if (typeof img !== "string" || !img) return undefined;
     if (img.startsWith("http")) return img;
-    const origin = page.url.origin.includes("sveltekit-prerender") ? SITE_URL : page.url.origin;
-    return new URL(img, origin).href;
+    return new URL(img, canonicalOrigin).href;
   });
+  // The "OG text" half of the share card: og:title never depends on an editor
+  // having filled meta_title, and the description/url/site_name make the
+  // unfurl complete on Slack, LinkedIn and iMessage.
+  const ogTitle = $derived(page.data.meta_title || page.data.title || "Reddoor Creative");
+  const ogUrl = $derived(new URL(page.url.pathname, canonicalOrigin).href);
 
   function disableScrollRestoration() {
     if ("scrollRestoration" in history) {
@@ -135,8 +142,12 @@
   {#if page.data.meta_description}
     <meta name="description" content={page.data.meta_description} />
   {/if}
-  {#if page.data.meta_title}
-    <meta property="og:title" content={page.data.meta_title} />
+  <meta property="og:title" content={ogTitle} />
+  <meta property="og:site_name" content="Reddoor Creative" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={ogUrl} />
+  {#if page.data.meta_description}
+    <meta property="og:description" content={page.data.meta_description} />
   {/if}
   <!-- Opt-in per page. The appointment routes carry a bearer id in the path, so
        they must stay out of search indexes and out of the Referer of anything
