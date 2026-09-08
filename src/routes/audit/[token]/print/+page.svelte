@@ -272,6 +272,18 @@
   <section>
     <h2>What you control</h2>
 
+    <!-- The readout, ahead of every finding, for the same reason it leads the
+         web report: it answers "do these people know what they are talking
+         about" before the reader is asked to accept anything. Names only here —
+         the receipts are a folded section on the web and a page of URLs in
+         print, which is a worse trade in a document nobody can expand. -->
+    {#if view.stack?.measured && view.stack.items.length > 0}
+      <h3>What you're running</h3>
+      <p>
+        Read off your own pages: {view.stack.items.map((i) => i.name).join(", ")}.
+      </p>
+    {/if}
+
     <h3>Does it work</h3>
     {#if healthProblems.length === 0}
       <p class="note">Every check on whether the site works came back clean — see What passes.</p>

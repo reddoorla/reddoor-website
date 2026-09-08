@@ -41,3 +41,6 @@ scripts/medtech/assets/*
 !scripts/medtech/assets/logo-aati-rev.png
 !scripts/medtech/assets/logo-caltex-medical-rev.png
 !scripts/medtech/assets/logo-msot-rev.png
+
+# A real audit dumped for /dev/audit-report — local only.
+.audit-sample.json

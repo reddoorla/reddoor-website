@@ -6,6 +6,8 @@
   import GoalFit from "./GoalFit.svelte";
   import SourceCheck from "./SourceCheck.svelte";
   import SiteHealth from "./SiteHealth.svelte";
+  import Stack from "./Stack.svelte";
+  import Accessibility from "./Accessibility.svelte";
   import Standing from "./Standing.svelte";
   import QuestionMeter from "./QuestionMeter.svelte";
   import FixList from "./FixList.svelte";
@@ -227,11 +229,30 @@
       </div>
     </RailRow>
 
+    <!-- Ahead of every finding, and the only section that grades nothing.
+         "Here is what you are running" answers the reader's first silent
+         question — do these people know what they are talking about — before
+         they are asked to accept anything we found. -->
+    {#if view.stack}
+      <RailRow label="What you're running" labelAs="h3" fill class="mt-16 md:mt-24">
+        <Stack {view} />
+      </RailRow>
+    {/if}
+
     <!-- Findings, not a score: a count of broken links is a fact the reader
          can check in thirty seconds. -->
     <RailRow label="Does it work" labelAs="h3" fill class="mt-16 md:mt-24">
       <SiteHealth {view} />
     </RailRow>
+
+    <!-- After "Does it work" and before the goal, because it is the same kind
+         of claim as the first — a machine ran a rule and here is what it said
+         — and because it must not be the loudest thing on the page. -->
+    {#if view.accessibility}
+      <RailRow label="Can everyone use it" labelAs="h3" fill class="mt-16 md:mt-24">
+        <Accessibility {view} />
+      </RailRow>
+    {/if}
 
     <!-- Framed in the reader's terms rather than ours: "nobody can book
          without calling you" is a sentence about their business. -->
