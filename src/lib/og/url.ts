@@ -4,10 +4,10 @@
  * id names which one, so the endpoint cannot be used to put arbitrary words on
  * a Reddoor-branded card.
  */
-export const OG_KINDS = ["site", "page", "industry", "showcase", "project", "audit"] as const;
+export const OG_KINDS = ["site", "page", "industry", "showcase", "project"] as const;
 export type OgKind = (typeof OG_KINDS)[number];
 
-/** Prismic uids and report tokens (`REPORT_TOKEN_PATTERN`) both fit. */
+/** Prismic uids and the registry slugs. */
 const ID = /^[A-Za-z0-9_-]{1,80}$/;
 
 export function isOgKind(kind: string): kind is OgKind {

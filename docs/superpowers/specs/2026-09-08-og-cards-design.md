@@ -80,12 +80,12 @@ endpoint cannot be used to put arbitrary words on a Reddoor card.
 - `site`: registry lookup, unknown slug → 404.
 - `page | industry | showcase | project`: Prismic `getByUID(kind, id)` → `docHeadline`;
   missing doc → 404.
-- `audit`: `fetchReport(token)` → `auditHeadline`; missing → 404. Response is
-  `private, no-store` + `x-robots-tag: noindex`, matching the report's own policy.
-- Everything else: `Cache-Control: public, max-age=300, s-maxage=86400`.
-- `prerender = "auto"` with `entries()` listing every `site` slug and every page /
-  industry / showcase document, so those cards are baked at build time; anything not
-  enumerated (audit, a doc published after the build) renders in the function.
+- `prerender = true` (changed 2026-09-08 after the first staging deploy 502d every SSR route:
+  satori's harfbuzzjs reads `hb.wasm` from disk at start-up and Netlify's packager does not
+  ship it). `entries()` lists every `site` slug, every page / industry / showcase document and
+  the projects with neither meta image nor hero, so every card a page can fall back to is a
+  static file from the same build that prerendered the page. Audit reports share the static
+  `site/audit` card; nothing card-related runs in the function.
 
 Assets reach the function through one tiny Vite plugin, `virtual:og-assets`, which reads
 the fonts, texture, mark and the resvg wasm from disk at build time and exports them as

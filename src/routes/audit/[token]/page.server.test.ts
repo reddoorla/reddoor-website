@@ -73,8 +73,8 @@ describe("/audit/[token] — loading", () => {
       report: REPORT,
       // The URL is the credential — it must not travel in a Referer header.
       meta_referrer: "no-referrer",
-      // The share card names the business and is fetched with the same token.
-      meta_image: `/og/audit/${TOKEN}.png`,
+      // Every report shares the static audit card.
+      meta_image: "/og/site/audit.png",
     });
   });
 

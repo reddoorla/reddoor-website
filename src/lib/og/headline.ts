@@ -11,6 +11,9 @@ export const SITE_HEADLINES: Record<string, string> = {
   contact: "Isn’t it time to arm your brand?",
   portfolio: "Portfolio",
   showcase: "Our private showcase.",
+  // Prospect audit reports share one static card: cards are drawn at build
+  // time, and a per-report card would need the function (see the endpoint).
+  audit: "When AI answers for your business.",
 };
 
 const MAX = 90;

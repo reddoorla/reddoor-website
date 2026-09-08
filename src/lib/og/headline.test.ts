@@ -4,7 +4,7 @@ import { SITE_HEADLINES, auditHeadline, docHeadline, headlineSize } from "./head
 describe("SITE_HEADLINES", () => {
   it("covers every code-routed page and the default", () => {
     expect(Object.keys(SITE_HEADLINES).sort()).toEqual(
-      ["about", "contact", "default", "portfolio", "showcase"].sort(),
+      ["about", "audit", "contact", "default", "portfolio", "showcase"].sort(),
     );
   });
 });

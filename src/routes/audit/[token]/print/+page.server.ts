@@ -12,7 +12,7 @@ export const prerender = false;
 // same public token and must refuse exactly what the page refuses.
 export const load: PageServerLoad = async (event) => ({
   ...(await loadReport(event)),
-  // The share card names the business, nothing more; it is fetched by an
-  // unfurler holding the same link, so it carries the same token.
-  meta_image: ogCardPath("audit", event.params.token),
+  // One static card for every report: cards are drawn at build time, so a
+  // per-report card is not available (see the /og endpoint).
+  meta_image: ogCardPath("site", "audit"),
 });
