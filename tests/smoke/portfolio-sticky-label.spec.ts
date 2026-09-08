@@ -53,16 +53,17 @@ test.describe("portfolio featured-project sticky label", () => {
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute("href", "/portfolio/rubrik-zero-labs");
 
-    // The arrow is centred on the name, and the whole thing stays inside the
-    // 1/5 gutter the cards leave on the left (Tucker: "whole thing should fit
-    // in the 1/5 gutter") — the pin never crosses into the content column.
+    // The arrow sits under the name, flush with its left edge, and the whole
+    // thing stays inside the 1/5 gutter the cards leave on the left (Tucker:
+    // "whole thing should fit in the 1/5 gutter") — the pin never crosses
+    // into the content column.
     const name = rubrik.locator("p").first();
     const wrap = page.locator('[data-sticky-label="rubrik-zero-labs"] > *').first();
     const [nameBox, arrowBox, chipBox, wrapBox] = await Promise.all(
       [name, link, rubrik, wrap].map((l) => l.boundingBox()),
     );
-    const mid = (b: { y: number; height: number }) => b.y + b.height / 2;
-    expect(Math.abs(mid(nameBox!) - mid(arrowBox!))).toBeLessThanOrEqual(1);
+    expect(arrowBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+    expect(Math.abs(arrowBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
     expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(wrapBox!.x + wrapBox!.width / 5 + 0.5);
 
     // Past the group: Rubrik's chip is pushed out and Revogen's has taken over.

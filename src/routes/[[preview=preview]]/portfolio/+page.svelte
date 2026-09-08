@@ -521,8 +521,8 @@
      services / arrow row is the `featureLabel` snippet. Imagery exported from
      Figma (node 725:1226).
 
-     `pinned` is the sticky variant (below): the name alone, centred on an
-     arrow shrunk so its stroke weighs the same as the type. Pragmatica 200
+     `pinned` is the sticky variant (below): the name alone with the arrow
+     beneath it, shrunk so its stroke weighs the same as the type. Pragmatica 200
      draws a 1.03px stem at 18px (measured on a canvas: 1.72px at 30px); the
      arrow's ring and shaft are 5.07% of its rendered size, so 20px puts them
      within a few hundredths of a pixel of each other.
@@ -543,9 +543,9 @@
   pinned?: boolean;
 })}
   <div
-    class="w-full flex flex-row justify-between {pinned
-      ? 'items-center gap-4'
-      : 'items-start gap-5'}"
+    class="flex {pinned
+      ? 'flex-col items-start gap-2'
+      : 'w-full flex-row justify-between items-start gap-5'}"
   >
     <div>
       <p class="uppercase {onDark ? 'text-white' : 'text-primary'}">{name}</p>
