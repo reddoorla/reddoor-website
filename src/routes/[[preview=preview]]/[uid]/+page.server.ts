@@ -1,5 +1,5 @@
 import { asText } from "@prismicio/client";
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import { ogCardPath } from "$lib/og/url";
 import { createClient } from "$lib/prismicio";
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad, EntryGenerator } from "./$types";
@@ -34,10 +34,9 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     title: asText(page.data.title),
     meta_description: page.data.meta_description,
     meta_title: page.data.meta_title,
-    // Fall back to the site-wide share image like every sibling route does —
-    // without it a CMS document that never filled in meta_image ships no
-    // og:image at all, and link unfurls come back blank.
-    meta_image: page.data.meta_image.url || metaImage,
+    // A document that never filled in meta_image gets a card generated from
+    // its own title, so no page can ship without an og:image.
+    meta_image: page.data.meta_image.url || ogCardPath(docType, params.uid),
   };
 };
 

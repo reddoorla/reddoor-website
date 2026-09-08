@@ -1,4 +1,4 @@
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import { ogCardPath } from "$lib/og/url";
 import { createClient } from "$lib/prismicio";
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
     meta_description:
       "We design beautiful marketing materials that help you thrive. Let us tell you how.",
     meta_title: "About | Reddoor Creative",
-    meta_image: metaImage,
+    meta_image: ogCardPath("site", "about"),
     logoSoup,
   };
 };

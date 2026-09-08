@@ -1,7 +1,7 @@
 import { fail } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import { ogCardPath } from "$lib/og/url";
 import type { Actions, PageServerLoad } from "./$types";
 
 // The root layout sets `prerender = "auto"`; this page now has a form `action`,
@@ -14,7 +14,7 @@ export const load: PageServerLoad = async () => {
     title: "Contact | Reddoor Creative",
     meta_description: "We design beautiful marketing materials that help you thrive. Talk to us.",
     meta_title: "Contact | Reddoor Creative",
-    meta_image: metaImage,
+    meta_image: ogCardPath("site", "contact"),
     // Planted per-request for the bot timing check (see screenSubmission).
     formTs: Date.now(),
   };

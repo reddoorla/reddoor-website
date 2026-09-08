@@ -1,7 +1,7 @@
 import { createClient } from "$lib/prismicio";
 import { filter } from "@prismicio/client";
 import { error } from "@sveltejs/kit";
-import metaImage from "$lib/assets/icons/logos/printedReddoor.png";
+import { ogCardPath } from "$lib/og/url";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
@@ -28,6 +28,6 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
     title: "Portfolio | Reddoor Creative",
     meta_description: "We design beautiful marketing materials that help you thrive. See our work.",
     meta_title: "Portfolio | Reddoor Creative",
-    meta_image: metaImage,
+    meta_image: ogCardPath("site", "portfolio"),
   };
 };
