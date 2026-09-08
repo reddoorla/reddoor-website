@@ -58,7 +58,11 @@ function tree(headline: string, assets: CardAssets) {
       fontFamily: "Besley",
     },
     [
-      el("div", { fontFamily: "Inter", fontSize: 26, letterSpacing: 6, color: "#000" }, "REDDOOR CREATIVE"),
+      el(
+        "div",
+        { fontFamily: "Inter", fontSize: 26, letterSpacing: 6, color: "#000" },
+        "REDDOOR CREATIVE",
+      ),
       el(
         "div",
         {
@@ -72,14 +76,21 @@ function tree(headline: string, assets: CardAssets) {
         headline,
       ),
       el("div", { display: "flex", justifyContent: "space-between", alignItems: "flex-end" }, [
-        el("div", { fontFamily: "Inter", fontSize: 24, letterSpacing: 2, color: GREY }, "reddoorla.com"),
+        el(
+          "div",
+          { fontFamily: "Inter", fontSize: 24, letterSpacing: 2, color: GREY },
+          "reddoorla.com",
+        ),
         { type: "img", props: { src: assets.mark, width: MARK_W, height: MARK_H } },
       ]),
     ],
   );
 }
 
-export async function renderCard(headline: string, assets: CardAssets): Promise<Uint8Array> {
+export async function renderCard(
+  headline: string,
+  assets: CardAssets,
+): Promise<Uint8Array<ArrayBuffer>> {
   await ensureWasm(assets.wasm);
   const svg = await satori(tree(headline, assets) as never, {
     width: CARD_WIDTH,
@@ -92,7 +103,9 @@ export async function renderCard(headline: string, assets: CardAssets): Promise<
   const resvg = new Resvg(svg, { fitTo: { mode: "width", value: CARD_WIDTH } });
   const png = resvg.render();
   try {
-    return png.asPng();
+    // Copied into a fresh ArrayBuffer-backed array: resvg's view is over wasm
+    // memory, which `Response` will not take and `free()` is about to reclaim.
+    return new Uint8Array(png.asPng());
   } finally {
     png.free();
     resvg.free();

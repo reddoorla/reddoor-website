@@ -13,7 +13,7 @@ const dataUri = (p: string, mime: string) => `data:${mime};base64,${read(p).toSt
 const assets: CardAssets = {
   besley: read("src/lib/assets/og/fonts/besley-400-latin.ttf"),
   inter: read("src/lib/assets/og/fonts/inter-300-latin.ttf"),
-  texture: dataUri("static/waterColorBg.jpg", "image/jpeg"),
+  texture: dataUri("src/lib/assets/og/texture.jpg", "image/jpeg"),
   mark: dataUri("src/lib/assets/icons/logos/reddoor_logo.png", "image/png"),
   wasm: readFileSync(require.resolve("@resvg/resvg-wasm/index_bg.wasm")),
 };

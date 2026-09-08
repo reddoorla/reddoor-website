@@ -10,14 +10,14 @@ Only four Prismic types carry a meta image (page, industry, project, showcase), 
 the fallback every other loader uses is `printedReddoor.png`, a 200×141 logo that
 renders as the "cheesy" card Tim is seeing. Live state on 2026-09-08:
 
-| Page | og:image |
-|---|---|
-| `/` | Prismic meta image (filled) |
-| `/medtech` | debossed logo (industry doc's meta image is empty) |
-| `/about`, `/contact`, `/portfolio` | debossed logo (hard-coded, no Prismic doc) |
-| `/portfolio/*` (43) | Prismic meta image or hero |
-| funnel pages | 1200×630 typographic cards (PR #138) |
-| `/showcase`, 404, `/audit/[token]`, `/reschedule` | none |
+| Page                                              | og:image                                           |
+| ------------------------------------------------- | -------------------------------------------------- |
+| `/`                                               | Prismic meta image (filled)                        |
+| `/medtech`                                        | debossed logo (industry doc's meta image is empty) |
+| `/about`, `/contact`, `/portfolio`                | debossed logo (hard-coded, no Prismic doc)         |
+| `/portfolio/*` (43)                               | Prismic meta image or hero                         |
+| funnel pages                                      | 1200×630 typographic cards (PR #138)               |
+| `/showcase`, 404, `/audit/[token]`, `/reschedule` | none                                               |
 
 PR #138 already drew the typographic card the site should use (`scripts/og/generate.mjs`)
 and left two spares, `default.jpg` and `medtech.jpg`, deliberately unwired.
@@ -58,6 +58,7 @@ same way the PR #138 cards used system Helvetica.
 ### Headlines (pure)
 
 `src/lib/og/headline.ts`:
+
 - `SITE_HEADLINES`: registry of code-routed slugs → copy. `default` ("Brand strategy &
   design."), `about`, `contact`, `portfolio`, `showcase`, each echoing the page's hero.
 - `docHeadline(title)`: strips the site's `| Reddoor Creative` title suffix, collapses
@@ -74,6 +75,7 @@ endpoint cannot be used to put arbitrary words on a Reddoor card.
 ### Endpoint
 
 `src/routes/og/[kind]/[id].png/+server.ts` — GET only.
+
 - `site`: registry lookup, unknown slug → 404.
 - `page | industry | showcase | project`: Prismic `getByUID(kind, id)` → `docHeadline`;
   missing doc → 404.
@@ -84,8 +86,9 @@ endpoint cannot be used to put arbitrary words on a Reddoor card.
   industry / showcase document, so those cards are baked at build time; anything not
   enumerated (audit, a doc published after the build) renders in the function.
 
-Assets reach the function via `?inline` imports (fonts, texture, mark) and a tiny Vite
-plugin exposing `virtual:resvg-wasm` as base64 read from `node_modules` at build time.
+Assets reach the function through one tiny Vite plugin, `virtual:og-assets`, which reads
+the fonts, texture, mark and the resvg wasm from disk at build time and exports them as
+base64 (Vite`s own `?inline` is claimed by imagetools for images and refused for wasm).
 adapter-netlify esbuild-bundles the SSR output, so nothing may depend on files existing
 next to the function at runtime; base64 in the bundle is the only shape that survives.
 Satori's default entry embeds Yoga as asm.js, so it needs no loader of its own.
@@ -96,7 +99,7 @@ Satori's default entry embeds Yoga as asm.js, so it needs no loader of its own.
   default. Page keys override layout keys, so every route that returns nothing (404,
   `/showcase`, `/dev/*`, any future route) inherits a real card.
 - `about`, `contact`, `portfolio` → their `site` card. `/showcase` gets a `+page.ts` for its
-  card. Bare `/reschedule` gets the existing `reschedule.jpg`.
+  card. Bare `/reschedule` is a redirect to `/schedule` and needs nothing.
 - `/` → `meta_image.url || ogCardPath("page", "home")` (today it has no fallback at all).
 - `[uid]` → `|| ogCardPath(docType, uid)`; `showcase/[uid]` → `|| ogCardPath("showcase", uid)`;
   `portfolio/[uid]` → `|| hero.url || ogCardPath("project", uid)`.

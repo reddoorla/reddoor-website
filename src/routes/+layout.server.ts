@@ -1,5 +1,6 @@
 import { createClient } from "$lib/prismicio";
 import { filter } from "@prismicio/client";
+import { ogCardPath } from "$lib/og/url";
 import type { LayoutServerLoad } from "./$types";
 
 export const prerender = "auto";
@@ -59,5 +60,9 @@ export const load: LayoutServerLoad = async ({ url, fetch, cookies, setHeaders }
     pathname,
     latestFourProjects,
     isPreviewSession,
+    // Base share image. Page loads override it; every route that returns
+    // nothing (404, /showcase, /dev/*, whatever comes next) inherits a real
+    // 1200×630 card instead of no og:image at all.
+    meta_image: ogCardPath("site", "default"),
   };
 };
