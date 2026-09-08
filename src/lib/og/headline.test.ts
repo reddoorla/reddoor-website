@@ -1,18 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { SITE_HEADLINES, auditHeadline, docHeadline, headlineSize } from "./headline";
+import { SITE_TITLES, auditHeadline, docHeadline, headlineSize } from "./headline";
 
-describe("SITE_HEADLINES", () => {
+describe("SITE_TITLES", () => {
   it("covers every code-routed page and the default", () => {
-    expect(Object.keys(SITE_HEADLINES).sort()).toEqual(
+    expect(Object.keys(SITE_TITLES).sort()).toEqual(
       ["about", "audit", "contact", "default", "portfolio", "showcase"].sort(),
     );
+  });
+
+  // The point of the map: a card repeats the page's title, it does not invent
+  // a line of its own. Each entry is the string in that page's <title>.
+  it("is the page's own title, and reduces to the bare page name", () => {
+    expect(SITE_TITLES.about).toBe("About | Reddoor Creative");
+    expect(SITE_TITLES.contact).toBe("Contact | Reddoor Creative");
+    expect(SITE_TITLES.portfolio).toBe("Portfolio | Reddoor Creative");
+    expect(SITE_TITLES.showcase).toBe("Reddoor Creative | Showcase");
+    expect(SITE_TITLES.audit).toBe(auditHeadline(null));
+    expect(
+      ["about", "contact", "portfolio", "showcase"].map((k) => docHeadline(SITE_TITLES[k])),
+    ).toEqual(["About", "Contact", "Portfolio", "Showcase"]);
   });
 });
 
 describe("docHeadline", () => {
-  it("strips the site's title suffix", () => {
+  it("strips the site name from either end", () => {
     expect(docHeadline("MedTech | Reddoor Creative")).toBe("MedTech");
     expect(docHeadline("Home | reddoor creative")).toBe("Home");
+    expect(docHeadline("Reddoor Creative | Showcase")).toBe("Showcase");
+  });
+  it("keeps a title that is only the site name — the default card", () => {
+    expect(docHeadline("Reddoor Creative")).toBe("Reddoor Creative");
   });
   it("collapses whitespace", () => {
     expect(docHeadline("  Two\n words  ")).toBe("Two words");
@@ -22,9 +39,9 @@ describe("docHeadline", () => {
     expect(docHeadline(long)).toHaveLength(90);
     expect(docHeadline(long).endsWith("…")).toBe(true);
   });
-  it("falls back to the default headline when empty", () => {
-    expect(docHeadline("")).toBe(SITE_HEADLINES.default);
-    expect(docHeadline(" | Reddoor Creative")).toBe(SITE_HEADLINES.default);
+  it("falls back to the site name when empty", () => {
+    expect(docHeadline("")).toBe(SITE_TITLES.default);
+    expect(docHeadline(" | Reddoor Creative")).toBe(SITE_TITLES.default);
   });
 });
 
