@@ -81,8 +81,8 @@ describe("both routes use the shared loader", () => {
       await expect(route.load(evt as never)).resolves.toEqual({
         report: REPORT,
         meta_referrer: "no-referrer",
-        // The share card is keyed on the same token as the report.
-        meta_image: `/og/audit/${TOKEN}.png`,
+        // Every report shares the static audit card.
+        meta_image: "/og/site/audit.png",
       });
       const headers = setHeaders.mock.calls[0]![0] as Record<string, string>;
       expect(headers["x-robots-tag"]).toContain("noindex");

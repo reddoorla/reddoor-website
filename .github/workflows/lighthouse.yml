@@ -87,6 +87,17 @@ jobs:
             sleep 10
           done
 
+          # The prerendered pages above are static files and say nothing about the
+          # serverless function. 2026-09-08: a dependency that reads a wasm file from
+          # disk at start-up took every SSR route on staging down (502 on /contact,
+          # /audit, every 404) while every prerendered page, and this gate, stayed
+          # green. /health is served by the function, so it must answer too.
+          if ! curl -fsS -o /dev/null "$BASE/health"; then
+            echo "::error::The deploy preview function is not answering at $BASE/health. Every SSR route (/contact, /audit, 404s) is down on this build."
+            exit 1
+          fi
+          echo "Function is answering."
+
           # Derive a real, currently-published detail page from the live /portfolio
           # so the LCP hero is sampled without hardcoding a uid that could be unpublished.
           # Fetch with retries so a transient network blip isn't conflated with

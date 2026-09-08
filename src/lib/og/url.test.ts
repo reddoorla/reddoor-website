@@ -14,13 +14,15 @@ describe("ogCardPath", () => {
 
 describe("validation", () => {
   it("knows the kinds", () => {
-    expect(OG_KINDS).toEqual(["site", "page", "industry", "showcase", "project", "audit"]);
+    expect(OG_KINDS).toEqual(["site", "page", "industry", "showcase", "project"]);
     expect(isOgKind("site")).toBe(true);
     expect(isOgKind("nope")).toBe(false);
+    // Per-report cards would need the function; reports share site/audit.
+    expect(isOgKind("audit")).toBe(false);
   });
-  it("accepts Prismic uids and report tokens", () => {
+  it("accepts Prismic uids and registry slugs", () => {
     expect(isOgId("the-texas-organ-sharing-alliance")).toBe(true);
-    expect(isOgId("xZMVU1EaZLC1ZLAJ81Rzxg")).toBe(true);
+    expect(isOgId("default")).toBe(true);
     expect(isOgId("a".repeat(80))).toBe(true);
   });
   it("rejects anything else", () => {
