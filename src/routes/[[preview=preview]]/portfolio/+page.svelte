@@ -522,7 +522,8 @@
      Figma (node 725:1226).
 
      `pinned` is the sticky variant (below): the name alone with the arrow
-     beneath it, shrunk so its stroke weighs the same as the type. Pragmatica 200
+     beneath it, red on a translucent white disc, and shrunk so its stroke
+     weighs the same as the type. Pragmatica 200
      draws a 1.03px stem at 18px (measured on a canvas: 1.72px at 30px); the
      arrow's ring and shaft are 5.07% of its rendered size, so 20px puts them
      within a few hundredths of a pixel of each other.
@@ -555,12 +556,24 @@
     </div>
     <a
       {href}
-      class="shrink-0 {pinned ? 'flex ' : ''}{onDark
+      class="shrink-0 {pinned ? 'flex rounded-full bg-white/30 p-4 text-primary ' : ''}{onDark
         ? 'brightness-200 '
         : ''}hover:brightness-50 transition bump"
       aria-label={aria}
     >
-      <img src={arrowButton} alt="" class={pinned ? "size-5" : "size-12.5"} />
+      {#if pinned}
+        <!-- The same arrow, but as a mask so it takes the name's red. The
+             url() MUST be quoted: Vite inlines this SVG as a data: URL full of
+             single quotes, which an unquoted url() cannot hold, and the whole
+             declaration is dropped — leaving a solid red square. -->
+        <span
+          class="block size-5 bg-current"
+          style={`-webkit-mask:url("${arrowButton}") center/contain no-repeat;mask:url("${arrowButton}") center/contain no-repeat`}
+          aria-hidden="true"
+        ></span>
+      {:else}
+        <img src={arrowButton} alt="" class="size-12.5" />
+      {/if}
     </a>
   </div>
 {/snippet}
