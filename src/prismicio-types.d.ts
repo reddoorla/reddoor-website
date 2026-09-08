@@ -745,6 +745,68 @@ export type ProjectDocument<Lang extends string = string> = prismic.PrismicDocum
 >;
 
 /**
+ * Content for Page meta documents
+ */
+interface RouteMetaDocumentData {
+  /**
+   * Share card headline field in *Page meta*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: The red line on the generated share card, used when no Meta Image is set
+   * - **API ID Path**: route_meta.card_headline
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  card_headline: prismic.KeyTextField; /**
+   * Meta Title field in *Page meta*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: A title of the page used for social media and search engines
+   * - **API ID Path**: route_meta.meta_title
+   * - **Tab**: SEO & Metadata
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  meta_title: prismic.KeyTextField;
+
+  /**
+   * Meta Description field in *Page meta*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: A brief summary of the page
+   * - **API ID Path**: route_meta.meta_description
+   * - **Tab**: SEO & Metadata
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  meta_description: prismic.KeyTextField;
+
+  /**
+   * Meta Image field in *Page meta*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: *None*
+   * - **API ID Path**: route_meta.meta_image
+   * - **Tab**: SEO & Metadata
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  meta_image: prismic.ImageField<never>;
+}
+
+/**
+ * Page meta document from Prismic
+ *
+ * - **API ID**: `route_meta`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type RouteMetaDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<
+  Simplify<RouteMetaDocumentData>,
+  "route_meta",
+  Lang
+>;
+
+/**
  * Item in *showcase → projects*
  */
 export interface ShowcaseDocumentDataProjectsItem {
@@ -1096,6 +1158,7 @@ export type AllDocumentTypes =
   | OpeningAnimationDocument
   | PageDocument
   | ProjectDocument
+  | RouteMetaDocument
   | ShowcaseDocument
   | TwentyForTwentyDocument;
 
@@ -3751,6 +3814,8 @@ declare module "@prismicio/client" {
       ProjectDocument,
       ProjectDocumentData,
       ProjectDocumentDataSlicesSlice,
+      RouteMetaDocument,
+      RouteMetaDocumentData,
       ShowcaseDocument,
       ShowcaseDocumentData,
       ShowcaseDocumentDataProjectsItem,
