@@ -554,8 +554,10 @@
      wrapped in a `relative` group, and this rides high in the viewport — the
      label sits 112px down, a clear 64px under the fixed h-12 nav — for as long
      as that group is on screen, floating over whatever scrolls past as bare
-     type, above everything on the page (z-[25]: over any z-20 content and the
-     nav, under the z-30 page-transition cover).
+     type, above every layer of the page (z-[15]: over the banners' own z-10
+     layers and every card) but under the fixed nav (z-20) — an outgoing pin
+     leaves the viewport through the nav band, and must slide under it, not
+     over the wordmark.
      It takes no room in flow — each group is a one-cell grid and this box and
      the content share that cell (col-start-1 row-start-1), so nothing below it
      moves and, unlike a negative margin, the group's full height is the box's
@@ -569,7 +571,7 @@
      hidden so the name never shows twice. -->
 {#snippet stickyLabel(props: { name: string; services: string; href: string; aria: string })}
   <div
-    class="hidden md:block col-start-1 row-start-1 self-start sticky top-0 z-[25] h-80 pt-28 pointer-events-none"
+    class="hidden md:block col-start-1 row-start-1 self-start sticky top-0 z-[15] h-80 pt-28 pointer-events-none"
     data-sticky-label={props.href.replace("/portfolio/", "")}
   >
     <ContentWidth class="relative">

@@ -3,8 +3,8 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 // Tim, Discord #rd-website 2026-09-08: "Each project needs immediate context…
 // making it a sticky title on the left column as you scroll down." Each
 // featured project's name/services/arrow block pins high in the viewport for
-// as long as that project's blocks are on screen, floats above everything,
-// then hands off to the next project's block without the two ever touching.
+// as long as that project's blocks are on screen, floats above every page
+// layer (but under the fixed nav), then hands off to the next project's block without the two ever touching.
 
 // The label's resting position while pinned: pt-28 inside a top-0 sticky box.
 const TOP = 112;
