@@ -523,7 +523,7 @@
 
      `pinned` is the sticky variant (below): the name alone with the arrow
      beneath it in the same red, shrunk so its stroke weighs the same as the
-     type. The translucent pad sits behind the pair, on the chip below.
+     type. Bare type over the imagery: no pad behind it (tried, dropped).
      Pragmatica 200
      draws a 1.03px stem at 18px (measured on a canvas: 1.72px at 30px); the
      arrow's ring and shaft are 5.07% of its rendered size, so 20px puts them
@@ -609,7 +609,7 @@
     data-sticky-label={props.href.replace("/portfolio/", "")}
   >
     <ContentWidth class="relative">
-      <div class="pointer-events-auto w-1/5 min-w-40 bg-white/30 p-4" data-sticky-chip>
+      <div class="pointer-events-auto w-1/5 min-w-40 px-4" data-sticky-chip>
         {@render featureLabel({ ...props, services: "", pinned: true })}
       </div>
     </ContentWidth>
