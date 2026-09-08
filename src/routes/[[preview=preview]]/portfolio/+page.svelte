@@ -537,7 +537,9 @@
   <div class="w-full flex flex-row justify-between items-start gap-5">
     <div>
       <p class="uppercase {onDark ? 'text-white' : 'text-primary'}">{name}</p>
-      <p class={onDark ? "text-white" : "text-light"}>{services}</p>
+      {#if services}
+        <p class={onDark ? "text-white" : "text-light"}>{services}</p>
+      {/if}
     </div>
     <a
       {href}
@@ -554,7 +556,7 @@
      wrapped in a `relative` group, and this rides high in the viewport — the
      label sits 112px down, a clear 64px under the fixed h-12 nav — for as long
      as that group is on screen, floating over whatever scrolls past as bare
-     type, above every layer of the page (z-[15]: over the banners' own z-10
+     type — the name and the arrow only (Tucker: no services line, no halo) — above every layer of the page (z-[15]: over the banners' own z-10
      layers and every card) but under the fixed nav (z-20) — an outgoing pin
      leaves the viewport through the nav band, and must slide under it, not
      over the wordmark.
@@ -576,7 +578,7 @@
   >
     <ContentWidth class="relative">
       <div class="pointer-events-auto w-[18%] min-w-40 pl-4" data-sticky-chip>
-        {@render featureLabel(props)}
+        {@render featureLabel({ ...props, services: "" })}
       </div>
     </ContentWidth>
   </div>
