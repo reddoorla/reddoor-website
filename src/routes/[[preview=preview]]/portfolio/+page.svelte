@@ -551,22 +551,29 @@
 
 <!-- The same block, pinned (Tim, Discord 2026-09-08: "each project needs
      immediate context"). Desktop only: each featured project's blocks are
-     wrapped in a `relative` group, and this rides at the top of the viewport
-     (top-16, under the fixed h-12 nav) for as long as that group is on screen,
-     floating over whatever scrolls past — a looping video, a full-bleed image —
-     on an opaque paper chip so the red name and grey services always read.
-     It takes no room in flow (h-24 -mb-24) so nothing below it moves, while
-     the sticky box keeps the chip's real height so the group's end pushes it
-     out cleanly before the next project's chip takes over. Below md the
+     wrapped in a `relative` group, and this rides high in the viewport — the
+     label sits 112px down, a clear 64px under the fixed h-12 nav — for as long
+     as that group is on screen, floating over whatever scrolls past as bare
+     type, above everything on the page (z-[25]: over any z-20 content and the
+     nav, under the z-30 page-transition cover).
+     It takes no room in flow — each group is a one-cell grid and this box and
+     the content share that cell (col-start-1 row-start-1), so nothing below it
+     moves and, unlike a negative margin, the group's full height is the box's
+     containing block (a sticky element's MARGIN box is what gets constrained,
+     so -mb-80 let the pin run 320px past its group). The sticky box is
+     deliberately taller than the tallest label: 112px of lead-in
+     (pt-28) plus up to ~180px of label inside 320px, so the group's end pushes
+     the outgoing label out at least 28px before the group ends, and the next
+     label starts 112px into its own group — two pins never touch. Below md the
      in-card label stays and this is not rendered; at md+ the in-card label is
      hidden so the name never shows twice. -->
 {#snippet stickyLabel(props: { name: string; services: string; href: string; aria: string })}
   <div
-    class="hidden md:block sticky top-16 z-10 h-24 -mb-24 pointer-events-none"
+    class="hidden md:block col-start-1 row-start-1 self-start sticky top-0 z-[25] h-80 pt-28 pointer-events-none"
     data-sticky-label={props.href.replace("/portfolio/", "")}
   >
     <ContentWidth class="relative">
-      <div class="pointer-events-auto w-[18%] min-w-40 bg-paper px-4 py-3">
+      <div class="pointer-events-auto w-[18%] min-w-40 pl-4" data-sticky-chip>
         {@render featureLabel(props)}
       </div>
     </ContentWidth>
@@ -574,249 +581,261 @@
 {/snippet}
 
 <!-- Rubrik Zero Labs — live brand video (Vimeo) with the static frame as poster -->
-<div class="relative" data-project-group="rubrik-zero-labs">
+<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="rubrik-zero-labs">
   {@render stickyLabel({
     name: "Rubrik Zero Labs",
     services: "Brand, Digital",
     href: "/portfolio/rubrik-zero-labs",
     aria: "Go to Rubrik Zero Labs project",
   })}
-  <VimeoBanner
-    vimeoId="1205996665"
-    poster={rubrikHero}
-    alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
-  />
-  <section class="pt-16 pb-56 bg-paper">
-    <ContentWidth>
-      <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
-        <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep Your Data Protected</h2>
-        <div class="w-full md:hidden">
-          {@render featureLabel({
-            name: "Rubrik Zero Labs",
-            services: "Brand, Digital",
-            href: "/portfolio/rubrik-zero-labs",
-            aria: "Go to Rubrik Zero Labs project",
-          })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <VimeoBanner
+      vimeoId="1205996665"
+      poster={rubrikHero}
+      alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
+    />
+    <section class="pt-16 pb-56 bg-paper">
+      <ContentWidth>
+        <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
+          <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep Your Data Protected</h2>
+          <div class="w-full md:hidden">
+            {@render featureLabel({
+              name: "Rubrik Zero Labs",
+              services: "Brand, Digital",
+              href: "/portfolio/rubrik-zero-labs",
+              aria: "Go to Rubrik Zero Labs project",
+            })}
+          </div>
         </div>
+      </ContentWidth>
+    </section>
+    <ContentWidth animateIn>
+      <div class="mb-24 w-full md:w-4/5 md:ml-[20%] -mt-40">
+        <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
       </div>
     </ContentWidth>
-  </section>
-  <ContentWidth animateIn>
-    <div class="mb-24 w-full md:w-4/5 md:ml-[20%] -mt-40">
-      <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
-    </div>
-  </ContentWidth>
+  </div>
 </div>
 
 <!-- Revogen — live interactive grafts hero (ported from the Revogen homepage) -->
-<div class="relative" data-project-group="revogen">
+<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="revogen">
   {@render stickyLabel({
     name: "Revogen",
     services: "brand, digital, print, environmental",
     href: "/portfolio/revogen",
     aria: "Go to Revogen project",
   })}
-  <RevogenBanner />
-  <section class="mt-16 mb-24">
-    <ContentWidth>
-      <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-        >
-          <h2 class="type-feature-card text-primary">
-            A revolutionary brand with a simple purpose: Healing.
-          </h2>
-          <div class="md:hidden">
-            {@render featureLabel({
-              name: "Revogen",
-              services: "brand, digital, print, environmental",
-              href: "/portfolio/revogen",
-              aria: "Go to Revogen project",
-            })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <RevogenBanner />
+    <section class="mt-16 mb-24">
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+          <div
+            use:anim={{ delayMax: 0 }}
+            class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+          >
+            <h2 class="type-feature-card text-primary">
+              A revolutionary brand with a simple purpose: Healing.
+            </h2>
+            <div class="md:hidden">
+              {@render featureLabel({
+                name: "Revogen",
+                services: "brand, digital, print, environmental",
+                href: "/portfolio/revogen",
+                aria: "Go to Revogen project",
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={revogenPackaging}
+              alt="Revogen product packaging"
+            />
           </div>
         </div>
-        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-          <Img
-            class="h-full w-full object-cover"
-            src={revogenPackaging}
-            alt="Revogen product packaging"
-          />
-        </div>
-      </div>
-    </ContentWidth>
-  </section>
+      </ContentWidth>
+    </section>
+  </div>
 </div>
 
 <!-- CEO of Los Angeles -->
-<div class="relative" data-project-group="ceo-la">
+<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="ceo-la">
   {@render stickyLabel({
     name: "CEO of Los Angeles",
     services: "brand, digital, print",
     href: "/portfolio/ceo-la",
     aria: "Go to CEO of Los Angeles project",
   })}
-  <ContentWidth animateIn>
-    <div class="mb-24 w-full md:w-4/5 md:ml-[20%]">
-      <Img
-        src={ceoLanyard}
-        alt="Chief Executive Office of LA County — employee badge on a lanyard"
-        class="w-full"
-      />
-    </div>
-  </ContentWidth>
-  <section class="mb-24">
-    <ContentWidth>
-      <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-        >
-          <h2 class="type-feature-card text-primary">
-            The &ldquo;buck stops here&rdquo; with a branding system overhaul of LA County&rsquo;s
-            CEO
-          </h2>
-          <div class="md:hidden">
-            {@render featureLabel({
-              name: "CEO of Los Angeles",
-              services: "brand, digital, print",
-              href: "/portfolio/ceo-la",
-              aria: "Go to CEO of Los Angeles project",
-            })}
-          </div>
-        </div>
-        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-          <Img
-            class="h-full w-full object-cover"
-            src={ceoBrandGrid}
-            alt="CEO of LA County brand-guidelines grid"
-          />
-        </div>
+  <div class="col-start-1 row-start-1 min-w-0">
+    <ContentWidth animateIn>
+      <div class="mb-24 w-full md:w-4/5 md:ml-[20%]">
+        <Img
+          src={ceoLanyard}
+          alt="Chief Executive Office of LA County — employee badge on a lanyard"
+          class="w-full"
+        />
       </div>
     </ContentWidth>
-  </section>
+    <section class="mb-24">
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+          <div
+            use:anim={{ delayMax: 0 }}
+            class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+          >
+            <h2 class="type-feature-card text-primary">
+              The &ldquo;buck stops here&rdquo; with a branding system overhaul of LA County&rsquo;s
+              CEO
+            </h2>
+            <div class="md:hidden">
+              {@render featureLabel({
+                name: "CEO of Los Angeles",
+                services: "brand, digital, print",
+                href: "/portfolio/ceo-la",
+                aria: "Go to CEO of Los Angeles project",
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={ceoBrandGrid}
+              alt="CEO of LA County brand-guidelines grid"
+            />
+          </div>
+        </div>
+      </ContentWidth>
+    </section>
+  </div>
 </div>
 <!-- Trinity Law School -->
-<div class="relative" data-project-group="trinity-law-school">
+<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="trinity-law-school">
   {@render stickyLabel({
     name: "Trinity Law School",
     services: "Print, Digital",
     href: "/portfolio/trinity-law-school",
     aria: "Go to Trinity Law School project",
   })}
-  <section class="mb-24">
-    <ContentWidth>
-      <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="relative w-full lg:w-1/2 aspect-square overflow-hidden"
-        >
-          <Img
-            class="absolute inset-0 h-full w-full object-cover"
-            src={trinitySteps}
-            alt="Trinity Law School — an associate on the campus steps"
-          />
+  <div class="col-start-1 row-start-1 min-w-0">
+    <section class="mb-24">
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
           <div
-            class="absolute inset-0 pointer-events-none"
-            style="background: linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(0,0,0,0.3) 96%)"
-          ></div>
-          <div class="absolute bottom-0 left-0 w-full p-4 z-10 md:hidden">
-            {@render featureLabel({
-              name: "Trinity Law School",
-              services: "Print, Digital",
-              href: "/portfolio/trinity-law-school",
-              aria: "Go to Trinity Law School project",
-              onDark: true,
-            })}
+            use:anim={{ delayMax: 0 }}
+            class="relative w-full lg:w-1/2 aspect-square overflow-hidden"
+          >
+            <Img
+              class="absolute inset-0 h-full w-full object-cover"
+              src={trinitySteps}
+              alt="Trinity Law School — an associate on the campus steps"
+            />
+            <div
+              class="absolute inset-0 pointer-events-none"
+              style="background: linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(0,0,0,0.3) 96%)"
+            ></div>
+            <div class="absolute bottom-0 left-0 w-full p-4 z-10 md:hidden">
+              {@render featureLabel({
+                name: "Trinity Law School",
+                services: "Print, Digital",
+                href: "/portfolio/trinity-law-school",
+                aria: "Go to Trinity Law School project",
+                onDark: true,
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={trinityTablet}
+              alt="Trinity Law School JD viewbook on a tablet"
+            />
           </div>
         </div>
-        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-          <Img
-            class="h-full w-full object-cover"
-            src={trinityTablet}
-            alt="Trinity Law School JD viewbook on a tablet"
-          />
-        </div>
-      </div>
-    </ContentWidth>
-  </section>
+      </ContentWidth>
+    </section>
+  </div>
 </div>
 <!-- St. James' Episcopal School -->
-<div class="relative" data-project-group="st-james-episcopal-school">
+<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="st-james-episcopal-school">
   {@render stickyLabel({
     name: "St. James' Episcopal School",
     services: "brand, digital, print, environmental",
     href: "/portfolio/st-james-episcopal-school",
     aria: "Go to St. James' Episcopal School project",
   })}
-  <section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
-    <Img
-      src={stJamesMural}
-      alt="St. James' Episcopal School — a colorful painted mural wall"
-      class="absolute inset-0 h-full w-full object-cover"
-    />
-  </section>
-  <section class="mt-16 mb-24">
-    <ContentWidth>
-      <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-        <div
-          use:anim={{ delayMax: 0 }}
-          class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-        >
-          <h2 class="type-feature-card text-primary">
-            A diverse, joyful, and inclusive community of young learners.
-          </h2>
-          <div class="md:hidden">
-            {@render featureLabel({
-              name: "St. James' Episcopal School",
-              services: "brand, digital, print, environmental",
-              href: "/portfolio/st-james-episcopal-school",
-              aria: "Go to St. James' Episcopal School project",
-            })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
+      <Img
+        src={stJamesMural}
+        alt="St. James' Episcopal School — a colorful painted mural wall"
+        class="absolute inset-0 h-full w-full object-cover"
+      />
+    </section>
+    <section class="mt-16 mb-24">
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+          <div
+            use:anim={{ delayMax: 0 }}
+            class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+          >
+            <h2 class="type-feature-card text-primary">
+              A diverse, joyful, and inclusive community of young learners.
+            </h2>
+            <div class="md:hidden">
+              {@render featureLabel({
+                name: "St. James' Episcopal School",
+                services: "brand, digital, print, environmental",
+                href: "/portfolio/st-james-episcopal-school",
+                aria: "Go to St. James' Episcopal School project",
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={stJamesPhone}
+              alt="St. James' Episcopal School responsive website on a phone"
+            />
           </div>
         </div>
-        <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-          <Img
-            class="h-full w-full object-cover"
-            src={stJamesPhone}
-            alt="St. James' Episcopal School responsive website on a phone"
-          />
-        </div>
-      </div>
-    </ContentWidth>
-  </section>
+      </ContentWidth>
+    </section>
+  </div>
 </div>
 
 <!-- Gallery Sonder -->
-<div class="relative" data-project-group="gallery-sonder">
+<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="gallery-sonder">
   {@render stickyLabel({
     name: "Gallery Sonder",
     services: "brand, digital, print, environmental",
     href: "/portfolio/gallery-sonder",
     aria: "Go to Gallery Sonder project",
   })}
-  <ContentWidth animateIn>
-    <div class="-mb-40 w-full md:w-4/5 md:ml-[20%]">
-      <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
-    </div>
-  </ContentWidth>
-  <section class="pb-24 bg-paper pt-56">
-    <ContentWidth>
-      <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
-        <h2 class="type-feature mb-12 md:mb-16">
-          A local gallery highlighting the stories of emerging and established artists.
-        </h2>
-        <div class="w-full md:hidden">
-          {@render featureLabel({
-            name: "Gallery Sonder",
-            services: "brand, digital, print, environmental",
-            href: "/portfolio/gallery-sonder",
-            aria: "Go to Gallery Sonder project",
-          })}
-        </div>
+  <div class="col-start-1 row-start-1 min-w-0">
+    <ContentWidth animateIn>
+      <div class="-mb-40 w-full md:w-4/5 md:ml-[20%]">
+        <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
       </div>
     </ContentWidth>
-  </section>
+    <section class="pb-24 bg-paper pt-56">
+      <ContentWidth>
+        <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
+          <h2 class="type-feature mb-12 md:mb-16">
+            A local gallery highlighting the stories of emerging and established artists.
+          </h2>
+          <div class="w-full md:hidden">
+            {@render featureLabel({
+              name: "Gallery Sonder",
+              services: "brand, digital, print, environmental",
+              href: "/portfolio/gallery-sonder",
+              aria: "Go to Gallery Sonder project",
+            })}
+          </div>
+        </div>
+      </ContentWidth>
+    </section>
+  </div>
 </div>
 
 <!-- CTA — a snippet so the "let's work together" block can repeat: once above the
