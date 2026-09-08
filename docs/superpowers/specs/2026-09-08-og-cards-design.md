@@ -34,9 +34,10 @@ and left two spares, `default.jpg` and `medtech.jpg`, deliberately unwired.
 
 ## Non-goals
 
-- A Prismic "place" for the code-routed pages (about, contact, portfolio, showcase).
-  That needs a new custom type pushed through Slice Machine, which is an interactive
-  login step. The generated card covers them; flagged for Tim as a follow-up decision.
+- (Built as a follow-up on `feat/route-meta`, Tucker 2026-09-08: a `route_meta` custom type —
+  uid, meta_title, meta_description, meta_image, card_headline — read by the four code-routed
+  loaders and the endpoint's `site` cards, every read guarded so the build stays green until
+  the model is pushed through Slice Machine.)
 - Touching any page whose Prismic meta image is filled.
 - Tim's sticky portfolio title (separate ask, pending his screen share).
 

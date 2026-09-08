@@ -8,6 +8,7 @@ import { renderCard } from "$lib/og/card";
 import { SITE_HEADLINES, auditHeadline, docHeadline } from "$lib/og/headline";
 import { isOgId, isOgKind, type OgKind } from "$lib/og/url";
 import { cardAssets } from "$lib/server/og/assets";
+import { loadRouteMeta } from "$lib/server/route-meta";
 
 /**
  * /og/{kind}/{id}.png — the typographic share card for one page.
@@ -25,7 +26,9 @@ async function headlineFor(kind: OgKind, id: string, fetch: typeof globalThis.fe
   if (kind === "site") {
     const line = SITE_HEADLINES[id];
     if (!line) throw error(404, "Not found");
-    return line;
+    // An editor can retitle the card from the page's route_meta document.
+    const meta = await loadRouteMeta(createClient({ fetch }), id);
+    return meta?.card_headline || line;
   }
   if (kind === "audit") {
     if (!REPORT_TOKEN_PATTERN.test(id)) throw error(404, "Not found");
