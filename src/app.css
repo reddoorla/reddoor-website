@@ -433,17 +433,6 @@ body::-webkit-scrollbar {
     line-height: 30px;
   }
 
-  /* Subheading: the base h5 scale (30/200/46, 22/32 at 1024) on elements that
-     are not an h5 — the homepage's h3 trio and the portfolio's pinned project
-     name (a p). One definition, so the two can't drift. */
-  .type-subhead {
-    font-family: pragmatica, helvetica, sans-serif;
-    font-size: 30px;
-    font-style: normal;
-    font-weight: 200;
-    line-height: 46px;
-  }
-
   /* Mobile-first steps (Tailwind md/lg/xl). */
   @media only screen and (min-width: 768px) {
     .type-hero {
@@ -478,11 +467,6 @@ body::-webkit-scrollbar {
   @media only screen and (max-width: 1024px) {
     .type-display {
       font-size: 44px;
-    }
-
-    .type-subhead {
-      font-size: 22px;
-      line-height: 32px;
     }
   }
 

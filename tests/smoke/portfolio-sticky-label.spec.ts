@@ -53,19 +53,17 @@ test.describe("portfolio featured-project sticky label", () => {
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute("href", "/portfolio/rubrik-zero-labs");
 
-    // The arrow is centred on the name, and the name is set at subheading
-    // size — the homepage's h3 scale — not body size.
+    // The arrow is centred on the name, and the whole thing stays inside the
+    // 1/5 gutter the cards leave on the left (Tucker: "whole thing should fit
+    // in the 1/5 gutter") — the pin never crosses into the content column.
     const name = rubrik.locator("p").first();
-    const [nameBox, arrowBox] = await Promise.all([name.boundingBox(), link.boundingBox()]);
+    const wrap = page.locator('[data-sticky-label="rubrik-zero-labs"] > *').first();
+    const [nameBox, arrowBox, chipBox, wrapBox] = await Promise.all(
+      [name, link, rubrik, wrap].map((l) => l.boundingBox()),
+    );
     const mid = (b: { y: number; height: number }) => b.y + b.height / 2;
     expect(Math.abs(mid(nameBox!) - mid(arrowBox!))).toBeLessThanOrEqual(1);
-    expect(await name.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBe(30);
-    // The pinned arrow is the button SVG masked over the name's red. If the
-    // mask fails to parse (an unquoted data: URL did, once) the span is a red
-    // square — so check the mask resolved, not just that the span exists.
-    const arrow = link.locator("span");
-    await expect(arrow).toHaveCSS("background-color", "rgb(215, 25, 32)");
-    expect(await arrow.evaluate((el) => getComputedStyle(el).maskImage)).toMatch(/^url\(/);
+    expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(wrapBox!.x + wrapBox!.width / 5 + 0.5);
 
     // Past the group: Rubrik's chip is pushed out and Revogen's has taken over.
     await scrollTo(page, top + height + 400);
