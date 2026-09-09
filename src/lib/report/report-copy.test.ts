@@ -111,6 +111,17 @@ describe("one story, on every surface", () => {
     expect(code(SOURCE)).not.toMatch(/u\.engineQuote|u\.unverifiedReason|u\.sourceDomains/);
   });
 
+  it("offers the conversation in the floating corner, gated so it never nags", () => {
+    // Same words and same destination as the closing band — one offer brought
+    // within reach, not a second one. The two gates are the whole point:
+    // `pastHero` keeps it off the first screen, where the report has not yet
+    // said anything, and `!closingInView` keeps it from sitting on top of the
+    // band that carries the identical CTA.
+    expect(code(REPORT)).toMatch(/pastHero && !closingInView/);
+    expect(code(REPORT).match(/Start a conversation/g) ?? []).toHaveLength(2);
+    expect(code(REPORT).match(/href="\/contact"/g) ?? []).toHaveLength(2);
+  });
+
   it("the page count is the pages we crawled, never a claim about how many pages the site has", () => {
     for (const p of [SOURCE, PRINT]) {
       expect(code(p), p).toMatch(/pages we crawled/);
