@@ -6,8 +6,11 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 // as long as that project's blocks are on screen, floats above every page
 // layer (but under the fixed nav), then hands off to the next project's block without the two ever touching.
 
-// The label's resting position while pinned: pt-28 inside a top-0 sticky box.
-const TOP = 112;
+// The label's resting position while pinned: pt-10 inside a top-12 sticky box —
+// 40px of clear air under the 48px fixed nav (Tim, #rd-website 2026-09-09:
+// "Spacing is tighter to the top of the project… 40px", read as 40px from the
+// nav rather than hard against it).
+const TOP = 88;
 // Smallest vertical gap allowed between an outgoing and an incoming pin.
 const MIN_GAP = 24;
 
@@ -53,16 +56,22 @@ test.describe("portfolio featured-project sticky label", () => {
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute("href", "/portfolio/rubrik-zero-labs");
 
-    // The arrow sits under the name, flush with its left edge, and the whole
+    // The categories sit under the name and the arrow under them, all flush
+    // left, and the whole
     // thing stays inside the 1/5 gutter the cards leave on the left (Tucker:
     // "whole thing should fit in the 1/5 gutter") — the pin never crosses
     // into the content column.
     const name = rubrik.locator("p").first();
+    const categories = rubrik.locator("p").nth(1);
+    await expect(categories).toHaveText("Brand, Digital");
     const wrap = page.locator('[data-sticky-label="rubrik-zero-labs"] > *').first();
     const [nameBox, arrowBox, chipBox, wrapBox] = await Promise.all(
       [name, link, rubrik, wrap].map((l) => l.boundingBox()),
     );
     expect(arrowBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+    // 35px, Tim's number — and it is the arrow itself, not a padded box.
+    expect(arrowBox!.width).toBe(35);
+    expect(arrowBox!.height).toBe(35);
     expect(Math.abs(arrowBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
     expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(wrapBox!.x + wrapBox!.width / 5 + 0.5);
 
@@ -108,6 +117,28 @@ test.describe("portfolio featured-project sticky label", () => {
       );
       expect(topmost, `${uid}: the element under the pin's name text`).toBe(uid);
     }
+  });
+
+  test("the pin rides to the bottom of its project, not short of it", async ({ page }) => {
+    // Tim, #rd-website 2026-09-09: "Can the sticky title stop at the bottom of
+    // the image? Right now it stops short." The sticky box is exactly as tall
+    // as the label, so the label's bottom reaches its group's last pixel; a
+    // taller box (h-80 shipped one) strands it ~180px above.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/portfolio");
+    const group = '[data-project-group="rubrik-zero-labs"]';
+    const chip = page.locator('[data-sticky-label="rubrik-zero-labs"] [data-sticky-chip]');
+    const end = (await pageTopOf(page, group)) + (await page.locator(group).boundingBox())!.height;
+
+    // The label is 143px tall including its lead-in, so it is only being pushed
+    // out once the group's bottom edge is above that. Park it at 140.
+    await scrollTo(page, end - 140);
+    await expect.poll(async () => (await chip.boundingBox())?.y ?? -1).toBeLessThan(TOP);
+    const [box, groupBottom] = await Promise.all([
+      chip.boundingBox(),
+      page.evaluate((sel) => document.querySelector(sel)!.getBoundingClientRect().bottom, group),
+    ]);
+    expect(Math.abs(box!.y + box!.height - groupBottom)).toBeLessThanOrEqual(2);
   });
 
   test("an outgoing pin and the incoming one never touch", async ({ page }) => {

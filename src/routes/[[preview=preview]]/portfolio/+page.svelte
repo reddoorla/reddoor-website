@@ -521,13 +521,13 @@
      services / arrow row is the `featureLabel` snippet. Imagery exported from
      Figma (node 725:1226).
 
-     `pinned` is the sticky variant (below): the name alone with the arrow
-     beneath it in the same red, shrunk so its stroke weighs the same as the
-     type. Bare type over the imagery: no pad behind it (tried, dropped).
-     Pragmatica 200
-     draws a 1.03px stem at 18px (measured on a canvas: 1.72px at 30px); the
-     arrow's ring and shaft are 5.07% of its rendered size, so 20px puts them
-     within a few hundredths of a pixel of each other.
+     `pinned` is the sticky variant (below): name, categories, then the arrow
+     beneath them in a column (Tim, #rd-website 2026-09-09: "Have the categories
+     show up with the title like the existing Portfolio page. The arrow icon
+     gets stacked under the category and is 35px"). Bare type over the imagery:
+     no pad behind it (tried, dropped). The arrow keeps the red — the grey fill
+     vanishes over pale imagery like Revogen's grafts, and the pin floats over
+     whatever is scrolling past.
      ───────────────────────────────────────────────────────────────────────── -->
 {#snippet featureLabel({
   name,
@@ -568,7 +568,7 @@
              single quotes, which an unquoted url() cannot hold, and the whole
              declaration is dropped — leaving a solid red square. -->
         <span
-          class="block size-5 bg-current"
+          class="block size-[35px] bg-current"
           style={`-webkit-mask:url("${arrowButton}") center/contain no-repeat;mask:url("${arrowButton}") center/contain no-repeat`}
           aria-hidden="true"
         ></span>
@@ -582,7 +582,8 @@
 <!-- The same block, pinned (Tim, Discord 2026-09-08: "each project needs
      immediate context"). Desktop only: each featured project's blocks are
      wrapped in a `relative` group, and this rides high in the viewport — the
-     label sits 112px down, a clear 64px under the fixed h-12 nav — for as long
+     label sits 40px under the fixed h-12 nav, and starts 40px below the top of
+     that project's first image — for as long
      as that group is on screen, floating over whatever scrolls past as bare
      type — the name and the arrow only (Tucker: no services line, no halo),
      and the whole thing inside the 1/5 gutter the cards leave on the left
@@ -596,21 +597,32 @@
      the content share that cell (col-start-1 row-start-1), so nothing below it
      moves and, unlike a negative margin, the group's full height is the box's
      containing block (a sticky element's MARGIN box is what gets constrained,
-     so -mb-80 let the pin run 320px past its group). The sticky box is
-     deliberately taller than the tallest label: 112px of lead-in
-     (pt-28) plus up to ~180px of label inside 320px, so the group's end pushes
-     the outgoing label out at least 28px before the group ends, and the next
-     label starts 112px into its own group — two pins never touch. Below md the
+     so -mb-80 let the pin run 320px past its group).
+
+     Two numbers that used to be one. `top-12` parks the box under the nav and
+     `pt-10` insets the label 40px inside it, so the label rests 88px down the
+     viewport while pinned — 40px of clear air under the 48px nav — AND starts
+     40px below its group's top edge, which is the top of that project's first
+     image. `pt-28` on a `top-0` box could only ever satisfy one of the two.
+
+     The box is exactly as tall as the label (no fixed height): a sticky element
+     is pushed out when its own bottom reaches its containing block's bottom, so
+     the label's bottom now rides down to the group's last pixel instead of
+     stopping ~180px short (Tim: "Can the sticky title stop at the bottom of the
+     image? Right now it stops short"). Two pins still never touch, and the
+     arithmetic says so exactly: while the outgoing label's bottom sits on the
+     group boundary, the incoming one starts pt-10 below that same boundary, so
+     the gap is a constant 40px. Below md the
      in-card label stays and this is not rendered; at md+ the in-card label is
      hidden so the name never shows twice. -->
 {#snippet stickyLabel(props: { name: string; services: string; href: string; aria: string })}
   <div
-    class="hidden md:block col-start-1 row-start-1 self-start sticky top-0 z-[15] h-80 pt-28 pointer-events-none"
+    class="hidden md:block col-start-1 row-start-1 self-start sticky top-12 z-[15] pt-10 pointer-events-none"
     data-sticky-label={props.href.replace("/portfolio/", "")}
   >
     <ContentWidth class="relative">
       <div class="pointer-events-auto w-1/5 min-w-40 px-4" data-sticky-chip>
-        {@render featureLabel({ ...props, services: "", pinned: true })}
+        {@render featureLabel({ ...props, pinned: true })}
       </div>
     </ContentWidth>
   </div>
