@@ -529,36 +529,37 @@ const LISTING_SITES = [
 ];
 
 /**
- * The two lists the accuracy section prints, kept apart on purpose.
+ * Everything the assistant said that our reading of the site does not account
+ * for — `absent` and `unverified` in one list, under a heading that asserts
+ * nothing.
  *
- * `absent` is a FINDING: we read the site whole, and it does not say this.
- * `unverified` is OUR LIMIT — a passage on the subject that does not settle it,
- * a site too large to read in one pass, or a term the site does use. The
- * producer sets those deliberately and says so in `unverifiedReason`: "we have
- * not stated it either way."
+ * These were split into "not on your site" and "what we could not check" for a
+ * day (#169), because the report had been printing `unverified` — the producer
+ * explicitly declining to say — under "We did not find these on your site".
+ * The split fixed that, and was still wrong: it assumed the two states are a
+ * clean binary, a finding and a limit.
  *
- * They were one list, headed "What the AI says about you that is not on your
- * site", until a live report of reddoorla.com on 2026-09-09 printed seven
- * `unverified` rows as things the site does not say. Among them "a man named
- * Tim leads Reddoor Creative", against a page reading "owner, Tim Holmes", and
- * "a branding/design firm with a Texas base", against a page headed "Texas
- * Office". The compression was deliberate and the reasoning was sound — three
- * lines of ours under each line of theirs buried the sentence that mattered.
- * The cost was that the report asserted what the producer had refused to.
+ * The real cases are grey. "A man named Tim leads Reddoor Creative" is drawn
+ * from LinkedIn, where he is the more active of two people the site's own team
+ * page lists. Calling that "not on your site" is overblown — the site does
+ * publish both names — and calling it "we could not check" undersells a claim
+ * that genuinely misleads about who runs the business. It is neither, and no
+ * verdict we store distinguishes "absent" from "implied by something adjacent".
  *
- * Two headed lists, still headlines only. A reader can act on "your site does
- * not say this". Nobody can act on it when it might equally mean "we could not
- * read far enough to tell".
+ * So the assertion moved out of the heading. "What the AI says about you" makes
+ * no claim; the one hedged line under it — these SEEM not to be sourced from
+ * your site — carries the whole thing, and is true across the grey. One list
+ * can then hold the spectrum honestly, which two lists could not.
+ *
+ * `absent` first, then `unverified`: strongest first, and the order the report
+ * has always used.
  */
-export function accuracySections(view: ReportView): {
-  notOnSite: Assertion[];
-  unsettled: Assertion[];
-} {
+export function notSourcedFromSite(view: ReportView): Assertion[] {
   const all = view.accuracy?.assertions ?? [];
-  return {
-    notOnSite: all.filter((a) => a.verdict === "absent"),
-    unsettled: all.filter((a) => a.verdict === "unverified"),
-  };
+  return [
+    ...all.filter((a) => a.verdict === "absent"),
+    ...all.filter((a) => a.verdict === "unverified"),
+  ];
 }
 
 export function isListingSite(domain: string): boolean {

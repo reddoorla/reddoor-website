@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    accuracySections,
+    notSourcedFromSite,
     openingSummary,
     toReportView,
     wasNamed,
@@ -71,10 +71,9 @@
   const contradictedRows = $derived(
     withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
   );
-  // Two lists, matching the screen report. `absent` is a finding; `unverified`
-  // is our own limit. See `accuracySections`.
-  const notOnSite = $derived(accuracySections(view).notOnSite);
-  const unsettled = $derived(accuracySections(view).unsettled);
+  // One list, matching the screen report; the heading asserts nothing and the
+  // hedge beneath it carries the claim. See `notSourcedFromSite`.
+  const notSourced = $derived(notSourcedFromSite(view));
   const elsewhere = $derived((accuracy?.sources ?? []).filter((s) => s.owner !== "yours"));
   const sampled = $derived(
     Boolean(accuracy && !accuracy.siteFullyRead) ||
@@ -213,22 +212,11 @@
           {/if}
         </div>
       {/each}
-      {#if notOnSite.length}
-        <h3>What the AI says about you that is not on your site</h3>
+      {#if notSourced.length}
+        <h3>What the AI says about you</h3>
         <p class="note">These are claims that seem not to be sourced from your site.</p>
         <ul>
-          {#each notOnSite as u (u.claim + u.query)}
-            <li>{u.claim}</li>
-          {/each}
-        </ul>
-      {/if}
-      {#if unsettled.length}
-        <h3>What we could not check</h3>
-        <p class="note">
-          We could not settle these against your site, so we have not called them right or wrong.
-        </p>
-        <ul>
-          {#each unsettled as u (u.claim + u.query)}
+          {#each notSourced as u (u.claim + u.query)}
             <li>{u.claim}</li>
           {/each}
         </ul>
