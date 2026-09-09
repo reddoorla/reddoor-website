@@ -88,13 +88,21 @@ describe("one story, on every surface", () => {
     expect(code(SOURCE)).not.toMatch(/title="Who else/);
   });
 
-  it("what the AI says that is not on the site is a list of headlines, nothing under them", () => {
+  it("keeps a finding and a limit in two lists, both headlines only", () => {
+    // These were ONE list until 2026-09-09. A live report of our own site put
+    // seven `unverified` rows under "not on your site" — including "a man named
+    // Tim leads Reddoor Creative" against a page reading "owner, Tim Holmes".
+    // `unverified` is the producer declining to say; the report said it anyway.
     for (const p of [SOURCE, PRINT]) {
+      // A finding. The reader can act on it.
       expect(code(p), p).toMatch(/What the AI says about you that is not on your site/);
       expect(code(p), p).toMatch(/We did not find these on your site/);
-      expect(code(p), p).not.toMatch(/Why we could not check/);
-      expect(code(p), p).not.toMatch(/could not judge|Not judged/);
+      // Our own limit, said as ours.
+      expect(code(p), p).toMatch(/What we could not check/);
+      expect(code(p), p).toMatch(/We could not settle these against your site/);
     }
+    // Still headlines: no reason, quote or citation list under any row. That
+    // part of the original design was right and is unchanged.
     expect(code(SOURCE)).toMatch(/u\.claim/);
     expect(code(SOURCE)).not.toMatch(/u\.engineQuote|u\.unverifiedReason|u\.sourceDomains/);
   });

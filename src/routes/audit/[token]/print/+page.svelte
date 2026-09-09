@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { openingSummary, toReportView, wasNamed, type Assertion } from "$lib/report/model";
+  import {
+    accuracySections,
+    openingSummary,
+    toReportView,
+    wasNamed,
+    type Assertion,
+  } from "$lib/report/model";
   import { allFixes, displayQuote, headlineFinding, passes } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
   import type { PageData } from "./$types";
@@ -65,11 +71,10 @@
   const contradictedRows = $derived(
     withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
   );
-  const notOnSite = $derived(
-    (accuracy?.assertions ?? []).filter(
-      (a) => a.verdict === "absent" || a.verdict === "unverified",
-    ),
-  );
+  // Two lists, matching the screen report. `absent` is a finding; `unverified`
+  // is our own limit. See `accuracySections`.
+  const notOnSite = $derived(accuracySections(view).notOnSite);
+  const unsettled = $derived(accuracySections(view).unsettled);
   const elsewhere = $derived((accuracy?.sources ?? []).filter((s) => s.owner !== "yours"));
   const sampled = $derived(
     Boolean(accuracy && !accuracy.siteFullyRead) ||
@@ -213,6 +218,17 @@
         <p class="note">We did not find these on your site.</p>
         <ul>
           {#each notOnSite as u (u.claim + u.query)}
+            <li>{u.claim}</li>
+          {/each}
+        </ul>
+      {/if}
+      {#if unsettled.length}
+        <h3>What we could not check</h3>
+        <p class="note">
+          We could not settle these against your site, so we have not called them right or wrong.
+        </p>
+        <ul>
+          {#each unsettled as u (u.claim + u.query)}
             <li>{u.claim}</li>
           {/each}
         </ul>

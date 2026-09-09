@@ -8,7 +8,10 @@ import {
   fieldShape,
   isListingSite,
   citationsFrom,
+  accuracySections,
   type ProbeAnswer,
+  type Assertion,
+  type ReportView,
 } from "./model";
 import type { AuditReport } from "./fetch";
 
@@ -853,5 +856,49 @@ describe("toReportView — the stack readout", () => {
     expect(view.stack).not.toBeNull();
     expect(view.stack?.measured).toBe(false);
     expect(view.stack?.items).toEqual([]);
+  });
+});
+
+describe("accuracySections — a finding and a limit are not the same list", () => {
+  const claim = (verdict: Assertion["verdict"], text: string): Assertion => ({
+    claim: text,
+    verdict,
+    engineQuote: "",
+    siteQuote: null,
+    nearbyMention: null,
+    unverifiedReason: null,
+    sourceDomains: [],
+    query: "who is Acme",
+    engine: "claude-code",
+  });
+  const view = (assertions: Assertion[]) => ({ accuracy: { assertions } }) as unknown as ReportView;
+
+  it("puts only `absent` under what the site does not say", () => {
+    // reddoorla.com, 2026-09-09. Seven `unverified` rows printed as things the
+    // site does not say — among them "a man named Tim leads Reddoor Creative",
+    // against a page that reads "owner, Tim Holmes". The producer had declined
+    // to state those either way; the report stated them.
+    const out = accuracySections(
+      view([
+        claim("absent", "The legal name is Acme, LLC."),
+        claim("unverified", "A man named Tim leads Acme."),
+        claim("confirmed", "Acme does branding."),
+        claim("contradicted", "Acme is based in Ohio."),
+      ]),
+    );
+    expect(out.notOnSite.map((a) => a.claim)).toEqual(["The legal name is Acme, LLC."]);
+  });
+
+  it("puts `unverified` in its own list rather than dropping it", () => {
+    const out = accuracySections(
+      view([claim("absent", "a"), claim("unverified", "b"), claim("unverified", "c")]),
+    );
+    expect(out.unsettled.map((a) => a.claim)).toEqual(["b", "c"]);
+  });
+
+  it("claims neither list on a report with no accuracy stage", () => {
+    const out = accuracySections({ accuracy: null } as unknown as ReportView);
+    expect(out.notOnSite).toEqual([]);
+    expect(out.unsettled).toEqual([]);
   });
 });

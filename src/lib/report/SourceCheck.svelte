@@ -1,6 +1,6 @@
 <script lang="ts">
   import { displayQuote, numberWord } from "./narrative";
-  import { ownSiteCitations, type Assertion, type ReportView } from "./model";
+  import { accuracySections, ownSiteCitations, type Assertion, type ReportView } from "./model";
 
   // What an AI already says about this business, and where it got it.
   //
@@ -34,12 +34,14 @@
     (acc?.assertions ?? []).filter((a) => a.verdict === v);
 
   const contradicted = $derived(of("contradicted"));
-  // Everything the assistant said that we did not find on the site: the
-  // statements it plainly does not make and the ones we could not settle. One
-  // list, headlines only. The engine's wording, the reason we could not check
-  // and the source lists were three lines of ours under each line of theirs,
-  // and on our own report they buried the one sentence that mattered.
-  const notOnSite = $derived([...of("absent"), ...of("unverified")]);
+  // Two lists, not one. `absent` is a finding; `unverified` is our own limit,
+  // and the producer says so in as many words. See `accuracySections`.
+  //
+  // Headlines only in both, which the original single list got right: the
+  // engine's wording, the reason and the source lists were three lines of ours
+  // under each line of theirs, and they buried the sentence that mattered.
+  const notOnSite = $derived(accuracySections(view).notOnSite);
+  const unsettled = $derived(accuracySections(view).unsettled);
   const confirmed = $derived(of("confirmed").length);
 
   /**
@@ -188,6 +190,28 @@
 
         <ul class="m-0 flex list-none flex-col p-0">
           {#each notOnSite as u (u.claim + u.query)}
+            <li class="border-t border-light py-4 font-medium text-black">{u.claim}</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+
+    {#if unsettled.length}
+      <!-- Our limit, said as ours. These are the rows the producer refuses to
+           call either way: a passage on the subject that does not settle it, a
+           site larger than one pass, a term the site does use. Printing them
+           beside the list above told a reader their site was silent on things
+           it says plainly. -->
+      <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-1.5">
+          <h4 class="type-question m-0 text-black">What we could not check</h4>
+          <p class="type-meta m-0 text-muted">
+            We could not settle these against your site, so we have not called them right or wrong.
+          </p>
+        </div>
+
+        <ul class="m-0 flex list-none flex-col p-0">
+          {#each unsettled as u (u.claim + u.query)}
             <li class="border-t border-light py-4 font-medium text-black">{u.claim}</li>
           {/each}
         </ul>

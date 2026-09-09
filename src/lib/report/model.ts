@@ -528,6 +528,39 @@ const LISTING_SITES = [
   "prnewswire.com",
 ];
 
+/**
+ * The two lists the accuracy section prints, kept apart on purpose.
+ *
+ * `absent` is a FINDING: we read the site whole, and it does not say this.
+ * `unverified` is OUR LIMIT — a passage on the subject that does not settle it,
+ * a site too large to read in one pass, or a term the site does use. The
+ * producer sets those deliberately and says so in `unverifiedReason`: "we have
+ * not stated it either way."
+ *
+ * They were one list, headed "What the AI says about you that is not on your
+ * site", until a live report of reddoorla.com on 2026-09-09 printed seven
+ * `unverified` rows as things the site does not say. Among them "a man named
+ * Tim leads Reddoor Creative", against a page reading "owner, Tim Holmes", and
+ * "a branding/design firm with a Texas base", against a page headed "Texas
+ * Office". The compression was deliberate and the reasoning was sound — three
+ * lines of ours under each line of theirs buried the sentence that mattered.
+ * The cost was that the report asserted what the producer had refused to.
+ *
+ * Two headed lists, still headlines only. A reader can act on "your site does
+ * not say this". Nobody can act on it when it might equally mean "we could not
+ * read far enough to tell".
+ */
+export function accuracySections(view: ReportView): {
+  notOnSite: Assertion[];
+  unsettled: Assertion[];
+} {
+  const all = view.accuracy?.assertions ?? [];
+  return {
+    notOnSite: all.filter((a) => a.verdict === "absent"),
+    unsettled: all.filter((a) => a.verdict === "unverified"),
+  };
+}
+
 export function isListingSite(domain: string): boolean {
   const d = domain.toLowerCase().replace(/^www\./, "");
   return LISTING_SITES.some((p) => d === p || d.endsWith(`.${p}`));
