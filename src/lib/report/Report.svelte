@@ -69,6 +69,48 @@
     if (y !== null) window.scrollTo({ top: y, behavior: "auto" });
   }
 
+  // The same corner, when nothing else is using it.
+  //
+  // `returnTo` fills it only after an in-page jump and clears after one use,
+  // so for most of a long document that corner is empty while the only way to
+  // reply to the report is at the very bottom of it. A reader who has read
+  // enough to want a conversation should not have to scroll to the end to
+  // start one.
+  //
+  // Two conditions, and both are about not nagging. Not over the hero: the
+  // first screen already carries the report's own opening, and a floating CTA
+  // on top of it asks before it has said anything. And not while the closing
+  // band is on screen: that band carries these exact words, and two identical
+  // CTAs in view at once reads as a mistake rather than an invitation.
+  //
+  // Observers rather than a scroll listener with pixel thresholds: the hero
+  // and the closing band are the things this is actually about, and their
+  // heights change with the content.
+  let hero: HTMLElement | undefined = $state();
+  let closing: HTMLElement | undefined = $state();
+  let pastHero = $state(false);
+  let closingInView = $state(false);
+
+  $effect(() => {
+    const el = hero;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      pastHero = !entries[0]!.isIntersecting;
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  });
+
+  $effect(() => {
+    const el = closing;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      closingInView = entries[0]!.isIntersecting;
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  });
+
   const auditedOn = $derived(
     view.generatedAt
       ? new Date(view.generatedAt).toLocaleDateString("en-US", {
@@ -104,7 +146,7 @@
 <div bind:this={root} class="flex w-full flex-col">
   <!-- ── Masthead ────────────────────────────────────────────────────────── -->
   <!-- `pt-32` clears the fixed nav; the paper tile is the site's own texture. -->
-  <section class="bg-paper w-full pt-32 pb-16 md:pb-24">
+  <section bind:this={hero} class="bg-paper w-full pt-32 pb-16 md:pb-24">
     <ContentWidth class="flex flex-col gap-6">
       <p class="type-meta m-0 flex flex-wrap gap-x-6 gap-y-1 text-muted">
         <span class="type-eyebrow text-primary">{who}</span>
@@ -360,7 +402,9 @@
   {#if returnTo !== null}
     <!-- Fixed, bottom right, above the closing band. Rendered only after an
          in-page jump and gone after one use, so it never competes with the
-         page when nobody needs it. -->
+         page when nobody needs it. Takes the corner back from the CTA below:
+         a reader who jumped asked to go somewhere, and getting them back is
+         the more urgent of the two. -->
     <button
       type="button"
       class="type-eyebrow fixed right-6 bottom-6 z-30 rounded-full border border-dark bg-white px-4 py-2.5 text-dark shadow-md transition-colors hover:bg-dark hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -368,6 +412,17 @@
     >
       ↑ Back to where you were
     </button>
+  {:else if pastHero && !closingInView}
+    <!-- The same corner, once the reader is in the document proper. Same words
+         and same destination as the closing band, in the site's button
+         language: nothing here is a second offer, it is the same one brought
+         within reach. -->
+    <a
+      href="/contact"
+      class="bump fixed right-6 bottom-6 z-30 rounded-[4px] border-1 border-primary bg-white px-[15px] py-2.5 text-center text-[14px] leading-[normal] font-normal text-nowrap text-primary shadow-md transition-all duration-300 hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+    >
+      Start a conversation
+    </a>
   {/if}
 
   <!-- ── What passes, and how we measured ────────────────────────────────── -->
@@ -426,7 +481,7 @@
   <!-- The site's closing band: solid red stock, white type. `labelClass` is
        load bearing — the rail label defaults to the board's red kicker, which
        on this band is red on red. -->
-  <section class="bg-paper-red w-full py-16 md:py-24">
+  <section bind:this={closing} class="bg-paper-red w-full py-16 md:py-24">
     <RailRow label="Next" labelAs="p" labelClass="text-white" fill>
       <div class="flex flex-col gap-5">
         <h2 class="type-display m-0 text-white">Half an hour, and we will walk you through it</h2>
