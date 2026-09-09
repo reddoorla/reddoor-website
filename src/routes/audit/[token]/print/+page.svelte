@@ -215,7 +215,7 @@
       {/each}
       {#if notOnSite.length}
         <h3>What the AI says about you that is not on your site</h3>
-        <p class="note">We did not find these on your site.</p>
+        <p class="note">These are claims that seem not to be sourced from your site.</p>
         <ul>
           {#each notOnSite as u (u.claim + u.query)}
             <li>{u.claim}</li>
