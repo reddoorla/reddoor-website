@@ -75,6 +75,12 @@ test.describe("portfolio featured-project sticky label", () => {
     expect(Math.abs(arrowBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
     expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(wrapBox!.x + wrapBox!.width / 5 + 0.5);
 
+    // Flush with the nav's home link. The pin rides directly under the
+    // wordmark, so any horizontal inset on the chip reads as a misalignment.
+    const wordmark = page.getByRole("link", { name: "Reddoor Creative" }).first();
+    const wordmarkBox = await wordmark.boundingBox();
+    expect(Math.abs(nameBox!.x - wordmarkBox!.x)).toBeLessThanOrEqual(1);
+
     // The pin is bare type over the imagery — no paper block, no halo, no pad
     // (Tucker has asked for that three times now), and the arrow is red. The
     // arrow is drawn as a CSS mask over the link's colour, so if the mask

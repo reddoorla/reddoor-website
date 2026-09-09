@@ -585,11 +585,13 @@
      label sits 40px under the fixed h-12 nav, and starts 40px below the top of
      that project's first image — for as long
      as that group is on screen, floating over whatever scrolls past as bare
-     type — the name and the arrow only (Tucker: no services line, no halo),
-     and the whole thing inside the 1/5 gutter the cards leave on the left
-     (w-1/5, inset 16px each side: the arrow never crosses into the content
-     column; the 160px floor is only for md, where the gutter is narrower than
-     a name) — above every layer of the page (z-[15]: over the banners' own
+     type, and the whole thing inside the 1/5 gutter the cards leave on the
+     left (w-1/5, so the arrow never crosses into the content column; the 160px
+     floor is only for md, where the gutter is narrower than a name). NO
+     horizontal padding: the label's left edge has to sit on ContentWidth's own
+     edge, which is where the nav's "Reddoor Creative" home link starts. Any
+     inset here reads as a misalignment against it, because the pin rides
+     directly below it — above every layer of the page (z-[15]: over the banners' own
      z-10 layers and every card) but under the fixed nav (z-20) — an outgoing
      pin leaves the viewport through the nav band, and must slide under it,
      not over the wordmark.
@@ -621,7 +623,7 @@
     data-sticky-label={props.href.replace("/portfolio/", "")}
   >
     <ContentWidth class="relative">
-      <div class="pointer-events-auto w-1/5 min-w-40 px-4" data-sticky-chip>
+      <div class="pointer-events-auto w-1/5 min-w-40" data-sticky-chip>
         {@render featureLabel({ ...props, pinned: true })}
       </div>
     </ContentWidth>
@@ -669,7 +671,7 @@
 <div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="revogen">
   {@render stickyLabel({
     name: "Revogen",
-    services: "brand, digital, print, environmental",
+    services: "Brand, Digital, Print, Environmental",
     href: "/portfolio/revogen",
     aria: "Go to Revogen project",
   })}
@@ -688,7 +690,7 @@
             <div class="md:hidden">
               {@render featureLabel({
                 name: "Revogen",
-                services: "brand, digital, print, environmental",
+                services: "Brand, Digital, Print, Environmental",
                 href: "/portfolio/revogen",
                 aria: "Go to Revogen project",
               })}
@@ -711,7 +713,7 @@
 <div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="ceo-la">
   {@render stickyLabel({
     name: "CEO of Los Angeles",
-    services: "brand, digital, print",
+    services: "Brand, Digital, Print",
     href: "/portfolio/ceo-la",
     aria: "Go to CEO of Los Angeles project",
   })}
@@ -739,7 +741,7 @@
             <div class="md:hidden">
               {@render featureLabel({
                 name: "CEO of Los Angeles",
-                services: "brand, digital, print",
+                services: "Brand, Digital, Print",
                 href: "/portfolio/ceo-la",
                 aria: "Go to CEO of Los Angeles project",
               })}
@@ -808,7 +810,7 @@
 <div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="st-james-episcopal-school">
   {@render stickyLabel({
     name: "St. James' Episcopal School",
-    services: "brand, digital, print, environmental",
+    services: "Brand, Digital, Print, Environmental",
     href: "/portfolio/st-james-episcopal-school",
     aria: "Go to St. James' Episcopal School project",
   })}
@@ -833,7 +835,7 @@
             <div class="md:hidden">
               {@render featureLabel({
                 name: "St. James' Episcopal School",
-                services: "brand, digital, print, environmental",
+                services: "Brand, Digital, Print, Environmental",
                 href: "/portfolio/st-james-episcopal-school",
                 aria: "Go to St. James' Episcopal School project",
               })}
@@ -856,7 +858,7 @@
 <div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="gallery-sonder">
   {@render stickyLabel({
     name: "Gallery Sonder",
-    services: "brand, digital, print, environmental",
+    services: "Brand, Digital, Print, Environmental",
     href: "/portfolio/gallery-sonder",
     aria: "Go to Gallery Sonder project",
   })}
@@ -875,7 +877,7 @@
           <div class="w-full md:hidden">
             {@render featureLabel({
               name: "Gallery Sonder",
-              services: "brand, digital, print, environmental",
+              services: "Brand, Digital, Print, Environmental",
               href: "/portfolio/gallery-sonder",
               aria: "Go to Gallery Sonder project",
             })}
