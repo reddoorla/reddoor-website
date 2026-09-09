@@ -162,6 +162,38 @@ test.describe("portfolio featured-project sticky label", () => {
     expect(Math.abs(lastInk - groupBottom)).toBeLessThanOrEqual(2);
   });
 
+  test("the last project's pin stops at its heading, not at the CTA", async ({ page }) => {
+    // Tucker, 2026-09-09: "gallery sonder pin needs to stop at the bottom of the
+    // text, not go all the way to the cta." Sonder is the one project that ends
+    // in a paper band rather than an image, and the band runs 160px past the
+    // heading — so its group gives that height back as a negative margin and
+    // re-adds it outside the box. The band and the CTA must not move.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/portfolio");
+    const group = '[data-project-group="gallery-sonder"]';
+    const chip = page.locator('[data-sticky-label="gallery-sonder"] [data-sticky-chip]');
+    const end = (await pageTopOf(page, group)) + (await page.locator(group).boundingBox())!.height;
+
+    await scrollTo(page, end - 200);
+    await expect.poll(async () => (await chip.boundingBox())?.y ?? -1).toBeLessThan(TOP);
+    const geometry = await page.evaluate((sel) => {
+      const g = document.querySelector(sel)!;
+      const h2 = g.querySelector("h2")!.getBoundingClientRect();
+      const band = g.querySelector("section.bg-paper")!.getBoundingClientRect();
+      const cta = document.querySelector(".bg-paper-red")!.getBoundingClientRect();
+      return { heading: h2.bottom, band: band.bottom, cta: cta.top };
+    }, group);
+    const box = (await chip.boundingBox())!;
+    expect(
+      Math.abs(box.y + box.height - geometry.heading),
+      "pin stops on the heading",
+    ).toBeLessThanOrEqual(2);
+    // The band still runs past the heading, and the CTA still starts where it
+    // ends — the shrink is to the sticky constraint only, not to the layout.
+    expect(geometry.band - geometry.heading).toBe(160);
+    expect(Math.abs(geometry.cta - geometry.band)).toBeLessThanOrEqual(1);
+  });
+
   test("spaces content 48px inside a project and 96px between projects", async ({ page }) => {
     // Tim, #rd-website 2026-09-09: "If it's the same project, lets do 48px and
     // then between the projects, 96px. right now there is big space between

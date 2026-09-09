@@ -855,14 +855,21 @@
 </div>
 
 <!-- Gallery Sonder -->
-<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="gallery-sonder">
+<!-- Gallery Sonder ends in a paper band rather than an image, and the band runs
+     160px past the heading (the h2's md:mb-16 plus the section's pb-24). The pin
+     is constrained by this group's box, so it rode all the way to the CTA
+     (Tucker: "needs to stop at the bottom of the text"). The content column
+     gives that 160px back as a negative margin — shrinking the box, and with it
+     the sticky constraint, to end on the heading — and the group re-adds it
+     outside the box, so the paper band and the CTA below it do not move a pixel. -->
+<div class="grid grid-cols-[minmax(0,1fr)] mb-40" data-project-group="gallery-sonder">
   {@render stickyLabel({
     name: "Gallery Sonder",
     services: "Brand, Digital, Print, Environmental",
     href: "/portfolio/gallery-sonder",
     aria: "Go to Gallery Sonder project",
   })}
-  <div class="col-start-1 row-start-1 min-w-0">
+  <div class="col-start-1 row-start-1 min-w-0 -mb-40">
     <ContentWidth animateIn>
       <div class="-mb-40 w-full md:w-4/5 md:ml-[20%]">
         <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
