@@ -88,18 +88,22 @@ describe("one story, on every surface", () => {
     expect(code(SOURCE)).not.toMatch(/title="Who else/);
   });
 
-  it("keeps a finding and a limit in two lists, both headlines only", () => {
-    // These were ONE list until 2026-09-09. A live report of our own site put
-    // seven `unverified` rows under "not on your site" — including "a man named
-    // Tim leads Reddoor Creative" against a page reading "owner, Tim Holmes".
-    // `unverified` is the producer declining to say; the report said it anyway.
+  it("puts the claim in the hedged line, never in the heading", () => {
+    // The heading asserted "…that is not on your site" over a list that also
+    // held `unverified` rows — the producer explicitly declining to say. Two
+    // lists was tried (#169) and was still wrong, because the cases are grey:
+    // "A man named Tim leads Reddoor Creative" comes from LinkedIn, where he is
+    // the more active of two people the site's own team page lists. Neither
+    // "not on your site" nor "we could not check" is fair to that row.
+    //
+    // So the heading claims nothing and one hedged line carries it.
     for (const p of [SOURCE, PRINT]) {
-      // A finding. The reader can act on it.
-      expect(code(p), p).toMatch(/What the AI says about you that is not on your site/);
-      expect(code(p), p).toMatch(/claims that seem not to be sourced from your site/);
-      // Our own limit, said as ours.
-      expect(code(p), p).toMatch(/What we could not check/);
-      expect(code(p), p).toMatch(/We could not settle these against your site/);
+      expect(code(p), p).toMatch(/What the AI says about you/);
+      expect(code(p), p).toMatch(/These are claims that seem not to be sourced from your site/);
+      // The assertion must not creep back onto the heading.
+      expect(code(p), p).not.toMatch(/about you that is not on your site/);
+      expect(code(p), p).not.toMatch(/We did not find these on your site/);
+      expect(code(p), p).not.toMatch(/What we could not check/);
     }
     // Still headlines: no reason, quote or citation list under any row. That
     // part of the original design was right and is unchanged.

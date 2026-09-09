@@ -8,7 +8,7 @@ import {
   fieldShape,
   isListingSite,
   citationsFrom,
-  accuracySections,
+  notSourcedFromSite,
   type ProbeAnswer,
   type Assertion,
   type ReportView,
@@ -859,7 +859,7 @@ describe("toReportView — the stack readout", () => {
   });
 });
 
-describe("accuracySections — a finding and a limit are not the same list", () => {
+describe("notSourcedFromSite — one list, because the cases are grey", () => {
   const claim = (verdict: Assertion["verdict"], text: string): Assertion => ({
     claim: text,
     verdict,
@@ -873,32 +873,41 @@ describe("accuracySections — a finding and a limit are not the same list", () 
   });
   const view = (assertions: Assertion[]) => ({ accuracy: { assertions } }) as unknown as ReportView;
 
-  it("puts only `absent` under what the site does not say", () => {
-    // reddoorla.com, 2026-09-09. Seven `unverified` rows printed as things the
-    // site does not say — among them "a man named Tim leads Reddoor Creative",
-    // against a page that reads "owner, Tim Holmes". The producer had declined
-    // to state those either way; the report stated them.
-    const out = accuracySections(
+  it("carries `absent` and `unverified` together, absent first", () => {
+    // Split apart for a day (#169). The grey case is why they are back
+    // together: "a man named Tim leads Reddoor Creative" is drawn from
+    // LinkedIn, where he is the more active of two people the site's own team
+    // page lists. Neither "not on your site" nor "we could not check" is fair
+    // to it, and nothing we store tells the two apart.
+    const out = notSourcedFromSite(
       view([
-        claim("absent", "The legal name is Acme, LLC."),
         claim("unverified", "A man named Tim leads Acme."),
-        claim("confirmed", "Acme does branding."),
-        claim("contradicted", "Acme is based in Ohio."),
+        claim("absent", "The legal name is Acme, LLC."),
+        claim("unverified", "Acme is based in Ohio."),
       ]),
     );
-    expect(out.notOnSite.map((a) => a.claim)).toEqual(["The legal name is Acme, LLC."]);
+    expect(out.map((a) => a.claim)).toEqual([
+      "The legal name is Acme, LLC.",
+      "A man named Tim leads Acme.",
+      "Acme is based in Ohio.",
+    ]);
   });
 
-  it("puts `unverified` in its own list rather than dropping it", () => {
-    const out = accuracySections(
-      view([claim("absent", "a"), claim("unverified", "b"), claim("unverified", "c")]),
+  it("leaves out what the report states elsewhere", () => {
+    // `confirmed` is counted in its own sentence and `contradicted` has its own
+    // headed list. Neither belongs in a list of what the site does not account
+    // for.
+    const out = notSourcedFromSite(
+      view([
+        claim("confirmed", "Acme does branding."),
+        claim("contradicted", "Acme is based in Ohio."),
+        claim("absent", "a"),
+      ]),
     );
-    expect(out.unsettled.map((a) => a.claim)).toEqual(["b", "c"]);
+    expect(out.map((a) => a.claim)).toEqual(["a"]);
   });
 
-  it("claims neither list on a report with no accuracy stage", () => {
-    const out = accuracySections({ accuracy: null } as unknown as ReportView);
-    expect(out.notOnSite).toEqual([]);
-    expect(out.unsettled).toEqual([]);
+  it("claims nothing on a report with no accuracy stage", () => {
+    expect(notSourcedFromSite({ accuracy: null } as unknown as ReportView)).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { displayQuote, numberWord } from "./narrative";
-  import { accuracySections, ownSiteCitations, type Assertion, type ReportView } from "./model";
+  import { notSourcedFromSite, ownSiteCitations, type Assertion, type ReportView } from "./model";
 
   // What an AI already says about this business, and where it got it.
   //
@@ -34,14 +34,14 @@
     (acc?.assertions ?? []).filter((a) => a.verdict === v);
 
   const contradicted = $derived(of("contradicted"));
-  // Two lists, not one. `absent` is a finding; `unverified` is our own limit,
-  // and the producer says so in as many words. See `accuracySections`.
+  // One list, under a heading that asserts nothing — the hedge in the line
+  // beneath it carries the claim, and is true across the grey middle where most
+  // of these actually sit. See `notSourcedFromSite`.
   //
-  // Headlines only in both, which the original single list got right: the
-  // engine's wording, the reason and the source lists were three lines of ours
-  // under each line of theirs, and they buried the sentence that mattered.
-  const notOnSite = $derived(accuracySections(view).notOnSite);
-  const unsettled = $derived(accuracySections(view).unsettled);
+  // Headlines only, which the list has always got right: the engine's wording,
+  // the reason and the source lists were three lines of ours under each line of
+  // theirs, and they buried the sentence that mattered.
+  const notSourced = $derived(notSourcedFromSite(view));
   const confirmed = $derived(of("confirmed").length);
 
   /**
@@ -177,43 +177,21 @@
       </div>
     {/if}
 
-    {#if notOnSite.length}
+    {#if notSourced.length}
       <!-- Headlines, nothing under them. These are what a buyer hears; the
-           reader knows their own business and needs no help judging each. -->
+           reader knows their own business and needs no help judging each.
+           The heading asserts nothing on purpose — "that is not on your site"
+           used to sit on the end of it, and it was not true of every row. -->
       <div class="flex flex-col gap-5">
         <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-black">
-            What the AI says about you that is not on your site
-          </h4>
+          <h4 class="type-question m-0 text-black">What the AI says about you</h4>
           <p class="type-meta m-0 text-muted">
             These are claims that seem not to be sourced from your site.
           </p>
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each notOnSite as u (u.claim + u.query)}
-            <li class="border-t border-light py-4 font-medium text-black">{u.claim}</li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
-
-    {#if unsettled.length}
-      <!-- Our limit, said as ours. These are the rows the producer refuses to
-           call either way: a passage on the subject that does not settle it, a
-           site larger than one pass, a term the site does use. Printing them
-           beside the list above told a reader their site was silent on things
-           it says plainly. -->
-      <div class="flex flex-col gap-5">
-        <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-black">What we could not check</h4>
-          <p class="type-meta m-0 text-muted">
-            We could not settle these against your site, so we have not called them right or wrong.
-          </p>
-        </div>
-
-        <ul class="m-0 flex list-none flex-col p-0">
-          {#each unsettled as u (u.claim + u.query)}
+          {#each notSourced as u (u.claim + u.query)}
             <li class="border-t border-light py-4 font-medium text-black">{u.claim}</li>
           {/each}
         </ul>
