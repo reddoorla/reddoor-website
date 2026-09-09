@@ -127,9 +127,13 @@ test.describe("portfolio featured-project sticky label", () => {
 
   test("the pin rides to the bottom of its project, not short of it", async ({ page }) => {
     // Tim, #rd-website 2026-09-09: "Can the sticky title stop at the bottom of
-    // the image? Right now it stops short." The sticky box is exactly as tall
-    // as the label, so the label's bottom reaches its group's last pixel; a
-    // taller box (h-80 shipped one) strands it ~180px above.
+    // the image? Right now it stops short," then "I want the title to stop at
+    // the end of the content versus the end of the frame". Two halves: the
+    // sticky box is exactly as tall as the label, so the label's bottom reaches
+    // its group's last pixel (a taller box — h-80 shipped one — strands it
+    // ~180px above); and the 96px that separates projects is a margin on the
+    // group rather than padding inside it, so the group's last pixel IS its
+    // last content, not the empty run up to the next project.
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/portfolio");
     const group = '[data-project-group="rubrik-zero-labs"]';
@@ -145,6 +149,55 @@ test.describe("portfolio featured-project sticky label", () => {
       page.evaluate((sel) => document.querySelector(sel)!.getBoundingClientRect().bottom, group),
     ]);
     expect(Math.abs(box!.y + box!.height - groupBottom)).toBeLessThanOrEqual(2);
+
+    // …and that group bottom is real content, not trailing whitespace: the last
+    // image inside it ends within a pixel or two of the same line.
+    const lastInk = await page.evaluate((sel) => {
+      const g = document.querySelector(sel)!;
+      const boxes = [...g.querySelectorAll("img, iframe, video, h2")]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.height > 8 && r.width > 8);
+      return Math.max(...boxes.map((r) => r.bottom));
+    }, group);
+    expect(Math.abs(lastInk - groupBottom)).toBeLessThanOrEqual(2);
+  });
+
+  test("spaces content 48px inside a project and 96px between projects", async ({ page }) => {
+    // Tim, #rd-website 2026-09-09: "If it's the same project, lets do 48px and
+    // then between the projects, 96px. right now there is big space between
+    // content from the same project." It was 64/96/128 inside.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/portfolio");
+    const measured = await page.evaluate(() => {
+      const groups = [...document.querySelectorAll("[data-project-group]")];
+      const bandsOf = (g: Element) => {
+        const ink = [...g.querySelectorAll("img, iframe, video, h2")]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.height > 8 && r.width > 8 && !el.closest("[data-sticky-label]");
+          })
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            return { top: r.top + window.scrollY, bottom: r.bottom + window.scrollY };
+          })
+          .sort((a, b) => a.top - b.top);
+        const bands: { top: number; bottom: number }[] = [];
+        for (const r of ink) {
+          const last = bands.at(-1);
+          if (last && r.top <= last.bottom + 1) last.bottom = Math.max(last.bottom, r.bottom);
+          else bands.push({ ...r });
+        }
+        return bands;
+      };
+      const all = groups.map(bandsOf);
+      return {
+        inside: all.flatMap((b) => b.slice(1).map((x, i) => Math.round(x.top - b[i].bottom))),
+        between: all.slice(1).map((b, i) => Math.round(b[0].top - all[i].at(-1)!.bottom)),
+      };
+    });
+    for (const gap of measured.inside) expect(gap, "gap inside a project").toBe(48);
+    for (const gap of measured.between) expect(gap, "gap between projects").toBe(96);
+    expect(measured.inside.length, "the walk must find gaps to measure").toBeGreaterThan(3);
   });
 
   test("an outgoing pin and the incoming one never touch", async ({ page }) => {

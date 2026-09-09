@@ -631,7 +631,7 @@
 {/snippet}
 
 <!-- Rubrik Zero Labs — live brand video (Vimeo) with the static frame as poster -->
-<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="rubrik-zero-labs">
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="rubrik-zero-labs">
   {@render stickyLabel({
     name: "Rubrik Zero Labs",
     services: "Brand, Digital",
@@ -644,7 +644,7 @@
       poster={rubrikHero}
       alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
     />
-    <section class="pt-16 pb-56 bg-paper">
+    <section class="pt-12 pb-36 bg-paper">
       <ContentWidth>
         <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
           <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep Your Data Protected</h2>
@@ -660,7 +660,7 @@
       </ContentWidth>
     </section>
     <ContentWidth animateIn>
-      <div class="mb-24 w-full md:w-4/5 md:ml-[20%] -mt-40">
+      <div class="w-full md:w-4/5 md:ml-[20%] -mt-40">
         <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
       </div>
     </ContentWidth>
@@ -668,7 +668,7 @@
 </div>
 
 <!-- Revogen — live interactive grafts hero (ported from the Revogen homepage) -->
-<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="revogen">
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="revogen">
   {@render stickyLabel({
     name: "Revogen",
     services: "Brand, Digital, Print, Environmental",
@@ -677,7 +677,7 @@
   })}
   <div class="col-start-1 row-start-1 min-w-0">
     <RevogenBanner />
-    <section class="mt-16 mb-24">
+    <section class="mt-12">
       <ContentWidth>
         <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
           <div
@@ -710,7 +710,7 @@
 </div>
 
 <!-- CEO of Los Angeles -->
-<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="ceo-la">
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="ceo-la">
   {@render stickyLabel({
     name: "CEO of Los Angeles",
     services: "Brand, Digital, Print",
@@ -719,7 +719,7 @@
   })}
   <div class="col-start-1 row-start-1 min-w-0">
     <ContentWidth animateIn>
-      <div class="mb-24 w-full md:w-4/5 md:ml-[20%]">
+      <div class="mb-12 w-full md:w-4/5 md:ml-[20%]">
         <Img
           src={ceoLanyard}
           alt="Chief Executive Office of LA County — employee badge on a lanyard"
@@ -727,7 +727,7 @@
         />
       </div>
     </ContentWidth>
-    <section class="mb-24">
+    <section>
       <ContentWidth>
         <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
           <div
@@ -760,7 +760,7 @@
   </div>
 </div>
 <!-- Trinity Law School -->
-<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="trinity-law-school">
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="trinity-law-school">
   {@render stickyLabel({
     name: "Trinity Law School",
     services: "Print, Digital",
@@ -768,7 +768,7 @@
     aria: "Go to Trinity Law School project",
   })}
   <div class="col-start-1 row-start-1 min-w-0">
-    <section class="mb-24">
+    <section>
       <ContentWidth>
         <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
           <div
@@ -807,7 +807,7 @@
   </div>
 </div>
 <!-- St. James' Episcopal School -->
-<div class="grid grid-cols-[minmax(0,1fr)]" data-project-group="st-james-episcopal-school">
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="st-james-episcopal-school">
   {@render stickyLabel({
     name: "St. James' Episcopal School",
     services: "Brand, Digital, Print, Environmental",
@@ -822,7 +822,7 @@
         class="absolute inset-0 h-full w-full object-cover"
       />
     </section>
-    <section class="mt-16 mb-24">
+    <section class="mt-12">
       <ContentWidth>
         <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
           <div
@@ -868,7 +868,7 @@
         <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
       </div>
     </ContentWidth>
-    <section class="pb-24 bg-paper pt-56">
+    <section class="pb-24 bg-paper pt-52">
       <ContentWidth>
         <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
           <h2 class="type-feature mb-12 md:mb-16">
