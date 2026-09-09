@@ -96,7 +96,7 @@ describe("one story, on every surface", () => {
     for (const p of [SOURCE, PRINT]) {
       // A finding. The reader can act on it.
       expect(code(p), p).toMatch(/What the AI says about you that is not on your site/);
-      expect(code(p), p).toMatch(/We did not find these on your site/);
+      expect(code(p), p).toMatch(/claims that seem not to be sourced from your site/);
       // Our own limit, said as ours.
       expect(code(p), p).toMatch(/What we could not check/);
       expect(code(p), p).toMatch(/We could not settle these against your site/);

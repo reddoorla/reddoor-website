@@ -185,7 +185,9 @@
           <h4 class="type-question m-0 text-black">
             What the AI says about you that is not on your site
           </h4>
-          <p class="type-meta m-0 text-muted">We did not find these on your site.</p>
+          <p class="type-meta m-0 text-muted">
+            These are claims that seem not to be sourced from your site.
+          </p>
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
