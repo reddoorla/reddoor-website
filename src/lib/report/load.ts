@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
-import { fetchReport, REPORT_TOKEN_PATTERN, type AuditReport } from "./fetch";
+import { fetchReport, REPORT_TOKEN_PATTERN, type AuditReport, type OverrideMap } from "./fetch";
 
 /** The subset of a SvelteKit load event this needs. Declared structurally so
  *  both routes can pass their own event without a type dance. */
@@ -22,7 +22,7 @@ export async function loadReport({
   params,
   fetch,
   setHeaders,
-}: LoadLike): Promise<{ report: AuditReport; meta_referrer: string }> {
+}: LoadLike): Promise<{ report: AuditReport; overrides: OverrideMap; meta_referrer: string }> {
   // Reject before fetching. fetchReport validates too, but these routes build a
   // URL from a public path segment and should not rely on a callee to catch it.
   if (!REPORT_TOKEN_PATTERN.test(params.token)) throw error(404, "Not found");
@@ -38,7 +38,7 @@ export async function loadReport({
     "cache-control": "private, no-store",
   });
 
-  const report = await fetchReport(params.token, {
+  const fetched = await fetchReport(params.token, {
     baseUrl: env.PROSPECT_REPORT_URL ?? "",
     fetch,
   });
@@ -46,10 +46,11 @@ export async function loadReport({
   // Only a genuine 404 lands here as null. An upstream outage throws out of
   // fetchReport and becomes a 500, deliberately: "your report is gone" and "we
   // are broken" must not look the same to the person holding the link.
-  if (!report) throw error(404, "Not found");
+  if (!fetched) throw error(404, "Not found");
 
   return {
-    report,
+    report: fetched.report,
+    overrides: fetched.overrides,
     // Rendered by the root layout as <meta name="referrer">. The URL is the
     // credential, so it must not travel in a Referer header when the reader
     // follows a link out of the report — the same reason /cancel, /calendar,

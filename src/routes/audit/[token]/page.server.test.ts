@@ -71,6 +71,8 @@ describe("/audit/[token] — loading", () => {
     const { evt } = event(TOKEN, ok);
     await expect(load(evt)).resolves.toEqual({
       report: REPORT,
+      // A bare upstream body carries no overrides; the loader still names them.
+      overrides: {},
       // The URL is the credential — it must not travel in a Referer header.
       meta_referrer: "no-referrer",
       // Every report shares the static audit card.
