@@ -289,6 +289,38 @@ test.describe("portfolio archive controls line up with the grid", () => {
     expect(heading.lines, "the heading renders on two lines").toBe(2);
   });
 
+  test("sets the archive heading's leading to Nicole's 125%", async ({ page }) => {
+    // Tim, #rd-website 2026-09-10, on the two-line heading: "you can drive a semi
+    // through the two lines… Line height should much tighter. it's 125% of px
+    // size is what Nicole has it set at." It rode on `line-height: normal`,
+    // which Besley resolves to 1.68 — invisible while the heading was one line.
+    //
+    // Asserted as the RENDERED gap between the two baselines, not the declared
+    // property, and derived from the computed font-size at each step so the
+    // ratio survives a type-scale change. Every breakpoint, because .archive-title
+    // restates font-size at four of them and a px leading would only ever be
+    // right at one.
+    for (const width of [390, 480, 768, 1024, 1224, 1280, 1536]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openPortfolio(page);
+      const m = await page.evaluate(() => {
+        const h2 = document.querySelector(".archive-title")!;
+        const range = document.createRange();
+        range.selectNodeContents(h2);
+        const tops = [
+          ...new Set(
+            [...range.getClientRects()].filter((r) => r.height > 4).map((r) => Math.round(r.top)),
+          ),
+        ].sort((a, b) => a - b);
+        return { fontSize: parseFloat(getComputedStyle(h2).fontSize), tops };
+      });
+      expect(m.tops.length, `two line boxes at ${width}`).toBe(2);
+      expect(m.tops[1] - m.tops[0], `leading at ${width} (font-size ${m.fontSize}px)`).toBe(
+        Math.round(m.fontSize * 1.25),
+      );
+    }
+  });
+
   test("sits the search, filters and sort inside the thumbnail columns", async ({ page }) => {
     await openPortfolio(page);
     const geo = await page.evaluate(() => {

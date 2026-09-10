@@ -1176,7 +1176,12 @@
     font-size: 100px;
     font-style: normal;
     font-weight: 400;
-    line-height: normal;
+    /* Nicole's 125%, not the browser's `normal` — which Besley resolves to 1.68
+       and which nothing caught while this was a one-line heading (Tim,
+       #rd-website 2026-09-10: "you can drive a semi through the two lines… it's
+       125% of px size is what Nicole has it set at"). Unitless so it rides the
+       four font-size steps below instead of needing a px leading at each. */
+    line-height: 1.25;
   }
 
   @media only screen and (max-width: 1224px) {
