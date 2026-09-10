@@ -25,8 +25,8 @@ const OPTS = { baseUrl: "https://ops.test" };
 describe("fetchReport", () => {
   it("returns the parsed report on 200", async () => {
     const fetch = respondWith(200, REPORT);
-    const report = await fetchReport("aB3-_xY9zQ1rS2tU4vW6xY", { ...OPTS, fetch });
-    expect(report).toEqual(REPORT);
+    const fetched = await fetchReport("aB3-_xY9zQ1rS2tU4vW6xY", { ...OPTS, fetch });
+    expect(fetched).toEqual({ report: REPORT, overrides: {} });
   });
 
   it("calls the audit-report endpoint for the token", async () => {
@@ -104,5 +104,46 @@ describe("REPORT_TOKEN_PATTERN", () => {
   // Anchored at both ends, or a valid-looking prefix would smuggle a path.
   it("is anchored, so a valid prefix cannot carry a suffix", () => {
     expect(REPORT_TOKEN_PATTERN.test("aB3-_xY9zQ1rS2tU4vW6xY/../../secrets")).toBe(false);
+  });
+});
+
+describe("fetchReport — response shapes", () => {
+  const TOKEN = "aB3-_xY9zQ1rS2tU4vW6xY";
+  const opts = (body: unknown) => ({
+    baseUrl: "https://ops.test",
+    fetch: (async () =>
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })) as unknown as typeof globalThis.fetch,
+  });
+
+  it("reads a bare report body, the shape served before overrides existed", async () => {
+    const got = await fetchReport(TOKEN, opts({ url: "https://acme.test/", scores: {} }));
+    expect(got).toEqual({ report: { url: "https://acme.test/", scores: {} }, overrides: {} });
+  });
+
+  it("reads a wrapped body and returns its overrides", async () => {
+    const got = await fetchReport(
+      TOKEN,
+      opts({
+        report: { url: "https://acme.test/" },
+        overrides: { "composed:headlineFinding": { original: "a", text: "b" } },
+        editedAt: "2026-09-09T00:00:00.000Z",
+        openedAt: null,
+      }),
+    );
+    expect(got).toEqual({
+      report: { url: "https://acme.test/" },
+      overrides: { "composed:headlineFinding": { original: "a", text: "b" } },
+    });
+  });
+
+  it("treats a wrapped body with null overrides as no overrides", async () => {
+    const got = await fetchReport(
+      TOKEN,
+      opts({ report: { url: "https://acme.test/" }, overrides: null }),
+    );
+    expect(got?.overrides).toEqual({});
   });
 });

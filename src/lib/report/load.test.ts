@@ -27,6 +27,8 @@ describe("loadReport — the guards both routes share", () => {
     const { evt } = event(TOKEN, respondWith(200, REPORT));
     await expect(loadReport(evt)).resolves.toEqual({
       report: REPORT,
+      // Always an object, never absent, so no caller has to branch on it.
+      overrides: {},
       // The URL is the credential; it must not travel in a Referer header.
       meta_referrer: "no-referrer",
     });
@@ -80,6 +82,7 @@ describe("both routes use the shared loader", () => {
       // own runner, but it is served on the same public token.
       await expect(route.load(evt as never)).resolves.toEqual({
         report: REPORT,
+        overrides: {},
         meta_referrer: "no-referrer",
         // Every report shares the static audit card.
         meta_image: "/og/site/audit.png",
