@@ -911,3 +911,38 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
     expect(notSourcedFromSite({ accuracy: null } as unknown as ReportView)).toEqual([]);
   });
 });
+
+describe("toReportView — overrides", () => {
+  const raw = {
+    url: "https://acme.test/",
+    siteChecks: {
+      ok: true,
+      data: [
+        {
+          key: "dead-links",
+          label: "Links that go nowhere",
+          status: "fail",
+          evidence: "3 of 40",
+          why: "Generated why.",
+          scope: "quick",
+        },
+      ],
+    },
+  };
+
+  it("defaults to an empty map when no overrides are passed", () => {
+    expect(toReportView(raw).overrides).toEqual({});
+  });
+
+  it("applies a payload override before the view is built", () => {
+    const view = toReportView(raw, {
+      "siteChecks.data[0].why": { original: "Generated why.", text: "Edited why." },
+    });
+    expect(view.siteChecks?.[0]?.why).toBe("Edited why.");
+  });
+
+  it("carries the map onto the view for the composed sentences", () => {
+    const map = { "composed:headlineFinding": { original: "a", text: "b" } };
+    expect(toReportView(raw, map).overrides).toEqual(map);
+  });
+});
