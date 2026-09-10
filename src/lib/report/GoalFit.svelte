@@ -44,6 +44,18 @@
 
   // `goalVerdict` takes counts rather than the view, so it cannot consult the
   // override map itself; the edit is applied here, at the one place it renders.
+  //
+  // COVERED BY `svelte-check` ONLY. Every other `composed()` wrap in the report
+  // has a unit test; this one cannot. vitest.config.js loads no Svelte plugin —
+  // it is deliberately a plain node config for pure functions — so importing
+  // this component under vitest dies in `vite:import-analysis` on the script
+  // block below ("content contains invalid JS syntax") before any test runs.
+  // Both halves either side of the wrap ARE tested: `goalVerdict` in
+  // model.test.ts, `composed` in overrides.test.ts. What is untested is exactly
+  // the wiring — that the key is spelled `composed:goalVerdict`, and that the
+  // string offered to `composed` is the string rendered below. Teaching the
+  // unit-test config to compile Svelte would close that, and is a larger change
+  // than the override layer should carry on its own.
   const verdict = $derived(
     composed(view.overrides, "composed:goalVerdict", goalVerdict(missing.length, judged.length)),
   );

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  openingSummary,
   toReportView,
   type Assertion,
   type BuyerQuestion,
@@ -703,6 +704,159 @@ describe("composed sentences honour operator overrides", () => {
     expect(healthFixes(proper)[0]!.title).toBe("Reworded fix");
     expect(viewportRow(proper).label).toBe("Reworded row");
   });
+
+  it("overrides a pass line by its position in its group", () => {
+    const groups = passes(base);
+    expect(groups[0]!.items.length).toBeGreaterThan(1);
+    const items = groups[0]!.items;
+    const edited = passes(
+      edit({
+        "composed:passes[0].items[0]": { original: items[0]!, text: "Reworded line" },
+      }),
+    );
+    expect(edited[0]!.items[0]).toBe("Reworded line");
+    // The lines are the more numerous half of this list and the likelier edit,
+    // so an edit to one must leave its neighbours and its heading alone.
+    expect(edited[0]!.items.slice(1)).toEqual(items.slice(1));
+    expect(edited[0]!.title).toBe(groups[0]!.title);
+  });
+
+  it("withholds a pass-line override whose original is stale", () => {
+    const items = passes(base)[0]!.items;
+    const edited = passes(
+      edit({
+        "composed:passes[0].items[0]": { original: "not what we say", text: "Reworded line" },
+      }),
+    );
+    expect(edited[0]!.items).toEqual(items);
+  });
+
+  it("overrides a health row's value and detail, by the same key as its label", () => {
+    const row = healthRows(base)[0]!;
+    const edited = healthRows(
+      edit({
+        [`composed:health[${row.key}].value`]: { original: row.value, text: "Reworded value" },
+        [`composed:health[${row.key}].detail`]: { original: row.detail, text: "Reworded detail" },
+      }),
+    )[0]!;
+    expect(edited.value).toBe("Reworded value");
+    expect(edited.detail).toBe("Reworded detail");
+    expect(edited.label).toBe(row.label);
+    // `alert` is a verdict, not copy: it decides whether the row renders as a
+    // finding or joins the passes, and is not offered to the operator at all.
+    expect(edited.alert).toBe(row.alert);
+  });
+
+  it("withholds a health-row value override whose original is stale", () => {
+    const row = healthRows(base)[0]!;
+    const edited = healthRows(
+      edit({
+        [`composed:health[${row.key}].value`]: { original: "not what we say", text: "Reworded" },
+      }),
+    )[0]!;
+    expect(edited.value).toBe(row.value);
+  });
+
+  /**
+   * The collision fix, which is written here rather than by the audit and so
+   * exists in no payload for `applyOverrides` to reach.
+   */
+  const conflated = view(
+    stage("accuracy", (d) => ({
+      ...d,
+      conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+    })),
+  );
+
+  it("overrides the collision fix's title and its reasoning", () => {
+    const fix = collisionFix(conflated)!;
+    expect(fix).not.toBeNull();
+    const edited = collisionFix(
+      editOn(conflated, {
+        "composed:collisionFix.title": { original: fix.title, text: "Reworded title" },
+        "composed:collisionFix.why": { original: fix.why, text: "Reworded why" },
+      }),
+    )!;
+    expect(edited.title).toBe("Reworded title");
+    expect(edited.why).toBe("Reworded why");
+    // Impact, effort and tier order the fix list; they are not copy and are
+    // not editable, so the reworded fix keeps its place in the list.
+    expect(edited.impact).toBe(fix.impact);
+    expect(edited.effort).toBe(fix.effort);
+    expect(edited.tier).toBe(fix.tier);
+    // And the edit reaches the reader through the list, not only through
+    // `collisionFix` — the collision fix is printed first in `allFixes`.
+    expect(
+      allFixes(
+        editOn(conflated, {
+          "composed:collisionFix.title": { original: fix.title, text: "Reworded title" },
+        }),
+      )[0]!.title,
+    ).toBe("Reworded title");
+  });
+
+  it("withholds a collision-fix override whose original is stale", () => {
+    const fix = collisionFix(conflated)!;
+    const edited = collisionFix(
+      editOn(conflated, {
+        "composed:collisionFix.title": { original: "not what we say", text: "Reworded title" },
+        "composed:collisionFix.why": { original: "not what we say", text: "Reworded why" },
+      }),
+    )!;
+    expect(edited.title).toBe(fix.title);
+    expect(edited.why).toBe(fix.why);
+  });
+
+  /**
+   * THE CASCADE, which is the most interesting thing this layer does.
+   *
+   * A health row is upstream of three other composed sentences: `passes`
+   * prints `${label}: ${value}`, `healthFixes` builds its reasoning as
+   * `${what} ${detail}`, and the headline's `site-check` branch lists the
+   * labels. So an operator who edits a row AND a sentence derived from it, in
+   * the same map, invalidates the second override's stored `original` with the
+   * first edit — and `composed` withholds it.
+   *
+   * The question this pins is what it degrades TO. It degrades to the sentence
+   * REGENERATED around the operator's upstream edit, not to the stale
+   * pre-edit text, so the report reads as consistently edited rather than
+   * half-edited. Half of that is `composed`'s doing and half is the fact that
+   * `healthFixes` reads the OVERRIDDEN rows; neither half is obvious, and
+   * until now neither was asserted.
+   */
+  it("degrades a derived override to the regenerated sentence, not to the stale one", () => {
+    const row = viewportRow(oneFinding);
+    const fix = healthFixes(oneFinding)[0]!;
+    const newDetail = "Phones are served the desktop layout and have to pinch to read it.";
+
+    const cascaded = editOn(oneFinding, {
+      "composed:health[viewport].detail": { original: row.detail, text: newDetail },
+      // Written against the fix as it read BEFORE the row above was edited —
+      // which is exactly what an editing UI capturing originals out of
+      // dependency order would save.
+      "composed:healthFix[viewport].why": { original: fix.why, text: "Reworded why" },
+    });
+
+    // The row edit lands.
+    expect(viewportRow(cascaded).detail).toBe(newDetail);
+
+    const edited = healthFixes(cascaded)[0]!;
+    // The derived override is withheld: its stored original no longer matches.
+    expect(edited.why).not.toBe("Reworded why");
+    // And what the reader gets carries the operator's upstream edit rather
+    // than the text that edit replaced.
+    expect(edited.why).toContain(newDetail);
+    expect(edited.why).not.toContain(row.detail);
+    // Pinned exactly: it is the sentence `healthFixes` would write today, from
+    // the row as the operator left it.
+    const regenerated = healthFixes(
+      editOn(oneFinding, {
+        "composed:health[viewport].detail": { original: row.detail, text: newDetail },
+      }),
+    )[0]!.why;
+    expect(edited.why).toBe(regenerated);
+    expect(regenerated).not.toBe(fix.why);
+  });
 });
 
 /**
@@ -748,5 +902,123 @@ describe("operator wording embedded mid-sentence", () => {
   it("still lowercases an ordinary sentence-initial word", () => {
     const h = headlineFinding(relabelled("Redirects are not configured"));
     expect(h.text).toContain("redirects are not configured");
+  });
+});
+
+/**
+ * The argument for shipping this layer before anything can write to it: an
+ * override map that overrides nothing changes nothing.
+ *
+ * That has been true key by key — each `it` above pairs a landed edit with a
+ * withheld one — but never across the whole rendered report at once, which is
+ * the form the claim is actually made in. Here every string these modules
+ * produce goes into one dump, and the dump is compared under no map, under an
+ * empty map, and under a map of entries whose originals are all stale.
+ */
+describe("a map that overrides nothing changes nothing", () => {
+  // A report with findings rather than the all-pass one, so each list has
+  // something in it: a name collision writes the collision fix, and a failed
+  // viewport check writes a health fix.
+  const findings = {
+    ...raw,
+    ...stage("accuracy", (d) => ({
+      ...d,
+      conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+    })),
+    ...stage("checks", (d) => ({ ...d, viewportOk: false })),
+  };
+
+  /**
+   * Every string these modules render, in one comparable blob. Deliberately a
+   * test-local helper: nothing in `src/` needs a serialiser that only a test
+   * wants, and a shipped one would drift from what the page actually prints.
+   *
+   * `composed:goalVerdict` is the one override key missing from it. That wrap
+   * lives inside GoalFit.svelte, and this repo's vitest config loads no Svelte
+   * plugin, so the component cannot be imported here at all.
+   */
+  const dump = (v: ReportView): string => {
+    const headline = headlineFinding(v);
+    return JSON.stringify(
+      {
+        openingSummary: openingSummary(v),
+        headline: { kind: headline.kind, text: headline.text },
+        passes: passes(v),
+        passCount: passCount(v),
+        healthRows: healthRows(v),
+        healthFixes: healthFixes(v),
+        collisionFix: collisionFix(v),
+        allFixes: allFixes(v),
+      },
+      null,
+      2,
+    );
+  };
+
+  const v = toReportView(asReport(findings));
+  const baseline = dump(v);
+  const NEVER = "OPERATOR TEXT THAT MUST NOT APPEAR";
+
+  /** Every composed key this report has, plus two payload paths. */
+  const everyKey = [
+    "composed:openingSummary",
+    "composed:headlineFinding",
+    "composed:collisionFix.title",
+    "composed:collisionFix.why",
+    ...passes(v).flatMap((g, i) => [
+      `composed:passes[${i}].title`,
+      ...g.items.map((_, j) => `composed:passes[${i}].items[${j}]`),
+    ]),
+    ...healthRows(v).flatMap((r) => [
+      `composed:health[${r.key}].label`,
+      `composed:health[${r.key}].value`,
+      `composed:health[${r.key}].detail`,
+    ]),
+    ...healthRows(v)
+      .filter((r) => r.alert)
+      .flatMap((r) => [`composed:healthFix[${r.key}].title`, `composed:healthFix[${r.key}].why`]),
+    // Payload paths as well as composed keys, so `applyOverrides` is under the
+    // same claim as `composed`.
+    "siteChecks.data[0].why",
+    "analyze.data.fixes[0].why",
+  ];
+
+  it("has something in every section, so the dumps are not comparing nothing", () => {
+    expect(openingSummary(v)).not.toBeNull();
+    expect(headlineFinding(v).text.length).toBeGreaterThan(0);
+    expect(passes(v).length).toBeGreaterThan(0);
+    expect(passCount(v)).toBeGreaterThan(0);
+    expect(healthRows(v).length).toBeGreaterThan(0);
+    expect(healthFixes(v).length).toBeGreaterThan(0);
+    expect(collisionFix(v)).not.toBeNull();
+    expect(allFixes(v).length).toBeGreaterThan(0);
+    expect(everyKey.length).toBeGreaterThan(20);
+  });
+
+  it("renders identically with no map and with an empty map", () => {
+    expect(dump(toReportView(asReport(findings), {}))).toBe(baseline);
+  });
+
+  it("renders identically under a map whose originals are all stale", () => {
+    const stale: ReportView["overrides"] = Object.fromEntries(
+      everyKey.map((k) => [k, { original: "not what we say", text: NEVER }]),
+    );
+    const out = dump(toReportView(asReport(findings), stale));
+    expect(out).not.toContain(NEVER);
+    expect(out).toBe(baseline);
+  });
+
+  it("is not vacuous: the same keys with matching originals do change the dump", () => {
+    // Without this, the two assertions above would pass just as happily on a
+    // dump that no override could ever reach.
+    const row = healthRows(v)[0]!;
+    const landed = toReportView(asReport(findings), {
+      "composed:headlineFinding": { original: headlineFinding(v).text, text: NEVER },
+      [`composed:health[${row.key}].label`]: { original: row.label, text: NEVER },
+      "siteChecks.data[0].why": { original: v.siteChecks![0]!.why, text: NEVER },
+    });
+    const out = dump(landed);
+    expect(out).toContain(NEVER);
+    expect(out).not.toBe(baseline);
   });
 });
