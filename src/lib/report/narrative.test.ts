@@ -563,3 +563,61 @@ describe("healthFixes — every failed check becomes a fix", () => {
     expect(fixes[0]?.why).toContain(row?.detail.slice(0, 40));
   });
 });
+
+/**
+ * The other half of the override layer.
+ *
+ * `applyOverrides` can only reach strings that exist in the stored payload.
+ * Every sentence below is composed here, from data, and is in no payload at
+ * all — so each one consults the map itself, at the point it is written.
+ */
+describe("composed sentences honour operator overrides", () => {
+  const base = view();
+  const edit = (overrides: ReportView["overrides"]): ReportView => ({ ...base, overrides });
+
+  it("overrides the headline finding", () => {
+    const generated = headlineFinding(base);
+    const edited = headlineFinding(
+      edit({ "composed:headlineFinding": { original: generated.text, text: "Reworded." } }),
+    );
+    expect(edited.text).toBe("Reworded.");
+    // The kind is not overridable: it chooses which branch of the report
+    // renders, and a reworded sentence must not move the reader elsewhere.
+    expect(edited.kind).toBe(generated.kind);
+  });
+
+  it("withholds a headline override whose original is stale", () => {
+    const generated = headlineFinding(base);
+    const edited = headlineFinding(
+      edit({ "composed:headlineFinding": { original: "not what we say", text: "Reworded." } }),
+    );
+    expect(edited.text).toBe(generated.text);
+  });
+
+  it("overrides a pass-group title by index", () => {
+    const groups = passes(base);
+    // Asserted, not guarded: a fixture with no groups would make the rest of
+    // this test pass without checking anything.
+    expect(groups.length).toBeGreaterThan(0);
+    const edited = passes(
+      edit({
+        "composed:passes[0].title": { original: groups[0]!.title, text: "Reworded group" },
+      }),
+    );
+    expect(edited[0]!.title).toBe("Reworded group");
+    expect(edited.map((g) => g.items)).toEqual(groups.map((g) => g.items));
+  });
+
+  it("overrides a health row by its own key", () => {
+    const rows = healthRows(base);
+    expect(rows.length).toBeGreaterThan(0);
+    const row = rows[0]!;
+    const edited = healthRows(
+      edit({
+        [`composed:health[${row.key}].label`]: { original: row.label, text: "Reworded row" },
+      }),
+    );
+    expect(edited[0]!.label).toBe("Reworded row");
+    expect(edited[0]!.value).toBe(row.value);
+  });
+});

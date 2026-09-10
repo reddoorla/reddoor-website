@@ -1,5 +1,6 @@
 import { healthRows, type HealthRow } from "./health";
 import { GOAL_LABELS, type Fix, type ReportView } from "./model";
+import { composed } from "./overrides";
 
 /**
  * The narrative layer: one sentence the page leads with, and one list of
@@ -63,7 +64,7 @@ function inline(text: string): string {
   return t.charAt(0).toLowerCase() + t.slice(1);
 }
 
-export function headlineFinding(view: ReportView): Headline {
+function headlineFindingGenerated(view: ReportView): Headline {
   const who = view.businessName ?? "your business";
   const reach = view.crawlerReach;
   const acc = view.accuracy;
@@ -184,6 +185,21 @@ export function headlineFinding(view: ReportView): Headline {
   };
 }
 
+/**
+ * The headline as the reader sees it: generated, then the operator's wording
+ * if they wrote one.
+ *
+ * The `kind` is deliberately NOT overridable. It is not copy — it decides
+ * which branch of the report renders and which section the hero points at. An
+ * operator rewording the sentence must not silently move the reader into a
+ * different part of the document, so the edit reaches the text and stops
+ * there.
+ */
+export function headlineFinding(view: ReportView): Headline {
+  const h = headlineFindingGenerated(view);
+  return { ...h, text: composed(view.overrides, "composed:headlineFinding", h.text) };
+}
+
 export type PassGroup = { title: string; items: string[] };
 
 /**
@@ -193,7 +209,7 @@ export type PassGroup = { title: string; items: string[] };
  * was checked and came back clean opens this. The lines are receipts for
  * breadth, not findings, so they are terse on purpose.
  */
-export function passes(view: ReportView): PassGroup[] {
+function passesGenerated(view: ReportView): PassGroup[] {
   const acc = view.accuracy;
   const reach = view.crawlerReach;
   const rows = healthRows(view);
@@ -237,6 +253,23 @@ export function passes(view: ReportView): PassGroup[] {
   ].filter((g) => g.items.length > 0);
 }
 
+/**
+ * The passes, each line offered to the operator by position.
+ *
+ * Positional keys, for the reason the module doc in `overrides.ts` gives: a
+ * stored audit never changes, so the list a key was written against is the
+ * list it is read against. Groups with no items are already dropped by the
+ * generator, so the indices here are the indices the page renders.
+ */
+export function passes(view: ReportView): PassGroup[] {
+  return passesGenerated(view).map((g, i) => ({
+    title: composed(view.overrides, `composed:passes[${i}].title`, g.title),
+    items: g.items.map((item, j) =>
+      composed(view.overrides, `composed:passes[${i}].items[${j}]`, item),
+    ),
+  }));
+}
+
 export function passCount(view: ReportView): number {
   return passes(view).reduce((n, g) => n + g.items.length, 0);
 }
@@ -271,7 +304,7 @@ export function displayQuote(text: string): string {
  * the list, marked measured because it follows from a check rather than from
  * the model's judgement.
  */
-export function collisionFix(view: ReportView): Fix | null {
+function collisionFixGenerated(view: ReportView): Fix | null {
   const acc = view.accuracy;
   if (!acc?.conflation.detected && view.namesake === null) return null;
   const who = view.businessName ?? "your business";
@@ -287,6 +320,19 @@ export function collisionFix(view: ReportView): Fix | null {
     effort: "low",
     tier: "content",
     origin: "measured",
+  };
+}
+
+/** The collision fix, with the operator's wording where they wrote one. Only
+ *  the two strings a reader sees are editable; impact, effort and tier drive
+ *  the ordering of the list rather than its copy. */
+export function collisionFix(view: ReportView): Fix | null {
+  const f = collisionFixGenerated(view);
+  if (!f) return null;
+  return {
+    ...f,
+    title: composed(view.overrides, "composed:collisionFix.title", f.title),
+    why: composed(view.overrides, "composed:collisionFix.why", f.why),
   };
 }
 
@@ -449,7 +495,7 @@ const HEALTH_FIXES: Record<string, HealthFixSpec> = {
   },
 };
 
-export function healthFixes(view: ReportView): Fix[] {
+function healthFixesGenerated(view: ReportView): Fix[] {
   const written = view.fixes.map((f) => f.title);
   const out: Fix[] = [];
   for (const row of healthRows(view)) {
@@ -466,6 +512,18 @@ export function healthFixes(view: ReportView): Fix[] {
     });
   }
   return out;
+}
+
+/** The health fixes, with the operator's wording where they wrote one. Keyed
+ *  by position, like `passes`: a `Fix` carries no identifier of its own, and a
+ *  stored audit never changes, so the list an operator edited is the list that
+ *  renders. */
+export function healthFixes(view: ReportView): Fix[] {
+  return healthFixesGenerated(view).map((f, i) => ({
+    ...f,
+    title: composed(view.overrides, `composed:healthFix[${i}].title`, f.title),
+    why: composed(view.overrides, `composed:healthFix[${i}].why`, f.why),
+  }));
 }
 
 /**

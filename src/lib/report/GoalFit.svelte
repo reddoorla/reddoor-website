@@ -1,6 +1,7 @@
 <script lang="ts">
   import { GOAL_LABELS, goalVerdict, type GoalRequirement, type ReportView } from "./model";
   import { numberWord } from "./narrative";
+  import { composed } from "./overrides";
 
   // Whether the site does the one job it exists to do.
   //
@@ -41,7 +42,11 @@
   const unmeasured = $derived(ordered.filter((r) => r.status === "unmeasured"));
   const judged = $derived(ordered.filter((r) => r.status !== "unmeasured"));
 
-  const verdict = $derived(goalVerdict(missing.length, judged.length));
+  // `goalVerdict` takes counts rather than the view, so it cannot consult the
+  // override map itself; the edit is applied here, at the one place it renders.
+  const verdict = $derived(
+    composed(view.overrides, "composed:goalVerdict", goalVerdict(missing.length, judged.length)),
+  );
 </script>
 
 {#if !fit}

@@ -1,4 +1,5 @@
 import type { ReportView } from "./model";
+import { composed } from "./overrides";
 
 /**
  * Whether the site works, checked the way a stranger would check it.
@@ -30,7 +31,7 @@ export type HealthRow = {
 const mb = (bytes: number): string => (bytes / 1_000_000).toFixed(1);
 const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
 
-export function healthRows(view: ReportView): HealthRow[] {
+function healthRowsGenerated(view: ReportView): HealthRow[] {
   const out: HealthRow[] = [];
   const { assets, journey, consistency, basics } = view;
 
@@ -308,4 +309,23 @@ export function healthRows(view: ReportView): HealthRow[] {
   }
 
   return out;
+}
+
+/**
+ * The rows as the reader sees them: generated, then the operator's wording
+ * wherever they wrote one.
+ *
+ * Keyed by the row's own `key` rather than by position, because that key is
+ * already stable — it names the check, it is what `HEALTH_FIXES` matches on,
+ * and it survives a row above it being absent on a report where that stage
+ * did not run. `alert` stays generated: it decides whether a row renders as a
+ * finding or joins the passes, which is a verdict, not copy.
+ */
+export function healthRows(view: ReportView): HealthRow[] {
+  return healthRowsGenerated(view).map((r) => ({
+    ...r,
+    label: composed(view.overrides, `composed:health[${r.key}].label`, r.label),
+    value: composed(view.overrides, `composed:health[${r.key}].value`, r.value),
+    detail: composed(view.overrides, `composed:health[${r.key}].detail`, r.detail),
+  }));
 }
