@@ -24,6 +24,8 @@ export type { Override, OverrideMap };
  * mismatch — a guard that has only ever passed is not a guard.
  */
 
+const UNSAFE_SEGMENT = new Set(["__proto__", "constructor", "prototype"]);
+
 /** Split `a.b[0].c` into ["a","b",0,"c"]. Returns null for anything that is not
  *  a payload path, which is how `composed:` keys are skipped. */
 function parsePath(key: string): (string | number)[] | null {
@@ -32,6 +34,10 @@ function parsePath(key: string): (string | number)[] | null {
   for (const seg of key.split(".")) {
     const m = /^([A-Za-z_$][\w$]*)((?:\[\d+\])*)$/.exec(seg);
     if (!m) return null;
+    // A payload path never legitimately names these. Rejecting them here makes
+    // prototype pollution unreachable by construction rather than by the
+    // accident that `typeof Object === "function"` fails the walk's object check.
+    if (UNSAFE_SEGMENT.has(m[1]!)) return null;
     parts.push(m[1]!);
     for (const idx of m[2]!.matchAll(/\[(\d+)\]/g)) parts.push(Number(idx[1]));
   }
@@ -42,8 +48,10 @@ function parsePath(key: string): (string | number)[] | null {
  * Replace payload-resident strings named by the map.
  *
  * Returns a structurally-shared copy: only the objects along an overridden path
- * are cloned, so a report with no overrides costs one shallow clone. Never
- * mutates its input, because `toReportView` is a `$derived` and must stay pure.
+ * are cloned, so an empty map costs nothing at all and returns the input itself,
+ * while each applied override costs the root clone plus one clone per level of
+ * its path. Never mutates its input, because `toReportView` is a `$derived` and
+ * must stay pure.
  */
 export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport {
   const entries = Object.entries(map);
@@ -54,7 +62,7 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
 
   for (const [key, ov] of entries) {
     const path = parsePath(key);
-    if (!path || path.length === 0) continue;
+    if (!path) continue;
 
     // Walk first WITHOUT cloning, so a path that does not resolve, or an
     // override that is withheld, costs nothing and changes nothing.
@@ -66,8 +74,20 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
       }
       probe = (probe as Record<string | number, unknown>)[seg];
     }
-    if (typeof probe !== "string" || probe !== ov.original) continue;
+    // `ov` is defended before it is read, and `text` is checked, because
+    // `OverrideMap` is a CAST at the fetch boundary and not a validated shape:
+    // `unwrap` proves only that `overrides` is a non-array object. So an entry
+    // is a claim about wire data, not a fact, and this module treats the map as
+    // untrusted — a malformed entry is withheld exactly like a stale one. This
+    // runs inside a `$derived` on the prospect-facing page, where a throw blanks
+    // the report rather than degrading it.
+    if (!ov || typeof ov.text !== "string" || typeof probe !== "string" || probe !== ov.original)
+      continue;
 
+    // `cloned` guards only the ROOT clone. Inner containers are re-cloned on
+    // every override's walk, so two overrides under one parent clone it twice.
+    // That redundancy is knowingly accepted: a report carries a handful of
+    // overrides over a shallow payload, and the alternative is a path trie.
     if (!cloned) {
       out = { ...out };
       cloned = true;
@@ -94,6 +114,11 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
  */
 export function composed(map: OverrideMap, key: string, generated: string): string {
   const ov = map[key];
-  if (!ov || ov.original !== generated) return generated;
+  // `typeof ov.text` is checked for the same reason `applyOverrides` checks it:
+  // `OverrideMap` is a cast at the fetch boundary, not a validated shape, so the
+  // declared `: string` return is only as true as the wire data. Without this,
+  // a non-string `text` would be returned from a function TypeScript believes
+  // cannot do that.
+  if (!ov || typeof ov.text !== "string" || ov.original !== generated) return generated;
   return ov.text;
 }
