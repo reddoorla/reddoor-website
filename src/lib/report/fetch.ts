@@ -51,14 +51,23 @@ export type FetchedReport = { report: AuditReport; overrides: OverrideMap };
  *
  * The discriminator is a `report` key, which a bare `ProspectAuditResult` never
  * has — its top level is url/businessName/scores/crawl/checks and the rest.
+ *
+ * `editedAt` and `openedAt` are dropped: they are cockpit bookkeeping about the
+ * operator's own editing session, and nothing on the prospect's page is a
+ * function of them. Carrying them would put them in the hydration payload of a
+ * document the prospect can read.
  */
-function unwrap(body: unknown): FetchedReport {
-  const b = body as Record<string, unknown>;
-  if (b && typeof b === "object" && "report" in b) {
-    const overrides = b.overrides;
+export function unwrap(body: unknown): FetchedReport {
+  if (body && typeof body === "object" && "report" in body) {
+    const { report, overrides } = body as { report: unknown; overrides?: unknown };
     return {
-      report: b.report as AuditReport,
-      overrides: overrides && typeof overrides === "object" ? (overrides as OverrideMap) : {},
+      report: report as AuditReport,
+      // `typeof [] === "object"`, so proving object-ness alone would let an
+      // array through as an OverrideMap.
+      overrides:
+        overrides && typeof overrides === "object" && !Array.isArray(overrides)
+          ? (overrides as OverrideMap)
+          : {},
     };
   }
   return { report: body as AuditReport, overrides: {} };
@@ -96,5 +105,19 @@ export async function fetchReport(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`fetchReport: upstream responded ${res.status}`);
 
-  return unwrap(await res.json());
+  const fetched = unwrap(await res.json());
+
+  // A 200 carrying no report is the upstream contradicting itself: it has a 404
+  // to say "gone" with, so this is a fault on our side of the wire and not an
+  // answer about this prospect — 500, the same as any other outage. Named here
+  // because the next thing to touch it is toReportView, and a TypeError on
+  // `.analyze` thrown out of a renderer tells an operator nothing about where it
+  // came from. Reachable two ways: a bare body that is literally `null` (the
+  // pre-overrides shape saying nothing), and `{ report: null }` (the wrapped
+  // shape doing the same).
+  if (!fetched.report || typeof fetched.report !== "object") {
+    throw new Error("fetchReport: upstream responded 200 with no report");
+  }
+
+  return fetched;
 }

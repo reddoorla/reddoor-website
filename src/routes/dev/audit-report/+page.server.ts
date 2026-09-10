@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dev } from "$app/environment";
-import type { AuditReport } from "$lib/report/fetch";
+import { unwrap, type AuditReport } from "$lib/report/fetch";
 
 /**
  * Loads a real audit sample when one has been dumped, and nothing otherwise.
@@ -12,11 +12,16 @@ import type { AuditReport } from "$lib/report/fetch";
  * A parse failure returns null rather than throwing. The point of the page is
  * to see the renderer cope with imperfect input; taking the whole route down
  * because the input was malformed would defeat it.
+ *
+ * Read through `unwrap` for the same reason fetchReport does: the obvious way
+ * to make this file is to dump the API response, which is now the wrapped
+ * `{ report, overrides, … }` shape. Handed to the renderer raw, that renders a
+ * silently hollow report instead of failing.
  */
 export const load = (): { sample: AuditReport | null } => {
   if (!dev) return { sample: null };
   try {
-    return { sample: JSON.parse(readFileSync(".audit-sample.json", "utf8")) as AuditReport };
+    return { sample: unwrap(JSON.parse(readFileSync(".audit-sample.json", "utf8"))).report };
   } catch {
     return { sample: null };
   }

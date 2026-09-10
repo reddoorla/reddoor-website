@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { fetchReport, REPORT_TOKEN_PATTERN } from "./fetch";
+import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 
 const REPORT = {
   url: "https://acme.example/",
@@ -21,6 +22,7 @@ function respondWith(status: number, body: unknown) {
 }
 
 const OPTS = { baseUrl: "https://ops.test" };
+const TOKEN = "aB3-_xY9zQ1rS2tU4vW6xY";
 
 describe("fetchReport", () => {
   it("returns the parsed report on 200", async () => {
@@ -108,19 +110,20 @@ describe("REPORT_TOKEN_PATTERN", () => {
 });
 
 describe("fetchReport — response shapes", () => {
-  const TOKEN = "aB3-_xY9zQ1rS2tU4vW6xY";
-  const opts = (body: unknown) => ({
-    baseUrl: "https://ops.test",
-    fetch: (async () =>
-      new Response(JSON.stringify(body), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      })) as unknown as typeof globalThis.fetch,
-  });
+  const opts = (body: unknown) => ({ ...OPTS, fetch: respondWith(200, body) });
 
   it("reads a bare report body, the shape served before overrides existed", async () => {
     const got = await fetchReport(TOKEN, opts({ url: "https://acme.test/", scores: {} }));
     expect(got).toEqual({ report: { url: "https://acme.test/", scores: {} }, overrides: {} });
+  });
+
+  // The two-key stub above cannot detect the discriminator colliding, which is
+  // the whole risk `unwrap` is defending against. This runs it over the real
+  // fixture the narrative tests use, so the day a stored report grows a
+  // top-level `report` key, this fails instead of the prospect's page.
+  it("reads a real report body as bare — no stored report has a top-level `report` key", async () => {
+    const got = await fetchReport(TOKEN, opts(ALL_PASS_REPORT));
+    expect(got).toEqual({ report: ALL_PASS_REPORT, overrides: {} });
   });
 
   it("reads a wrapped body and returns its overrides", async () => {
@@ -144,6 +147,23 @@ describe("fetchReport — response shapes", () => {
       TOKEN,
       opts({ report: { url: "https://acme.test/" }, overrides: null }),
     );
-    expect(got?.overrides).toEqual({});
+    expect(got).toEqual({ report: { url: "https://acme.test/" }, overrides: {} });
+  });
+
+  // `typeof [] === "object"`, so an object test alone lets an array through as
+  // an OverrideMap. Nothing renders overrides yet; the next commit does.
+  it("treats an array of overrides as no overrides", async () => {
+    const got = await fetchReport(
+      TOKEN,
+      opts({ report: { url: "https://acme.test/" }, overrides: [] }),
+    );
+    expect(got).toEqual({ report: { url: "https://acme.test/" }, overrides: {} });
+  });
+
+  it("refuses a 200 that carries no report, in either shape", async () => {
+    await expect(fetchReport(TOKEN, opts(null))).rejects.toThrow(/no report/i);
+    await expect(fetchReport(TOKEN, opts({ report: null, overrides: {} }))).rejects.toThrow(
+      /no report/i,
+    );
   });
 });

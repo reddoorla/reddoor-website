@@ -52,6 +52,14 @@ describe("loadReport — the guards both routes share", () => {
     await expect(loadReport(evt)).rejects.not.toMatchObject({ status: 404 });
   });
 
+  // A 200 carrying no report is the upstream contradicting itself: it has a 404
+  // to say "gone" with, so an empty body is a fault on our side of the wire and
+  // must not be laundered into "your report was deleted" either.
+  it("does not turn a 200 carrying no report into a 404", async () => {
+    const { evt } = event(TOKEN, respondWith(200, null));
+    await expect(loadReport(evt)).rejects.not.toMatchObject({ status: 404 });
+  });
+
   it("sets noindex and no-store", async () => {
     const { evt, setHeaders } = event(TOKEN, respondWith(200, REPORT));
     await loadReport(evt);
