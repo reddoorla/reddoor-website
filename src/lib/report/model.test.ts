@@ -736,6 +736,45 @@ describe("openingSummary — the first sentence, built from the verdicts", () =>
       openingSummary(toReportView(asReport({ ...SPOKEN, analyze: { ok: false, error: "x" } }))),
     ).toBeNull();
   });
+
+  // The opener is composed here rather than stored, so `applyOverrides` cannot
+  // reach it; the wrapper consults the map itself. Tested through the wrapper
+  // and not through `composed` directly, because the wrapper is what decides
+  // WHICH generated string the map is compared against — and what it does when
+  // there is no generated string at all.
+  it("prints the operator's wording in place of the generated opener", () => {
+    const generated = openingSummary(toReportView(asReport(SPOKEN)))!;
+    expect(
+      openingSummary(
+        toReportView(asReport(SPOKEN), {
+          "composed:openingSummary": { original: generated, text: "Reworded opener." },
+        }),
+      ),
+    ).toBe("Reworded opener.");
+  });
+
+  it("withholds an opener override whose original is stale", () => {
+    const generated = openingSummary(toReportView(asReport(SPOKEN)))!;
+    expect(
+      openingSummary(
+        toReportView(asReport(SPOKEN), {
+          "composed:openingSummary": { original: "not what we say", text: "Reworded opener." },
+        }),
+      ),
+    ).toBe(generated);
+  });
+
+  it("stays null when there is no opener, whatever the map claims", () => {
+    // An override must not conjure a first sentence onto a report that judged
+    // no question — there is nothing for the operator to have been editing.
+    expect(
+      openingSummary(
+        toReportView(asReport({ ...SPOKEN, analyze: { ok: false, error: "x" } }), {
+          "composed:openingSummary": { original: "anything at all", text: "Reworded opener." },
+        }),
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("ownSiteCitations — how often the assistant cited the site itself", () => {
@@ -909,5 +948,40 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
 
   it("claims nothing on a report with no accuracy stage", () => {
     expect(notSourcedFromSite({ accuracy: null } as unknown as ReportView)).toEqual([]);
+  });
+});
+
+describe("toReportView — overrides", () => {
+  const raw = {
+    url: "https://acme.test/",
+    siteChecks: {
+      ok: true,
+      data: [
+        {
+          key: "dead-links",
+          label: "Links that go nowhere",
+          status: "fail",
+          evidence: "3 of 40",
+          why: "Generated why.",
+          scope: "quick",
+        },
+      ],
+    },
+  };
+
+  it("defaults to an empty map when no overrides are passed", () => {
+    expect(toReportView(raw).overrides).toEqual({});
+  });
+
+  it("applies a payload override before the view is built", () => {
+    const view = toReportView(raw, {
+      "siteChecks.data[0].why": { original: "Generated why.", text: "Edited why." },
+    });
+    expect(view.siteChecks?.[0]?.why).toBe("Edited why.");
+  });
+
+  it("carries the map onto the view for the composed sentences", () => {
+    const map = { "composed:headlineFinding": { original: "a", text: "b" } };
+    expect(toReportView(raw, map).overrides).toEqual(map);
   });
 });

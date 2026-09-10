@@ -12,7 +12,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const view = $derived(toReportView(data.report));
+  const view = $derived(toReportView(data.report, data.overrides));
   const who = $derived(view.businessName ?? "your business");
   const headline = $derived(headlineFinding(view));
 

@@ -1,4 +1,5 @@
 import type { AuditReport } from "./fetch";
+import { applyOverrides, composed, type OverrideMap } from "./overrides";
 
 /**
  * The shape the report components consume.
@@ -413,6 +414,12 @@ const count = (n: number): string => COUNT_WORDS[n] ?? String(n);
  * checklist's denominator.
  */
 export function openingSummary(view: ReportView): string | null {
+  const generated = openingSummaryText(view);
+  if (generated === null) return null;
+  return composed(view.overrides, "composed:openingSummary", generated);
+}
+
+function openingSummaryText(view: ReportView): string | null {
   const judged = view.buyerQuestions.filter((q) => q.answered !== "unknown");
   if (judged.length === 0) return null;
   const parts: string[] = [];
@@ -683,6 +690,11 @@ export type ReportView = {
   buyerQuestions: BuyerQuestion[];
   questionTally: { yes: number; partial: number; no: number; unknown: number };
   narrative: { findability: string; readability: string; answers: string } | null;
+  /** The operator's edits, carried on the view so every composed-sentence
+   *  function already has them without a signature change. Payload-resident
+   *  overrides are applied before the view is built and are NOT re-applied
+   *  from here. Empty when the report has never been edited. */
+  overrides: OverrideMap;
 };
 
 /**
@@ -824,8 +836,8 @@ export function wasNamed(a: ProbeAnswer): boolean {
   return a.countedAsVisible ?? (a.domainCited || a.brandMentioned);
 }
 
-export function toReportView(raw: AuditReport): ReportView {
-  const r = raw as Record<string, unknown>;
+export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {
+  const r = applyOverrides(raw, overrides) as Record<string, unknown>;
 
   const analyze = stage<{
     buyerQuestions?: BuyerQuestion[];
@@ -951,5 +963,6 @@ export function toReportView(raw: AuditReport): ReportView {
       unknown: buyerQuestions.filter((q) => q.answered === "unknown").length,
     },
     narrative: analyze?.narrative ?? null,
+    overrides,
   };
 }
