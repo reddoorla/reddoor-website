@@ -607,6 +607,19 @@
      40px below its group's top edge, which is the top of that project's first
      image. `pt-28` on a `top-0` box could only ever satisfy one of the two.
 
+     `flush` swaps WHERE the pin starts without moving where it rests: the 40px
+     moves off the padding and onto `top`, so the label begins level with the
+     group's top edge and still parks at 88px once pinned. It is for the projects
+     that open with content inset into the 4/5 column (CEO LA, Trinity, Sonder)
+     rather than with a full-bleed banner. On a banner the 40px reads as padding
+     inside the image; beside inset content the pin sits in the empty margin, and
+     the eye lines its top up against the content's top edge instead — so the
+     lead-in reads as a misalignment (Tim, #rd-website 2026-09-10: "start of the
+     pin should align with the content when content isn't full width").
+
+     `stopAtBaseline` ends the pin on the last line's BASELINE rather than on the
+     bottom of the text's box — see `.pin-baseline-stop` in the style block.
+
      The box is exactly as tall as the label (no fixed height): a sticky element
      is pushed out when its own bottom reaches its containing block's bottom, so
      the label's bottom now rides down to the group's last pixel instead of
@@ -617,9 +630,18 @@
      the gap is a constant 40px. Below md the
      in-card label stays and this is not rendered; at md+ the in-card label is
      hidden so the name never shows twice. -->
-{#snippet stickyLabel(props: { name: string; services: string; href: string; aria: string })}
+{#snippet stickyLabel(props: {
+  name: string;
+  services: string;
+  href: string;
+  aria: string;
+  flush?: boolean;
+  stopAtBaseline?: boolean;
+})}
   <div
-    class="hidden md:block col-start-1 row-start-1 self-start sticky top-12 z-[15] pt-10 pointer-events-none"
+    class="hidden md:block col-start-1 row-start-1 self-start sticky z-[15] pointer-events-none {props.flush
+      ? 'top-22 pt-0'
+      : 'top-12 pt-10'}{props.stopAtBaseline ? ' pin-baseline-stop' : ''}"
     data-sticky-label={props.href.replace("/portfolio/", "")}
   >
     <ContentWidth class="relative">
@@ -724,6 +746,7 @@
     services: "Brand, Digital, Print",
     href: "/portfolio/ceo-la",
     aria: "Go to CEO of Los Angeles project",
+    flush: true,
   })}
   <div class="col-start-1 row-start-1 min-w-0">
     <ContentWidth animateIn>
@@ -774,6 +797,7 @@
     services: "Print, Digital",
     href: "/portfolio/trinity-law-school",
     aria: "Go to Trinity Law School project",
+    flush: true,
   })}
   <div class="col-start-1 row-start-1 min-w-0">
     <section>
@@ -876,6 +900,8 @@
     services: "Brand, Digital, Print, Environmental",
     href: "/portfolio/gallery-sonder",
     aria: "Go to Gallery Sonder project",
+    flush: true,
+    stopAtBaseline: true,
   })}
   <div class="col-start-1 row-start-1 min-w-0 -mb-40">
     <ContentWidth animateIn>
@@ -1159,6 +1185,26 @@
     line-height: 140%; /* 70px */
   }
 
+  /* Sonder is the one project that closes on text rather than an image, so its
+     pin lands on type instead of on an edge. A line box carries half-leading
+     plus the descender below the last baseline, and stopping on the box bottom
+     left the pin floating in that dead space (Tim, #rd-website 2026-09-10: "the
+     bottom of the pin should align to the baseline of the text rather than the
+     container the text is in").
+
+     A sticky element is pushed out when its MARGIN box reaches the bottom of its
+     containing block, so a bottom margin here ends the pin that much earlier.
+     It costs no layout: the box shares its grid cell with the content and is far
+     shorter than it, so growing its margin box moves nothing.
+
+     The distance below the baseline is (line-height - font-size) / 2 + descender.
+     At .type-feature's 140% leading that is 0.2em + ~0.135em ≈ 0.335em — but em
+     here would resolve against this box's own 16px, not the heading's, so it is
+     written out against the two sizes .type-feature actually takes. */
+  .pin-baseline-stop {
+    margin-bottom: 20px; /* 60px type: (84 - 60) / 2 + 8 */
+  }
+
   .type-cta {
     /* Pin the body font: now an <h2>, the global `h2 { font-family: Besley }`
        rule would otherwise change the look. */
@@ -1207,6 +1253,11 @@
   @media only screen and (max-width: 768px) {
     .type-feature {
       font-size: 34px;
+    }
+    /* md: is min-width 768, so the pin and this rule overlap on exactly one
+       viewport width — 768, which is iPad portrait. */
+    .pin-baseline-stop {
+      margin-bottom: 11.6px; /* 34px type: (47.6 - 34) / 2 + 4.8 */
     }
     .type-feature-card {
       font-size: 28px;

@@ -28,6 +28,12 @@ async function pageTopOf(page: Page, selector: string) {
   );
 }
 
+// The pin's 40px lead-in is padding INSIDE a full-bleed banner, so it only reads
+// as alignment when the content runs edge to edge. Where a project opens with
+// content inset into the right 4/5 column, the pin sits in the empty margin
+// beside it and the eye lines its top up against the content's top edge instead.
+const LEAD_IN = 40;
+
 test.describe("portfolio featured-project sticky label", () => {
   test.beforeEach(async ({ page }) => {
     // Instant scrollTo: the site's smooth scrolling is gated on reduced motion.
@@ -125,6 +131,67 @@ test.describe("portfolio featured-project sticky label", () => {
     }
   });
 
+  test("starts level with inset content, and 40px into a full-bleed banner", async ({ page }) => {
+    // Tim, #rd-website 2026-09-10: "start of the pin should align with the
+    // content when content isn't full width (eg sonder, trinity, CEOLA)."
+    // Which rule applies is read off the content itself — whether the project's
+    // first ink starts at the viewport edge or in the 4/5 column — so a project
+    // that changes its opening layout gets the right treatment without anyone
+    // remembering to update a list of names here.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/portfolio");
+    const measured = await page.evaluate(() => {
+      const out: { group: string; inset: boolean; offset: number }[] = [];
+      for (const g of document.querySelectorAll("[data-project-group]")) {
+        const ink = [...g.querySelectorAll("img, iframe, video, h2")]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.height > 8 && r.width > 8 && !el.closest("[data-sticky-label]");
+          })
+          .map((el) => el.getBoundingClientRect());
+        const first = ink.reduce((a, c) => (c.top < a.top ? c : a), ink[0]);
+        const chip = g.querySelector("[data-sticky-chip]")!.getBoundingClientRect();
+        out.push({
+          group: (g as HTMLElement).dataset.projectGroup!,
+          inset: Math.round(first.left) > 1,
+          offset: Math.round(chip.top - first.top),
+        });
+      }
+      return out;
+    });
+    for (const { group, inset, offset } of measured) {
+      expect(offset, `${group} (${inset ? "inset" : "full-bleed"}) pin lead-in`).toBe(
+        inset ? 0 : LEAD_IN,
+      );
+    }
+    // Both branches must actually be exercised, or this passes by describing
+    // only the layout that happens to exist.
+    expect(
+      measured.some((m) => m.inset),
+      "some project opens with inset content",
+    ).toBe(true);
+    expect(
+      measured.some((m) => !m.inset),
+      "some project opens full-bleed",
+    ).toBe(true);
+  });
+
+  test("rests 88px down the viewport once pinned, whichever lead-in it uses", async ({ page }) => {
+    // The lead-in and the pinned resting position are two different numbers that
+    // used to be one: dropping the 40px inset for the inset-content projects must
+    // not also drop the 40px of clear air under the 48px nav.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/portfolio");
+    for (const uid of ["rubrik-zero-labs", "ceo-la", "gallery-sonder"]) {
+      await scrollTo(page, (await pageTopOf(page, `[data-project-group="${uid}"]`)) + 400);
+      const chip = page.locator(`[data-sticky-label="${uid}"] [data-sticky-chip]`);
+      await expect
+        .poll(() => yOf(chip), { message: `${uid} rests at ${TOP}` })
+        .toBeGreaterThan(TOP - 2);
+      expect(await yOf(chip), `${uid} rests at ${TOP}`).toBeLessThan(TOP + 2);
+    }
+  });
+
   test("the pin rides to the bottom of its project, not short of it", async ({ page }) => {
     // Tim, #rd-website 2026-09-09: "Can the sticky title stop at the bottom of
     // the image? Right now it stops short," then "I want the title to stop at
@@ -178,16 +245,33 @@ test.describe("portfolio featured-project sticky label", () => {
     await expect.poll(async () => (await chip.boundingBox())?.y ?? -1).toBeLessThan(TOP);
     const geometry = await page.evaluate((sel) => {
       const g = document.querySelector(sel)!;
-      const h2 = g.querySelector("h2")!.getBoundingClientRect();
+      const h2El = g.querySelector("h2")!;
+      const h2 = h2El.getBoundingClientRect();
+      // The heading's last BASELINE, not the bottom of its box — a 140% line
+      // box carries half-leading plus the descender below the baseline, which
+      // is dead space the pin should not ride down into (Tim, #rd-website
+      // 2026-09-10: "the bottom of the pin should align to the baseline of the
+      // text rather than the container the text is in").
+      const probe = document.createElement("span");
+      probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+      h2El.appendChild(probe);
+      const baseline = probe.getBoundingClientRect().bottom;
+      probe.remove();
       const band = g.querySelector("section.bg-paper")!.getBoundingClientRect();
       const cta = document.querySelector(".bg-paper-red")!.getBoundingClientRect();
-      return { heading: h2.bottom, band: band.bottom, cta: cta.top };
+      return { heading: h2.bottom, baseline, band: band.bottom, cta: cta.top };
     }, group);
     const box = (await chip.boundingBox())!;
     expect(
-      Math.abs(box.y + box.height - geometry.heading),
-      "pin stops on the heading",
+      Math.abs(box.y + box.height - geometry.baseline),
+      "pin stops on the heading's baseline",
     ).toBeLessThanOrEqual(2);
+    // …which is strictly above the box bottom, or the assertion above would be
+    // satisfied by the old behaviour too.
+    expect(
+      geometry.heading - geometry.baseline,
+      "baseline sits above the box bottom",
+    ).toBeGreaterThan(8);
     // The band still runs past the heading, and the CTA still starts where it
     // ends — the shrink is to the sticky constraint only, not to the layout.
     expect(geometry.band - geometry.heading).toBe(160);
