@@ -259,3 +259,55 @@ test.describe("portfolio archive search", () => {
     await expect(page.getByRole("heading", { name: "But wait, there's more!" })).toBeVisible();
   });
 });
+
+// Tim, #rd-website 2026-09-10: "can we have a hard return after 'But wait,'?
+// Then get the search and filter buttons to fit within the columns of the
+// project thumbnails below?" and "the sort dropdown on the right sticks out
+// farther than the thumbnail images below". The controls row used to span the
+// full ContentWidth while the grid sits in the right 4/5 — so both of its edges
+// missed the thumbnails, by 236px on the left and 24px on the right.
+test.describe("portfolio archive controls line up with the grid", () => {
+  // The 20% caption gutter only exists at md+; below that the grid is full-width
+  // and the controls already match it.
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
+
+  test('breaks the archive heading after "But wait,"', async ({ page }) => {
+    await openPortfolio(page);
+    const heading = await page.evaluate(() => {
+      const h2 = document.querySelector(".archive-title")!;
+      const range = document.createRange();
+      range.selectNodeContents(h2);
+      // One rect per rendered line box.
+      const tops = new Set(
+        [...range.getClientRects()].filter((r) => r.height > 4).map((r) => Math.round(r.top)),
+      );
+      return { lines: tops.size, first: h2.firstChild!.textContent!.trim() };
+    });
+    expect(heading.first).toBe("But wait,");
+    expect(heading.lines, "the heading renders on two lines").toBe(2);
+  });
+
+  test("sits the search, filters and sort inside the thumbnail columns", async ({ page }) => {
+    await openPortfolio(page);
+    const geo = await page.evaluate(() => {
+      const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+      // The grid's own ink edges: the images, not the cells — each cell carries a
+      // 24px right pad, which is exactly what the sort button used to overhang.
+      const imgs = [...document.querySelectorAll("#projectsDiv [data-flip-uid]:not(.hidden) img")]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 8);
+      return {
+        gridLeft: Math.round(Math.min(...imgs.map((r) => r.left))),
+        gridRight: Math.round(Math.max(...imgs.map((r) => r.right))),
+        searchLeft: Math.round(box('[data-testid="portfolio-search"]').left),
+        filterLeft: Math.round(box("#projectsDiv button[aria-pressed]").left),
+        sortRight: Math.round(box('[data-testid="portfolio-sort"]').right),
+      };
+    });
+    expect(geo.searchLeft, "search starts at the thumbnail column").toBe(geo.gridLeft);
+    expect(geo.filterLeft, "filters start at the thumbnail column").toBe(geo.gridLeft);
+    expect(geo.sortRight, "sort ends at the thumbnail column").toBe(geo.gridRight);
+  });
+});

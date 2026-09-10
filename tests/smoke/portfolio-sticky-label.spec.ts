@@ -232,6 +232,49 @@ test.describe("portfolio featured-project sticky label", () => {
     expect(measured.inside.length, "the walk must find gaps to measure").toBeGreaterThan(3);
   });
 
+  test("keeps the same 48px clear of the in-card label on mobile", async ({ page }) => {
+    // Tim, #rd-website 2026-09-10: "The title is overlapping the image" (mobile).
+    // Below md the pin is not rendered and the in-card label carries the name
+    // instead — so any negative margin tuned to tuck an image up under the
+    // DESKTOP caption column lands on that label instead of on empty air.
+    // The gap owed to it is the same 48px as everywhere else inside a project.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/portfolio");
+    const gaps = await page.evaluate(() => {
+      const out: { group: string; gap: number }[] = [];
+      for (const g of document.querySelectorAll("[data-project-group]")) {
+        const label = [...g.querySelectorAll("div")].find(
+          (d) => d.className.includes("md:hidden") && d.querySelector('a[aria-label^="Go to"]'),
+        );
+        if (!label) continue;
+        const bottom = label.getBoundingClientRect().bottom;
+        // The nearest real ink below the label — the arrow inside the label
+        // itself and the pin's own copy are not content, so both are excluded.
+        const next = [...g.querySelectorAll("img, iframe, video")]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return (
+              r.height > 8 &&
+              r.width > 8 &&
+              r.top > bottom - 200 &&
+              !el.closest("[data-sticky-label]") &&
+              !el.closest('a[aria-label^="Go to"]')
+            );
+          })
+          .map((el) => el.getBoundingClientRect().top)
+          .sort((a, b) => a - b)[0];
+        if (next === undefined) continue;
+        out.push({
+          group: (g as HTMLElement).dataset.projectGroup!,
+          gap: Math.round(next - bottom),
+        });
+      }
+      return out;
+    });
+    for (const { group, gap } of gaps) expect(gap, `gap under the ${group} label`).toBe(48);
+    expect(gaps.length, "the walk must find a label with an image under it").toBeGreaterThan(0);
+  });
+
   test("an outgoing pin and the incoming one never touch", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/portfolio");

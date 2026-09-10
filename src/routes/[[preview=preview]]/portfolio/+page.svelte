@@ -644,7 +644,15 @@
       poster={rubrikHero}
       alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
     />
-    <section class="pt-12 pb-36 bg-paper">
+    <!-- The report image tucks 160px up into this band's bottom padding so it
+         clears the caption by 48px — but that overlap is arithmetic against the
+         DESKTOP column, where the h2 is the band's last ink (mb-16 + pb-36 -
+         mt-40 = 48). Below md the in-card label rides under the h2 (the pin is
+         desktop-only), which is 160px of content where the desktop layout has
+         empty padding, so the same pull dragged the image 16px OVER the label
+         (Tim, #rd-website 2026-09-10: "The title is overlapping the image").
+         Mobile keeps the 48px as plain padding and skips the overlap entirely. -->
+    <section class="pt-12 pb-12 md:pb-36 bg-paper">
       <ContentWidth>
         <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
           <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep Your Data Protected</h2>
@@ -660,7 +668,7 @@
       </ContentWidth>
     </section>
     <ContentWidth animateIn>
-      <div class="w-full md:w-4/5 md:ml-[20%] -mt-40">
+      <div class="w-full md:w-4/5 md:ml-[20%] md:-mt-40">
         <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
       </div>
     </ContentWidth>
@@ -923,10 +931,24 @@
 <div class="py-24 bg-paper" bind:this={projectsDiv} id="projectsDiv">
   <ContentWidth>
     <div use:anim class="w-full">
-      <h2 class="archive-title text-primary w-full text-left mb-12">But wait, there's more!</h2>
+      <!-- Hard return after the comma, not a wrap: Tim, #rd-website 2026-09-10.
+           It holds at every width — the line is short enough that the break is
+           the only one on mobile too. -->
+      <h2 class="archive-title text-primary w-full text-left mb-12">
+        But wait,<br />there's more!
+      </h2>
     </div>
-    <div class="w-full">
-      <!-- Search + sort span the full width; the category filters sit underneath.
+    <!-- The controls sit in the grid's own column, not ContentWidth's. The
+         thumbnails live in the right 4/5 (the left 1/5 is the caption gutter the
+         featured pins ride in) and each cell carries a 24px right pad, so a
+         full-width row missed the grid at BOTH edges — 236px short on the left,
+         24px proud on the right (Tim, #rd-website 2026-09-10: "get the search and
+         filter buttons to fit within the columns of the project thumbnails
+         below… the sort dropdown on the right sticks out farther than the
+         thumbnail images"). Matching ml/w/pr to a cell puts every edge on the
+         image edges. Below md the grid is full-width and so is this. -->
+    <div class="w-full md:ml-[20%] md:w-4/5 md:pr-6">
+      <!-- Search + sort span the column; the category filters sit underneath.
            `relative z-10` lifts this row (and the sort dropdown that opens downward
            out of it) above the filters row below — the filters row is a later
            sibling and, once animateIn leaves a transform on it, its own stacking
