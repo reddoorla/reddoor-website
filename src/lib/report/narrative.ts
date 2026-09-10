@@ -495,16 +495,35 @@ const HEALTH_FIXES: Record<string, HealthFixSpec> = {
   },
 };
 
-function healthFixesGenerated(view: ReportView): Fix[] {
+/**
+ * The health fixes, with the operator's wording where they wrote one.
+ *
+ * Not split into a `…Generated` half and an override wrapper the way the rest
+ * of this file is, because the override key comes from the ROW, which only
+ * exists inside this loop. Each string is still built whole and named before
+ * it is offered — `composed` compares against the text it is handed, so a
+ * fragment here would match nothing.
+ */
+export function healthFixes(view: ReportView): Fix[] {
   const written = view.fixes.map((f) => f.title);
   const out: Fix[] = [];
   for (const row of healthRows(view)) {
     if (!row.alert) continue;
     const spec = HEALTH_FIXES[row.key];
     if (!spec || written.some((t) => spec.covers.test(t))) continue;
+    const title = spec.title(row, view);
+    const why = `${spec.what} ${row.detail}`.trim();
     out.push({
-      title: spec.title(row, view),
-      why: `${spec.what} ${row.detail}`.trim(),
+      // Keyed by the ROW's key, not by this fix's position in `out`. The two
+      // lists are COMPACTED apart: a row that does not alert, and a row whose
+      // fix the audit already wrote, are both skipped — so `healthFix[2]` is
+      // not `health[2]`, and the offset shifts with the audit's own content.
+      // An editing UI holding a row could not derive the positional key, while
+      // `row.key` is stable and is already the join key between a row and its
+      // fix spec. (Positional keys stay fine where the list is the list, as
+      // `passes` is; see the module doc in `overrides.ts`.)
+      title: composed(view.overrides, `composed:healthFix[${row.key}].title`, title),
+      why: composed(view.overrides, `composed:healthFix[${row.key}].why`, why),
       impact: spec.impact,
       effort: spec.effort,
       tier: spec.tier,
@@ -512,18 +531,6 @@ function healthFixesGenerated(view: ReportView): Fix[] {
     });
   }
   return out;
-}
-
-/** The health fixes, with the operator's wording where they wrote one. Keyed
- *  by position, like `passes`: a `Fix` carries no identifier of its own, and a
- *  stored audit never changes, so the list an operator edited is the list that
- *  renders. */
-export function healthFixes(view: ReportView): Fix[] {
-  return healthFixesGenerated(view).map((f, i) => ({
-    ...f,
-    title: composed(view.overrides, `composed:healthFix[${i}].title`, f.title),
-    why: composed(view.overrides, `composed:healthFix[${i}].why`, f.why),
-  }));
 }
 
 /**

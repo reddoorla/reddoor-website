@@ -620,4 +620,87 @@ describe("composed sentences honour operator overrides", () => {
     expect(edited[0]!.label).toBe("Reworded row");
     expect(edited[0]!.value).toBe(row.value);
   });
+
+  /**
+   * Health fixes, which are keyed by the ROW's key and not by their position.
+   *
+   * One check broken, so exactly one row alerts and exactly one fix is
+   * written — and the row sits well down the list while the fix is first,
+   * which is the compaction the key exists to survive.
+   */
+  const oneFinding = view(stage("checks", (d) => ({ ...d, viewportOk: false })));
+  const editOn = (v: ReportView, overrides: ReportView["overrides"]): ReportView => ({
+    ...v,
+    overrides,
+  });
+  const viewportRow = (v: ReportView) => healthRows(v).find((r) => r.key === "viewport")!;
+
+  it("writes health fixes at an index that is not the row's, so position is not a usable key", () => {
+    const rowIndex = healthRows(oneFinding).findIndex((r) => r.key === "viewport");
+    const fixes = healthFixes(oneFinding);
+    expect(rowIndex).toBeGreaterThan(0);
+    expect(fixes).toHaveLength(1);
+    // `healthFix[0]` and `health[0]` name different checks. Non-alerting rows
+    // and rows the audit already covered are skipped, so the offset between
+    // the two lists is a property of this report's content, not a constant an
+    // editing UI could apply.
+    expect(rowIndex).not.toBe(0);
+  });
+
+  it("overrides a health fix by the row's key", () => {
+    const fix = healthFixes(oneFinding)[0]!;
+    const edited = healthFixes(
+      editOn(oneFinding, {
+        "composed:healthFix[viewport].title": { original: fix.title, text: "Reworded fix" },
+        "composed:healthFix[viewport].why": { original: fix.why, text: "Reworded why" },
+      }),
+    );
+    expect(edited[0]!.title).toBe("Reworded fix");
+    expect(edited[0]!.why).toBe("Reworded why");
+  });
+
+  it("withholds a health-fix override whose original is stale", () => {
+    const fix = healthFixes(oneFinding)[0]!;
+    const edited = healthFixes(
+      editOn(oneFinding, {
+        "composed:healthFix[viewport].title": { original: "not what we say", text: "Reworded fix" },
+      }),
+    );
+    expect(edited[0]!.title).toBe(fix.title);
+  });
+
+  it("keeps the health-row and health-fix key spaces apart", () => {
+    // Both are keyed by `viewport`, so the `health` / `healthFix` prefix is
+    // the only thing separating them. An edit written against one must not be
+    // honoured by the other, in either direction — otherwise an operator
+    // rewording a row would silently rewrite its fix, and the two key spaces
+    // would collapse into one.
+    const row = viewportRow(oneFinding);
+    const fix = healthFixes(oneFinding)[0]!;
+
+    // A row-space key carrying the FIX's text does not reach the fix.
+    const crossed = editOn(oneFinding, {
+      "composed:health[viewport].title": { original: fix.title, text: "Crossed over" },
+      "composed:health[viewport].why": { original: fix.why, text: "Crossed over" },
+    });
+    expect(healthFixes(crossed)[0]!.title).toBe(fix.title);
+    expect(healthFixes(crossed)[0]!.why).toBe(fix.why);
+
+    // And a fix-space key carrying the ROW's text does not reach the row.
+    const crossedBack = editOn(oneFinding, {
+      "composed:healthFix[viewport].label": { original: row.label, text: "Crossed back" },
+      "composed:healthFix[viewport].detail": { original: row.detail, text: "Crossed back" },
+    });
+    expect(viewportRow(crossedBack).label).toBe(row.label);
+    expect(viewportRow(crossedBack).detail).toBe(row.detail);
+
+    // An edit that IS in the right space still lands, so the assertions above
+    // are about the key space rather than about nothing happening at all.
+    const proper = editOn(oneFinding, {
+      "composed:healthFix[viewport].title": { original: fix.title, text: "Reworded fix" },
+      "composed:health[viewport].label": { original: row.label, text: "Reworded row" },
+    });
+    expect(healthFixes(proper)[0]!.title).toBe("Reworded fix");
+    expect(viewportRow(proper).label).toBe("Reworded row");
+  });
 });

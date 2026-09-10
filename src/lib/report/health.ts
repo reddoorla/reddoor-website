@@ -320,6 +320,16 @@ function healthRowsGenerated(view: ReportView): HealthRow[] {
  * and it survives a row above it being absent on a report where that stage
  * did not run. `alert` stays generated: it decides whether a row renders as a
  * finding or joins the passes, which is a verdict, not copy.
+ *
+ * AN OVERRIDE HERE IS UPSTREAM OF THREE OTHER COMPOSED SENTENCES. These rows
+ * are read again by `passes` (`${label}: ${value}`), by `healthFixes`
+ * (`${spec.what} ${detail}`) and by `headlineFinding`'s `site-check` branch
+ * (which lists the labels). So editing a row changes the GENERATED text of
+ * those sentences, which invalidates the stored `original` of any override
+ * already saved against one — and `composed` then withholds that second edit,
+ * so an earlier edit appears to the operator to have silently reverted. An
+ * editing UI must therefore capture originals in dependency order, health rows
+ * first. Recorded, not solved: the fix belongs in the editor, not here.
  */
 export function healthRows(view: ReportView): HealthRow[] {
   return healthRowsGenerated(view).map((r) => ({
