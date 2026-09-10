@@ -33,6 +33,46 @@ export type FetchReportOptions = {
   fetch: typeof globalThis.fetch;
 };
 
+/** One replaced string, with the generated text it replaced. `original` is kept
+ *  so the cockpit can show what changed, and so an override can be withheld if
+ *  it no longer matches what it claims to replace. */
+export type Override = { original: string; text: string };
+export type OverrideMap = Record<string, Override>;
+
+/** What one report fetch yields. `overrides` is always an object, never null,
+ *  so no caller has to branch on absence. */
+export type FetchedReport = { report: AuditReport; overrides: OverrideMap };
+
+/**
+ * The maintenance API served a bare report before overrides existed and serves
+ * `{ report, overrides, editedAt, openedAt }` after. Both are accepted, on
+ * purpose: the two repos deploy independently, and a website that only
+ * understood the new shape would 500 every report until maintenance caught up.
+ *
+ * The discriminator is a `report` key, which a bare `ProspectAuditResult` never
+ * has — its top level is url/businessName/scores/crawl/checks and the rest.
+ *
+ * `editedAt` and `openedAt` are dropped: they are cockpit bookkeeping about the
+ * operator's own editing session, and nothing on the prospect's page is a
+ * function of them. Carrying them would put them in the hydration payload of a
+ * document the prospect can read.
+ */
+export function unwrap(body: unknown): FetchedReport {
+  if (body && typeof body === "object" && "report" in body) {
+    const { report, overrides } = body as { report: unknown; overrides?: unknown };
+    return {
+      report: report as AuditReport,
+      // `typeof [] === "object"`, so proving object-ness alone would let an
+      // array through as an OverrideMap.
+      overrides:
+        overrides && typeof overrides === "object" && !Array.isArray(overrides)
+          ? (overrides as OverrideMap)
+          : {},
+    };
+  }
+  return { report: body as AuditReport, overrides: {} };
+}
+
 /**
  * Read one audit report from the maintenance API.
  *
@@ -45,7 +85,7 @@ export type FetchReportOptions = {
 export async function fetchReport(
   token: string,
   opts: FetchReportOptions,
-): Promise<AuditReport | null> {
+): Promise<FetchedReport | null> {
   // Validated here as well as at the route, because this function builds a URL
   // from the value and must not depend on a caller having checked first.
   if (!REPORT_TOKEN_PATTERN.test(token)) {
@@ -65,5 +105,19 @@ export async function fetchReport(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`fetchReport: upstream responded ${res.status}`);
 
-  return (await res.json()) as AuditReport;
+  const fetched = unwrap(await res.json());
+
+  // A 200 carrying no report is the upstream contradicting itself: it has a 404
+  // to say "gone" with, so this is a fault on our side of the wire and not an
+  // answer about this prospect — 500, the same as any other outage. Named here
+  // because the next thing to touch it is toReportView, and a TypeError on
+  // `.analyze` thrown out of a renderer tells an operator nothing about where it
+  // came from. Reachable two ways: a bare body that is literally `null` (the
+  // pre-overrides shape saying nothing), and `{ report: null }` (the wrapped
+  // shape doing the same).
+  if (!fetched.report || typeof fetched.report !== "object") {
+    throw new Error("fetchReport: upstream responded 200 with no report");
+  }
+
+  return fetched;
 }

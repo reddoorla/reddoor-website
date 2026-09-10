@@ -520,6 +520,14 @@
      80% column), and 2-col paper-card + image. The recurring red-label /
      services / arrow row is the `featureLabel` snippet. Imagery exported from
      Figma (node 725:1226).
+
+     `pinned` is the sticky variant (below): name, categories, then the arrow
+     beneath them in a column (Tim, #rd-website 2026-09-09: "Have the categories
+     show up with the title like the existing Portfolio page. The arrow icon
+     gets stacked under the category and is 35px"). Bare type over the imagery:
+     no pad behind it (tried, dropped). The arrow keeps the red — the grey fill
+     vanishes over pale imagery like Revogen's grafts, and the pin floats over
+     whatever is scrolling past.
      ───────────────────────────────────────────────────────────────────────── -->
 {#snippet featureLabel({
   name,
@@ -527,218 +535,399 @@
   href,
   aria,
   onDark = false,
+  pinned = false,
 }: {
   name: string;
   services: string;
   href: string;
   aria: string;
   onDark?: boolean;
+  pinned?: boolean;
 })}
-  <div class="w-full flex flex-row justify-between items-start gap-5">
+  <div
+    class="flex {pinned
+      ? 'flex-col items-start gap-2'
+      : 'w-full flex-row justify-between items-start gap-5'}"
+  >
     <div>
       <p class="uppercase {onDark ? 'text-white' : 'text-primary'}">{name}</p>
-      <p class={onDark ? "text-white" : "text-light"}>{services}</p>
+      {#if services}
+        <p class={onDark ? "text-white" : "text-light"}>{services}</p>
+      {/if}
     </div>
     <a
       {href}
-      class="shrink-0 {onDark ? 'brightness-200 ' : ''}hover:brightness-50 transition bump"
+      class="shrink-0 {pinned ? 'flex text-primary ' : ''}{onDark
+        ? 'brightness-200 '
+        : ''}hover:brightness-50 transition bump"
       aria-label={aria}
     >
-      <img src={arrowButton} alt="" class="size-12.5" />
+      {#if pinned}
+        <!-- The same arrow, but as a mask so it takes the name's red. The
+             url() MUST be quoted: Vite inlines this SVG as a data: URL full of
+             single quotes, which an unquoted url() cannot hold, and the whole
+             declaration is dropped — leaving a solid red square. -->
+        <span
+          class="block size-[35px] bg-current"
+          style={`-webkit-mask:url("${arrowButton}") center/contain no-repeat;mask:url("${arrowButton}") center/contain no-repeat`}
+          aria-hidden="true"
+        ></span>
+      {:else}
+        <img src={arrowButton} alt="" class="size-12.5" />
+      {/if}
     </a>
   </div>
 {/snippet}
 
-<!-- Rubrik Zero Labs — live brand video (Vimeo) with the static frame as poster -->
-<VimeoBanner
-  vimeoId="1205996665"
-  poster={rubrikHero}
-  alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
-/>
-<section class="pt-16 pb-56 bg-paper">
-  <ContentWidth>
-    <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
-      <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep Your Data Protected</h2>
-      <div class="w-full md:w-1/2">
-        {@render featureLabel({
-          name: "Rubrik Zero Labs",
-          services: "Brand, Digital",
-          href: "/portfolio/rubrik-zero-labs",
-          aria: "Go to Rubrik Zero Labs project",
-        })}
+<!-- The same block, pinned (Tim, Discord 2026-09-08: "each project needs
+     immediate context"). Desktop only: each featured project's blocks are
+     wrapped in a `relative` group, and this rides high in the viewport — the
+     label sits 40px under the fixed h-12 nav, and starts 40px below the top of
+     that project's first image — for as long
+     as that group is on screen, floating over whatever scrolls past as bare
+     type, and the whole thing inside the 1/5 gutter the cards leave on the
+     left (w-1/5, so the arrow never crosses into the content column; the 160px
+     floor is only for md, where the gutter is narrower than a name). NO
+     horizontal padding: the label's left edge has to sit on ContentWidth's own
+     edge, which is where the nav's "Reddoor Creative" home link starts. Any
+     inset here reads as a misalignment against it, because the pin rides
+     directly below it — above every layer of the page (z-[15]: over the banners' own
+     z-10 layers and every card) but under the fixed nav (z-20) — an outgoing
+     pin leaves the viewport through the nav band, and must slide under it,
+     not over the wordmark.
+     It takes no room in flow — each group is a one-cell grid and this box and
+     the content share that cell (col-start-1 row-start-1), so nothing below it
+     moves and, unlike a negative margin, the group's full height is the box's
+     containing block (a sticky element's MARGIN box is what gets constrained,
+     so -mb-80 let the pin run 320px past its group).
+
+     Two numbers that used to be one. `top-12` parks the box under the nav and
+     `pt-10` insets the label 40px inside it, so the label rests 88px down the
+     viewport while pinned — 40px of clear air under the 48px nav — AND starts
+     40px below its group's top edge, which is the top of that project's first
+     image. `pt-28` on a `top-0` box could only ever satisfy one of the two.
+
+     `flush` swaps WHERE the pin starts without moving where it rests: the 40px
+     moves off the padding and onto `top`, so the label begins level with the
+     group's top edge and still parks at 88px once pinned. It is for the projects
+     that open with content inset into the 4/5 column (CEO LA, Trinity, Sonder)
+     rather than with a full-bleed banner. On a banner the 40px reads as padding
+     inside the image; beside inset content the pin sits in the empty margin, and
+     the eye lines its top up against the content's top edge instead — so the
+     lead-in reads as a misalignment (Tim, #rd-website 2026-09-10: "start of the
+     pin should align with the content when content isn't full width").
+
+     `stopAtBaseline` ends the pin on the last line's BASELINE rather than on the
+     bottom of the text's box — see `.pin-baseline-stop` in the style block.
+
+     The box is exactly as tall as the label (no fixed height): a sticky element
+     is pushed out when its own bottom reaches its containing block's bottom, so
+     the label's bottom now rides down to the group's last pixel instead of
+     stopping ~180px short (Tim: "Can the sticky title stop at the bottom of the
+     image? Right now it stops short"). Two pins still never touch, and the
+     arithmetic says so exactly: while the outgoing label's bottom sits on the
+     group boundary, the incoming one starts pt-10 below that same boundary, so
+     the gap is a constant 40px. Below md the
+     in-card label stays and this is not rendered; at md+ the in-card label is
+     hidden so the name never shows twice. -->
+{#snippet stickyLabel(props: {
+  name: string;
+  services: string;
+  href: string;
+  aria: string;
+  flush?: boolean;
+  stopAtBaseline?: boolean;
+})}
+  <div
+    class="hidden md:block col-start-1 row-start-1 self-start sticky z-[15] pointer-events-none {props.flush
+      ? 'top-22 pt-0'
+      : 'top-12 pt-10'}{props.stopAtBaseline ? ' pin-baseline-stop' : ''}"
+    data-sticky-label={props.href.replace("/portfolio/", "")}
+  >
+    <ContentWidth class="relative">
+      <div class="pointer-events-auto w-1/5 min-w-40" data-sticky-chip>
+        {@render featureLabel({ ...props, pinned: true })}
       </div>
-    </div>
-  </ContentWidth>
-</section>
-<ContentWidth animateIn>
-  <div class="mb-24 w-full md:w-4/5 md:ml-[20%] -mt-40">
-    <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
+    </ContentWidth>
   </div>
-</ContentWidth>
+{/snippet}
+
+<!-- Rubrik Zero Labs — live brand video (Vimeo) with the static frame as poster -->
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="rubrik-zero-labs">
+  {@render stickyLabel({
+    name: "Rubrik Zero Labs",
+    services: "Brand, Digital",
+    href: "/portfolio/rubrik-zero-labs",
+    aria: "Go to Rubrik Zero Labs project",
+  })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <VimeoBanner
+      vimeoId="1205996665"
+      poster={rubrikHero}
+      alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
+    />
+    <!-- The report image tucks 160px up into this band's bottom padding so it
+         clears the caption by 48px — but that overlap is arithmetic against the
+         DESKTOP column, where the h2 is the band's last ink (mb-16 + pb-36 -
+         mt-40 = 48). Below md the in-card label rides under the h2 (the pin is
+         desktop-only), which is 160px of content where the desktop layout has
+         empty padding, so the same pull dragged the image 16px OVER the label
+         (Tim, #rd-website 2026-09-10: "The title is overlapping the image").
+         Mobile keeps the 48px as plain padding and skips the overlap entirely. -->
+    <section class="pt-12 pb-12 md:pb-36 bg-paper">
+      <ContentWidth>
+        <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
+          <h2 class="type-feature mb-12 md:mb-16">Smarter Insights to Keep Your Data Protected</h2>
+          <div class="w-full md:hidden">
+            {@render featureLabel({
+              name: "Rubrik Zero Labs",
+              services: "Brand, Digital",
+              href: "/portfolio/rubrik-zero-labs",
+              aria: "Go to Rubrik Zero Labs project",
+            })}
+          </div>
+        </div>
+      </ContentWidth>
+    </section>
+    <ContentWidth animateIn>
+      <div class="w-full md:w-4/5 md:ml-[20%] md:-mt-40">
+        <Img src={rubrikReport} alt="Rubrik Zero Labs report hub shown on an iMac" class="w-full" />
+      </div>
+    </ContentWidth>
+  </div>
+</div>
 
 <!-- Revogen — live interactive grafts hero (ported from the Revogen homepage) -->
-<RevogenBanner />
-<section class="mt-16 mb-24">
-  <ContentWidth>
-    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-      <div
-        use:anim={{ delayMax: 0 }}
-        class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-      >
-        <h2 class="type-feature-card text-primary">
-          A revolutionary brand with a simple purpose: Healing.
-        </h2>
-        {@render featureLabel({
-          name: "Revogen",
-          services: "brand, digital, print, environmental",
-          href: "/portfolio/revogen",
-          aria: "Go to Revogen project",
-        })}
-      </div>
-      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-        <Img
-          class="h-full w-full object-cover"
-          src={revogenPackaging}
-          alt="Revogen product packaging"
-        />
-      </div>
-    </div>
-  </ContentWidth>
-</section>
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="revogen">
+  {@render stickyLabel({
+    name: "Revogen",
+    services: "Brand, Digital, Print, Environmental",
+    href: "/portfolio/revogen",
+    aria: "Go to Revogen project",
+  })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <RevogenBanner />
+    <section class="mt-12">
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+          <div
+            use:anim={{ delayMax: 0 }}
+            class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+          >
+            <h2 class="type-feature-card text-primary">
+              A revolutionary brand with a simple purpose: Healing.
+            </h2>
+            <div class="md:hidden">
+              {@render featureLabel({
+                name: "Revogen",
+                services: "Brand, Digital, Print, Environmental",
+                href: "/portfolio/revogen",
+                aria: "Go to Revogen project",
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={revogenPackaging}
+              alt="Revogen product packaging"
+            />
+          </div>
+        </div>
+      </ContentWidth>
+    </section>
+  </div>
+</div>
 
 <!-- CEO of Los Angeles -->
-<ContentWidth animateIn>
-  <div class="mb-24 w-full md:w-4/5 md:ml-[20%]">
-    <Img
-      src={ceoLanyard}
-      alt="Chief Executive Office of LA County — employee badge on a lanyard"
-      class="w-full"
-    />
-  </div>
-</ContentWidth>
-<section class="mb-24">
-  <ContentWidth>
-    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-      <div
-        use:anim={{ delayMax: 0 }}
-        class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-      >
-        <h2 class="type-feature-card text-primary">
-          The &ldquo;buck stops here&rdquo; with a branding system overhaul of LA County&rsquo;s CEO
-        </h2>
-        {@render featureLabel({
-          name: "CEO of Los Angeles",
-          services: "brand, digital, print",
-          href: "/portfolio/ceo-la",
-          aria: "Go to CEO of Los Angeles project",
-        })}
-      </div>
-      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="ceo-la">
+  {@render stickyLabel({
+    name: "CEO of Los Angeles",
+    services: "Brand, Digital, Print",
+    href: "/portfolio/ceo-la",
+    aria: "Go to CEO of Los Angeles project",
+    flush: true,
+  })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <ContentWidth animateIn>
+      <div class="mb-12 w-full md:w-4/5 md:ml-[20%]">
         <Img
-          class="h-full w-full object-cover"
-          src={ceoBrandGrid}
-          alt="CEO of LA County brand-guidelines grid"
+          src={ceoLanyard}
+          alt="Chief Executive Office of LA County — employee badge on a lanyard"
+          class="w-full"
         />
       </div>
-    </div>
-  </ContentWidth>
-</section>
-<!-- Trinity Law School -->
-<section class="mb-24">
-  <ContentWidth>
-    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-      <div
-        use:anim={{ delayMax: 0 }}
-        class="relative w-full lg:w-1/2 aspect-square overflow-hidden"
-      >
-        <Img
-          class="absolute inset-0 h-full w-full object-cover"
-          src={trinitySteps}
-          alt="Trinity Law School — an associate on the campus steps"
-        />
-        <div
-          class="absolute inset-0 pointer-events-none"
-          style="background: linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(0,0,0,0.3) 96%)"
-        ></div>
-        <div class="absolute bottom-0 left-0 w-full p-4 z-10">
-          {@render featureLabel({
-            name: "Trinity Law School",
-            services: "Print, Digital",
-            href: "/portfolio/trinity-law-school",
-            aria: "Go to Trinity Law School project",
-            onDark: true,
-          })}
+    </ContentWidth>
+    <section>
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+          <div
+            use:anim={{ delayMax: 0 }}
+            class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+          >
+            <h2 class="type-feature-card text-primary">
+              The &ldquo;buck stops here&rdquo; with a branding system overhaul of LA County&rsquo;s
+              CEO
+            </h2>
+            <div class="md:hidden">
+              {@render featureLabel({
+                name: "CEO of Los Angeles",
+                services: "Brand, Digital, Print",
+                href: "/portfolio/ceo-la",
+                aria: "Go to CEO of Los Angeles project",
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={ceoBrandGrid}
+              alt="CEO of LA County brand-guidelines grid"
+            />
+          </div>
         </div>
-      </div>
-      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-        <Img
-          class="h-full w-full object-cover"
-          src={trinityTablet}
-          alt="Trinity Law School JD viewbook on a tablet"
-        />
-      </div>
-    </div>
-  </ContentWidth>
-</section>
+      </ContentWidth>
+    </section>
+  </div>
+</div>
+<!-- Trinity Law School -->
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="trinity-law-school">
+  {@render stickyLabel({
+    name: "Trinity Law School",
+    services: "Print, Digital",
+    href: "/portfolio/trinity-law-school",
+    aria: "Go to Trinity Law School project",
+    flush: true,
+  })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <section>
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+          <div
+            use:anim={{ delayMax: 0 }}
+            class="relative w-full lg:w-1/2 aspect-square overflow-hidden"
+          >
+            <Img
+              class="absolute inset-0 h-full w-full object-cover"
+              src={trinitySteps}
+              alt="Trinity Law School — an associate on the campus steps"
+            />
+            <div
+              class="absolute inset-0 pointer-events-none"
+              style="background: linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(0,0,0,0.3) 96%)"
+            ></div>
+            <div class="absolute bottom-0 left-0 w-full p-4 z-10 md:hidden">
+              {@render featureLabel({
+                name: "Trinity Law School",
+                services: "Print, Digital",
+                href: "/portfolio/trinity-law-school",
+                aria: "Go to Trinity Law School project",
+                onDark: true,
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={trinityTablet}
+              alt="Trinity Law School JD viewbook on a tablet"
+            />
+          </div>
+        </div>
+      </ContentWidth>
+    </section>
+  </div>
+</div>
 <!-- St. James' Episcopal School -->
-<section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
-  <Img
-    src={stJamesMural}
-    alt="St. James' Episcopal School — a colorful painted mural wall"
-    class="absolute inset-0 h-full w-full object-cover"
-  />
-</section>
-<section class="mt-16 mb-24">
-  <ContentWidth>
-    <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
-      <div
-        use:anim={{ delayMax: 0 }}
-        class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
-      >
-        <h2 class="type-feature-card text-primary">
-          A diverse, joyful, and inclusive community of young learners.
-        </h2>
-        {@render featureLabel({
-          name: "St. James' Episcopal School",
-          services: "brand, digital, print, environmental",
-          href: "/portfolio/st-james-episcopal-school",
-          aria: "Go to St. James' Episcopal School project",
-        })}
-      </div>
-      <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
-        <Img
-          class="h-full w-full object-cover"
-          src={stJamesPhone}
-          alt="St. James' Episcopal School responsive website on a phone"
-        />
-      </div>
-    </div>
-  </ContentWidth>
-</section>
+<div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="st-james-episcopal-school">
+  {@render stickyLabel({
+    name: "St. James' Episcopal School",
+    services: "Brand, Digital, Print, Environmental",
+    href: "/portfolio/st-james-episcopal-school",
+    aria: "Go to St. James' Episcopal School project",
+  })}
+  <div class="col-start-1 row-start-1 min-w-0">
+    <section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
+      <Img
+        src={stJamesMural}
+        alt="St. James' Episcopal School — a colorful painted mural wall"
+        class="absolute inset-0 h-full w-full object-cover"
+      />
+    </section>
+    <section class="mt-12">
+      <ContentWidth>
+        <div class="w-full md:w-4/5 md:ml-[20%] flex flex-col-reverse lg:flex-row">
+          <div
+            use:anim={{ delayMax: 0 }}
+            class="bg-paper flex flex-col justify-between p-4 w-full lg:w-1/2 aspect-square"
+          >
+            <h2 class="type-feature-card text-primary">
+              A diverse, joyful, and inclusive community of young learners.
+            </h2>
+            <div class="md:hidden">
+              {@render featureLabel({
+                name: "St. James' Episcopal School",
+                services: "Brand, Digital, Print, Environmental",
+                href: "/portfolio/st-james-episcopal-school",
+                aria: "Go to St. James' Episcopal School project",
+              })}
+            </div>
+          </div>
+          <div use:anim={{ delayMax: 0 }} class="w-full lg:w-1/2 aspect-square overflow-hidden">
+            <Img
+              class="h-full w-full object-cover"
+              src={stJamesPhone}
+              alt="St. James' Episcopal School responsive website on a phone"
+            />
+          </div>
+        </div>
+      </ContentWidth>
+    </section>
+  </div>
+</div>
 
 <!-- Gallery Sonder -->
-<ContentWidth animateIn>
-  <div class="-mb-40 w-full md:w-4/5 md:ml-[20%]">
-    <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
-  </div>
-</ContentWidth>
-<section class="pb-24 bg-paper pt-56">
-  <ContentWidth>
-    <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
-      <h2 class="type-feature mb-12 md:mb-16">
-        A local gallery highlighting the stories of emerging and established artists.
-      </h2>
-      <div class="w-full md:w-1/2">
-        {@render featureLabel({
-          name: "Gallery Sonder",
-          services: "brand, digital, print, environmental",
-          href: "/portfolio/gallery-sonder",
-          aria: "Go to Gallery Sonder project",
-        })}
+<!-- Gallery Sonder ends in a paper band rather than an image, and the band runs
+     160px past the heading (the h2's md:mb-16 plus the section's pb-24). The pin
+     is constrained by this group's box, so it rode all the way to the CTA
+     (Tucker: "needs to stop at the bottom of the text"). The content column
+     gives that 160px back as a negative margin — shrinking the box, and with it
+     the sticky constraint, to end on the heading — and the group re-adds it
+     outside the box, so the paper band and the CTA below it do not move a pixel. -->
+<div class="grid grid-cols-[minmax(0,1fr)] mb-40" data-project-group="gallery-sonder">
+  {@render stickyLabel({
+    name: "Gallery Sonder",
+    services: "Brand, Digital, Print, Environmental",
+    href: "/portfolio/gallery-sonder",
+    aria: "Go to Gallery Sonder project",
+    flush: true,
+    stopAtBaseline: true,
+  })}
+  <div class="col-start-1 row-start-1 min-w-0 -mb-40">
+    <ContentWidth animateIn>
+      <div class="-mb-40 w-full md:w-4/5 md:ml-[20%]">
+        <Img src={gallerySonder} alt="Gallery Sonder storefront lit up at night" class="w-full" />
       </div>
-    </div>
-  </ContentWidth>
-</section>
+    </ContentWidth>
+    <section class="pb-24 bg-paper pt-52">
+      <ContentWidth>
+        <div use:anim class="w-full md:w-4/5 md:ml-[20%]">
+          <h2 class="type-feature mb-12 md:mb-16">
+            A local gallery highlighting the stories of emerging and established artists.
+          </h2>
+          <div class="w-full md:hidden">
+            {@render featureLabel({
+              name: "Gallery Sonder",
+              services: "Brand, Digital, Print, Environmental",
+              href: "/portfolio/gallery-sonder",
+              aria: "Go to Gallery Sonder project",
+            })}
+          </div>
+        </div>
+      </ContentWidth>
+    </section>
+  </div>
+</div>
 
 <!-- CTA — a snippet so the "let's work together" block can repeat: once above the
      archive grid and again as the page footer. -->
@@ -768,10 +957,24 @@
 <div class="py-24 bg-paper" bind:this={projectsDiv} id="projectsDiv">
   <ContentWidth>
     <div use:anim class="w-full">
-      <h2 class="archive-title text-primary w-full text-left mb-12">But wait, there's more!</h2>
+      <!-- Hard return after the comma, not a wrap: Tim, #rd-website 2026-09-10.
+           It holds at every width — the line is short enough that the break is
+           the only one on mobile too. -->
+      <h2 class="archive-title text-primary w-full text-left mb-12">
+        But wait,<br />there's more!
+      </h2>
     </div>
-    <div class="w-full">
-      <!-- Search + sort span the full width; the category filters sit underneath.
+    <!-- The controls sit in the grid's own column, not ContentWidth's. The
+         thumbnails live in the right 4/5 (the left 1/5 is the caption gutter the
+         featured pins ride in) and each cell carries a 24px right pad, so a
+         full-width row missed the grid at BOTH edges — 236px short on the left,
+         24px proud on the right (Tim, #rd-website 2026-09-10: "get the search and
+         filter buttons to fit within the columns of the project thumbnails
+         below… the sort dropdown on the right sticks out farther than the
+         thumbnail images"). Matching ml/w/pr to a cell puts every edge on the
+         image edges. Below md the grid is full-width and so is this. -->
+    <div class="w-full md:ml-[20%] md:w-4/5 md:pr-6">
+      <!-- Search + sort span the column; the category filters sit underneath.
            `relative z-10` lifts this row (and the sort dropdown that opens downward
            out of it) above the filters row below — the filters row is a later
            sibling and, once animateIn leaves a transform on it, its own stacking
@@ -982,6 +1185,26 @@
     line-height: 140%; /* 70px */
   }
 
+  /* Sonder is the one project that closes on text rather than an image, so its
+     pin lands on type instead of on an edge. A line box carries half-leading
+     plus the descender below the last baseline, and stopping on the box bottom
+     left the pin floating in that dead space (Tim, #rd-website 2026-09-10: "the
+     bottom of the pin should align to the baseline of the text rather than the
+     container the text is in").
+
+     A sticky element is pushed out when its MARGIN box reaches the bottom of its
+     containing block, so a bottom margin here ends the pin that much earlier.
+     It costs no layout: the box shares its grid cell with the content and is far
+     shorter than it, so growing its margin box moves nothing.
+
+     The distance below the baseline is (line-height - font-size) / 2 + descender.
+     At .type-feature's 140% leading that is 0.2em + ~0.135em ≈ 0.335em — but em
+     here would resolve against this box's own 16px, not the heading's, so it is
+     written out against the two sizes .type-feature actually takes. */
+  .pin-baseline-stop {
+    margin-bottom: 20px; /* 60px type: (84 - 60) / 2 + 8 */
+  }
+
   .type-cta {
     /* Pin the body font: now an <h2>, the global `h2 { font-family: Besley }`
        rule would otherwise change the look. */
@@ -999,7 +1222,12 @@
     font-size: 100px;
     font-style: normal;
     font-weight: 400;
-    line-height: normal;
+    /* Nicole's 125%, not the browser's `normal` — which Besley resolves to 1.68
+       and which nothing caught while this was a one-line heading (Tim,
+       #rd-website 2026-09-10: "you can drive a semi through the two lines… it's
+       125% of px size is what Nicole has it set at"). Unitless so it rides the
+       four font-size steps below instead of needing a px leading at each. */
+    line-height: 1.25;
   }
 
   @media only screen and (max-width: 1224px) {
@@ -1025,6 +1253,11 @@
   @media only screen and (max-width: 768px) {
     .type-feature {
       font-size: 34px;
+    }
+    /* md: is min-width 768, so the pin and this rule overlap on exactly one
+       viewport width — 768, which is iPad portrait. */
+    .pin-baseline-stop {
+      margin-bottom: 11.6px; /* 34px type: (47.6 - 34) / 2 + 4.8 */
     }
     .type-feature-card {
       font-size: 28px;

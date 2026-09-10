@@ -26,8 +26,8 @@ const TEXTURE = dataUri(resolve(ROOT, "static/waterColorBg.jpg"), "image/jpeg");
 const LOGO = dataUri(resolve(ROOT, "src/lib/assets/icons/logos/reddoor_logo.png"), "image/png");
 
 /** slug → the page's own hero line (default state), so the preview reads as
- *  the page it opens. `default` and `medtech` are spares: the site-wide CMS
- *  fallback and the Prismic doc's meta image are wired separately. */
+ *  the page it opens. Every other page is drawn on demand by src/lib/og/card.ts
+ *  from its own headline, via the /og endpoint. */
 const CARDS = [
   { slug: "schedule", headline: "Let’s find a time." },
   { slug: "reschedule", headline: "Let’s find a better time." },
@@ -37,8 +37,6 @@ const CARDS = [
   { slug: "not-a-fit", headline: "Thanks for being straight with us." },
   { slug: "unsubscribed", headline: "You’re unsubscribed." },
   { slug: "resubscribed", headline: "You’re back on the list." },
-  { slug: "medtech", headline: "Instant credibility with buyers and clinicians." },
-  { slug: "default", headline: "Brand strategy & design." },
 ];
 
 const html = (headline) => `<!doctype html>

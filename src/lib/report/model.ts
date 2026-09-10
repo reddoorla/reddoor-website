@@ -1,4 +1,5 @@
 import type { AuditReport } from "./fetch";
+import { applyOverrides, composed, type OverrideMap } from "./overrides";
 
 /**
  * The shape the report components consume.
@@ -215,6 +216,69 @@ export type Reachability = {
  * Three of these cost requests; the rest come free out of the crawl. Declared
  * structurally for the same reason as `AnswerSpace` — see `fetch.ts`.
  */
+/**
+ * What they are running. NOT a check — see the module comment in the audit's
+ * `stack.ts`. Nothing here passes or fails and nothing enters a denominator;
+ * it opens the report so a reader knows we looked before they read a finding.
+ *
+ * `measured: false` means we could not see, which the page must render as "we
+ * could not tell" rather than as an absence of technology.
+ */
+export type StackReadout = {
+  measured: boolean;
+  items: { layer: string; name: string; evidence: string }[];
+  pagesExamined: number;
+  headersExamined: boolean;
+};
+
+/**
+ * One Tier 0 check — the things a careful person would check with a browser
+ * and ten minutes. See `site-checks.ts` in the audit.
+ *
+ * FOUR states. `unmeasured` is our gap and `not-applicable` is a check this
+ * site has nothing for; both must render as neither a pass nor a failure, and
+ * both must stay out of any count the page prints.
+ */
+export type SiteCheck = {
+  key: string;
+  label: string;
+  status: "pass" | "fail" | "unmeasured" | "not-applicable";
+  evidence: string | null;
+  why: string;
+  scope: "quick" | "content" | "structural";
+};
+
+/**
+ * What the axe rule set found, run against the rendered DOM.
+ *
+ * `measured: false` means the rules did not run — never that nothing was
+ * found. `rulesPassed` is what had something to check and was fine, NOT the
+ * size of the rule set: the default set is 90 rules and roughly half have
+ * nothing to apply to on any given page, so `rulesInapplicable` is carried to
+ * keep the arithmetic honest.
+ */
+export type Accessibility = {
+  measured: boolean;
+  pagesExamined: number;
+  rulesPassed: number;
+  rulesIncomplete: number;
+  /** The undecided rules by name. Optional: reports stored before this was
+   *  captured have the count and not the names, which reads as "we did not
+   *  record which", never as "there were none". */
+  incompleteIds?: string[];
+  rulesInapplicable: number;
+  violations: {
+    id: string;
+    impact: "minor" | "moderate" | "serious" | "critical" | null;
+    help: string;
+    helpUrl: string;
+    nodes: number;
+    sample: string | null;
+    pages: string[];
+  }[];
+  violationsTotal: number;
+};
+
 export type Basics = {
   insecureEntry: Reachability;
   hostVariant: Reachability & { host: string };
@@ -350,6 +414,12 @@ const count = (n: number): string => COUNT_WORDS[n] ?? String(n);
  * checklist's denominator.
  */
 export function openingSummary(view: ReportView): string | null {
+  const generated = openingSummaryText(view);
+  if (generated === null) return null;
+  return composed(view.overrides, "composed:openingSummary", generated);
+}
+
+function openingSummaryText(view: ReportView): string | null {
   const judged = view.buyerQuestions.filter((q) => q.answered !== "unknown");
   if (judged.length === 0) return null;
   const parts: string[] = [];
@@ -465,6 +535,40 @@ const LISTING_SITES = [
   "prnewswire.com",
 ];
 
+/**
+ * Everything the assistant said that our reading of the site does not account
+ * for — `absent` and `unverified` in one list, under a heading that asserts
+ * nothing.
+ *
+ * These were split into "not on your site" and "what we could not check" for a
+ * day (#169), because the report had been printing `unverified` — the producer
+ * explicitly declining to say — under "We did not find these on your site".
+ * The split fixed that, and was still wrong: it assumed the two states are a
+ * clean binary, a finding and a limit.
+ *
+ * The real cases are grey. "A man named Tim leads Reddoor Creative" is drawn
+ * from LinkedIn, where he is the more active of two people the site's own team
+ * page lists. Calling that "not on your site" is overblown — the site does
+ * publish both names — and calling it "we could not check" undersells a claim
+ * that genuinely misleads about who runs the business. It is neither, and no
+ * verdict we store distinguishes "absent" from "implied by something adjacent".
+ *
+ * So the assertion moved out of the heading. "What the AI says about you" makes
+ * no claim; the one hedged line under it — these SEEM not to be sourced from
+ * your site — carries the whole thing, and is true across the grey. One list
+ * can then hold the spectrum honestly, which two lists could not.
+ *
+ * `absent` first, then `unverified`: strongest first, and the order the report
+ * has always used.
+ */
+export function notSourcedFromSite(view: ReportView): Assertion[] {
+  const all = view.accuracy?.assertions ?? [];
+  return [
+    ...all.filter((a) => a.verdict === "absent"),
+    ...all.filter((a) => a.verdict === "unverified"),
+  ];
+}
+
 export function isListingSite(domain: string): boolean {
   const d = domain.toLowerCase().replace(/^www\./, "");
   return LISTING_SITES.some((p) => d === p || d.endsWith(`.${p}`));
@@ -538,6 +642,15 @@ export type ReportView = {
   assets: Assets | null;
   /** The things a stranger checks first. Null when the stage did not run. */
   basics: Basics | null;
+  /** What they are running, named back to them. Null for a report stored
+   *  before the stage existed — which the page renders as nothing at all
+   *  rather than as "we found no technology". */
+  stack: StackReadout | null;
+  /** The Tier 0 battery. Null for a report stored before it existed; an empty
+   *  array would read as "we ran no checks", which is a different claim. */
+  siteChecks: SiteCheck[] | null;
+  /** The axe rule set. Null for a report stored before it existed. */
+  accessibility: Accessibility | null;
   /** Whether the site does the one job it exists to do. Null when no goal was
    *  supplied and none could be inferred — which is "not measured", and is
    *  different from a goal of `unknown`, which IS a measurement. */
@@ -577,6 +690,11 @@ export type ReportView = {
   buyerQuestions: BuyerQuestion[];
   questionTally: { yes: number; partial: number; no: number; unknown: number };
   narrative: { findability: string; readability: string; answers: string } | null;
+  /** The operator's edits, carried on the view so every composed-sentence
+   *  function already has them without a signature change. Payload-resident
+   *  overrides are applied before the view is built and are NOT re-applied
+   *  from here. Empty when the report has never been edited. */
+  overrides: OverrideMap;
 };
 
 /**
@@ -718,8 +836,8 @@ export function wasNamed(a: ProbeAnswer): boolean {
   return a.countedAsVisible ?? (a.domainCited || a.brandMentioned);
 }
 
-export function toReportView(raw: AuditReport): ReportView {
-  const r = raw as Record<string, unknown>;
+export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {
+  const r = applyOverrides(raw, overrides) as Record<string, unknown>;
 
   const analyze = stage<{
     buyerQuestions?: BuyerQuestion[];
@@ -756,6 +874,9 @@ export function toReportView(raw: AuditReport): ReportView {
   }>(r.crawl);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
+  const stack = stage<StackReadout>(r.stack);
+  const siteChecks = stage<SiteCheck[]>(r.siteChecks);
+  const accessibility = stage<Accessibility>(r.accessibility);
   const goalFit = stage<GoalFit>(r.goalFit);
   const accuracyRaw = stage<Omit<Accuracy, "conflation"> & { conflation?: Conflation }>(r.accuracy);
   const accuracy: Accuracy | null = accuracyRaw
@@ -808,6 +929,9 @@ export function toReportView(raw: AuditReport): ReportView {
     consistency: checks?.consistency ?? null,
     assets,
     basics,
+    stack,
+    siteChecks,
+    accessibility,
     goalFit,
     accuracy,
     viewportOk: checks?.viewportOk ?? null,
@@ -839,5 +963,6 @@ export function toReportView(raw: AuditReport): ReportView {
       unknown: buyerQuestions.filter((q) => q.answered === "unknown").length,
     },
     narrative: analyze?.narrative ?? null,
+    overrides,
   };
 }

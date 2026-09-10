@@ -27,6 +27,8 @@ describe("loadReport — the guards both routes share", () => {
     const { evt } = event(TOKEN, respondWith(200, REPORT));
     await expect(loadReport(evt)).resolves.toEqual({
       report: REPORT,
+      // Always an object, never absent, so no caller has to branch on it.
+      overrides: {},
       // The URL is the credential; it must not travel in a Referer header.
       meta_referrer: "no-referrer",
     });
@@ -47,6 +49,14 @@ describe("loadReport — the guards both routes share", () => {
   // their report was deleted does not come back and check later.
   it("does not turn an upstream outage into a 404", async () => {
     const { evt } = event(TOKEN, respondWith(503, { error: "unconfigured" }));
+    await expect(loadReport(evt)).rejects.not.toMatchObject({ status: 404 });
+  });
+
+  // A 200 carrying no report is the upstream contradicting itself: it has a 404
+  // to say "gone" with, so an empty body is a fault on our side of the wire and
+  // must not be laundered into "your report was deleted" either.
+  it("does not turn a 200 carrying no report into a 404", async () => {
+    const { evt } = event(TOKEN, respondWith(200, null));
     await expect(loadReport(evt)).rejects.not.toMatchObject({ status: 404 });
   });
 
@@ -80,7 +90,10 @@ describe("both routes use the shared loader", () => {
       // own runner, but it is served on the same public token.
       await expect(route.load(evt as never)).resolves.toEqual({
         report: REPORT,
+        overrides: {},
         meta_referrer: "no-referrer",
+        // Every report shares the static audit card.
+        meta_image: "/og/site/audit.png",
       });
       const headers = setHeaders.mock.calls[0]![0] as Record<string, string>;
       expect(headers["x-robots-tag"]).toContain("noindex");

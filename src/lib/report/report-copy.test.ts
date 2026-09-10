@@ -25,6 +25,8 @@ const COMPONENTS = [
   "src/lib/report/ScoreBars.svelte",
   "src/lib/report/Standing.svelte",
   "src/lib/report/SiteHealth.svelte",
+  "src/lib/report/Stack.svelte",
+  "src/lib/report/Accessibility.svelte",
   "src/lib/report/QuestionMeter.svelte",
   "src/lib/report/SearchResults.svelte",
   "src/lib/report/CitationChart.svelte",
@@ -86,15 +88,38 @@ describe("one story, on every surface", () => {
     expect(code(SOURCE)).not.toMatch(/title="Who else/);
   });
 
-  it("what the AI says that is not on the site is a list of headlines, nothing under them", () => {
+  it("puts the claim in the hedged line, never in the heading", () => {
+    // The heading asserted "…that is not on your site" over a list that also
+    // held `unverified` rows — the producer explicitly declining to say. Two
+    // lists was tried (#169) and was still wrong, because the cases are grey:
+    // "A man named Tim leads Reddoor Creative" comes from LinkedIn, where he is
+    // the more active of two people the site's own team page lists. Neither
+    // "not on your site" nor "we could not check" is fair to that row.
+    //
+    // So the heading claims nothing and one hedged line carries it.
     for (const p of [SOURCE, PRINT]) {
-      expect(code(p), p).toMatch(/What the AI says about you that is not on your site/);
-      expect(code(p), p).toMatch(/We did not find these on your site/);
-      expect(code(p), p).not.toMatch(/Why we could not check/);
-      expect(code(p), p).not.toMatch(/could not judge|Not judged/);
+      expect(code(p), p).toMatch(/What the AI says about you/);
+      expect(code(p), p).toMatch(/These are claims that seem not to be sourced from your site/);
+      // The assertion must not creep back onto the heading.
+      expect(code(p), p).not.toMatch(/about you that is not on your site/);
+      expect(code(p), p).not.toMatch(/We did not find these on your site/);
+      expect(code(p), p).not.toMatch(/What we could not check/);
     }
+    // Still headlines: no reason, quote or citation list under any row. That
+    // part of the original design was right and is unchanged.
     expect(code(SOURCE)).toMatch(/u\.claim/);
     expect(code(SOURCE)).not.toMatch(/u\.engineQuote|u\.unverifiedReason|u\.sourceDomains/);
+  });
+
+  it("offers the conversation in the floating corner, gated so it never nags", () => {
+    // Same words and same destination as the closing band — one offer brought
+    // within reach, not a second one. The two gates are the whole point:
+    // `pastHero` keeps it off the first screen, where the report has not yet
+    // said anything, and `!closingInView` keeps it from sitting on top of the
+    // band that carries the identical CTA.
+    expect(code(REPORT)).toMatch(/pastHero && !closingInView/);
+    expect(code(REPORT).match(/Start a conversation/g) ?? []).toHaveLength(2);
+    expect(code(REPORT).match(/href="\/contact"/g) ?? []).toHaveLength(2);
   });
 
   it("the page count is the pages we crawled, never a claim about how many pages the site has", () => {

@@ -1,4 +1,5 @@
 import type { ReportView } from "./model";
+import { composed } from "./overrides";
 
 /**
  * Whether the site works, checked the way a stranger would check it.
@@ -30,7 +31,7 @@ export type HealthRow = {
 const mb = (bytes: number): string => (bytes / 1_000_000).toFixed(1);
 const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
 
-export function healthRows(view: ReportView): HealthRow[] {
+function healthRowsGenerated(view: ReportView): HealthRow[] {
   const out: HealthRow[] = [];
   const { assets, journey, consistency, basics } = view;
 
@@ -284,5 +285,57 @@ export function healthRows(view: ReportView): HealthRow[] {
     }
   }
 
+  // ── The Tier 0 battery ─────────────────────────────────────────────────
+  //
+  // Thirty-five checks that are pure functions of the crawl, each already
+  // carrying its own label, receipt and reason — so this is a mapping, not a
+  // second place where the copy lives.
+  //
+  // ONLY the two verdict states become rows. `unmeasured` is our gap and
+  // `not-applicable` is a check this site has nothing for, and a row for
+  // either would put it in front of the reader as though we had judged it:
+  // "we did not measure" and "nothing was wrong" are opposite claims. They
+  // also stay out of every count the page prints, because `passes()` and the
+  // "of N checks" line are both derived from these rows.
+  for (const c of view.siteChecks ?? []) {
+    if (c.status !== "pass" && c.status !== "fail") continue;
+    out.push({
+      key: c.key,
+      label: c.label,
+      value: c.evidence ?? (c.status === "pass" ? "Fine" : "Needs attention"),
+      alert: c.status === "fail",
+      detail: c.why,
+    });
+  }
+
   return out;
+}
+
+/**
+ * The rows as the reader sees them: generated, then the operator's wording
+ * wherever they wrote one.
+ *
+ * Keyed by the row's own `key` rather than by position, because that key is
+ * already stable — it names the check, it is what `HEALTH_FIXES` matches on,
+ * and it survives a row above it being absent on a report where that stage
+ * did not run. `alert` stays generated: it decides whether a row renders as a
+ * finding or joins the passes, which is a verdict, not copy.
+ *
+ * AN OVERRIDE HERE IS UPSTREAM OF THREE OTHER COMPOSED SENTENCES. These rows
+ * are read again by `passes` (`${label}: ${value}`), by `healthFixes`
+ * (`${spec.what} ${detail}`) and by `headlineFinding`'s `site-check` branch
+ * (which lists the labels). So editing a row changes the GENERATED text of
+ * those sentences, which invalidates the stored `original` of any override
+ * already saved against one — and `composed` then withholds that second edit,
+ * so an earlier edit appears to the operator to have silently reverted. An
+ * editing UI must therefore capture originals in dependency order, health rows
+ * first. Recorded, not solved: the fix belongs in the editor, not here.
+ */
+export function healthRows(view: ReportView): HealthRow[] {
+  return healthRowsGenerated(view).map((r) => ({
+    ...r,
+    label: composed(view.overrides, `composed:health[${r.key}].label`, r.label),
+    value: composed(view.overrides, `composed:health[${r.key}].value`, r.value),
+    detail: composed(view.overrides, `composed:health[${r.key}].detail`, r.detail),
+  }));
 }

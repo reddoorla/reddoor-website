@@ -1,12 +1,18 @@
 <script lang="ts">
-  import { openingSummary, toReportView, wasNamed, type Assertion } from "$lib/report/model";
+  import {
+    notSourcedFromSite,
+    openingSummary,
+    toReportView,
+    wasNamed,
+    type Assertion,
+  } from "$lib/report/model";
   import { allFixes, displayQuote, headlineFinding, passes } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
 
-  const view = $derived(toReportView(data.report));
+  const view = $derived(toReportView(data.report, data.overrides));
   const who = $derived(view.businessName ?? "your business");
   const headline = $derived(headlineFinding(view));
 
@@ -65,11 +71,9 @@
   const contradictedRows = $derived(
     withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
   );
-  const notOnSite = $derived(
-    (accuracy?.assertions ?? []).filter(
-      (a) => a.verdict === "absent" || a.verdict === "unverified",
-    ),
-  );
+  // One list, matching the screen report; the heading asserts nothing and the
+  // hedge beneath it carries the claim. See `notSourcedFromSite`.
+  const notSourced = $derived(notSourcedFromSite(view));
   const elsewhere = $derived((accuracy?.sources ?? []).filter((s) => s.owner !== "yours"));
   const sampled = $derived(
     Boolean(accuracy && !accuracy.siteFullyRead) ||
@@ -208,11 +212,11 @@
           {/if}
         </div>
       {/each}
-      {#if notOnSite.length}
-        <h3>What the AI says about you that is not on your site</h3>
-        <p class="note">We did not find these on your site.</p>
+      {#if notSourced.length}
+        <h3>What the AI says about you</h3>
+        <p class="note">These are claims that seem not to be sourced from your site.</p>
         <ul>
-          {#each notOnSite as u (u.claim + u.query)}
+          {#each notSourced as u (u.claim + u.query)}
             <li>{u.claim}</li>
           {/each}
         </ul>
@@ -271,6 +275,18 @@
 
   <section>
     <h2>What you control</h2>
+
+    <!-- The readout, ahead of every finding, for the same reason it leads the
+         web report: it answers "do these people know what they are talking
+         about" before the reader is asked to accept anything. Names only here —
+         the receipts are a folded section on the web and a page of URLs in
+         print, which is a worse trade in a document nobody can expand. -->
+    {#if view.stack?.measured && view.stack.items.length > 0}
+      <h3>What you're running</h3>
+      <p>
+        Read off your own pages: {view.stack.items.map((i) => i.name).join(", ")}.
+      </p>
+    {/if}
 
     <h3>Does it work</h3>
     {#if healthProblems.length === 0}
