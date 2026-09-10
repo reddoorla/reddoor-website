@@ -704,3 +704,49 @@ describe("composed sentences honour operator overrides", () => {
     expect(viewportRow(proper).label).toBe("Reworded row");
   });
 });
+
+/**
+ * What `inline()` does to text it did not write.
+ *
+ * The health-row labels this repo generates are curated to survive being
+ * lowercased into the middle of a sentence. An operator's rewording is not,
+ * and arbitrary operator wording is the entire point of the override layer.
+ * Reachable through the cascade below: an operator rewords a row, the headline
+ * override that was written against the old wording is withheld, and the
+ * headline regenerates around the operator's label.
+ */
+describe("operator wording embedded mid-sentence", () => {
+  const insecure = view(
+    stage("basics", (d) => ({
+      ...d,
+      insecureEntry: { ...(d.insecureEntry as object), ok: false },
+    })),
+  );
+  const httpsRow = healthRows(insecure).find((r) => r.key === "https")!;
+  const relabelled = (label: string): ReportView => ({
+    ...insecure,
+    overrides: {
+      [`composed:health[https].label`]: { original: httpsRow.label, text: label },
+    },
+  });
+
+  it("leads with the site check, so the label really is embedded", () => {
+    expect(headlineFinding(insecure).kind).toBe("site-check");
+  });
+
+  it("keeps an operator's acronym whole", () => {
+    const h = headlineFinding(relabelled("HTTPS is not enforced"));
+    expect(h.text).toContain("HTTPS is not enforced");
+    expect(h.text).not.toContain("hTTPS");
+  });
+
+  it("keeps a two-letter acronym whole too", () => {
+    const h = headlineFinding(relabelled("SSL certificate expired"));
+    expect(h.text).toContain("SSL certificate expired");
+  });
+
+  it("still lowercases an ordinary sentence-initial word", () => {
+    const h = headlineFinding(relabelled("Redirects are not configured"));
+    expect(h.text).toContain("redirects are not configured");
+  });
+});

@@ -57,10 +57,27 @@ function joinList(items: string[]): string {
   return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
 
-/** First letter down, trailing full stop or question mark off, so a label or a
- *  question can sit inside a sentence of ours. */
+/**
+ * First letter down, trailing full stop or question mark off, so a label or a
+ * question can sit inside a sentence of ours.
+ *
+ * TWO LEADING CAPITALS ARE LEFT ALONE. The labels and questions this repo
+ * generates are curated to survive that lowercasing. An operator's override is
+ * not, and arbitrary operator wording is the whole point of the override
+ * layer — an edited health-row label reaches here through the headline's
+ * `site-check` branch, where "HTTPS is not enforced" came out as "hTTPS is not
+ * enforced". Two capitals in a row is an acronym (HTTPS, SSL, DNS, URL) rather
+ * than an ordinary word, so leaving it alone is safe, and it reads better on
+ * the generated labels too.
+ *
+ * What this does NOT fix, deliberately: a SINGLE leading capital is genuinely
+ * ambiguous. "Acme Co pages are broken" still becomes "acme Co pages are
+ * broken" — correct for an ordinary sentence-initial word, wrong for a proper
+ * noun. This function cannot tell the two apart and should not pretend to.
+ */
 function inline(text: string): string {
   const t = text.trim().replace(/[.?]$/, "");
+  if (/^\p{Lu}\p{Lu}/u.test(t)) return t;
   return t.charAt(0).toLowerCase() + t.slice(1);
 }
 
