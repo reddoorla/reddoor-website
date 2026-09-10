@@ -300,10 +300,15 @@ test.describe("portfolio archive controls line up with the grid", () => {
     // ratio survives a type-scale change. Every breakpoint, because .archive-title
     // restates font-size at four of them and a px leading would only ever be
     // right at one.
-    for (const width of [390, 480, 768, 1024, 1224, 1280, 1536]) {
-      await page.setViewportSize({ width, height: 900 });
-      await openPortfolio(page);
-      const m = await page.evaluate(() => {
+    //
+    // ONE navigation, then resize: the media-query steps need no reload, and a
+    // goto per width raced the CI dev server's cold-compile storm hard enough to
+    // abort a navigation outright ("net::ERR_ABORTED; maybe frame was detached").
+    // The gap between the two line tops is a difference, so it does not care
+    // where on the page the heading currently sits.
+    await openPortfolio(page);
+    const leading = () =>
+      page.evaluate(() => {
         const h2 = document.querySelector(".archive-title")!;
         const range = document.createRange();
         range.selectNodeContents(h2);
@@ -312,12 +317,20 @@ test.describe("portfolio archive controls line up with the grid", () => {
             [...range.getClientRects()].filter((r) => r.height > 4).map((r) => Math.round(r.top)),
           ),
         ].sort((a, b) => a - b);
-        return { fontSize: parseFloat(getComputedStyle(h2).fontSize), tops };
+        const fontSize = parseFloat(getComputedStyle(h2).fontSize);
+        return {
+          lines: tops.length,
+          // px off the 125% the type scale at this width asks for
+          off: tops.length === 2 ? tops[1] - tops[0] - Math.round(fontSize * 1.25) : NaN,
+        };
       });
-      expect(m.tops.length, `two line boxes at ${width}`).toBe(2);
-      expect(m.tops[1] - m.tops[0], `leading at ${width} (font-size ${m.fontSize}px)`).toBe(
-        Math.round(m.fontSize * 1.25),
-      );
+    for (const width of [390, 480, 768, 1024, 1224, 1280, 1536]) {
+      await page.setViewportSize({ width, height: 900 });
+      // Poll rather than settle on a timer: the restyle lands a frame or two
+      // after the resize, and under load that is not a fixed number of ms.
+      await expect
+        .poll(leading, { message: `leading at ${width}`, ...POLL })
+        .toEqual({ lines: 2, off: 0 });
     }
   });
 
