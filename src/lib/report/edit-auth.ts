@@ -34,3 +34,29 @@ export function keyMatches(given: string, expected: string): boolean {
   const digest = (s: string) => createHash("sha256").update(s, "utf8").digest();
   return timingSafeEqual(digest(given), digest(expected));
 }
+
+/**
+ * The configured edit key, trimmed — or null when there is effectively none.
+ *
+ * Shared because two callers need the SAME answer and a difference between them
+ * is not a style difference. The edit route decides whether to render; the save
+ * proxy decides whether to forward. If one trimmed and the other did not, a
+ * single newline pasted into an environment UI would produce the worst possible
+ * state: an editor that opens and accepts typing, and saves that all 404 with
+ * no log line, so the operator watches their work silently fail to persist.
+ *
+ * Whitespace-only is null rather than a key nothing can present, so callers
+ * fail closed loudly instead of refusing everything forever for a reason
+ * nothing reports.
+ */
+export function configuredEditKey(raw: string | undefined): string | null {
+  const trimmed = (raw ?? "").trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+/** True when the configured value carried stray whitespace that was trimmed
+ *  away — the misconfiguration worth warning about, once a caller has already
+ *  authenticated. See the placement note at each call site. */
+export function editKeyNeededTrimming(raw: string | undefined): boolean {
+  return raw !== undefined && raw !== raw.trim();
+}

@@ -1,7 +1,13 @@
 import { error, redirect } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { loadReport } from "$lib/report/load";
-import { EDIT_COOKIE, EDIT_COOKIE_MAX_AGE, keyMatches } from "$lib/report/edit-auth";
+import {
+  EDIT_COOKIE,
+  EDIT_COOKIE_MAX_AGE,
+  configuredEditKey,
+  editKeyNeededTrimming,
+  keyMatches,
+} from "$lib/report/edit-auth";
 import type { PageServerLoad } from "./$types";
 
 export const prerender = false;
@@ -34,8 +40,10 @@ export const load: PageServerLoad = async (event) => {
   // matches, the answer is byte-identical to a wrong key and to a missing page,
   // and nothing on that path logs. The operator is left with an edit address
   // that simply does not work and no way to tell why.
-  const configuredRaw = env.REPORT_EDIT_KEY ?? "";
-  const expected = configuredRaw.trim();
+  const configuredRaw = env.REPORT_EDIT_KEY;
+  // Shared with /api/audit-edit, so the two cannot disagree about what a
+  // pasted newline means. See `configuredEditKey`.
+  const expected = configuredEditKey(configuredRaw);
   // A whitespace-only value is treated as unset rather than as a secret nothing
   // can present: it fails closed loudly here instead of silently 404ing forever.
   if (!expected) {
@@ -70,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
   // different key, which this line would not explain anyway; an ACCEPTED request
   // against a value carrying stray whitespace is the case worth saying out loud,
   // and that is the case it fires on.
-  if (configuredRaw !== expected) {
+  if (editKeyNeededTrimming(configuredRaw)) {
     console.warn(
       "[audit-edit] REPORT_EDIT_KEY has leading or trailing whitespace; it was trimmed " +
         "before comparing and this request was accepted. Re-paste the value in the " +
