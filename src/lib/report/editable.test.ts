@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { editableTargets } from "./editable";
+import { editableTargets, resolveTargets, type EditTarget } from "./editable";
 import { toReportView } from "./model";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 
@@ -97,5 +97,61 @@ describe("editableTargets", () => {
     expect(firstHealth).toBeGreaterThanOrEqual(0);
     expect(firstDerived).toBeGreaterThanOrEqual(0);
     expect(firstHealth).toBeLessThan(firstDerived);
+  });
+});
+
+describe("resolveTargets", () => {
+  const t = (key: string, text: string): EditTarget => ({ key, text, original: text });
+
+  it("wires a leaf that maps to exactly one target", () => {
+    const { resolved, ambiguous } = resolveTargets(
+      [{ id: "a", text: "Only once." }],
+      [t("k1", "Only once.")],
+    );
+    expect(resolved).toEqual([{ id: "a", target: t("k1", "Only once.") }]);
+    expect(ambiguous).toBe(0);
+  });
+
+  it("skips a string that names more than one target", () => {
+    const { resolved, ambiguous } = resolveTargets(
+      [{ id: "a", text: "Same words." }],
+      [t("k1", "Same words."), t("k2", "Same words.")],
+    );
+    expect(resolved).toEqual([]);
+    expect(ambiguous).toBe(1);
+  });
+
+  it("skips a target rendered in more than one place", () => {
+    const { resolved, ambiguous } = resolveTargets(
+      [
+        { id: "a", text: "Twice on screen." },
+        { id: "b", text: "Twice on screen." },
+      ],
+      [t("k1", "Twice on screen.")],
+    );
+    expect(resolved).toEqual([]);
+    expect(ambiguous).toBe(2);
+  });
+
+  it("ignores rendered text that is not a target at all", () => {
+    const { resolved, ambiguous } = resolveTargets(
+      [{ id: "a", text: "Just page furniture." }],
+      [t("k1", "Something else.")],
+    );
+    expect(resolved).toEqual([]);
+    expect(ambiguous).toBe(0);
+  });
+
+  it("resolves the unambiguous ones alongside the ambiguous", () => {
+    const { resolved, ambiguous } = resolveTargets(
+      [
+        { id: "a", text: "Unique." },
+        { id: "b", text: "Dupe." },
+        { id: "c", text: "Dupe." },
+      ],
+      [t("k1", "Unique."), t("k2", "Dupe.")],
+    );
+    expect(resolved.map((r) => r.id)).toEqual(["a"]);
+    expect(ambiguous).toBe(2);
   });
 });

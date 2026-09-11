@@ -129,3 +129,62 @@ export function editableTargets(view: ReportView, raw?: AuditReport): EditTarget
 
   return out;
 }
+
+/** A rendered leaf, paired with whatever the caller uses to identify it.
+ *  Generic over that identifier so this module stays DOM-free and testable. */
+export type Candidate<T> = { id: T; text: string };
+
+/** A leaf that maps to exactly one target, and that target. */
+export type Resolved<T> = { id: T; target: EditTarget };
+
+/**
+ * Match rendered leaves against targets, keeping only what resolves uniquely.
+ *
+ * Ambiguity runs in BOTH directions and both are refused:
+ *
+ *  - one string naming several targets — the same sentence is overridable
+ *    under two different keys, so we cannot tell which the operator means;
+ *  - one target rendered in several places — we know the key, but not which
+ *    of the elements on screen the operator is looking at.
+ *
+ * Either way the answer is to skip and count, never to guess. An edit landing
+ * on a line the operator was not looking at is worse than an edit that never
+ * lands: the first is a wrong claim in a document sent to a stranger, the
+ * second is a line they retype somewhere else.
+ *
+ * Extracted from the component so the rule above is unit-testable. It is the
+ * whole safety argument for click-to-edit, and a browser test that is skipped
+ * without a live token is not where it should be proven.
+ */
+export function resolveTargets<T>(
+  candidates: Candidate<T>[],
+  targets: EditTarget[],
+): { resolved: Resolved<T>[]; ambiguous: number } {
+  const byText = new Map<string, EditTarget[]>();
+  for (const t of targets) {
+    const list = byText.get(t.text) ?? [];
+    list.push(t);
+    byText.set(t.text, list);
+  }
+
+  // Counted once up front rather than re-scanned per candidate: the obvious
+  // per-candidate version is a document-wide query inside the loop, which is
+  // quadratic on a report carrying several hundred targets.
+  const renderCount = new Map<string, number>();
+  for (const c of candidates) renderCount.set(c.text, (renderCount.get(c.text) ?? 0) + 1);
+
+  const resolved: Resolved<T>[] = [];
+  let ambiguous = 0;
+
+  for (const c of candidates) {
+    const matches = byText.get(c.text);
+    if (!matches) continue;
+    if (matches.length > 1 || (renderCount.get(c.text) ?? 0) > 1) {
+      ambiguous++;
+      continue;
+    }
+    resolved.push({ id: c.id, target: matches[0]! });
+  }
+
+  return { resolved, ambiguous };
+}

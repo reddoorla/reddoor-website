@@ -102,6 +102,10 @@ export const load: PageServerLoad = async (event) => {
   return {
     ...(await loadReport(event)),
     editing: true,
+    // The edit layer posts this back to /api/audit-edit. Taken from the route
+    // params rather than re-derived, so the thing being saved is provably the
+    // report being displayed.
+    token: event.params.token,
     meta_robots: "noindex, nofollow",
   };
 };
