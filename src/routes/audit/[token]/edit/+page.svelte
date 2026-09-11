@@ -7,16 +7,22 @@
 
   let { data }: { data: PageData } = $props();
 
-  // BELT AND BRACES over the server redirect.
+  // THE ONLY THING THAT CLEARS THE KEY FROM THE URL. Not a belt-and-braces
+  // addition to the server redirect — a replacement for what that redirect
+  // cannot do here.
   //
   // The load function exchanges `?k=` for a cookie and 303s to the bare path,
-  // which is supposed to be what clears the key from the address bar. Measured
-  // on a Netlify deploy preview 2026-09-11, the Location header still carried
-  // the query — cause not isolated (the route redirects to a path with no query
-  // string, and this repo defines no redirect rules, so something downstream
-  // appends it). Rather than leave the design's central property depending on
-  // that, scrub it here too: whatever the platform does with Location, the URL
-  // a browser displays, stores in history and copies on Cmd-L is clean.
+  // and on most hosts that is what strips the key. NETLIFY PRESERVES THE QUERY
+  // STRING ACROSS REDIRECTS, so it does not. Measured 2026-09-11 on the deploy
+  // preview, with a control: our 303 to `/audit/{token}/edit` came back with
+  // `?k=<key>&zzzmarker=1` — the whole original query, including a marker param
+  // added to test exactly this — and Netlify's OWN trailing-slash 308, which
+  // this repo does not author, preserved it too. Two redirects, one ours and
+  // one the platform's, both appending. It is the platform, and no server-side
+  // Location can defeat it.
+  //
+  // Which makes this the mechanism the separate-path design actually rests on:
+  // the URL a browser displays, stores in history, and copies on Cmd-L.
   //
   // `replaceState`, not `pushState`: a Back button that returns the operator to
   // a URL carrying the key would undo the whole point.

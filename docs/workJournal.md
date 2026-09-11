@@ -82,14 +82,22 @@ report URL for one reason: the address an operator edits at must not be one
 query string away from the address they paste to a prospect. The key is
 exchanged for a cookie and the route 303s to the bare path, which is what is
 supposed to clear it. Measured on the deploy preview, the `Location` header
-still carried `?k=<key>`. The route redirects to a path with no query and this
-repo defines no redirect rules, so something downstream appends it — **cause
-not isolated**, because the sandbox refuses to let a dev server bind and the
-preview had a rotated key baked in by the time the question was asked. Rather
-than leave the property depending on an unexplained behaviour, the page now
-scrubs the key itself with `replaceState`, and a browser test asserts the URL
-is clean including after a Back press. The server redirect stays as the primary
-mechanism. **Someone should still find out why.**
+still carried `?k=<key>`.
+
+**Cause isolated, and it is the platform: Netlify preserves the query string
+across redirects.** Found with a control, after a first pass that could only say
+"something downstream appends it". Our 303 to `/audit/{token}/edit` came back
+carrying `?k=<key>&zzzmarker=1` — the entire original query, including a marker
+param added to test precisely this — and Netlify's _own_ trailing-slash 308,
+which this repo does not author, preserved it too. Two redirects, one ours and
+one the platform's, both appending. **No server-side `Location` can defeat
+this**, so the client-side `replaceState` scrub is not a second line of defence;
+it is the only mechanism that clears the key, and the separate-path design rests
+on it. A browser test asserts the URL is clean, including after a Back press.
+
+Worth generalising beyond this feature: anywhere in the fleet that strips a
+sensitive query parameter by redirecting to a bare path, on Netlify, is not
+doing what it looks like it is doing.
 
 **Proven end to end, against the live site**, which had been blocked since the
 feature began because nothing could write an override until plan A's save
