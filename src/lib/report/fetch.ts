@@ -31,6 +31,9 @@ export type FetchReportOptions = {
    *  fallback — see the throw below. */
   baseUrl: string;
   fetch: typeof globalThis.fetch;
+  /** Marks this fetch as an operator preview, so maintenance does not record it
+   *  as the report having been opened by its recipient. */
+  editSession?: boolean;
 };
 
 /** One replaced string, with the generated text it replaced. `original` is kept
@@ -100,7 +103,18 @@ export async function fetchReport(
     throw new Error("fetchReport: PROSPECT_REPORT_URL is not configured");
   }
 
-  const res = await opts.fetch(`${opts.baseUrl.replace(/\/$/, "")}/api/audit-report/${token}`);
+  // `x-reddoor-edit-session` is a CROSS-REPO CONTRACT, and it degrades silently.
+  // reddoor-maintenance's `audit-report-json.mts` reads this exact header name
+  // and this exact value to decide whether to skip its `opened_at` stamp. There
+  // is no shared constant and there cannot be one yet: this repo cannot take a
+  // `@reddoorla/maintenance` bump past ^0.83.0 (see the note at the top of this
+  // file). If the two ever drift, nothing breaks loudly — the skip just stops
+  // working, and `opened_at` starts recording the operator's own previews as the
+  // prospect having read the report, which is the one thing that timestamp
+  // exists to tell you.
+  const res = await opts.fetch(`${opts.baseUrl.replace(/\/$/, "")}/api/audit-report/${token}`, {
+    headers: opts.editSession ? { "x-reddoor-edit-session": "1" } : {},
+  });
 
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`fetchReport: upstream responded ${res.status}`);
