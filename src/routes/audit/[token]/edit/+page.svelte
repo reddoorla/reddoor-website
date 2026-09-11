@@ -7,6 +7,26 @@
 
   let { data }: { data: PageData } = $props();
 
+  // BELT AND BRACES over the server redirect.
+  //
+  // The load function exchanges `?k=` for a cookie and 303s to the bare path,
+  // which is supposed to be what clears the key from the address bar. Measured
+  // on a Netlify deploy preview 2026-09-11, the Location header still carried
+  // the query — cause not isolated (the route redirects to a path with no query
+  // string, and this repo defines no redirect rules, so something downstream
+  // appends it). Rather than leave the design's central property depending on
+  // that, scrub it here too: whatever the platform does with Location, the URL
+  // a browser displays, stores in history and copies on Cmd-L is clean.
+  //
+  // `replaceState`, not `pushState`: a Back button that returns the operator to
+  // a URL carrying the key would undo the whole point.
+  $effect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("k")) return;
+    url.searchParams.delete("k");
+    history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+  });
+
   const view = $derived(toReportView(data.report, data.overrides));
   const targets = $derived(editableTargets(view, data.report));
   const who = $derived(view.businessName ?? "your business");

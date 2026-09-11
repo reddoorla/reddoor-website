@@ -42,6 +42,21 @@ test.describe("edit mode", () => {
     expect(await page.locator("[contenteditable=true]").count()).toBeGreaterThan(0);
   });
 
+  // The design's central property: the address you edit at must not be one
+  // paste away from handing a prospect the ability to rewrite their own audit.
+  // Asserted in a REAL browser, on the URL a browser actually displays, because
+  // the server 303's Location header was measured carrying the key on a Netlify
+  // preview and the client-side scrub is what closes that.
+  test("the key never remains in the address bar", async ({ page }) => {
+    test.skip(!KEY, "set E2E_REPORT_EDIT_KEY");
+    await page.goto(`/audit/${TOKEN}/edit?k=${KEY}`);
+    expect(page.url()).not.toContain(KEY);
+    expect(page.url()).not.toContain("k=");
+    // And it must not be recoverable with one Back press either.
+    await page.goBack().catch(() => {});
+    expect(page.url()).not.toContain(KEY);
+  });
+
   test("a wrong key 404s even though a valid one exists", async ({ page }) => {
     const res = await page.goto(`/audit/${TOKEN}/edit?k=definitely-not-the-key`);
     expect(res?.status()).toBe(404);
