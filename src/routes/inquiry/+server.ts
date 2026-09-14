@@ -23,7 +23,8 @@ import type { RequestHandler } from "./$types";
 /** Where a chase link that names no industry goes. The CRM knows the industry
  *  as `contact.funnel`, but the link predates that and does not send it; adding
  *  `&funnel={{contact.funnel}}` to the message body is honoured below the
- *  moment somebody does it. Until then this is the only landing page live. */
+ *  moment somebody does it. Until then a chase link lands here whatever
+ *  industry the lead came from. */
 const DEFAULT_INDUSTRY_UID = "medtech";
 
 /** Carried through to the landing page. utm_* is not listed because it is

@@ -1,18 +1,20 @@
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 
-// /medtech is the first `industry` document — a landing page assembled from 12
-// slices that all render through the shared RailRow grid.
+// An `industry` document is a landing page assembled from 12 slices that all
+// render through the shared RailRow grid. /medtech was the first; /boise is
+// the second, loaded to the same slice sequence on purpose.
 //
 // /dev/a11y-fixtures already audits each of these slices in isolation, but a
 // landing page is mostly a *composition* problem: heading order only exists
 // across the stack, and a duplicate-key or fallback bug only shows up on the
-// real document. These tests audit the assembled page instead.
-// Every industry document renders the same twelve slices through the same
-// grid, so the composition checks run over each of them. The framework
-// numeral checks further down are about the medtech copy and stay on it.
+// real document. These tests audit the assembled page instead, and the
+// composition checks run over every industry document.
 const PATHS = ["/medtech", "/boise"] as const;
-const PATH = PATHS[0];
+// The numeral-geometry and ARIA checks below the loop measure a component
+// every industry page shares (TextColumns' .step-num). Running them per page
+// doubles the screenshots and proves nothing new, so they pin one page.
+const PINNED_PATH = PATHS[0];
 
 // The axe gate that runs in CI (and Lighthouse) only ever sees a mobile
 // viewport, so desktop-only markup branches have historically slipped through.
@@ -74,9 +76,11 @@ for (const PATH of PATHS) {
       );
 
     // Mirrors the slice zone every industry document is built with; boise was
-    // loaded to the same sequence on purpose. A slice that fails to render
-    // drops out of the DOM silently, so this asserts the whole list rather
-    // than a count.
+    // loaded to the same sequence on purpose. If boise drops the reused MSOT
+    // testimonial at publish (scripts/industry/boise/data.json, _contentGaps),
+    // this list becomes per-page: that failure is a content decision, not a
+    // grid bug. A slice that fails to render drops out of the DOM silently, so
+    // this asserts the whole list rather than a count.
     expect(rendered).toEqual([
       "industry_hero/default",
       "lead_text/rail",
@@ -422,10 +426,10 @@ test.describe("step numerals", () => {
   test.use({ deviceScaleFactor: 4 });
 
   for (const vp of VIEWPORTS) {
-    test(`${PATH} centres each step numeral on its ink (${vp.name})`, async ({ page }) => {
+    test(`${PINNED_PATH} centres each step numeral on its ink (${vp.name})`, async ({ page }) => {
       test.setTimeout(90_000);
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto(PATH, { waitUntil: "domcontentloaded" });
+      await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
       await settle(page);
 
       for (let i = 0; i < 3; i++) {
@@ -448,10 +452,12 @@ test.describe("step numerals", () => {
 });
 
 for (const vp of VIEWPORTS) {
-  test(`${PATH} draws each step arrow as one unbroken stroke (${vp.name})`, async ({ page }) => {
+  test(`${PINNED_PATH} draws each step arrow as one unbroken stroke (${vp.name})`, async ({
+    page,
+  }) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: vp.width, height: vp.height });
-    await page.goto(PATH, { waitUntil: "domcontentloaded" });
+    await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
     await settle(page);
 
     const grid = page.locator('[data-slice-variation="iconColumns"] ol');
@@ -483,7 +489,7 @@ for (const vp of VIEWPORTS) {
 // left to transition, so no transitionend, so the copy fell back to its timer
 // rather than following the arrow. `copyFollowedTheArrow` is what catches that:
 // the release has to coincide with the chevron landing, not arrive late.
-test(`${PATH} draws each arrow before its copy fills in`, async ({ page }) => {
+test(`${PINNED_PATH} draws each arrow before its copy fills in`, async ({ page }) => {
   test.setTimeout(90_000);
   // The suite runs reduced-motion, under which this sequence correctly does not
   // exist at all: both the draw and the fill bail out and the step renders
@@ -494,7 +500,7 @@ test(`${PATH} draws each arrow before its copy fills in`, async ({ page }) => {
   // of date; that stub is now belt-and-braces rather than load-bearing.)
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+  await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
 
   // Sampling starts before the rail is reached so no transition is missed.
   await page.evaluate(() => {
@@ -562,8 +568,8 @@ test(`${PATH} draws each arrow before its copy fills in`, async ({ page }) => {
   expect(verdicts).toEqual(Array.from({ length: count }, (_, i) => `step ${i + 1}: ok`));
 });
 
-test(`${PATH} does not announce the decorative step numbers`, async ({ page }) => {
-  await page.goto(PATH, { waitUntil: "domcontentloaded" });
+test(`${PINNED_PATH} does not announce the decorative step numbers`, async ({ page }) => {
+  await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
 
   // The <ol> already conveys the sequence. If the number + arrow were exposed
   // too, every step would be read as "01 The Diagnosis" inside an

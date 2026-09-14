@@ -20,6 +20,9 @@ for (const [path, card] of [
   ["/contact", "/og/site/contact.png"],
   ["/portfolio", "/og/site/portfolio.png"],
   ["/showcase", "/og/site/showcase.png"],
+  // boise sets no meta image, so its card is the generated industry one. Red
+  // until the document is published, like every /boise check.
+  ["/boise", "/og/industry/boise.png"],
   ["/this-page-does-not-exist", "/og/site/default.png"],
 ]) {
   test(`${path} advertises ${card}`, async ({ page }) => {

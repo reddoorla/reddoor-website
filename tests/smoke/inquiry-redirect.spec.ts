@@ -76,6 +76,8 @@ test("a second industry routes on its own funnel, not medtech's", async ({ reque
   // The A-102-1 chase message must send `&funnel={{contact.funnel}}` for this
   // to matter in production; without it every abandoned lead, Boise included,
   // is chased back to /medtech. This is the code half of that fix.
+  // The allowlist is built from every published industry document, so this is
+  // the case that proves a second one is honoured, not only the first.
   const to = await locationOf(request, `/inquiry?${LEAD}&funnel=boise`);
   expect(to.pathname).toBe("/boise");
   expect(to.searchParams.get("email")).toBe("pat@example.com");

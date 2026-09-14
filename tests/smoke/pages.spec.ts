@@ -35,8 +35,9 @@ function attachConsoleWatcher(page: Page, extraAllowed: RegExp[] = []) {
 }
 
 // "/medtech" and "/boise" are `industry` documents, not `page`s — they exercise
-// the page→industry fallback in the [uid] route, and two of them prove the
-// route is not special-casing the first.
+// the page→industry fallback in the [uid] route, and a second one catches
+// rendering that is coupled to the first document's content rather than to
+// its type.
 const ROUTES = [
   "/",
   "/about",
