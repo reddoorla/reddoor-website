@@ -19,7 +19,7 @@ export const BEW_UTM = {
   utm_campaign: "bew-2026",
 } as const;
 
-/** GA's and the CRM's key shape: lowercase, letters only after the prefix. */
+/** The key shape this campaign's collateral uses: lowercase, letters only after the prefix. GA also allows multi-word keys (utm_source_platform); nothing here sends them. */
 const UTM_KEY = /^utm_[a-z]+$/;
 const MAX_VALUE = 100;
 
