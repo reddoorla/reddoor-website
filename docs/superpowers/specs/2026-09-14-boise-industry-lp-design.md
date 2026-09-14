@@ -149,8 +149,11 @@ ingest (the source of record, queryable) and the contact's attribution NOTE
 (`attributionLines` in `src/lib/ghl/client.ts`, matched by the `utm_` prefix).
 So a salesperson reading the contact sees "bew"; a smart list or workflow
 trigger cannot filter on it. If Tim needs that, the cheap addition is a tag on
-first touch when `utm_source=bew` (ordinary tags persist), which is a
-decision for Tucker, not part of this design. No CRM change either way.
+first touch when `utm_source=bew` (ordinary tags persist). **Decided
+2026-09-14 (Tucker): add the tag.** It is plan Task 8: `TAG_EVENT_BEW = "bew"`,
+applied on both touches from the landing URL's `utm_source`, so a smart list
+on `tag = bew` selects the cohort. No CRM schema change; tags are created on
+first use.
 
 ### 4.4 The content pipeline: `scripts/industry/`
 

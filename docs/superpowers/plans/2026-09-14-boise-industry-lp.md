@@ -1519,6 +1519,94 @@ Append to `docs/workJournal.md` (newest at the bottom), dated the day the PR lan
 
 ---
 
+### Task 8: Tag a BEW lead on first touch (added 2026-09-14, Tucker's decision after the Task 2 review)
+
+**Why.** The Task 2 review established that the `utm_*` values from `/bew` reach the CRM only as text in the contact's attribution note and in central ingest; `funnel` is `boise` for a BEW lead and an organic Boise lead alike, so no smart list or workflow can select BEW leads. Ordinary tags persist (`addCrmTags` POSTs to the add-tags endpoint, which appends). Tucker chose to add one.
+
+**Files:**
+
+- Modify: `src/lib/ghl/constants.ts` (one constant)
+- Create: `src/lib/ghl/events.ts`, `src/lib/ghl/events.test.ts`
+- Modify: `src/lib/ghl/client.ts` (`syncInquiryToCrm` and `syncApplicationToCrm` tag arrays)
+- Modify: `src/lib/ghl/client.test.ts` (two cases)
+
+- [ ] **Step 1: The constant.** In `src/lib/ghl/constants.ts`, next to `TAG_APPLICATION_STARTED`:
+
+```ts
+/** First-touch marker for a lead who arrived through the Boise Entrepreneur
+ *  Week short link (utm_source=bew). The utm values themselves do not survive
+ *  as CRM fields (see attributionFields); a tag does, so a smart list can. */
+export const TAG_EVENT_BEW = "bew";
+```
+
+- [ ] **Step 2: Failing unit tests** `src/lib/ghl/events.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { TAG_EVENT_BEW } from "./constants";
+import { eventTags } from "./events";
+
+describe("eventTags", () => {
+  it("tags a landing URL whose utm_source is bew", () => {
+    expect(eventTags("https://reddoorla.com/boise?utm_source=bew&utm_medium=event")).toEqual([
+      TAG_EVENT_BEW,
+    ]);
+  });
+  it("is case-insensitive on the value, since a hand-typed link may shout", () => {
+    expect(eventTags("https://reddoorla.com/boise?utm_source=BEW")).toEqual([TAG_EVENT_BEW]);
+  });
+  it("tags nothing for any other source, or none", () => {
+    expect(eventTags("https://reddoorla.com/boise?utm_source=google")).toEqual([]);
+    expect(eventTags("https://reddoorla.com/boise")).toEqual([]);
+    expect(eventTags("https://reddoorla.com/medtech?utm_source=bew-newsletter")).toEqual([]);
+  });
+  it("tags nothing for a malformed or empty URL", () => {
+    expect(eventTags("")).toEqual([]);
+    expect(eventTags("not a url")).toEqual([]);
+  });
+});
+```
+
+Run: `pnpm vitest run src/lib/ghl/events.test.ts` — expected FAIL, cannot resolve `./events`.
+
+- [ ] **Step 3: Implement** `src/lib/ghl/events.ts`:
+
+```ts
+import { TAG_EVENT_BEW } from "./constants";
+
+/**
+ * Tags that record WHERE a lead came from when the utm values cannot (they are
+ * note text in the CRM, not fields). One entry today: the BEW short link sets
+ * utm_source=bew (src/lib/bew.ts). Reads the landing URL the browser reported,
+ * the same one attributionLines renders, so the two never disagree.
+ */
+export function eventTags(sourceUrl: string): string[] {
+  let source = "";
+  try {
+    source = new URL(sourceUrl).searchParams.get("utm_source")?.trim().toLowerCase() ?? "";
+  } catch {
+    return [];
+  }
+  return source === "bew" ? [TAG_EVENT_BEW] : [];
+}
+```
+
+Run the test again — expected PASS, 4 tests.
+
+- [ ] **Step 4: Wire it into both touches.** In `src/lib/ghl/client.ts`, import `eventTags` from `./events`, and:
+  - in `syncInquiryToCrm`: `tags: [TAG_APPLICATION_STARTED, ...eventTags(opts.sourceUrl)],`
+  - in `syncApplicationToCrm`: `tags: [...(optedOut ? [TAG_APPLICATION_COMPLETED, TAG_NOT_A_FIT] : [TAG_APPLICATION_COMPLETED]), ...eventTags(opts.sourceUrl)],`
+    Add one sentence to the comment above the first tag call: the event tag rides on both touches because a visitor who reopens the modal on a fresh URL still carried it on touch one, and the add-tags endpoint appends, so a repeat is harmless.
+
+- [ ] **Step 5: Extend** `src/lib/ghl/client.test.ts`. Read the existing case around line 275 (`expect(tag.body).toEqual({ tags: [TAG_APPLICATION_STARTED] })`) and the one around line 401 to copy their setup exactly. Add, importing `TAG_EVENT_BEW`:
+  - "tags the event on first touch when the landing URL says utm_source=bew": same setup as the existing started-tag case but with `sourceUrl: "https://reddoorla.com/boise?utm_source=bew&utm_medium=event&utm_campaign=bew-2026"`; expect `{ tags: [TAG_APPLICATION_STARTED, TAG_EVENT_BEW] }`.
+  - "tags the event on the completed application too": same setup as the completed case with that sourceUrl; expect `{ tags: [TAG_APPLICATION_COMPLETED, TAG_EVENT_BEW] }`.
+    The two existing cases (plain sourceUrl) must keep passing unchanged, which proves an organic lead is not tagged.
+
+- [ ] **Step 6: Gates and commit.** `pnpm vitest run src/lib/ghl` (all green; +4 tests in events, +2 in client), `pnpm lint`, `pnpm check`, then stage the five files and commit with subject `feat(ghl): tag a lead "bew" on first touch when the landing URL says utm_source=bew` and a body stating: the utm values reach the CRM only as note text (attributionFields writes lead_source and funnel; GHL blanks utm_* on API-created contacts) and funnel is the page uid for every lead from /boise, so nothing could select the Boise Entrepreneur Week cohort; a tag persists; applied on both touches, and the add-tags endpoint appends so a repeat is harmless.
+
+- [ ] **Step 7: CRM side (Tim, no code).** Tags are created on first use; a smart list on `tag = bew` is the whole setup. Record in the spec's §4.3 that the tag exists.
+
 ## Self-review against the spec
 
 - §4.1 document, slice zone, blank Inquiry tab, blank `meta_image` → Task 4 (`data.json` has no inquiry or meta_image keys; `migrate.mjs` writes only title/slices/meta_title/meta_description) and Task 5.
