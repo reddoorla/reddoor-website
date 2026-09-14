@@ -29,6 +29,10 @@ import { fileURLToPath } from "node:url";
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, "assets");
+// Resolves from the CHECKOUT'S PARENT directory: correct for a checkout in
+// ~/Documents/GitHub/, wrong from inside a worktree (two levels deeper). The read
+// below swallows a miss, so a worktree run reports the Dropbox vars as unset.
+// Run this helper from the main checkout.
 const MAINTENANCE_ENV = path.resolve(HERE, "../../../../reddoor-maintenance/.env");
 
 /**
