@@ -22,25 +22,26 @@
 
 ## File map
 
-| Path | Responsibility |
-| --- | --- |
-| `scripts/industry/migrate.mjs` | Shared loader (moved from `scripts/medtech/`): validates `<uid>/data.json` against the local models, stages `<uid>/assets/`, writes an unpublished draft. |
-| `scripts/industry/fit-logos.mjs` | New shared helper: pads every `logo-*.png` in a city's assets to the LogoGrid box aspect. |
-| `scripts/industry/README.md` | The runbook for the next city page. |
-| `scripts/industry/medtech/` | Medtech's `data.json`, its four one-off helpers, its trimmed README, its (gitignored) assets. |
-| `scripts/industry/boise/fetch-assets.mjs` | Boise's one-off: pulls logos from the `logo_soup` document, case-study/featured images from project docs, icons from the medtech folder, and draws the hero placeholder. |
-| `scripts/industry/boise/data.json` | Every field of the Boise page. The copy Tim approves. |
-| `src/lib/bew.ts`, `src/lib/bew.test.ts` | Pure redirect-target builder for `/bew` and its unit tests. |
-| `src/routes/bew/+server.ts` | The `/bew` route: one call to `bewTarget`, 302. |
-| `tests/smoke/bew-redirect.spec.ts` | HTTP-level assertions on the redirect. |
-| `tests/smoke/pages.spec.ts`, `tests/smoke/industry-page.spec.ts`, `tests/smoke/inquiry-redirect.spec.ts` | Existing suites extended to cover `/boise`. |
-| `.gitignore`, `src/lib/slices/LogoGrid/index.svelte` (comments only) | Paths that named `scripts/medtech/`. |
+| Path                                                                                                     | Responsibility                                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/industry/migrate.mjs`                                                                           | Shared loader (moved from `scripts/medtech/`): validates `<uid>/data.json` against the local models, stages `<uid>/assets/`, writes an unpublished draft.                |
+| `scripts/industry/fit-logos.mjs`                                                                         | New shared helper: pads every `logo-*.png` in a city's assets to the LogoGrid box aspect.                                                                                |
+| `scripts/industry/README.md`                                                                             | The runbook for the next city page.                                                                                                                                      |
+| `scripts/industry/medtech/`                                                                              | Medtech's `data.json`, its four one-off helpers, its trimmed README, its (gitignored) assets.                                                                            |
+| `scripts/industry/boise/fetch-assets.mjs`                                                                | Boise's one-off: pulls logos from the `logo_soup` document, case-study/featured images from project docs, icons from the medtech folder, and draws the hero placeholder. |
+| `scripts/industry/boise/data.json`                                                                       | Every field of the Boise page. The copy Tim approves.                                                                                                                    |
+| `src/lib/bew.ts`, `src/lib/bew.test.ts`                                                                  | Pure redirect-target builder for `/bew` and its unit tests.                                                                                                              |
+| `src/routes/bew/+server.ts`                                                                              | The `/bew` route: one call to `bewTarget`, 302.                                                                                                                          |
+| `tests/smoke/bew-redirect.spec.ts`                                                                       | HTTP-level assertions on the redirect.                                                                                                                                   |
+| `tests/smoke/pages.spec.ts`, `tests/smoke/industry-page.spec.ts`, `tests/smoke/inquiry-redirect.spec.ts` | Existing suites extended to cover `/boise`.                                                                                                                              |
+| `.gitignore`, `src/lib/slices/LogoGrid/index.svelte` (comments only)                                     | Paths that named `scripts/medtech/`.                                                                                                                                     |
 
 ---
 
 ### Task 1: Move the content pipeline to `scripts/industry/` and give `migrate.mjs` an `--industry` flag
 
 **Files:**
+
 - Move: `scripts/medtech/` → `scripts/industry/medtech/` (all tracked files)
 - Move: `scripts/industry/medtech/migrate.mjs` → `scripts/industry/migrate.mjs`
 - Delete: `scripts/industry/medtech/regen-types.mjs` (superseded by `scripts/prismic/regen-types.mjs`)
@@ -281,7 +282,7 @@ from the Figma board **"Sales Funnel v2"** (node `4791:818` in file
 | File                       | What it is                                                                                                      |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `export-assets.mjs`        | Re-exports the board's images by Figma node id into `./assets`. Node ids are durable; Figma render URLs expire. |
-| `fetch-dropbox-assets.mjs` | Pulls client photography from Dropbox and derives the crops the page needs.                                      |
+| `fetch-dropbox-assets.mjs` | Pulls client photography from Dropbox and derives the crops the page needs.                                     |
 | `normalize-logos.mjs`      | Pads each logo so a uniform grid box reproduces the board's per-logo optical sizing (needs the board's table).  |
 | `stage-hr-rollovers.mjs`   | Stages the high-resolution rollover originals over the low-res crops.                                           |
 
@@ -347,6 +348,7 @@ EOF
 ### Task 2: The `/bew` redirect
 
 **Files:**
+
 - Create: `src/lib/bew.ts`
 - Create: `src/lib/bew.test.ts`
 - Create: `src/routes/bew/+server.ts`
@@ -560,6 +562,7 @@ EOF
 ### Task 3: Stage the Boise assets
 
 **Files:**
+
 - Create: `scripts/industry/fit-logos.mjs`
 - Create: `scripts/industry/boise/fetch-assets.mjs`
 - Create (generated, gitignored): `scripts/industry/boise/assets/*`
@@ -698,7 +701,11 @@ await mkdir(ASSETS, { recursive: true });
 /** imgix params off → the original bytes. */
 const original = (field) => field.url.split("?")[0];
 const slug = (s) =>
-  s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  s
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
 async function download(url) {
   const res = await fetch(url);
@@ -801,7 +808,9 @@ for (const f of [
 ]) {
   const src = path.join(MEDTECH_ASSETS, f);
   if (!existsSync(src)) {
-    throw new Error(`missing ${src} — copy the medtech assets from the main checkout first (scripts/industry/README.md)`);
+    throw new Error(
+      `missing ${src} — copy the medtech assets from the main checkout first (scripts/industry/README.md)`,
+    );
   }
   await copyFile(src, path.join(ASSETS, f));
 }
@@ -817,11 +826,15 @@ const label = Buffer.from(
     `<text x="50%" y="58%" font-family="Helvetica, Arial, sans-serif" font-size="72" fill="#8a8a8a" text-anchor="middle">Licensed Boise photo needed before publish</text>` +
     `</svg>`,
 );
-await sharp(label).png().toFile(path.join(ASSETS, "hero-PLACEHOLDER-licensed-boise-photo-needed.png"));
+await sharp(label)
+  .png()
+  .toFile(path.join(ASSETS, "hero-PLACEHOLDER-licensed-boise-photo-needed.png"));
 console.log("✓ hero placeholder drawn");
 
 await writeFile(path.join(HERE, "assets-manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-console.log(`\nstaged ${manifest.length} logos, 4 project images, 4 shared files and the hero into ${path.relative(process.cwd(), ASSETS)}`);
+console.log(
+  `\nstaged ${manifest.length} logos, 4 project images, 4 shared files and the hero into ${path.relative(process.cwd(), ASSETS)}`,
+);
 ```
 
 - [ ] **Step 3: Run the fetch, then fit the logos**
@@ -876,6 +889,7 @@ EOF
 ### Task 4: Write the Boise page — `scripts/industry/boise/data.json`
 
 **Files:**
+
 - Create: `scripts/industry/boise/data.json`
 
 This is the copy Tim approves. It mirrors the medtech file's keys exactly, because `migrate.mjs` reads those keys. The positioning is spec §4.2; the framework step names and the CTA label are shared vocabulary with `/medtech` on purpose.
@@ -1230,6 +1244,7 @@ Nothing is published in this task.
 ### Task 6: Cover `/boise` in the smoke suites
 
 **Files:**
+
 - Modify: `tests/smoke/pages.spec.ts:39`
 - Modify: `tests/smoke/industry-page.spec.ts:1-160`
 - Modify: `tests/smoke/inquiry-redirect.spec.ts` (append one test)
@@ -1252,7 +1267,15 @@ with
 // "/medtech" and "/boise" are `industry` documents, not `page`s — they exercise
 // the page→industry fallback in the [uid] route, and two of them prove the
 // route is not special-casing the first.
-const ROUTES = ["/", "/about", "/portfolio", "/twenty-for-twenty", "/contact", "/medtech", "/boise"];
+const ROUTES = [
+  "/",
+  "/about",
+  "/portfolio",
+  "/twenty-for-twenty",
+  "/contact",
+  "/medtech",
+  "/boise",
+];
 ```
 
 - [ ] **Step 2: `industry-page.spec.ts` — run the document-agnostic tests over both pages**
@@ -1362,13 +1385,14 @@ git push -u origin feat/boise-industry-lp
 ### Task 7: Launch checklist, event kit, journal, PR
 
 **Files:**
+
 - Modify: `docs/superpowers/specs/2026-09-14-boise-industry-lp-design.md` (two amendments)
 - Modify: `docs/workJournal.md` (append)
 - Create (outside the repo): `~/Desktop/reddoor-bew-qr-booth-card.png`, `~/Desktop/reddoor-bew-qr-slide.png`, `~/Desktop/reddoor-bew-links.txt`
 
 - [ ] **Step 1: Amend the spec for what the plan learned**
 
-In §4.2, replace the shortlist table's first two rows' *Shortlist* cells with the actual picks: Case study → `Enzo's Hand Wash & Detail` (hero + two after slides, no before); Featured project → `Blue Butterfly` (the mugs photo). In §4.4, add after the `.gitignore` bullet:
+In §4.2, replace the shortlist table's first two rows' _Shortlist_ cells with the actual picks: Case study → `Enzo's Hand Wash & Detail` (hero + two after slides, no before); Featured project → `Blue Butterfly` (the mugs photo). In §4.4, add after the `.gitignore` bullet:
 
 ```markdown
 - Two small shared helpers were added rather than generalising medtech's:

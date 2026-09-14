@@ -19,12 +19,12 @@ one content folder, and the tests that prove a second industry page works.
 
 ## 2. Decisions already taken (with Tucker, 2026-09-14)
 
-| Decision | Choice |
-| --- | --- |
-| Page identity | A durable city page, **uid `boise`**, plus a **`/bew` redirect** that carries the event's utm tags. Not an event page. |
-| Questionnaire | Reuse the A-101 form and survey unchanged — same five questions **including the $10k+ budget gate**. Zero code, zero CRM work. |
-| Copy | I draft every field from the positioning in §4; Tim approves. Tim supplies the case study pick, logos, testimonial and a licensed hero photo. |
-| Pipeline | Generalise `scripts/medtech/` to `scripts/industry/<uid>/` now, because San Antonio is already on the list. |
+| Decision      | Choice                                                                                                                                        |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page identity | A durable city page, **uid `boise`**, plus a **`/bew` redirect** that carries the event's utm tags. Not an event page.                        |
+| Questionnaire | Reuse the A-101 form and survey unchanged — same five questions **including the $10k+ budget gate**. Zero code, zero CRM work.                |
+| Copy          | I draft every field from the positioning in §4; Tim approves. Tim supplies the case study pick, logos, testimonial and a licensed hero photo. |
+| Pipeline      | Generalise `scripts/medtech/` to `scripts/industry/<uid>/` now, because San Antonio is already on the list.                                   |
 
 No mention of BEW exists in Discord (7,668 messages, 109 channels, 75 days) or
 in Tucker's mail. Tucker's message is the whole brief; §4 is the positioning I
@@ -90,8 +90,8 @@ The medtech pitch translated from procurement to a local market:
 - **Qualifier.** The copy speaks to owners ready to invest in the brand, not a
   logo refresh, so the $10k+ question in the modal does not arrive as a
   surprise. It does not court idea-stage founders; they fail the gate anyway.
-- **Framework.** The three steps keep their medtech names — *The Diagnosis*,
-  *The Rebuild*, *The Rollout* — because they are the studio's process, not
+- **Framework.** The three steps keep their medtech names — _The Diagnosis_,
+  _The Rebuild_, _The Rollout_ — because they are the studio's process, not
   an industry's, and because the modal can attribute a lead to the step whose
   CTA opened it (`data-inquire-step`, sent to the CRM). One vocabulary across
   pages keeps that attribution comparable.
@@ -111,13 +111,13 @@ The medtech pitch translated from procurement to a local market:
 
 Tim's inputs, with my shortlist to make the ask concrete:
 
-| Input | Shortlist | Constraint |
-| --- | --- | --- |
-| Case study | Blue Butterfly, Composition Hospitality, Pacific Luxury Group, Enzo's, Herbst Veterinary | The slice needs a **before** image and at least one **after**; the pick is limited by what art exists. |
-| Featured project | Any of the above not used as the case study | Needs one hero mockup image. |
-| Logo grid | 8–9 logos mixing the two tiers above | Each may carry a rollover pair; plain logos are fine for launch. |
-| Testimonial | A local-scale client, quote + name + role + headshot | One only. |
-| Hero photo | A licensed image, Boise-legible (skyline, foothills, a downtown storefront) | **The live medtech hero is still the unlicensed iStock comp** (`hero-PLACEHOLDER-istock-comp.png` in Prismic). Boise must not repeat that, and medtech's should be replaced in the same pass if Tim has an asset. |
+| Input            | Shortlist                                                                                | Constraint                                                                                                                                                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Case study       | Blue Butterfly, Composition Hospitality, Pacific Luxury Group, Enzo's, Herbst Veterinary | The slice needs a **before** image and at least one **after**; the pick is limited by what art exists.                                                                                                            |
+| Featured project | Any of the above not used as the case study                                              | Needs one hero mockup image.                                                                                                                                                                                      |
+| Logo grid        | 8–9 logos mixing the two tiers above                                                     | Each may carry a rollover pair; plain logos are fine for launch.                                                                                                                                                  |
+| Testimonial      | A local-scale client, quote + name + role + headshot                                     | One only.                                                                                                                                                                                                         |
+| Hero photo       | A licensed image, Boise-legible (skyline, foothills, a downtown storefront)              | **The live medtech hero is still the unlicensed iStock comp** (`hero-PLACEHOLDER-istock-comp.png` in Prismic). Boise must not repeat that, and medtech's should be replaced in the same pass if Tim has an asset. |
 
 ### 4.3 The `/bew` redirect
 
@@ -203,14 +203,14 @@ Nothing ships in the repo.
 
 ## 5. Tests
 
-| Test | Change |
-| --- | --- |
-| `src/lib/bew.test.ts` | new: defaults, utm override, foreign params dropped, no path injection |
-| `tests/smoke/bew-redirect.spec.ts` | new: `/bew` → 302 → `/boise` with the three utm values; `utm_content` survives; a `next=` param does not |
-| `tests/smoke/pages.spec.ts` | `ROUTES` gains `/boise` |
-| `tests/smoke/industry-page.spec.ts` | the document-agnostic tests (axe at both viewports, single h1 / no heading jumps, ends on its own CTA, no untouched auto-crop, all twelve slices in order) run over `["/medtech", "/boise"]`; the framework-numeral tests stay medtech-only |
-| `tests/smoke/inquiry-redirect.spec.ts` | new case for `funnel=boise` |
-| `scripts/industry/migrate.mjs --dry-run` | must report zero diffs for both `medtech` and `boise` before either real run |
+| Test                                     | Change                                                                                                                                                                                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/bew.test.ts`                    | new: defaults, utm override, foreign params dropped, no path injection                                                                                                                                                                      |
+| `tests/smoke/bew-redirect.spec.ts`       | new: `/bew` → 302 → `/boise` with the three utm values; `utm_content` survives; a `next=` param does not                                                                                                                                    |
+| `tests/smoke/pages.spec.ts`              | `ROUTES` gains `/boise`                                                                                                                                                                                                                     |
+| `tests/smoke/industry-page.spec.ts`      | the document-agnostic tests (axe at both viewports, single h1 / no heading jumps, ends on its own CTA, no untouched auto-crop, all twelve slices in order) run over `["/medtech", "/boise"]`; the framework-numeral tests stay medtech-only |
+| `tests/smoke/inquiry-redirect.spec.ts`   | new case for `funnel=boise`                                                                                                                                                                                                                 |
+| `scripts/industry/migrate.mjs --dry-run` | must report zero diffs for both `medtech` and `boise` before either real run                                                                                                                                                                |
 
 The smoke tests that hit `/boise` read live Prismic content, so they are red
 until the document is **published**. That is a sequencing fact, not a flake,
