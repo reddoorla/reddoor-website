@@ -53,6 +53,11 @@ export const GHL_STAGE_NEW_INQUIRY = "d4d833e0-6663-456a-8c01-4c0be26625c8";
 export const TAG_APPLICATION_STARTED = "application started";
 export const TAG_APPLICATION_COMPLETED = "application completed";
 
+/** First-touch marker for a lead who arrived through the Boise Entrepreneur
+ *  Week short link (utm_source=bew). The utm values themselves do not survive
+ *  as CRM fields (see attributionFields); a tag does, so a smart list can. */
+export const TAG_EVENT_BEW = "bew";
+
 /**
  * A visitor who answered the budget gate with "No" (see BUDGET_GATE in
  * questions.ts). NOT the template's vocabulary — its nearest, "lead rejected",
