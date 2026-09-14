@@ -288,7 +288,9 @@ custom fields looked like a better home.
 ### 4.3 Tags
 
 `application started` · `application completed` · `scheduled a call` — the
-CRM's own vocabulary. Two things to know:
+CRM's own vocabulary. Two site-defined tags sit beside them: `not a good fit`
+(the $10k+ gate answered No, 2026-08-24) and `bew` (a first-touch event marker
+for the Boise Entrepreneur Week link, 2026-09-14). Two things to know:
 
 - **Tags are ADDED via `POST /contacts/{id}/tags`, never sent on upsert.** The
   upsert body's `tags` property **overwrites the entire array**, which would
@@ -459,11 +461,13 @@ so the template's original shape is not necessarily what is in there now.
 
 What the site writes, and when — this half is hard fact, from `ghl/constants.ts`:
 
-| When                                      | Tag applied             | Written by             |
-| ----------------------------------------- | ----------------------- | ---------------------- |
-| Email captured (modal step one)           | `application started`   | `syncInquiryToCrm`     |
-| Questionnaire + contact details submitted | `application completed` | `syncApplicationToCrm` |
-| Intro call booked                         | `scheduled a call`      | `POST /api/book`       |
+| When                                                                                                | Tag applied             | Written by                                                 |
+| --------------------------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| Email captured (modal step one)                                                                     | `application started`   | `syncInquiryToCrm`                                         |
+| Questionnaire + contact details submitted                                                           | `application completed` | `syncApplicationToCrm`                                     |
+| Intro call booked                                                                                   | `scheduled a call`      | `POST /api/book`                                           |
+| Questionnaire answered "No" to the $10k+ budget gate                                                | `not a good fit`        | `syncApplicationToCrm`                                     |
+| Either touch, when the landing URL carries the BEW link's utm (source `bew` or campaign `bew-2026`) | `bew`                   | `syncInquiryToCrm`, `syncApplicationToCrm` via `eventTags` |
 
 Exact strings, lower-case, no trailing space.
 

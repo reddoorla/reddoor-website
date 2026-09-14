@@ -15,9 +15,16 @@ describe("eventTags", () => {
     expect(eventTags("https://reddoorla.com/boise?utm_source=google")).toEqual([]);
     expect(eventTags("https://reddoorla.com/boise")).toEqual([]);
     expect(eventTags("https://reddoorla.com/medtech?utm_source=bew-newsletter")).toEqual([]);
+    expect(eventTags("https://reddoorla.com/boise?utm_campaign=bew-2026-newsletter")).toEqual([]);
   });
   it("tags nothing for a malformed or empty URL", () => {
     expect(eventTags("")).toEqual([]);
     expect(eventTags("not a url")).toEqual([]);
+  });
+  it("also matches the campaign, so collateral that re-sources the link still counts", () => {
+    expect(eventTags("https://reddoorla.com/boise?utm_source=print&utm_campaign=bew-2026")).toEqual(
+      [TAG_EVENT_BEW],
+    );
+    expect(eventTags("https://reddoorla.com/boise?utm_campaign=BEW-2026")).toEqual([TAG_EVENT_BEW]);
   });
 });

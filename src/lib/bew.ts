@@ -4,8 +4,9 @@
  * The page is `/boise` — a durable city page — and this only decorates the hop
  * with the event's attribution, so the CRM can tell a BEW lead from a Boise
  * lead who arrived by search. The modal posts `location.href` as `sourceUrl`
- * and the server-side sync reads utm_* out of it (src/lib/ghl/client.ts), so
- * nothing here needs to know about the CRM.
+ * and the server-side sync reads utm_* out of it (src/lib/ghl/client.ts for
+ * the note, src/lib/ghl/events.ts for the "bew" tag), so nothing here needs
+ * to know about the CRM.
  *
  * The destination path is fixed. Only utm_* parameters pass through, so the
  * route cannot be turned into an open redirect or used to carry a lead's

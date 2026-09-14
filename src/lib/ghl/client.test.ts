@@ -448,6 +448,28 @@ describe("syncApplicationToCrm", () => {
     expect(String(find("/notes")[0].body.body)).toContain("budget gate");
   });
 
+  it("keeps the opt-out tags and adds the event tag for a BEW lead who fails the gate", async () => {
+    const { fetch, find } = stubCrm();
+    const res = await syncApplicationToCrm({
+      ...base,
+      fetch,
+      sourceUrl:
+        "https://reddoorla.com/boise?utm_source=bew&utm_medium=event&utm_campaign=bew-2026",
+      fields: { ...base.fields, [BUDGET_GATE.tag]: BUDGET_GATE.optOut },
+    });
+    expect(res.ok).toBe(true);
+    // Same self-opt-out shape as above, plus the event tag from the BEW touch.
+    expect(find("/tags")[0].body).toEqual({
+      tags: [TAG_APPLICATION_COMPLETED, TAG_NOT_A_FIT, TAG_EVENT_BEW],
+    });
+    // No pipeline card at all — not even the existence lookup: a self-opt-out
+    // is not a lead awaiting review.
+    expect(find("/opportunities/")).toHaveLength(0);
+    if (res.ok) expect(res.data.opportunityOk).toBe(true);
+    // The record says what happened where a human will read it.
+    expect(String(find("/notes")[0].body.body)).toContain("budget gate");
+  });
+
   it("runs the full pipeline path when the budget gate says Yes", async () => {
     const { fetch, find } = stubCrm();
     await syncApplicationToCrm({
