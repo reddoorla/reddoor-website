@@ -570,6 +570,8 @@ EOF
 
 ### Task 3: Stage the Boise assets
 
+> **Superseded in part by the Task 3 review (commit `dcbb86f`).** The committed `scripts/industry/fit-logos.mjs` and `scripts/industry/boise/fetch-assets.mjs` are the reference, not the code blocks below: `--check` also verifies ink centring, fill caps and orphan knockouts; the manifest is `{ logos, files }`; per-brand `MOBILE_CROP` overrides exist; the three framework icons are tracked in `scripts/industry/shared/`; both opaque PNG project images are written as `.jpg`. Filenames in Task 4 reflect that.
+
 **Files:**
 
 - Create: `scripts/industry/fit-logos.mjs`
@@ -803,8 +805,8 @@ async function stageFromProject(uid, wants) {
 }
 await stageFromProject("enzos", [
   ["_broncoHero.jpg", "enzos-after-1-hero.jpg"],
-  ["_ENZ_mbroideredmockup.png", "enzos-after-2-embroidered.png"],
-  ["_Enzo-Branding_Guide61.png", "enzos-after-3-brand-guide.png"],
+  ["_ENZ_mbroideredmockup.png", "enzos-after-2-embroidered.jpg"],
+  ["_Enzo-Branding_Guide61.png", "enzos-after-3-brand-guide.jpg"],
 ]);
 await stageFromProject("blue-butterfly", [["_bb2.jpg", "blue-butterfly-mugs.jpg"]]);
 
@@ -915,7 +917,9 @@ This is the copy Tim approves. It mirrors the medtech file's keys exactly, becau
     "caseStudy has no before image, so the slice hides its before/after toggle. If a photo of Enzo's pre-rebrand signage or collateral exists, add it as beforeImage.",
     "faq[1] (pricing) describes a full engagement as 'a five-figure investment'. The modal's fifth question gates at $10,000+. Erik owns the pricing language; confirm or reword.",
     "about.body and faq[4] say a founder is in Boise. Confirm Tim's title and that this is how he wants it said.",
-    "logoGrid uses nine marks from the site's logo_soup document. If Tim wants Boise-scale brands in the grid instead of the national tier, they need logo files — the grid has none for Blue Butterfly, Herbst or Enzo's."
+    "logoGrid uses nine marks from the site's logo_soup document. If Tim wants Boise-scale brands in the grid instead of the national tier, they need logo files — the grid has none for Blue Butterfly, Herbst or Enzo's.",
+    "logoGrid: Zero Labs is a double quality gap. Its colour mark in logo_soup is a 235x66 raster (every other brand's is SVG), so it is upscaled ~2.8x to fit the grid, and its rollover art is 1920x1280 against a 3840 ladder, so the desktop backdrop is under-served and the phone crop is upscaled ~1.5x. Needs an SVG mark and a larger photo, or a different ninth brand.",
+    "logoGrid phone crops are machine-chosen (sharp 'attention', with per-brand overrides in fetch-assets.mjs). Hearts & Minds' full-width headline cannot survive a 9:16 crop; ceo-of-la-county, progress-lighting and zero-labs clip a title. Medtech's convention was to hand-crop in Prismic against a reference sheet; do the same on active_background_mobile for any row that still reads wrong after upload."
   ],
   "uid": "boise",
   "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>) and the text on the generated OG card, with '| Reddoor Creative' stripped. meta_title is what search shows.",
@@ -995,11 +999,11 @@ This is the copy Tim approves. It mirrors the medtech file's keys exactly, becau
     "afterImageAlt": "The new Enzo's Hand Wash & Detail brand on a vehicle at the shop",
     "afterSlides": [
       {
-        "file": "enzos-after-2-embroidered.png",
+        "file": "enzos-after-2-embroidered.jpg",
         "alt": "The Enzo's logo embroidered on a work shirt"
       },
       {
-        "file": "enzos-after-3-brand-guide.png",
+        "file": "enzos-after-3-brand-guide.jpg",
         "alt": "A spread from the Enzo's brand guide"
       }
     ]
@@ -1512,4 +1516,4 @@ Append to `docs/workJournal.md` (newest at the bottom), dated the day the PR lan
 - §8 launch sequence → Task 7 Steps 3–4.
 - §9 San Antonio → `scripts/industry/README.md` in Task 1.
 
-Names used consistently: `bewTarget`, `BEW_LANDING`, `BEW_UTM` (Task 2); `--industry` flag, `INDUSTRY`, `DATA_DIR`, `ASSET_DIR` (Task 1); `PATHS`/`PATH` (Task 6); asset filenames in Task 3's script match Task 4's `data.json` one for one (`logo-<slug>.png`, `logo-<slug>-rev.png`, `rollover-<slug>.jpg`, `rollover-<slug>-mobile.jpg`, `enzos-after-1-hero.jpg`, `enzos-after-2-embroidered.png`, `enzos-after-3-brand-guide.png`, `blue-butterfly-mugs.jpg`, the three `icon-*.svg`, `testimonial-albert-turgon.png`, `hero-PLACEHOLDER-licensed-boise-photo-needed.png`).
+Names used consistently: `bewTarget`, `BEW_LANDING`, `BEW_UTM` (Task 2); `--industry` flag, `INDUSTRY`, `DATA_DIR`, `ASSET_DIR` (Task 1); `PATHS`/`PATH` (Task 6); asset filenames in Task 3's script match Task 4's `data.json` one for one (`logo-<slug>.png`, `logo-<slug>-rev.png`, `rollover-<slug>.jpg`, `rollover-<slug>-mobile.jpg`, `enzos-after-1-hero.jpg`, `enzos-after-2-embroidered.jpg`, `enzos-after-3-brand-guide.jpg`, `blue-butterfly-mugs.jpg`, the three `icon-*.svg`, `testimonial-albert-turgon.png`, `hero-PLACEHOLDER-licensed-boise-photo-needed.png`).
