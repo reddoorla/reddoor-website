@@ -37,7 +37,7 @@ const ARGS = process.argv.slice(2);
 const DRY_RUN = ARGS.includes("--dry-run");
 const industryAt = ARGS.indexOf("--industry");
 const INDUSTRY = industryAt >= 0 ? ARGS[industryAt + 1] : undefined;
-if (!INDUSTRY || !/^[a-z0-9-]+$/.test(INDUSTRY)) {
+if (!INDUSTRY || INDUSTRY.startsWith("-") || !/^[a-z0-9-]+$/.test(INDUSTRY)) {
   console.error("Usage: node scripts/industry/migrate.mjs --industry <uid> [--dry-run]");
   process.exit(1);
 }
@@ -400,7 +400,13 @@ async function buildSlices(d, stage, projects) {
 const config = JSON.parse(
   await readFile(path.resolve(HERE, "../../slicemachine.config.json"), "utf8"),
 );
-const d = JSON.parse(await readFile(DATA_FILE, "utf8"));
+let d;
+try {
+  d = JSON.parse(await readFile(DATA_FILE, "utf8"));
+} catch (e) {
+  console.error(`✗ ${path.relative(process.cwd(), DATA_FILE)} is not valid JSON: ${e.message}`);
+  process.exit(1);
+}
 if (d.uid !== INDUSTRY) {
   console.error(
     `✗ ${path.relative(process.cwd(), DATA_FILE)} has uid "${d.uid}" but --industry is "${INDUSTRY}". ` +
@@ -468,7 +474,7 @@ console.log(`  slices: ${slices.length}`);
 for (const s of slices) console.log(`    · ${s.slice_type} (${s.variation})`);
 console.log(`  linked projects: ${[...projects.keys()].join(", ")}`);
 console.log(`  models validated: OK`);
-for (const gap of d._contentGaps) console.log(`  ! ${gap}`);
+for (const gap of d._contentGaps ?? []) console.log(`  ! ${gap}`);
 
 if (DRY_RUN) {
   console.log("\nDRY-RUN: nothing sent.");

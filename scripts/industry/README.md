@@ -41,11 +41,23 @@ new city or vertical needs **no models pushed and no code**, only content.
   `customtypes/industry/index.json` before any network call.
 - Linked project uids must be published documents.
 - Nothing is ever auto-published.
+- The slice sequence and the `data.json` key shape (`hero`, `services`,
+  `framework`, `caseStudy`, `logoGrid`, `testimonial`, `featuredProject`,
+  `about`, `faq`, `cta`) are hardcoded in `migrate.mjs`. "A data file and one
+  command" holds for a page that uses medtech's twelve-band order; a different
+  band order means editing the shared loader, which affects every page.
 
 ## Where the medtech assets are
 
-The medtech staging assets are gitignored. On Tucker's machine they live in the
-main checkout at `scripts/industry/medtech/assets/` (after this move; before it,
-`scripts/medtech/assets/`). A fresh worktree does not have them; copy the folder
-across before a medtech dry run, and before `boise/fetch-assets.mjs`, which
-borrows the three framework icons and the testimonial headshot from it.
+The medtech staging assets are gitignored, so `git mv` moved only the tracked
+files (the three hover knockouts) — the other ~68 assets did NOT move with
+this branch and stay orphaned at `scripts/medtech/assets/` in the main
+checkout after this merges. Once merged, in the main checkout run:
+
+    mv scripts/medtech/assets/* scripts/industry/medtech/assets/ && rmdir scripts/medtech/assets scripts/medtech
+
+(the three tracked knockouts will already be at the new path; `mv`-ing the
+rest over them is fine since the knockouts are byte-identical.) A fresh
+worktree does not have any of this — copy the folder across before a medtech
+dry run, and before `boise/fetch-assets.mjs`, which borrows the three
+framework icons and the testimonial headshot from it.

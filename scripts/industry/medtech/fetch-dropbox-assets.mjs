@@ -29,7 +29,7 @@ import { fileURLToPath } from "node:url";
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, "assets");
-const MAINTENANCE_ENV = path.resolve(HERE, "../../../reddoor-maintenance/.env");
+const MAINTENANCE_ENV = path.resolve(HERE, "../../../../reddoor-maintenance/.env");
 
 /**
  * Each entry: a Dropbox original plus the derivation applied to it.
@@ -188,7 +188,7 @@ const ASSETS = [
  * Credentials, in order of preference. Reads the maintenance .env (the fleet's
  * shared store) and this repo's .env.local, so either can hold them.
  */
-const ENV_FILES = [MAINTENANCE_ENV, path.resolve(HERE, "../../.env.local")];
+const ENV_FILES = [MAINTENANCE_ENV, path.resolve(HERE, "../../../.env.local")];
 const envText = (await Promise.all(ENV_FILES.map((f) => readFile(f, "utf8").catch(() => "")))).join(
   "\n",
 );
