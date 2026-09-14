@@ -289,8 +289,7 @@ custom fields looked like a better home.
 
 `application started` · `application completed` · `scheduled a call` — the
 CRM's own vocabulary. Two site-defined tags sit beside them: `not a good fit`
-(the $10k+ gate answered No, 2026-08-24) and `bew` (a first-touch event marker
-for the Boise Entrepreneur Week link, 2026-09-14). Two things to know:
+(the $10k+ gate answered No, 2026-08-24) and `bew` (an event marker for the Boise Entrepreneur Week link, applied on either touch, 2026-09-14). Two things to know:
 
 - **Tags are ADDED via `POST /contacts/{id}/tags`, never sent on upsert.** The
   upsert body's `tags` property **overwrites the entire array**, which would

@@ -11,6 +11,11 @@
  * The destination path is fixed. Only utm_* parameters pass through, so the
  * route cannot be turned into an open redirect or used to carry a lead's
  * details somewhere they were not meant to go.
+ *
+ * `utm_campaign` is the cohort key. The "bew" tag matches it or utm_source,
+ * so collateral may re-source the link, but a piece that overrides the
+ * campaign as well drops out of the cohort silently. Leave the campaign alone
+ * when printing a QR code.
  */
 export const BEW_LANDING = "/boise";
 
