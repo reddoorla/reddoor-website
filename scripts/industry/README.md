@@ -7,6 +7,7 @@ new city or vertical needs **no models pushed and no code**, only content.
     scripts/industry/
       migrate.mjs          shared: validates + stages + writes an unpublished draft
       fit-logos.mjs        shared: pads logo-*.png to the LogoGrid box aspect
+      shared/              studio-wide art every page uses (framework icons)
       <uid>/data.json      every field of the page (copy, filenames, links)
       <uid>/assets/        images the data file names (gitignored)
       <uid>/*.mjs          that page's own one-off fetch/export helpers
@@ -59,5 +60,6 @@ checkout after this merges. Once merged, in the main checkout run:
 (the three tracked knockouts will already be at the new path; `mv`-ing the
 rest over them is fine since the knockouts are byte-identical.) A fresh
 worktree does not have any of this — copy the folder across before a medtech
-dry run, and before `boise/fetch-assets.mjs`, which borrows the three
-framework icons and the testimonial headshot from it.
+dry run. The three framework icons no longer come from here: they are tracked
+at `scripts/industry/shared/`. `boise/fetch-assets.mjs` still borrows only the
+testimonial headshot from this folder.

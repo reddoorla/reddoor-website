@@ -353,7 +353,8 @@
                  those two unreachable no matter how the artwork was padded.
 
                  The assets are normalised to this exact aspect (300:105) by
-                 scripts/industry/medtech/normalize-logos.mjs, which pads each canvas so
+                 scripts/industry/medtech/normalize-logos.mjs (board-measured) or
+                 scripts/industry/fit-logos.mjs (board-less), which pad each canvas so
                  the artwork occupies the board's fraction of the box — that is
                  what makes one uniform box reproduce nine different optical
                  sizes. Change either number and the assets must be regenerated.
