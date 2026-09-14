@@ -1,20 +1,20 @@
 {
   "_source": "No design board. Drafted 2026-09-14 by Claude from the positioning in docs/superpowers/specs/2026-09-14-boise-industry-lp-design.md §4.2, mirroring the /medtech slice sequence and voice. Every field is pending Tim's approval; record his edits in _copyEdits, dated.",
   "_copyEdits": [
-    "2026-09-14, copy review before Tim's round: services.lead 'Big-League Branding, Built in Boise' replaced (condescending, and the work is not built in Boise); faq pricing rewritten to mirror the numbers already published on /medtech instead of contradicting them with 'five-figure'; a timeline FAQ added, making nine entries rather than the spec's eight because 'more customers, not a new logo' was kept as the lead objection; the freelancer answer no longer implies local freelancers will not be around next year; the case-study images swapped from an unbranded Bronco shot to the Enzo's website, van and Boise signage, and 'Boise' added to the heading, because Enzo's is the only Boise client in the published portfolio; em-dashes in body copy replaced with periods to match /medtech's habit; title lengthened so the generated OG card reads more than 'Boise'; meta_description cut to 155 characters so the last word survives the snippet."
+    "2026-09-14, copy review before Tim's round: services.lead 'Big-League Branding, Built in Boise' replaced (condescending, and the work is not built in Boise); faq pricing rewritten to mirror the numbers already published on /medtech instead of contradicting them with 'five-figure'; a timeline FAQ added, making nine entries rather than the spec's eight because 'more customers, not a new logo' was kept as the lead objection; the freelancer answer no longer implies local freelancers will not be around next year; the case-study images swapped from an unbranded Bronco shot to the Enzo's brand board, van and Boise signage (the website mockup was dropped: its page reads 'coming soon' and the domain now redirects elsewhere), and 'Boise' added to the heading, because Enzo's is the only Boise client in the published portfolio; em-dashes in body copy replaced with periods to match /medtech's habit; title lengthened so the generated OG card reads more than 'Boise'; meta_description cut to 155 characters so the last word survives the snippet."
   ],
   "_contentGaps": [
     "hero.image is a LABELLED PLACEHOLDER. Tim supplies a licensed, Boise-legible photo (skyline, foothills, a downtown storefront) before publish.",
     "meta_description, hero.cardBody and faq[5] (meet in person) say a founder is in Boise, and about.body[0] promises the first conversation happens across a table. Confirm Tim's title, that he is Boise-based, and that he wants the in-person promise made; if not, all four places change together.",
     "testimonial is Albert Turgon's real MSOT quote, reused from /medtech because no local-scale client quote exists yet. It argues 'against the biggest players' on a page that says small businesses are welcome. Swap for a Boise-scale client (name, role, headshot), or drop the slice at publish; dropping it means the smoke suite's twelve-slice list becomes per-page.",
-    "caseStudy has no before image, so the slice hides its before/after toggle. If a photo of Enzo's pre-rebrand signage or collateral exists, add it as beforeImage.",
+    "caseStudy has no before image, so the slice hides its before/after toggle. The Enzo's project document has a 1018x482 'logo transformation' composite (old and new mark side by side) that may fit; a photo of the pre-rebrand signage would fit better.",
     "faq[1] (pricing) mirrors the numbers already published on /medtech (Diagnosis $1,500 / 7 days; full engagements around $20,000 to six figures). Erik owns pricing language; confirm the Boise page states the same numbers, or reword both pages together.",
     "services.columns[2] (Design System) renames three of medtech's four items for a local audience (Signage & Environmental, Print & Collateral, Social & Campaign Templates) and drops Social Media Management. Confirm with Tim and Erik that the studio sells these under these names.",
     "logoGrid uses nine marks from the site's logo_soup document, all national or institutional. The spec wanted local-scale brands alongside them; Enzo's has logo assets in its project document that could be cut into a grid mark, the other local-tier brands (Blue Butterfly, Herbst, Beachfront) have none on file.",
     "logoGrid: Zero Labs is a double quality gap. Its colour mark in logo_soup is a 235x66 raster (every other brand's is SVG), so it is upscaled ~2.8x to fit the grid, and its rollover art is 1920x1280 against a 3840 ladder, so the desktop backdrop is under-served and the phone crop is upscaled ~1.5x. Needs an SVG mark and a larger photo, or a different ninth brand.",
     "logoGrid phone crops are machine-chosen (sharp 'attention', with per-brand overrides in fetch-assets.mjs). Hearts & Minds is unfixable at this aspect: the headline spans ~70% of a 5768x4320 source and a 9:16 cover keeps 42% of the width, so no crop and no Prismic re-crop can keep it; it needs a purpose-made portrait asset or an accepted truncation. ceo-of-la-county, progress-lighting and zero-labs clip a title and CAN be hand-cropped in Prismic on active_background_mobile, as medtech's were.",
     "hero.headline mirrors medtech's 'from Screened Out to Short List' structure with adjectives ('from Overlooked to Unmistakable') rather than nouns from the owner's world. If Tim wants it more concrete, candidates: 'from Scrolled Past to Walked Into', 'from One of Many to the Obvious Choice'.",
-    "caseStudy: the photo of Enzo's exterior sign, the single most Boise-specific asset on the page, exists in the project document only at 497x497 and is served as a slide, not the lead. A hi-res photo of that sign would let it lead the case study."
+    "caseStudy: enzoshandwash.com now redirects to adamsmotors.com/detailing-packages ('Car Detailing Packages and Prices | Boise and Eagle, ID'), and the website mockup in the project document advertises a State Street location as 'coming soon'. Confirm with Tim what happened to Enzo's before this page ships; a Boise audience may know the story. The case study therefore leads with the brand board, claims Brand, Print and Environmental only, and serves the 497x497 exterior-sign photo as a slide; a hi-res photo of that sign would let it lead."
   ],
   "uid": "boise",
   "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>) and the text on the generated OG card, with '| Reddoor Creative' stripped. meta_title is what search shows.",
@@ -24,7 +24,7 @@
   "hero": {
     "headline": "We'll Take Your \nBoise Business from Overlooked to Unmistakable",
     "cardLabel": "Brand-Credibility Framework",
-    "cardBody": "Our framework means customers trust you before they've met you. We diagnose what's holding your brand back, rebuild it, and roll it out everywhere a customer sees you. A senior team does the work, and one of its founders is right here in Boise.",
+    "cardBody": "Our framework means customers trust you before they've met you. We diagnose what's holding your brand back, rebuild it, and roll it out everywhere a customer sees you. A senior team does the work, and one of our founders is right here in Boise.",
     "image": "hero-PLACEHOLDER-licensed-boise-photo-needed.png",
     "imageAlt": "Placeholder image",
     "buttons": [
@@ -37,7 +37,7 @@
   "services": {
     "eyebrow": "What we do for you:",
     "lead": "A Brand Your Customers Trust on Sight",
-    "subBody": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep running the business while we build a brand your customers trust on sight.",
+    "subBody": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep running the business while we build the brand that does the convincing for you.",
     "columns": [
       {
         "title": "Brand Identity",
@@ -93,17 +93,17 @@
   "caseStudy": {
     "label": "Case Study",
     "projectName": "Enzo's Hand Wash & Detail",
-    "services": "Brand, Print, Environmental, Digital",
+    "services": "Brand, Print, Environmental",
     "heading": "Giving a Boise hand-wash and detail shop a brand as obsessive as its work.",
-    "afterImage": "enzos-after-1-website.jpg",
-    "afterImageAlt": "The new Enzo's website on a MacBook",
+    "afterImage": "enzos-after-1-brand-board.png",
+    "afterImageAlt": "The Enzo's brand board: the mark, the wordmark, and the 100% hand wash and quality guaranteed badges",
     "afterSlides": [
       {
-        "file": "enzos-after-2-van.jpg",
-        "alt": "The Enzo's brand on the shop's van"
+        "file": "enzos-after-2-van.png",
+        "alt": "The Enzo's brand applied to the shop's van"
       },
       {
-        "file": "enzos-after-3-signage.jpg",
+        "file": "enzos-after-3-signage.png",
         "alt": "Enzo's new exterior sign on a busy Boise street corner"
       },
       {
@@ -248,7 +248,7 @@
         "q": "We're a small, local business. Are we too small for you?",
         "a": [
           "No. Some of the work we're proudest of is for a neighborhood coffee shop, a veterinary hospital, and a hand-wash and detail shop here in Boise. What matters is that you're serious about the brand carrying the business, not the size of the team behind it.",
-          "The same process we run for national companies scales down cleanly. The phases stay the same; the deliverables get scoped to what you'll actually use. What doesn't scale down is the commitment. The brand has to be a real line in this year's budget, not what's left over, and if it isn't yet, the honest answer is to wait. We'll say so."
+          "The same process we run for national companies scales down cleanly. The phases stay the same, and the deliverables get scoped to what you'll actually use. What doesn't scale down is the commitment. The brand has to be a real line in this year's budget, not what's left over, and if it isn't yet, the honest answer is to wait. We'll say so."
         ]
       },
       {

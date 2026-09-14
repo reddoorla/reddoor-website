@@ -182,34 +182,31 @@ try {
         );
       }
       const buf = await download(original(matches[0]));
-      let file = out;
-      let pipeline = sharp(buf).resize({ width: 2880, withoutEnlargement: true });
-      if (out.endsWith(".png")) {
-        // A PNG source can still be fully opaque (a flattened export that
-        // kept an alpha channel it never uses) — enzos-after-2-embroidered.png
-        // measured isOpaque: true at 3.7 MB. Re-encoding an opaque image as
-        // JPEG rather than PNG is a straight size win with no visual cost, so
-        // check before committing to the extension in `wants`.
-        const { isOpaque } = await sharp(buf).stats();
-        if (isOpaque) {
-          file = out.replace(/\.png$/, ".jpg");
-          console.log(`! ${uid}: ${out} is fully opaque — writing ${file} instead`);
-          pipeline = pipeline.jpeg({ quality: 85 });
-        } else {
-          pipeline = pipeline.png();
-        }
-      } else {
-        pipeline = pipeline.jpeg({ quality: 85 });
+      // A source can carry an alpha channel either way — transparent (a
+      // knockout or a composite) or fully opaque (a flattened export that
+      // kept a channel it never uses, e.g. enzos-after-2-embroidered.png
+      // measured isOpaque: true at 3.7 MB). Check before committing to the
+      // extension in `wants`: encoding a non-opaque source as .jpg silently
+      // flattens transparency onto black, so that's a hard stop, not a
+      // warning.
+      const { isOpaque } = await sharp(buf).stats();
+      if (out.endsWith(".jpg") && !isOpaque) {
+        throw new Error(`${uid}: ${out} would flatten transparency onto black — stage it as .png`);
       }
-      await pipeline.toFile(path.join(ASSETS, file));
-      STAGED.push(file);
-      console.log(`✓ ${uid}: ${want} → ${file}`);
+      if (out.endsWith(".png") && isOpaque) {
+        console.log(`! ${uid}: ${out} is fully opaque — a .jpg would be smaller`);
+      }
+      let pipeline = sharp(buf).resize({ width: 2880, withoutEnlargement: true });
+      pipeline = out.endsWith(".png") ? pipeline.png() : pipeline.jpeg({ quality: 85 });
+      await pipeline.toFile(path.join(ASSETS, out));
+      STAGED.push(out);
+      console.log(`✓ ${uid}: ${want} → ${out}`);
     }
   }
   await stageFromProject("enzos", [
-    ["_enzosWebsite.png", "enzos-after-1-website.jpg"],
-    ["id:Z1OurZbqstJ98MRd", "enzos-after-2-van.jpg"],
-    ["id:ZyqXfq8jQArT0PM9", "enzos-after-3-signage.jpg"],
+    ["id:Z1OuMpbqstJ98MRY", "enzos-after-1-brand-board.png"],
+    ["id:Z1OurZbqstJ98MRd", "enzos-after-2-van.png"],
+    ["id:ZyqXfq8jQArT0PM9", "enzos-after-3-signage.png"],
     ["_Enzo-Branding_Guide61.png", "enzos-after-4-brand-guide.jpg"],
   ]);
   await stageFromProject("blue-butterfly", [["_bb2.jpg", "blue-butterfly-mugs.jpg"]]);
