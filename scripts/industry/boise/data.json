@@ -1,7 +1,7 @@
 {
   "_source": "No design board. Drafted 2026-09-14 by Claude from the positioning in docs/superpowers/specs/2026-09-14-boise-industry-lp-design.md §4.2, mirroring the /medtech slice sequence and voice. Every field is pending Tim's approval; record his edits in _copyEdits, dated.",
   "_copyEdits": [
-    "2026-09-14, copy review before Tim's round: services.lead 'Big-League Branding, Built in Boise' replaced (condescending, and the work is not built in Boise); faq pricing rewritten to mirror the numbers already published on /medtech instead of contradicting them with 'five-figure'; a timeline FAQ added, making nine entries rather than the spec's eight because 'more customers, not a new logo' was kept as the lead objection; the freelancer answer no longer implies local freelancers will not be around next year; the case-study lead image swapped from an unbranded Bronco shot to Enzo's Boise signage, and 'Boise' added to the heading, because Enzo's is the only Boise client in the published portfolio; em-dashes in body copy replaced with periods to match /medtech's habit; title lengthened so the generated OG card reads more than 'Boise'; meta_description cut to 155 characters so the last word survives the snippet."
+    "2026-09-14, copy review before Tim's round: services.lead 'Big-League Branding, Built in Boise' replaced (condescending, and the work is not built in Boise); faq pricing rewritten to mirror the numbers already published on /medtech instead of contradicting them with 'five-figure'; a timeline FAQ added, making nine entries rather than the spec's eight because 'more customers, not a new logo' was kept as the lead objection; the freelancer answer no longer implies local freelancers will not be around next year; the case-study images swapped from an unbranded Bronco shot to the Enzo's website, van and Boise signage, and 'Boise' added to the heading, because Enzo's is the only Boise client in the published portfolio; em-dashes in body copy replaced with periods to match /medtech's habit; title lengthened so the generated OG card reads more than 'Boise'; meta_description cut to 155 characters so the last word survives the snippet."
   ],
   "_contentGaps": [
     "hero.image is a LABELLED PLACEHOLDER. Tim supplies a licensed, Boise-legible photo (skyline, foothills, a downtown storefront) before publish.",
@@ -13,7 +13,8 @@
     "logoGrid uses nine marks from the site's logo_soup document, all national or institutional. The spec wanted local-scale brands alongside them; Enzo's has logo assets in its project document that could be cut into a grid mark, the other local-tier brands (Blue Butterfly, Herbst, Beachfront) have none on file.",
     "logoGrid: Zero Labs is a double quality gap. Its colour mark in logo_soup is a 235x66 raster (every other brand's is SVG), so it is upscaled ~2.8x to fit the grid, and its rollover art is 1920x1280 against a 3840 ladder, so the desktop backdrop is under-served and the phone crop is upscaled ~1.5x. Needs an SVG mark and a larger photo, or a different ninth brand.",
     "logoGrid phone crops are machine-chosen (sharp 'attention', with per-brand overrides in fetch-assets.mjs). Hearts & Minds is unfixable at this aspect: the headline spans ~70% of a 5768x4320 source and a 9:16 cover keeps 42% of the width, so no crop and no Prismic re-crop can keep it; it needs a purpose-made portrait asset or an accepted truncation. ceo-of-la-county, progress-lighting and zero-labs clip a title and CAN be hand-cropped in Prismic on active_background_mobile, as medtech's were.",
-    "hero.headline mirrors medtech's 'from Screened Out to Short List' structure with adjectives ('from Overlooked to Unmistakable') rather than nouns from the owner's world. If Tim wants it more concrete, candidates: 'from Scrolled Past to Walked Into', 'from One of Many to the Obvious Choice'."
+    "hero.headline mirrors medtech's 'from Screened Out to Short List' structure with adjectives ('from Overlooked to Unmistakable') rather than nouns from the owner's world. If Tim wants it more concrete, candidates: 'from Scrolled Past to Walked Into', 'from One of Many to the Obvious Choice'.",
+    "caseStudy: the photo of Enzo's exterior sign, the single most Boise-specific asset on the page, exists in the project document only at 497x497 and is served as a slide, not the lead. A hi-res photo of that sign would let it lead the case study."
   ],
   "uid": "boise",
   "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>) and the text on the generated OG card, with '| Reddoor Creative' stripped. meta_title is what search shows.",
@@ -94,20 +95,20 @@
     "projectName": "Enzo's Hand Wash & Detail",
     "services": "Brand, Print, Environmental, Digital",
     "heading": "Giving a Boise hand-wash and detail shop a brand as obsessive as its work.",
-    "afterImage": "enzos-after-1-signage.jpg",
-    "afterImageAlt": "Enzo's new exterior signage on a busy Boise street corner",
+    "afterImage": "enzos-after-1-website.jpg",
+    "afterImageAlt": "The new Enzo's website on a MacBook",
     "afterSlides": [
       {
-        "file": "enzos-after-2-embroidered.jpg",
-        "alt": "The Enzo's logo embroidered on a shirt"
+        "file": "enzos-after-2-van.jpg",
+        "alt": "The Enzo's brand on the shop's van"
       },
       {
-        "file": "enzos-after-3-brand-guide.jpg",
+        "file": "enzos-after-3-signage.jpg",
+        "alt": "Enzo's new exterior sign on a busy Boise street corner"
+      },
+      {
+        "file": "enzos-after-4-brand-guide.jpg",
         "alt": "A spread from the Enzo's brand guide"
-      },
-      {
-        "file": "enzos-after-4-bronco.jpg",
-        "alt": "A vintage Bronco being polished in the Enzo's shop bay"
       }
     ]
   },

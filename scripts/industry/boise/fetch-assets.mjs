@@ -207,10 +207,10 @@ try {
     }
   }
   await stageFromProject("enzos", [
-    ["id:ZyqXfq8jQArT0PM9", "enzos-after-1-signage.jpg"],
-    ["_ENZ_mbroideredmockup.png", "enzos-after-2-embroidered.jpg"],
-    ["_Enzo-Branding_Guide61.png", "enzos-after-3-brand-guide.jpg"],
-    ["_broncoHero.jpg", "enzos-after-4-bronco.jpg"],
+    ["_enzosWebsite.png", "enzos-after-1-website.jpg"],
+    ["id:Z1OurZbqstJ98MRd", "enzos-after-2-van.jpg"],
+    ["id:ZyqXfq8jQArT0PM9", "enzos-after-3-signage.jpg"],
+    ["_Enzo-Branding_Guide61.png", "enzos-after-4-brand-guide.jpg"],
   ]);
   await stageFromProject("blue-butterfly", [["_bb2.jpg", "blue-butterfly-mugs.jpg"]]);
 
