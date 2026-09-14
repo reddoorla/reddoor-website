@@ -1493,6 +1493,8 @@ EOF
 
 - [ ] **Step 5: Event kit to the Desktop**
 
+> **Superseded (2026-09-14).** The `qrcode` CLI below blocks on stdin whenever stdin is not a TTY (`bin/qrcode` line 142 checks `process.stdin.isTTY` and otherwise waits for `end`), so from a background shell it hangs forever with no output. The kit was generated with the library instead (`QRCode.toFile`, width 1024, margin 2, level H) and both PNGs were decoded back with jsQR to confirm the payloads. The links sheet also names the `bew` tag from Task 8.
+
 ```bash
 cd /Users/tuckerlemos/Documents/GitHub/reddoor-website/.worktrees/boise-lp || exit 1
 npx --yes qrcode@1 -o "$HOME/Desktop/reddoor-bew-qr-booth-card.png" -w 1024 -q 2 -e H "https://reddoorla.com/bew?utm_content=booth-card" || exit 1

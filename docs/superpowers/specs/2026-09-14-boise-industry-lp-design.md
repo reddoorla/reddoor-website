@@ -111,13 +111,13 @@ The medtech pitch translated from procurement to a local market:
 
 Tim's inputs, with my shortlist to make the ask concrete:
 
-| Input            | Shortlist                                                                                | Constraint                                                                                                                                                                                                        |
-| ---------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Case study       | Blue Butterfly, Composition Hospitality, Pacific Luxury Group, Enzo's, Herbst Veterinary | The slice needs a **before** image and at least one **after**; the pick is limited by what art exists.                                                                                                            |
-| Featured project | Any of the above not used as the case study                                              | Needs one hero mockup image.                                                                                                                                                                                      |
-| Logo grid        | 8–9 logos mixing the two tiers above                                                     | Each may carry a rollover pair; plain logos are fine for launch.                                                                                                                                                  |
-| Testimonial      | A local-scale client, quote + name + role + headshot                                     | One only.                                                                                                                                                                                                         |
-| Hero photo       | A licensed image, Boise-legible (skyline, foothills, a downtown storefront)              | **The live medtech hero is still the unlicensed iStock comp** (`hero-PLACEHOLDER-istock-comp.png` in Prismic). Boise must not repeat that, and medtech's should be replaced in the same pass if Tim has an asset. |
+| Input            | Shortlist                                                                                                                                                                                             | Constraint                                                                                                                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Case study       | **Picked:** Enzo's Hand Wash & Detail, the one named Boise client. Lead image is the brand board; three after slides (van, exterior sign, brand-guide spread); **no before image**, the slot is empty | The slice needs at least one **after**; a **before** is optional (`hasBefore` hides the toggle). Open: enzoshandwash.com now redirects to a car dealer, so Tim confirms the story before publish.                 |
+| Featured project | **Picked:** Blue Butterfly, the branded-mugs photo (`blue-butterfly-mugs.jpg`), linked to its project page                                                                                            | Needs one hero mockup image.                                                                                                                                                                                      |
+| Logo grid        | 8–9 logos mixing the two tiers above                                                                                                                                                                  | Each may carry a rollover pair; plain logos are fine for launch.                                                                                                                                                  |
+| Testimonial      | A local-scale client, quote + name + role + headshot                                                                                                                                                  | One only.                                                                                                                                                                                                         |
+| Hero photo       | A licensed image, Boise-legible (skyline, foothills, a downtown storefront)                                                                                                                           | **The live medtech hero is still the unlicensed iStock comp** (`hero-PLACEHOLDER-istock-comp.png` in Prismic). Boise must not repeat that, and medtech's should be replaced in the same pass if Tim has an asset. |
 
 ### 4.3 The `/bew` redirect
 
@@ -161,6 +161,8 @@ first use.
 scripts/industry/
   README.md                 # the "next city page" runbook (replaces scripts/medtech/README.md)
   migrate.mjs               # shared; --industry <uid> [--dry-run]
+  fit-logos.mjs             # shared; pads a logo pair to the grid box, --check verifies
+  shared/icon-*.svg         # the three framework icons, tracked
   medtech/
     data.json               # moved unchanged
     assets/                 # moved (gitignored)
@@ -170,6 +172,7 @@ scripts/industry/
     stage-hr-rollovers.mjs
   boise/
     data.json
+    fetch-assets.mjs        # stages logos from logo_soup, images from the project docs
     assets/                 # gitignored
 ```
 
@@ -191,6 +194,12 @@ scripts/industry/
   `scripts/industry/medtech/assets/` path, and a `scripts/industry/boise/assets/*`
   rule is added. The comment above them, which names
   `scripts/medtech/export-assets.mjs`, is updated to the new path.
+- Two small shared helpers were added rather than generalising medtech's:
+  `scripts/industry/fit-logos.mjs` (board-less logo padding to the grid box)
+  and the pattern `scripts/industry/<uid>/fetch-assets.mjs` (stage from Prismic
+  and the project docs). Boise's logos come from the site's own `logo_soup`
+  document, which already holds the colour mark, knockout, rollover art and
+  project link per brand; nine of them are on `/boise`.
 - Every path reference to `scripts/medtech/` in code comments (two in
   `LogoGrid/index.svelte`) is updated so the comments stay true.
 
