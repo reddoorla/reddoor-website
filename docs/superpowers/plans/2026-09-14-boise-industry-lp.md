@@ -899,6 +899,21 @@ EOF
 
 ### Task 4: Write the Boise page — `scripts/industry/boise/data.json`
 
+> **Superseded in part by the Task 4 copy review (commits `418ac65`, `cd7b070`).**
+> The committed `scripts/industry/boise/data.json` is the reference, not the JSON
+> block below. What changed and why: `services.lead` "Big-League Branding, Built
+> in Boise" replaced (condescending, and the work is not built in Boise); the
+> pricing answer mirrors the numbers `/medtech` already publishes instead of
+> contradicting them with "five-figure"; a timeline FAQ added (nine entries); the
+> freelancer answer no longer implies local freelancers will not be around next
+> year; Enzo's turned out to be the only Boise client in the published portfolio,
+> so the case study names Boise and leads with the website and van at full
+> resolution, with the 497px signage photo as a slide; body copy drops its
+> em-dashes to match `/medtech`; `title` reads "Boise Brand Strategy | Reddoor
+> Creative" so the OG card says more than "Boise"; `meta_description` is 155
+> characters; `_contentGaps` has eleven entries. Every change is listed in the
+> file's own `_copyEdits`.
+
 **Files:**
 
 - Create: `scripts/industry/boise/data.json`
