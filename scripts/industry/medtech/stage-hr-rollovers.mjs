@@ -22,7 +22,7 @@
 // matched by name — but it is a new shot, not a re-export. Worth a look before
 // publishing.
 //
-// Usage: node scripts/medtech/stage-hr-rollovers.mjs [--dry-run]
+// Usage: node scripts/industry/medtech/stage-hr-rollovers.mjs [--dry-run]
 import sharp from "sharp";
 import { readdir, mkdir } from "node:fs/promises";
 import path from "node:path";

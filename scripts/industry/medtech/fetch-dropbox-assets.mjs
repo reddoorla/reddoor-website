@@ -16,7 +16,7 @@
  * without it, paths resolve against the personal member folder and the shared
  * "Reddoor Creative Dropbox" tree is invisible.
  *
- *   node scripts/medtech/fetch-dropbox-assets.mjs [--keep-originals]
+ *   node scripts/industry/medtech/fetch-dropbox-assets.mjs [--keep-originals]
  *
  * Requires `sips` (macOS). Re-runnable; overwrites its outputs.
  */
