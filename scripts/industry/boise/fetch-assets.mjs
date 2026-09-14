@@ -167,15 +167,18 @@ try {
       scan(s.primary);
       (s.items ?? []).forEach(scan);
     }
-    for (const [suffix, out] of wants) {
-      const matches = images.filter((i) => original(i).endsWith(suffix));
+    for (const [want, out] of wants) {
+      const byId = want.startsWith("id:");
+      const matches = byId
+        ? images.filter((i) => original(i).includes("/" + want.slice(3) + "_"))
+        : images.filter((i) => original(i).endsWith(want));
       if (matches.length === 0) {
         const found = images.map(original).join("\n  ");
-        throw new Error(`${uid}: no image ending in ${suffix}. Images the scan found:\n  ${found}`);
+        throw new Error(`${uid}: no image matching ${want}. Images the scan found:\n  ${found}`);
       }
       if (matches.length > 1) {
         throw new Error(
-          `${uid}: ${matches.length} images end in ${suffix} — ${matches.map(original).join(", ")}`,
+          `${uid}: ${matches.length} images match ${want} — ${matches.map(original).join(", ")}`,
         );
       }
       const buf = await download(original(matches[0]));
@@ -200,13 +203,14 @@ try {
       }
       await pipeline.toFile(path.join(ASSETS, file));
       STAGED.push(file);
-      console.log(`✓ ${uid}: ${suffix} → ${file}`);
+      console.log(`✓ ${uid}: ${want} → ${file}`);
     }
   }
   await stageFromProject("enzos", [
-    ["_broncoHero.jpg", "enzos-after-1-hero.jpg"],
-    ["_ENZ_mbroideredmockup.png", "enzos-after-2-embroidered.png"],
-    ["_Enzo-Branding_Guide61.png", "enzos-after-3-brand-guide.png"],
+    ["id:ZyqXfq8jQArT0PM9", "enzos-after-1-signage.jpg"],
+    ["_ENZ_mbroideredmockup.png", "enzos-after-2-embroidered.jpg"],
+    ["_Enzo-Branding_Guide61.png", "enzos-after-3-brand-guide.jpg"],
+    ["_broncoHero.jpg", "enzos-after-4-bronco.jpg"],
   ]);
   await stageFromProject("blue-butterfly", [["_bb2.jpg", "blue-butterfly-mugs.jpg"]]);
 

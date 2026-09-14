@@ -1,32 +1,41 @@
 {
   "_source": "No design board. Drafted 2026-09-14 by Claude from the positioning in docs/superpowers/specs/2026-09-14-boise-industry-lp-design.md §4.2, mirroring the /medtech slice sequence and voice. Every field is pending Tim's approval; record his edits in _copyEdits, dated.",
-  "_copyEdits": [],
+  "_copyEdits": [
+    "2026-09-14, copy review before Tim's round: services.lead 'Big-League Branding, Built in Boise' replaced (condescending, and the work is not built in Boise); faq pricing rewritten to mirror the numbers already published on /medtech instead of contradicting them with 'five-figure'; a timeline FAQ added, making nine entries rather than the spec's eight because 'more customers, not a new logo' was kept as the lead objection; the freelancer answer no longer implies local freelancers will not be around next year; the case-study lead image swapped from an unbranded Bronco shot to Enzo's Boise signage, and 'Boise' added to the heading, because Enzo's is the only Boise client in the published portfolio; em-dashes in body copy replaced with periods to match /medtech's habit; title lengthened so the generated OG card reads more than 'Boise'; meta_description cut to 155 characters so the last word survives the snippet."
+  ],
   "_contentGaps": [
     "hero.image is a LABELLED PLACEHOLDER. Tim supplies a licensed, Boise-legible photo (skyline, foothills, a downtown storefront) before publish.",
-    "testimonial is Albert Turgon's real MSOT quote, reused from /medtech because no local-scale client quote exists yet. Swap for a Boise-scale client (name, role, headshot) when Tim has one.",
+    "meta_description, hero.cardBody and faq[5] (meet in person) say a founder is in Boise, and about.body[0] promises the first conversation happens across a table. Confirm Tim's title, that he is Boise-based, and that he wants the in-person promise made; if not, all four places change together.",
+    "testimonial is Albert Turgon's real MSOT quote, reused from /medtech because no local-scale client quote exists yet. It argues 'against the biggest players' on a page that says small businesses are welcome. Swap for a Boise-scale client (name, role, headshot), or drop the slice at publish; dropping it means the smoke suite's twelve-slice list becomes per-page.",
     "caseStudy has no before image, so the slice hides its before/after toggle. If a photo of Enzo's pre-rebrand signage or collateral exists, add it as beforeImage.",
-    "faq[1] (pricing) describes a full engagement as 'a five-figure investment'. The modal's fifth question gates at $10,000+. Erik owns the pricing language; confirm or reword.",
-    "about.body and faq[4] say a founder is in Boise. Confirm Tim's title and that this is how he wants it said.",
-    "logoGrid uses nine marks from the site's logo_soup document. If Tim wants Boise-scale brands in the grid instead of the national tier, they need logo files — the grid has none for Blue Butterfly, Herbst or Enzo's.",
+    "faq[1] (pricing) mirrors the numbers already published on /medtech (Diagnosis $1,500 / 7 days; full engagements around $20,000 to six figures). Erik owns pricing language; confirm the Boise page states the same numbers, or reword both pages together.",
+    "services.columns[2] (Design System) renames three of medtech's four items for a local audience (Signage & Environmental, Print & Collateral, Social & Campaign Templates) and drops Social Media Management. Confirm with Tim and Erik that the studio sells these under these names.",
+    "logoGrid uses nine marks from the site's logo_soup document, all national or institutional. The spec wanted local-scale brands alongside them; Enzo's has logo assets in its project document that could be cut into a grid mark, the other local-tier brands (Blue Butterfly, Herbst, Beachfront) have none on file.",
     "logoGrid: Zero Labs is a double quality gap. Its colour mark in logo_soup is a 235x66 raster (every other brand's is SVG), so it is upscaled ~2.8x to fit the grid, and its rollover art is 1920x1280 against a 3840 ladder, so the desktop backdrop is under-served and the phone crop is upscaled ~1.5x. Needs an SVG mark and a larger photo, or a different ninth brand.",
-    "logoGrid phone crops are machine-chosen (sharp 'attention', with per-brand overrides in fetch-assets.mjs). Hearts & Minds is unfixable at this aspect: the headline spans ~70% of a 5768x4320 source and a 9:16 cover keeps 42% of the width, so no crop and no Prismic re-crop can keep it; it needs a purpose-made portrait asset or an accepted truncation. ceo-of-la-county, progress-lighting and zero-labs clip a title and CAN be hand-cropped in Prismic on active_background_mobile, as medtech's were."
+    "logoGrid phone crops are machine-chosen (sharp 'attention', with per-brand overrides in fetch-assets.mjs). Hearts & Minds is unfixable at this aspect: the headline spans ~70% of a 5768x4320 source and a 9:16 cover keeps 42% of the width, so no crop and no Prismic re-crop can keep it; it needs a purpose-made portrait asset or an accepted truncation. ceo-of-la-county, progress-lighting and zero-labs clip a title and CAN be hand-cropped in Prismic on active_background_mobile, as medtech's were.",
+    "hero.headline mirrors medtech's 'from Screened Out to Short List' structure with adjectives ('from Overlooked to Unmistakable') rather than nouns from the owner's world. If Tim wants it more concrete, candidates: 'from Scrolled Past to Walked Into', 'from One of Many to the Obvious Choice'."
   ],
   "uid": "boise",
   "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>) and the text on the generated OG card, with '| Reddoor Creative' stripped. meta_title is what search shows.",
-  "title": "Boise | Reddoor Creative",
+  "title": "Boise Brand Strategy | Reddoor Creative",
   "meta_title": "Boise Brand Strategy & Design Studio | Reddoor Creative",
-  "meta_description": "Reddoor is a senior brand and web studio with a founder in Boise. Twenty years, 300+ companies, and a process that takes Idaho businesses from overlooked to unmistakable.",
+  "meta_description": "A senior brand and web studio with a founder in Boise. 20 years, 300+ companies, and a process that takes Idaho businesses from overlooked to unmistakable.",
   "hero": {
     "headline": "We'll Take Your \nBoise Business from Overlooked to Unmistakable",
     "cardLabel": "Brand-Credibility Framework",
-    "cardBody": "Our framework means customers trust you before they've met you. We diagnose what's holding your brand back, rebuild it, and roll it out across every touchpoint — with a senior team and a founder right here in Boise.",
+    "cardBody": "Our framework means customers trust you before they've met you. We diagnose what's holding your brand back, rebuild it, and roll it out everywhere a customer sees you. A senior team does the work, and one of its founders is right here in Boise.",
     "image": "hero-PLACEHOLDER-licensed-boise-photo-needed.png",
-    "imageAlt": "Placeholder: a licensed photo of Boise is still to come",
-    "buttons": [{ "label": "Get Started", "url": "/contact#inquire" }]
+    "imageAlt": "Placeholder image",
+    "buttons": [
+      {
+        "label": "Get Started",
+        "url": "/contact#inquire"
+      }
+    ]
   },
   "services": {
     "eyebrow": "What we do for you:",
-    "lead": "Big-League Branding, Built in Boise",
+    "lead": "A Brand Your Customers Trust on Sight",
     "subBody": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep running the business while we build a brand your customers trust on sight.",
     "columns": [
       {
@@ -55,14 +64,14 @@
   },
   "framework": {
     "eyebrow": "How We Do It: Brand Credibility Framework",
-    "lead": "Instant credibility with customers doesn't happen instantly. It takes a tried and true process — the one we've been running for 20 years.",
+    "lead": "Instant credibility with customers doesn't happen instantly. It takes a tried and true process, the one we've been running for 20 years.",
     "columns": [
       {
         "icon": "icon-diagnosis-audit.svg",
         "iconAlt": "",
         "title": "The Diagnosis:",
         "subtitle": "Friction Audit",
-        "body": "We audit everything a customer sees — your site, your signage, your socials — and stack it against the competition to pinpoint where trust leaks out. You get a prioritized plan to fix it before it costs another customer."
+        "body": "We audit everything a customer sees, from your site and signage to your socials, and stack it against the competition to pinpoint where trust leaks out. You get a prioritized plan to fix it before it costs another customer."
       },
       {
         "icon": "icon-rebuild.svg",
@@ -76,7 +85,7 @@
         "iconAlt": "",
         "title": "The Rollout:",
         "subtitle": "Deploy Touch Points",
-        "body": "We design and deploy every deliverable — website, signage, print, packaging, templates — so the new brand shows up everywhere at once, not one piece at a time."
+        "body": "We design and deploy every deliverable: website, signage, print, packaging, templates. The new brand shows up everywhere at once, not one piece at a time."
       }
     ]
   },
@@ -84,17 +93,21 @@
     "label": "Case Study",
     "projectName": "Enzo's Hand Wash & Detail",
     "services": "Brand, Print, Environmental, Digital",
-    "heading": "Giving a hand-wash and detail shop a brand as obsessive as its work.",
-    "afterImage": "enzos-after-1-hero.jpg",
-    "afterImageAlt": "The new Enzo's Hand Wash & Detail brand on a vehicle at the shop",
+    "heading": "Giving a Boise hand-wash and detail shop a brand as obsessive as its work.",
+    "afterImage": "enzos-after-1-signage.jpg",
+    "afterImageAlt": "Enzo's new exterior signage on a busy Boise street corner",
     "afterSlides": [
       {
         "file": "enzos-after-2-embroidered.jpg",
-        "alt": "The Enzo's logo embroidered on a work shirt"
+        "alt": "The Enzo's logo embroidered on a shirt"
       },
       {
         "file": "enzos-after-3-brand-guide.jpg",
         "alt": "A spread from the Enzo's brand guide"
+      },
+      {
+        "file": "enzos-after-4-bronco.jpg",
+        "alt": "A vintage Bronco being polished in the Enzo's shop bay"
       }
     ]
   },
@@ -190,7 +203,10 @@
     "services": "brand, print, environmental",
     "image": "blue-butterfly-mugs.jpg",
     "imageAlt": "Branded Blue Butterfly coffee mugs, upside down on the counter",
-    "link": { "type": "project", "uid": "blue-butterfly" },
+    "link": {
+      "type": "project",
+      "uid": "blue-butterfly"
+    },
     "hasTextureBleed": true
   },
   "about": {
@@ -209,27 +225,35 @@
       {
         "q": "We need more customers, not a new logo. How does branding actually help?",
         "a": [
-          "A logo by itself won't do much. What brings in the right customers is removing every reason they have to hesitate: a site that looks ten years old, signage that doesn't match the storefront, a pitch that changes depending on who's telling it. Fix those and the people who were already interested stop drifting to a competitor who simply looked more put-together.",
+          "A logo by itself won't do much. What brings in the right customers is removing every reason they have to hesitate. A site that looks ten years old. Signage that doesn't match the storefront. A pitch that changes depending on who's telling it. Fix those, and the people who were already interested stop drifting to a competitor who simply looked more put-together.",
           "That's what the Diagnosis is for. We find the specific places trust leaks out, in priority order, so the money goes where it moves the needle."
         ]
       },
       {
         "q": "How does pricing work?",
         "a": [
-          "Every phase is scoped and priced before it starts, so there's no meter running. A full rebrand through all three phases is a five-figure investment. The Diagnosis on its own is a much smaller first step, and it tells you exactly what the Rebuild and Rollout would involve for your business."
+          "Every phase is scoped and priced before it starts, so there's no meter running. The Diagnosis is a fixed $1,500 and seven days, and you can stop there and keep the plan.",
+          "The Rebuild and the Rollout are scoped during the Diagnosis, because the number depends on how much of the business the brand touches. Full engagements have landed anywhere from around $20,000 to well into six figures."
+        ]
+      },
+      {
+        "q": "What's the timeline, and how much of my time does it take?",
+        "a": [
+          "The Friction Audit runs 7 days and needs about three hours of yours: a questionnaire, a kickoff interview, and the meeting where we walk you through what we found.",
+          "The Rebuild takes 30 days and the Rollout 60, so about 90 days from the start of the Rebuild to a brand that's live everywhere. Your time is a handful of review sessions. We handle everything in between, because you're running a business, not a project."
         ]
       },
       {
         "q": "We're a small, local business. Are we too small for you?",
         "a": [
-          "No. Some of the work we're proudest of is for a neighborhood coffee shop, a veterinary hospital, and a hand-wash and detail shop. What matters is that you're serious about the brand carrying the business, not the size of the team behind it.",
-          "The same process we run for national companies scales down cleanly. The phases stay the same; the deliverables get scoped to what you'll actually use."
+          "No. Some of the work we're proudest of is for a neighborhood coffee shop, a veterinary hospital, and a hand-wash and detail shop here in Boise. What matters is that you're serious about the brand carrying the business, not the size of the team behind it.",
+          "The same process we run for national companies scales down cleanly. The phases stay the same; the deliverables get scoped to what you'll actually use. What doesn't scale down is the commitment. The brand has to be a real line in this year's budget, not what's left over, and if it isn't yet, the honest answer is to wait. We'll say so."
         ]
       },
       {
         "q": "Do you only work with healthcare and tech companies?",
         "a": [
-          "No. Over 20 years we've worked across real estate, hospitality, coffee shops, schools, nonprofits, professional services, consumer products and government. Healthcare and technology are where a lot of our recent work sits, but the framework is about how customers decide to trust you, and that doesn't change by industry."
+          "No. Over 20 years we've worked across real estate, hospitality, coffee shops, schools, nonprofits, professional services, consumer products and government. Healthcare and technology are where a lot of our recent work sits. The framework is about how customers decide to trust you, and that doesn't change by industry."
         ]
       },
       {
@@ -241,13 +265,13 @@
       {
         "q": "Will a rebrand confuse the customers we already have?",
         "a": [
-          "Not if it's done in the right order. The Diagnosis tells us which parts of the brand are carrying equity and which are holding you back, so the Rebuild keeps what people recognize and fixes what they don't notice until it's gone. The Rollout then changes everything at once, so there's never a months-long stretch where the old brand and the new one fight each other."
+          "Not if it's done in the right order. The Diagnosis tells us which parts of the brand are carrying equity and which are holding you back. The Rebuild keeps what people recognize and fixes what they don't notice until it's gone. The Rollout then changes everything at once, so there's never a months-long stretch where the old brand and the new one fight each other."
         ]
       },
       {
-        "q": "Why not use a local freelancer, or do it in-house?",
+        "q": "Why not use a freelancer, or do it in-house?",
         "a": [
-          "A freelancer can give you a good logo. What's hard to get piecemeal is one system, strategy through identity, website, signage and print, that all says the same thing, built by people who have done it hundreds of times and will still be here next year. That's what you're paying for.",
+          "A freelancer can give you a good logo, and plenty of them are excellent at it. What's hard to get piecemeal is one system, where strategy, identity, website, signage and print all say the same thing. That's what you're paying us for.",
           "If you have a strong in-house designer, great. We'll build the system and the guidelines so they can run it."
         ]
       },
@@ -260,7 +284,7 @@
     ]
   },
   "cta": {
-    "heading": "Ready for your business to go from overlooked to unmistakable, right here in Boise?",
+    "heading": "Ready for your customers to trust you on sight?",
     "buttonLabel": "Talk with a founder",
     "buttonUrl": "/contact#inquire",
     "background": "paper-red"
