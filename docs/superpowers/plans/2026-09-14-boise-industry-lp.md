@@ -162,7 +162,7 @@ console.log(`\n${d.title} → ${config.repositoryName}`);
 
 - [ ] **Step 4: Update the usage comments in the four medtech helpers**
 
-In each of `scripts/industry/medtech/export-assets.mjs`, `fetch-dropbox-assets.mjs`, `normalize-logos.mjs`, `stage-hr-rollovers.mjs`, replace every occurrence of the string `scripts/medtech/` with `scripts/industry/medtech/`. They compute their asset path relative to their own file, so only comments change:
+In each of `scripts/industry/medtech/export-assets.mjs`, `fetch-dropbox-assets.mjs`, `normalize-logos.mjs`, `stage-hr-rollovers.mjs`, replace every occurrence of the string `scripts/medtech/` with `scripts/industry/medtech/`. They compute their asset path relative to their own file, so the string replacement only touches comments:
 
 ```bash
 cd /Users/tuckerlemos/Documents/GitHub/reddoor-website/.worktrees/boise-lp || exit 1
@@ -173,6 +173,15 @@ grep -rn 'scripts/medtech' scripts/ && echo "STALE PATHS REMAIN" || echo "script
 ```
 
 Expected: `scripts clean`.
+
+**Correction (found in review, 2026-09-14):** the string grep is necessary but not sufficient for a directory move. The helpers moved one level _deeper_ (`scripts/medtech/` → `scripts/industry/medtech/`), and `fetch-dropbox-assets.mjs` resolves the fleet credentials by depth: `path.resolve(HERE, "../../../reddoor-maintenance/.env")` and `path.resolve(HERE, "../../.env.local")`. Both must gain one more `../`, and both reads are `.catch(() => "")`, so the break was silent. The gate that catches this class is resolving every `../..` path in the moved files and checking it exists:
+
+```bash
+grep -n '\.\./\.\.' scripts/industry/medtech/*.mjs
+node -e 'const p=require("path"),fs=require("fs");const h=process.cwd()+"/scripts/industry/medtech";for(const r of["../../../../reddoor-maintenance/.env","../../../.env.local"])console.log(p.resolve(h,r),fs.existsSync(p.resolve(h,r)))'
+```
+
+Expected: only the two `fetch-dropbox-assets.mjs` lines. The depths are right for the **main checkout** (`reddoor-website/scripts/industry/medtech/` → `GitHub/reddoor-maintenance/.env` and `reddoor-website/.env.local`), which is where the credential-bearing helpers run. Run from inside a worktree the same paths land under `.worktrees/` and print `false`, because a worktree sits two directories deeper; that is not a defect in the paths, it is why the runbook says to run these helpers from the main checkout.
 
 - [ ] **Step 5: Update the two LogoGrid comments and `.gitignore`**
 
