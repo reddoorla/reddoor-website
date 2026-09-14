@@ -138,10 +138,19 @@ does this for `/inquiry` (the chase-link landing pad), a static route beats the
 so the smoke suite can assert the behaviour. The cost is a function call per
 hit, which at event volume is nothing.
 
-The `utm_*` values ride to the CRM through the existing modal, which posts the
-landing `location.href` as `sourceUrl`; the server-side sync writes
-`utm_source/medium/campaign/content` from it (`attributionFields` and the
-utm parse in `src/lib/ghl/client.ts`). No CRM change.
+The `utm_*` values ride along through the existing modal, which posts the
+landing `location.href` as `sourceUrl`. **Correction (Task 2 review,
+2026-09-14):** they do not become CRM custom fields. The four `utm_*` fields
+were dropped from `attributionFields` on 2026-08-18 because GHL's attribution
+pipeline blanks them on API-created contacts; the sync writes only
+`lead_source` and `funnel` (= the page uid, `boise`, for a BEW lead and an
+organic Boise lead alike). The utm values are recorded in two places: central
+ingest (the source of record, queryable) and the contact's attribution NOTE
+(`attributionLines` in `src/lib/ghl/client.ts`, matched by the `utm_` prefix).
+So a salesperson reading the contact sees "bew"; a smart list or workflow
+trigger cannot filter on it. If Tim needs that, the cheap addition is a tag on
+first touch when `utm_source=bew` (ordinary tags persist), which is a
+decision for Tucker, not part of this design. No CRM change either way.
 
 ### 4.4 The content pipeline: `scripts/industry/`
 
