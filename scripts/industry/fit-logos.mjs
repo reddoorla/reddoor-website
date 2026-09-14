@@ -117,6 +117,15 @@ async function checkInk(name, fill) {
     console.log(`✗ ${name} ink exceeds the fill cap`);
     ok = false;
   }
+  // The other direction: the binding dimension must actually reach its cap.
+  // Otherwise a FILL_OVERRIDES entry that was never applied (check run before
+  // a re-fit) reads green while the asset is unchanged. Floor measured on the
+  // Boise set: the tightest real mark reaches 0.9938.
+  const reach = Math.max(info.width / (fill.w * CANVAS.w), info.height / (fill.h * CANVAS.h));
+  if (reach < 0.98) {
+    console.log(`✗ ${name} ink fills only ${(reach * 100).toFixed(0)}% of its cap`);
+    ok = false;
+  }
   return ok;
 }
 
@@ -141,7 +150,7 @@ try {
           console.log(`✗ ${name} is ${meta.width}x${meta.height}`);
         }
       }
-      if (!(await checkInk(file, fill))) unfitted++;
+      for (const name of pair) if (!(await checkInk(name, fill))) unfitted++;
       continue;
     }
 
