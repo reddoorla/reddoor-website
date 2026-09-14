@@ -72,6 +72,15 @@ test("an explicit funnel is honoured when it names a live industry", async ({ re
   expect(to.pathname).toBe("/medtech");
 });
 
+test("a second industry routes on its own funnel, not medtech's", async ({ request }) => {
+  // The A-102-1 chase message must send `&funnel={{contact.funnel}}` for this
+  // to matter in production; without it every abandoned lead, Boise included,
+  // is chased back to /medtech. This is the code half of that fix.
+  const to = await locationOf(request, `/inquiry?${LEAD}&funnel=boise`);
+  expect(to.pathname).toBe("/boise");
+  expect(to.searchParams.get("email")).toBe("pat@example.com");
+});
+
 test("an unknown funnel falls back instead of redirecting anywhere it names", async ({
   request,
 }) => {
