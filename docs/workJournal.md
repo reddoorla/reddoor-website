@@ -472,3 +472,82 @@ ProseMirror transaction against the `Editor` instance TipTap leaves on the
 editor element changes the document. `/inquiry` honoured the param already,
 so nothing deployed; `{{contact.funnel}}` is the field key the site writes and
 has not been verified by a rendered email.
+
+## 2026-09-15 — The report carries its own contents in the rail (`feat/report-toc`)
+
+The audit report's only wayfinding was one sentence in the hero ("jump to
+what to fix") and the scrollbar, on a document of five bands and up to a dozen
+blocks. It now has a sticky "In this report" list in the left rail from `lg`
+up and a plain list under the hero below, every entry an anchor, the current
+section marked. Spec and plan under `docs/superpowers/*/2026-09-15-report-
+table-of-contents*`.
+
+Why the rail became the map rather than a new column: the 240px rail in every
+`RailRow` was already taken by the red sub-section labels ("Your scores",
+"Does it work"), but below `lg` those labels already stack above their
+blocks. Rendering them above at every width (`labelAbove` on `RailRow`)
+changes nothing a phone reader sees and empties the column at `lg`+. The
+entries come from one pure function, `tocEntries(fixes)` in `narrative.ts`,
+fed by the same count that decides whether "What to fix" renders, and the
+ids live in a `TOC_TARGETS` table so a rename fails a unit test instead of a
+jump. Why an overlaid column rather than one document grid: the sections
+alternate full-bleed white and paper bands, and a single grid would be a
+rewrite. Instead a `relative` wrapper around the four post-hero sections
+holds one absolutely positioned column that copies `ContentWidth`'s geometry
+(`left-[4%] w-[92%] max-w-[1220px]`, at `xl` `inset-x-0 mx-auto
+max-w-[1440px]`) whose sticky child is the nav; the wrapper closes before the
+red band so the list never sits on it, and below `lg` the same element is
+simply a block under the hero — one nav, never duplicated. The current
+section is one `IntersectionObserver` over the five targets with
+`rootMargin: "-96px 0px -60% 0px"` (96 is `top-24`, the fixed header's
+clearance, the same number as the anchors' `scroll-mt-24`): a section is
+current while any of it overlaps that band, and at a seam the lower one wins,
+so the entry flips as a heading passes under the header rather than when a
+section first shows at the bottom of the screen.
+
+Three beliefs corrected on contact, in the order they surfaced. First, the
+spec and plan both said `/dev/audit-report` — the all-pass fixture — renders
+no "What to fix" and therefore a four-entry list, and the smoke test was
+written to prove the omission on the real page. The fixture's analyze stage
+carries two `recommendation` fixes ("Add a short case study for each of the
+three service lines", "Publish the answers to the ten buyer questions as a
+single FAQ page"), so the page renders "2 things to fix, in order" and all
+five entries; "all pass" means every check passes. The omission is asserted
+by the unit test on `tocEntries([])`, and the fixture is pinned there at two
+fixes and five entries. Second, each section's `h2` and red rule sat in a
+full-width `ContentWidth` outside the `RailRow` grid, which neither document
+mentioned. Measured at 1280×800: the list's resting top (`lg:pt-24`) was
+677.4px, the first h2's top was 677.4px, and the h2 ran x=51.2 to 1228.8 —
+straight through the rail. `elementFromPoint` at the first entry's centre
+returned the h2, a later sibling that painted over the link and took its
+click; stuck at y=96, every heading passed through the list. The three
+headings are now label-less `RailRow`s, so the h2 sits in the content column
+(x=311.2, 917.6 wide), the rule spans that column instead of the full width,
+and the list rests level with the first heading without touching it; stuck,
+"What you control" passes 20px to the right of the list's edge (nav right
+291.2, h2 left 311.2). Third, and the one a first-entry-only probe would have
+missed: after the move the hit-test returned the header row's empty rail
+cell (`div.contents.lg:block`). Every `RailRow` wraps itself in a `relative`
+`ContentWidth`, a later sibling with no z-index, so its transparent cell sat
+over the list wherever a row was behind it — the plan's design had this
+from the start, hidden behind the h2. `lg:z-10` on the nav (under the site
+header's `z-20` and the report's fixed buttons' `z-30`) and all five entries
+hit-test on their own link; Playwright's click in the "jumps" smoke test
+would otherwise have failed on pointer interception.
+
+Smaller things the plan met on the way: `report-copy.test.ts` string-matches
+the sources for `id="fixes"` and `id="passes"`, so three assertions now read
+the `{TOC_TARGETS.*}` form; `svelte/prefer-svelte-reactivity` rejects a plain
+`Set` inside a component, so the observer's bookkeeping is an array; the
+plan's `toReportView(ALL_PASS_REPORT, null)` does not type (`overrides:
+OverrideMap = {}`); and the spec and plan themselves failed prettier on HEAD
+(107 and 14 whitespace lines), so `pnpm lint` was red on the branch before
+any code — formatted in the docs commit. `font-normal` does beat
+`.type-kicker`'s 700 on the links (computed 400).
+
+Counts: 569 unit tests in 51 files; `report-toc.spec.ts` (5) plus
+`industry-page.spec.ts` (20, RailRow's other consumer) passed in 1.1 min at
+load 21.9 falling to 17.1. The full smoke suite was not run — the machine sat
+at load 26 when the session started, against the plan's threshold of 10. The
+hard-case sample on `/dev/audit-report` and edit mode on staging are still
+to be checked by hand before the PR leaves draft.
