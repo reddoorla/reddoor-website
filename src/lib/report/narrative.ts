@@ -585,16 +585,21 @@ export type TocEntry = {
 };
 
 /**
- * The table of contents: the five sections in page order, minus any the
- * report does not render for this view. Labels are the section titles without
- * their dynamic parts — "3 things to fix, in order" lists as "What to fix".
+ * The table of contents: the sections in page order, minus any the report
+ * does not render for this view. Labels are the section titles without their
+ * dynamic parts — "3 things to fix, in order" lists as "What to fix".
+ *
+ * The appendix (`passes`) is deliberately not listed. It is two closed
+ * disclosures, less than a screen, and as an entry it was current for a
+ * moment between "What to fix" and the closing band and then gone — a line in
+ * the list that the eye skipped. It keeps its id: three in-page links land
+ * there.
  */
 export function tocEntries(fixes: Fix[]): TocEntry[] {
   return [
     { id: TOC_TARGETS.aiSays, label: "What an AI says about you" },
     { id: TOC_TARGETS.control, label: "What you control" },
     ...(fixes.length ? [{ id: TOC_TARGETS.fixes, label: "What to fix" }] : []),
-    { id: TOC_TARGETS.passes, label: "What passes, and how we measured" },
     { id: TOC_TARGETS.talk, label: "Talk it through" },
   ];
 }

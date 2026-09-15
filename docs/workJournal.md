@@ -553,3 +553,12 @@ load 21.9 falling to 17.1. The full smoke suite was not run — the machine sat
 at load 26 when the session started, against the plan's threshold of 10. The
 hard-case sample on `/dev/audit-report` and edit mode on staging are still
 to be checked by hand before the PR leaves draft.
+
+Tucker's review of the built list, same day: the arrow went, so the current
+entry is marked by colour alone, and the appendix left the list. As an entry
+it was current only for the moment between "What to fix" leaving the
+observer's band and the closing band arriving on screen — the appendix is two
+closed disclosures and shorter than a viewport — and a line highlighted for
+one scroll-tick and then not read as a line to skip. Its anchor stays,
+because three in-page links land on it. Four entries at most now, three
+without fixes.

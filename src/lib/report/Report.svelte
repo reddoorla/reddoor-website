@@ -247,15 +247,12 @@
               <a
                 href="#{entry.id}"
                 aria-current={current === entry.id ? "location" : undefined}
-                class="type-kicker inline-flex items-start gap-2 font-normal no-underline transition-colors hover:underline focus-visible:underline {current ===
+                class="type-kicker font-normal no-underline transition-colors hover:underline focus-visible:underline {current ===
                 entry.id
                   ? 'text-primary'
                   : 'text-muted'}"
               >
-                <span aria-hidden="true" class="w-3 shrink-0"
-                  >{current === entry.id ? "→" : ""}</span
-                >
-                <span>{entry.label}</span>
+                {entry.label}
               </a>
             </li>
           {/each}

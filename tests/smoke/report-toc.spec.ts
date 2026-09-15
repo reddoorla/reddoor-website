@@ -3,7 +3,7 @@ import { AxeBuilder } from "@axe-core/playwright";
 
 // The contents list, against the all-pass fixture. Every check in that fixture
 // passes, but its analyze stage carries two recommendations, so the page
-// renders "2 things to fix, in order" and the list has all five entries. The
+// renders "2 things to fix, in order" and the list has all four entries. The
 // omission of "What to fix" on a report with no fixes is covered by the unit
 // test on `tocEntries([])`, not here.
 //
@@ -51,7 +51,6 @@ test.describe("report table of contents", () => {
       "What an AI says about you",
       "What you control",
       "What to fix",
-      "What passes, and how we measured",
       "Talk it through",
     ]);
     const hrefs = await links.evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
@@ -93,18 +92,20 @@ test.describe("report table of contents", () => {
     const control = page.locator(`${NAV} a[href="#control"]`);
     const aiSays = page.locator(`${NAV} a[href="#ai-says"]`);
     await expect(control).toHaveAttribute("aria-current", "location");
+    // Colour is the whole treatment: no mark, so the text is the label alone.
+    await expect(control).toHaveText("What you control");
     await expect(aiSays).not.toHaveAttribute("aria-current", /.*/);
   });
 
   test("an entry jumps to its section and offers the way back", async ({ page }) => {
     await ready(page, 1280, 800);
     await pastScrollReset(page);
-    await page.locator(`${NAV} a[href="#passes"]`).click();
+    await page.locator(`${NAV} a[href="#fixes"]`).click();
     // Lands ON the nav line, not merely above it.
     await expect
       .poll(() =>
         page.evaluate(
-          (line) => Math.abs(document.querySelector("#passes")!.getBoundingClientRect().top - line),
+          (line) => Math.abs(document.querySelector("#fixes")!.getBoundingClientRect().top - line),
           NAV_LINE,
         ),
       )

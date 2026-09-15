@@ -187,3 +187,18 @@ carried by `report-copy.test.ts`, which reads the component source for
 `id={TOC_TARGETS.<key>}` for every key of the table, plus the smoke test's
 live-target loop over the rendered hrefs; a unit test cannot see the rendered
 ids any other way.
+
+## Amendment 2, 2026-09-15 (review of the built list)
+
+Two changes from Tucker's review. The current entry is marked by colour
+alone, `text-primary` against `text-muted`, plus `aria-current="location"`;
+the leading arrow is gone, so the link is the label and nothing else. And the
+appendix is no longer an entry. "What passes, and how we measured" is two
+closed disclosures, under a screen tall, and as an entry it was current only
+for the moment between "What to fix" leaving the observer's band and the
+closing band arriving on screen: a line the eye skipped. The list has four
+entries at most, three on a report with no fixes. `#passes` stays on the
+appendix's `section` because three in-page links ("They are listed under what
+passes") land there, and `TOC_TARGETS` keeps the key for that reason. The
+entries table and the "clicking What passes" step under Testing read as they
+were designed; the jump test now clicks "What to fix".
