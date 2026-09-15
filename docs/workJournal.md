@@ -164,3 +164,37 @@ token into a session transcript. The key was rotated within minutes and the
 rotation verified by fingerprint on both sites. The lesson is narrow and cheap:
 a probe that handles credentials should redact at the point of printing, not
 rely on the author remembering which header happens to contain one.
+
+## 2026-09-14 — The CMS could not frame the slice simulator (#184, `fix/slice-simulator-framing`)
+
+Tucker's screenshot showed the Prismic Page Builder with a red "Error" where
+every slice's preview should be, in the Boise document and the medtech one
+alike, and he had Slice Machine running. First hypothesis, abandoned within
+minutes: the slice screenshots. Every local slice model has an empty
+`imageUrl`, so the pushed models all point at Slice Machine's shared
+placeholder image, and a dead placeholder would explain a repository-wide
+failure. It resolves fine, and the one slice with a real screenshot
+(`rich_text`) resolves too. The thumbnails were never the mechanism.
+
+The mechanism is framing. Slice Machine at `localhost:9999` and the Page
+Builder at `prismic.io` both load `/slice-simulator` in an iframe, and a dev
+server answered that route with `X-Frame-Options: SAMEORIGIN` and
+`frame-ancestors 'self'`, which refuse any cross-origin frame. Those headers
+reached dev responses in `97b5d15` on 2026-08-19, when `hooks.server.ts`
+started applying the site policy to everything the server renders. The
+comment in `netlify.toml` said the simulator framed only the local dev server
+"so neither is affected", which was true while dev responses carried no
+headers and became false that day. The belief survived four weeks because
+nobody opened the Page Builder with Slice Machine running until tonight.
+
+The fix is one exemption, not a weaker policy: `/slice-simulator` is the
+single entry in `CMS_FRAMED_ROUTES`, gets no `X-Frame-Options` (the header has
+no multi-origin form) and a `frame-ancestors` that names localhost and
+prismic.io, and is `prerender = false` so the hook rather than the static
+`[[headers]]` block decides its headers on every host. Netlify cannot exempt
+one path from a `/*` block without sending two policies, both of which apply.
+The page renders nothing but the slices it is handed, so there is nothing on
+it to clickjack. Two unit cases pin the exemption to that one path and
+same-origin everywhere else, and the header smoke spec now fetches the route.
+Prismic's documentation pages for the simulator returned 404 at the two URLs
+tried, so the framing origins come from observation, not a spec.

@@ -94,3 +94,40 @@ describe("applySecurityHeaders", () => {
     expect(applySecurityHeaders(r).headers.get("cache-control")).toBe("no-store");
   });
 });
+
+describe("the slice simulator is frameable by the CMS", () => {
+  // Slice Machine (localhost:9999) and the Prismic Page Builder (prismic.io)
+  // both load /slice-simulator in an iframe from another origin. SAMEORIGIN
+  // plus `frame-ancestors 'self'` made every slice preview read "Error" the
+  // day hooks.server.ts started applying the policy to dev responses.
+  const html = () => new Response("<p>hi</p>", { headers: { "content-type": "text/html" } });
+
+  it("drops X-Frame-Options and widens frame-ancestors on /slice-simulator only", () => {
+    const r = applySecurityHeaders(html(), "/slice-simulator");
+    expect(r.headers.get("x-frame-options")).toBeNull();
+    const csp = r.headers.get("content-security-policy") ?? "";
+    expect(csp).toContain(
+      "frame-ancestors 'self' http://localhost:* https://*.prismic.io https://prismic.io",
+    );
+    // Only that directive changes; the rest of the policy is the site's.
+    expect(csp.replace(/frame-ancestors[^;]*/, "frame-ancestors 'self'")).toBe(
+      CONTENT_SECURITY_POLICY,
+    );
+    expect(r.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("keeps every other path locked to same-origin framing", () => {
+    for (const pathname of [
+      "/",
+      "/contact",
+      "/slice-simulator/extra",
+      "/preview/slice-simulator",
+    ]) {
+      const r = applySecurityHeaders(html(), pathname);
+      expect(r.headers.get("x-frame-options"), pathname).toBe("SAMEORIGIN");
+      expect(r.headers.get("content-security-policy"), pathname).toContain(
+        "frame-ancestors 'self';",
+      );
+    }
+  });
+});
