@@ -14,7 +14,7 @@
 
 - **Work in the worktree** `/Users/tuckerlemos/Documents/GitHub/reddoor-website/.worktrees/boise-lp` on branch `feat/boise-industry-lp`. Never `cd` to the main checkout to run commands; read from it only where a step names an absolute path there.
 - **Secrets live only in the main checkout.** Any command that needs `PRISMIC_WRITE_TOKEN` uses `--env-file=/Users/tuckerlemos/Documents/GitHub/reddoor-website/.env.local`. Dry runs need no token.
-- **Gitignored assets live only in the main checkout** at `/Users/tuckerlemos/Documents/GitHub/reddoor-website/scripts/medtech/assets/` (~11 MB, 73 files). Task 1 copies them into the worktree so the medtech dry run can prove the move broke nothing.
+- **Gitignored assets live only in the main checkout** at `/Users/tuckerlemos/Documents/GitHub/reddoor-website/scripts/medtech/assets/` (~11 MB, 73 files as first counted; 34 MB across 47 real files once 24 stale `.tmp` files were excluded). Task 1 copies them into the worktree so the medtech dry run can prove the move broke nothing.
 - **Verify, then commit.** Chain gates with `|| exit 1`, never `set -e`, and never commit in the same command as an unverified edit. `pnpm lint` and `pnpm check` are the gates besides the tests.
 - **Baseline as of 2026-09-14:** `pnpm vitest run` → 46 files, 532 tests, all passing. `pnpm svelte-kit sync` has been run in the worktree.
 - The Playwright suite starts its own dev server. If a run hangs or flakes, kill anything on `:5173`/`:9999` first and let it start fresh.
@@ -192,12 +192,12 @@ In `.gitignore`, replace the block from `# Figma-exported staging assets` throug
 ```gitignore
 # Staging assets for the one-shot industry content migrations — regenerate with
 # each city's own fetch/export script (scripts/industry/<uid>/) rather than
-# committing ~11MB per page.
+# committing ~34 MB per page (medtech's 47 files, measured 2026-09-14).
 # `/*` and not `/`: git cannot re-include a file whose parent DIRECTORY is
 # excluded, so ignoring the contents is what makes the exceptions below work.
 scripts/industry/*/assets/*
 
-# …except these medtech hover knockouts (56KB total). Every other medtech asset
+# …except these medtech hover knockouts (42 KB total). Every other medtech asset
 # is reproducible — export-assets.mjs re-renders the Figma frames and
 # fetch-dropbox-assets.mjs re-pulls the photography — but these are not: a Figma
 # node render flattens them onto the Logo Library's #404040 board and loses the
@@ -1270,6 +1270,11 @@ Nothing is published in this task.
 ---
 
 ### Task 6: Cover `/boise` in the smoke suites
+
+> **Superseded in part by the Task 6 review (commit `06d01b0`) and the final
+> review (`1f0451a`).** The pinned constant is `PINNED_PATH`, not `PATH`;
+> `og.spec.ts` gained the `/boise` card row and an industry-card fetch loop;
+> the redirect test's comment names the allowlist.
 
 **Files:**
 

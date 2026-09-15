@@ -26,7 +26,7 @@ coverage/
 
 # Staging assets for the one-shot industry content migrations — regenerate with
 # each city's own fetch/export script (scripts/industry/<uid>/) rather than
-# committing ~39 MB per page (medtech's, measured).
+# committing ~34 MB per page (medtech's 47 files, measured 2026-09-14).
 # `/*` and not `/`: git cannot re-include a file whose parent DIRECTORY is
 # excluded, so ignoring the contents is what makes the exceptions below work.
 scripts/industry/*/assets/*

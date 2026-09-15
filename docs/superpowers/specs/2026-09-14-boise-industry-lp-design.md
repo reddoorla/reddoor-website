@@ -151,7 +151,9 @@ So a salesperson reading the contact sees "bew"; a smart list or workflow
 trigger cannot filter on it. If Tim needs that, the cheap addition is a tag on
 first touch when `utm_source=bew` (ordinary tags persist). **Decided
 2026-09-14 (Tucker): add the tag.** It is plan Task 8: `TAG_EVENT_BEW = "bew"`,
-applied on both touches from the landing URL's `utm_source`, so a smart list
+applied on both touches when the landing URL's `utm_source` or `utm_campaign`
+matches `BEW_UTM` (the redirect lets collateral override the source, so the
+campaign is the cohort key), so a smart list
 on `tag = bew` selects the cohort. No CRM schema change; tags are created on
 first use.
 
@@ -161,6 +163,7 @@ first use.
 scripts/industry/
   README.md                 # the "next city page" runbook (replaces scripts/medtech/README.md)
   migrate.mjs               # shared; --industry <uid> [--dry-run]
+  lib.mjs                   # shared; the --industry and uid guards, with lib.test.mjs
   fit-logos.mjs             # shared; pads a logo pair to the grid box, --check verifies
   shared/icon-*.svg         # the three framework icons, tracked
   medtech/
@@ -173,6 +176,7 @@ scripts/industry/
   boise/
     data.json
     fetch-assets.mjs        # stages logos from logo_soup, images from the project docs
+    assets-manifest.json    # what fetch-assets staged (tracked)
     assets/                 # gitignored
 ```
 
@@ -182,7 +186,9 @@ scripts/industry/
   Everything else in the script stays as it is: field-level validation against
   the local models before any network call, asset upload, create-or-update by
   uid, never auto-publish.
-- `--dry-run` remains the gate: it must print zero diffs before the real run.
+- `--dry-run` remains the gate: it must validate every field against the local
+  models and list every slice before the real run. It prints no diff; it
+  prints the slice list, the model result and the content gaps.
 - The medtech one-off helpers move with their data and are not generalised;
   Boise has no Figma board and its assets arrive as files. If a later city has
   a board, `export-assets.mjs` is the template to copy.
@@ -191,8 +197,9 @@ scripts/industry/
   `--custom-type`, handles custom types), and nothing references the old one.
 - `.gitignore`: the `scripts/medtech/assets/*` rule and its three
   `!scripts/medtech/assets/logo-*-rev.png` exceptions move to the
-  `scripts/industry/medtech/assets/` path, and a `scripts/industry/boise/assets/*`
-  rule is added. The comment above them, which names
+  `scripts/industry/medtech/assets/` path, generalised to one
+  `scripts/industry/*/assets/*` rule, so a new city needs no `.gitignore` edit.
+  The comment above them, which names
   `scripts/medtech/export-assets.mjs`, is updated to the new path.
 - Two small shared helpers were added rather than generalising medtech's:
   `scripts/industry/fit-logos.mjs` (board-less logo padding to the grid box)
@@ -224,14 +231,18 @@ Nothing ships in the repo.
 
 ## 5. Tests
 
-| Test                                     | Change                                                                                                                                                                                                                                      |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/bew.test.ts`                    | new: defaults, utm override, foreign params dropped, no path injection                                                                                                                                                                      |
-| `tests/smoke/bew-redirect.spec.ts`       | new: `/bew` → 302 → `/boise` with the three utm values; `utm_content` survives; a `next=` param does not                                                                                                                                    |
-| `tests/smoke/pages.spec.ts`              | `ROUTES` gains `/boise`                                                                                                                                                                                                                     |
-| `tests/smoke/industry-page.spec.ts`      | the document-agnostic tests (axe at both viewports, single h1 / no heading jumps, ends on its own CTA, no untouched auto-crop, all twelve slices in order) run over `["/medtech", "/boise"]`; the framework-numeral tests stay medtech-only |
-| `tests/smoke/inquiry-redirect.spec.ts`   | new case for `funnel=boise`                                                                                                                                                                                                                 |
-| `scripts/industry/migrate.mjs --dry-run` | must report zero diffs for both `medtech` and `boise` before either real run                                                                                                                                                                |
+| Test                                     | Change                                                                                                                                                                                                                                                          |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/bew.test.ts`                    | new: defaults, utm override, foreign params dropped, no path injection                                                                                                                                                                                          |
+| `tests/smoke/bew-redirect.spec.ts`       | new: `/bew` → 302 → `/boise` with the three utm values; `utm_content` survives; a `next=` param does not                                                                                                                                                        |
+| `tests/smoke/pages.spec.ts`              | `ROUTES` gains `/boise`                                                                                                                                                                                                                                         |
+| `tests/smoke/industry-page.spec.ts`      | the document-agnostic tests (axe at both viewports, single h1 / no heading jumps, ends on its own CTA, no untouched auto-crop, all twelve slices in order) run over `["/medtech", "/boise"]`; the numeral-geometry and ARIA checks pin one page (`PINNED_PATH`) |
+| `tests/smoke/inquiry-redirect.spec.ts`   | new case for `funnel=boise`                                                                                                                                                                                                                                     |
+| `scripts/industry/migrate.mjs --dry-run` | must report models OK and every slice for both `medtech` and `boise` before either real run                                                                                                                                                                     |
+| `tests/smoke/og.spec.ts`                 | `/boise` advertises `/og/industry/boise.png`; each industry card is fetched and must be a PNG                                                                                                                                                                   |
+| `src/lib/ghl/events.test.ts`             | new: `utm_source` or `utm_campaign` match, case-insensitive, prefix negatives, malformed URL                                                                                                                                                                    |
+| `src/lib/ghl/client.test.ts`             | +3: started + bew, completed + bew, opted-out + bew keep their order                                                                                                                                                                                            |
+| `scripts/industry/lib.test.mjs`          | new: the `--industry` allowlist, uid-equals-folder, required keys named                                                                                                                                                                                         |
 
 The smoke tests that hit `/boise` read live Prismic content, so they are red
 until the document is **published**. That is a sequencing fact, not a flake,
@@ -289,7 +300,9 @@ and §8 orders the launch around it.
 
 ## 9. What San Antonio costs after this
 
-A `scripts/industry/san-antonio/` folder with `data.json` and assets, one
-`migrate.mjs --industry san-antonio` run, `/san-antonio` added to the smoke
-`ROUTES` and the industry-page uid list, and a redirect route only if there is
-an event to tag. No models, no code paths, no CRM work.
+A `scripts/industry/san-antonio/` folder with `data.json`, its own
+`fetch-assets.mjs` (copy Boise's and change the per-city blocks the README
+names) and staged assets, one `migrate.mjs --industry san-antonio` run,
+`/san-antonio` added to `ROUTES`, `PATHS` and the industry-card list in
+`og.spec.ts`, and a redirect route only if there is an event to tag. No
+models, no code paths, no CRM work.

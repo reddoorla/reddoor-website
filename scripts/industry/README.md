@@ -6,23 +6,36 @@ new city or vertical needs **no models pushed and no code**, only content.
 
     scripts/industry/
       migrate.mjs          shared: validates + stages + writes an unpublished draft
-      fit-logos.mjs        shared: pads logo-*.png to the LogoGrid box aspect
-      shared/              studio-wide art every page uses (framework icons)
+      lib.mjs              shared: the --industry and uid guards, tested in lib.test.mjs
+      fit-logos.mjs        shared: pads logo-*.png to the LogoGrid box aspect —
+                           board-less pages only; it refuses a city that has its
+                           own normalize-logos.mjs (medtech's are measured per asset)
+      shared/              studio-wide art every page uses (framework icons; see its README)
       <uid>/data.json      every field of the page (copy, filenames, links)
       <uid>/assets/        images the data file names (gitignored)
+      <uid>/assets-manifest.json  what the fetch script staged (tracked; regenerated, never copied)
       <uid>/*.mjs          that page's own one-off fetch/export helpers
 
 ## Making the next page
 
 1. Copy an existing folder: `cp -R scripts/industry/boise scripts/industry/<uid>`
-   and delete its `assets/`. Set `uid`, `title`, `meta_*` and every copy field in
+   and delete its `assets/`. Delete `assets-manifest.json` too (the fetch script
+   rewrites it) and blank `_source` and `_copyEdits`, which are the copied
+   city's provenance. Set `uid`, `title`, `meta_*` and every copy field in
    `data.json`. Record where copy came from in `_source`, deviations in
    `_copyEdits`, and anything missing in `_contentGaps` — the loader prints the
    gaps on every run so they cannot be forgotten.
 2. Stage assets into `<uid>/assets/` with a fetch script modelled on
    `boise/fetch-assets.mjs` (from Prismic and the project docs) or
-   `medtech/export-assets.mjs` (from a Figma board). Then
-   `node scripts/industry/fit-logos.mjs --industry <uid>`.
+   `medtech/export-assets.mjs` (from a Figma board). Everything that is
+   Boise-specific in `fetch-assets.mjs` sits in named blocks: the `WANT` list
+   of logo brands, the `MOBILE_CROP` overrides, the two `stageFromProject`
+   calls (project uids and Prismic image ids), the hero placeholder text, and
+   the testimonial headshot borrowed from `medtech/assets/` (it throws if that
+   folder is empty). Then
+   `node scripts/industry/fit-logos.mjs --industry <uid>` followed by
+   `node scripts/industry/fit-logos.mjs --industry <uid> --check`, which fails
+   in both directions (over the cap and under-reaching it).
 3. `node scripts/industry/migrate.mjs --industry <uid> --dry-run` — must report
    zero model mismatches and list every slice. Sends nothing.
 4. `node --env-file=/path/to/.env.local scripts/industry/migrate.mjs --industry <uid>`
@@ -32,8 +45,10 @@ new city or vertical needs **no models pushed and no code**, only content.
 6. Publish. Then confirm a production build ran: the page and its OG card
    (`/og/industry/<uid>.png`) are prerendered, so they exist only after a build
    that saw the published document.
-7. Add `/<uid>` to `ROUTES` in `tests/smoke/pages.spec.ts` and to `PATHS` in
-   `tests/smoke/industry-page.spec.ts`.
+7. Add `/<uid>` to `ROUTES` in `tests/smoke/pages.spec.ts`, to `PATHS` in
+   `tests/smoke/industry-page.spec.ts`, and to the industry-card list in
+   `tests/smoke/og.spec.ts`. All three are red until the document is
+   published.
 
 ## Rules the loader enforces
 
@@ -51,7 +66,8 @@ new city or vertical needs **no models pushed and no code**, only content.
 ## Where the medtech assets are
 
 The medtech staging assets are gitignored, so `git mv` moved only the tracked
-files (the three hover knockouts) — the other ~68 assets did NOT move with
+files (the three hover knockouts) — the other 47 assets (34 MB; earlier
+counts included 24 leftover `.tmp` files the helpers now delete) did NOT move with
 this branch and stay orphaned at `scripts/medtech/assets/` in the main
 checkout after this merges. Once merged, in the main checkout run:
 
