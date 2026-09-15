@@ -572,6 +572,7 @@ export function allFixes(view: ReportView): Fix[] {
  * observer, so a renamed id fails a test rather than a jump.
  */
 export const TOC_TARGETS = {
+  about: "about",
   aiSays: "ai-says",
   control: "control",
   fixes: "fixes",
@@ -585,9 +586,10 @@ export type TocEntry = {
 };
 
 /**
- * The table of contents: the sections in page order, minus any the report
- * does not render for this view. Labels are the section titles without their
- * dynamic parts — "3 things to fix, in order" lists as "What to fix".
+ * The table of contents: the sections in page order, the primer first, minus
+ * any the report does not render for this view. Labels are the section
+ * titles without their dynamic parts — "3 things to fix, in order" lists as
+ * "What to fix".
  *
  * The appendix (`passes`) is deliberately not listed. It is two closed
  * disclosures, less than a screen, and as an entry it was current for a
@@ -597,9 +599,83 @@ export type TocEntry = {
  */
 export function tocEntries(fixes: Fix[]): TocEntry[] {
   return [
+    { id: TOC_TARGETS.about, label: "What this report is" },
     { id: TOC_TARGETS.aiSays, label: "What an AI says about you" },
     { id: TOC_TARGETS.control, label: "What you control" },
     ...(fixes.length ? [{ id: TOC_TARGETS.fixes, label: "What to fix" }] : []),
     { id: TOC_TARGETS.talk, label: "Talk it through" },
   ];
+}
+
+/** "September 3, 2026": the day the audit ran, as the masthead prints it.
+ *  Null when the report carries no date; the callers word around it. */
+export function auditedOn(view: ReportView): string | null {
+  return view.generatedAt
+    ? new Date(view.generatedAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
+}
+
+export type Primer = {
+  /** What the report is: the two routes a buyer takes, and that this is a measurement. */
+  what: string;
+  /** How it was made: the machinery first, the assistant last. */
+  how: string;
+  /** How to read it: receipts, what was not measured, where the passes and fixes sit. */
+  receipts: string;
+};
+
+/**
+ * The primer, "What this report is": three paragraphs before the first
+ * finding, so the results read as the output of an instrument rather than an
+ * assistant's opinion of the site. Composed here rather than in the template
+ * because two of the three paragraphs change with what the audit measured,
+ * and prose composed in code can be asserted exactly.
+ *
+ * Every number is the view's own, and every clause that names a measurement
+ * is gated on the stage that made it. Where a stage did not run the clause is
+ * dropped, not defaulted: a primer that says "we read your robots.txt" over a
+ * report whose checks never ran is the exact overstatement the report exists
+ * to avoid.
+ */
+export function primer(view: ReportView, fixes: Fix[]): Primer {
+  const who = view.businessName ?? "your business";
+  const day = auditedOn(view) ?? "one day";
+  const what =
+    "Someone checking you out before they call now has two routes: a search, or a question " +
+    "to an AI assistant, which answers from whatever it can find. This report is what it " +
+    "finds today and what on your own site shapes that. " +
+    `It is a measurement taken on ${day}, not a promise about rankings or leads.`;
+
+  // Digits, not words: numberWord spells out only one to ten, and the rest of
+  // the report already says "of the 76 checks".
+  const checks = view.siteChecks ? `${view.siteChecks.length} named checks` : "its named checks";
+  const machinery: string[] = [];
+  if (view.accessibility?.measured) machinery.push("ran the accessibility rules");
+  const reach = view.crawlerReach;
+  if (reach?.measured && reach.checked > 0) {
+    machinery.push(`read your robots.txt as ${numberWord(reach.checked)} AI crawlers would`);
+  }
+  if (view.journey) machinery.push("counted the clicks from any page to reaching you");
+  const how =
+    "Most of it is machinery, not an AI's opinion. It fetched every page twice, plain and " +
+    `in a real browser, then ran ${checks} on what came back, from dead links to structured ` +
+    "data to whether a phone can fill in your forms. " +
+    (machinery.length ? `It ${joinList(machinery)}. ` : "") +
+    `Only then did we ask an assistant about ${who}` +
+    (view.categoryProbes.length
+      ? ", check each statement against your own pages, and put a buyer's questions to it " +
+        "live, keeping every source it cited."
+      : " and check each statement against your own pages.");
+
+  const receipts =
+    "Every finding carries its receipt. What we could not measure is marked, not scored " +
+    "against you. What passed sits in one place near the end, " +
+    (fixes.length ? "the fixes are in the order we would do them, " : "") +
+    "and because an assistant's answers move, this is worth taking again.";
+
+  return { what, how, receipts };
 }

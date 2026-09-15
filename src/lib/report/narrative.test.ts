@@ -11,12 +11,14 @@ import {
 import type { AuditReport } from "./fetch";
 import {
   allFixes,
+  auditedOn,
   collisionFix,
   displayQuote,
   headlineFinding,
   healthFixes,
   passes,
   passCount,
+  primer,
   tocEntries,
   TOC_TARGETS,
 } from "./narrative";
@@ -1031,8 +1033,9 @@ describe("tocEntries", () => {
   // placeholder is all the entry needs; the Fix shape is covered elsewhere.
   const oneFix = [{} as unknown as Fix];
 
-  it("lists the four sections in page order when there are fixes", () => {
+  it("lists the five sections in page order when there are fixes, the primer first", () => {
     expect(tocEntries(oneFix)).toEqual([
+      { id: "about", label: "What this report is" },
       { id: "ai-says", label: "What an AI says about you" },
       { id: "control", label: "What you control" },
       { id: "fixes", label: "What to fix" },
@@ -1046,18 +1049,97 @@ describe("tocEntries", () => {
   });
 
   it("omits What to fix when the report renders no fixes", () => {
-    expect(tocEntries([]).map((e) => e.id)).toEqual(["ai-says", "control", "talk"]);
+    expect(tocEntries([]).map((e) => e.id)).toEqual(["about", "ai-says", "control", "talk"]);
     // The all-pass fixture is NOT that case. Every check passes, but its
     // analyze stage carries two recommendations, so the page renders "2 things
-    // to fix" and the list has all four. Wired through allFixes here so a
+    // to fix" and the list has all five. Wired through allFixes here so a
     // fixture change that drops them fails this line rather than a jump.
     const v = view();
     expect(allFixes(v)).toHaveLength(2);
-    expect(tocEntries(allFixes(v))).toHaveLength(4);
+    expect(tocEntries(allFixes(v))).toHaveLength(5);
   });
 
   it("only ever emits ids from TOC_TARGETS", () => {
     const known = new Set<string>(Object.values(TOC_TARGETS));
     for (const e of tocEntries(oneFix)) expect(known.has(e.id)).toBe(true);
+  });
+});
+
+describe("auditedOn", () => {
+  it("prints the day the audit ran, as the masthead does", () => {
+    expect(auditedOn(view())).toBe("September 3, 2026");
+  });
+
+  it("is null when the report carries no date", () => {
+    expect(auditedOn({ ...view(), generatedAt: "" })).toBeNull();
+  });
+});
+
+describe("primer", () => {
+  // Every gated stage absent, and no fixes: the wording each fallback prints.
+  const bare = (): ReportView => ({
+    ...view(),
+    businessName: null,
+    generatedAt: "",
+    siteChecks: null,
+    crawlerReach: null,
+    accessibility: null,
+    journey: null,
+    categoryProbes: [],
+  });
+
+  it("prints every live value on the all-pass fixture", () => {
+    const p = primer(view(), allFixes(view()));
+    expect(p.what).toContain("It is a measurement taken on September 3, 2026, not a promise");
+    expect(p.how).toContain("then ran 76 named checks on what came back");
+    expect(p.how).toContain(
+      "It ran the accessibility rules, read your robots.txt as eight AI crawlers would and " +
+        "counted the clicks from any page to reaching you.",
+    );
+    expect(p.how).toContain(
+      "Only then did we ask an assistant about Example Studio, check each statement against " +
+        "your own pages, and put a buyer's questions to it live, keeping every source it cited.",
+    );
+    expect(p.receipts).toContain(
+      "What passed sits in one place near the end, the fixes are in the order we would do " +
+        "them, and because an assistant's answers move, this is worth taking again.",
+    );
+  });
+
+  it("drops every clause it cannot stand behind, and words around the missing values", () => {
+    const p = primer(bare(), []);
+    expect(p.what).toContain("taken on one day, not a promise");
+    expect(p.how).toContain("then ran its named checks on what came back");
+    expect(p.how).not.toContain("robots.txt");
+    expect(p.how).not.toContain("accessibility rules");
+    expect(p.how).not.toContain("clicks");
+    expect(p.how).toContain(
+      "Only then did we ask an assistant about your business and check each statement " +
+        "against your own pages.",
+    );
+    expect(p.how).not.toContain("buyer's questions");
+    expect(p.receipts).toContain(
+      "What passed sits in one place near the end, and because an assistant's answers move, " +
+        "this is worth taking again.",
+    );
+    expect(p.receipts).not.toContain("the fixes are");
+  });
+
+  it("drops only the clause whose stage is missing", () => {
+    const v: ReportView = {
+      ...view(),
+      crawlerReach: { measured: false, blocked: [], checked: 0 },
+    };
+    expect(primer(v, []).how).toContain(
+      "It ran the accessibility rules and counted the clicks from any page to reaching you.",
+    );
+  });
+
+  it("does not name a crawler count the checks stage never measured", () => {
+    const v: ReportView = {
+      ...view(),
+      crawlerReach: { measured: false, blocked: [], checked: 8 },
+    };
+    expect(primer(v, []).how).not.toContain("robots.txt");
   });
 });
