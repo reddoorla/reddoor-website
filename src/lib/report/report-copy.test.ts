@@ -44,7 +44,7 @@ describe("one story, on every surface", () => {
   it("the hero leads with the one deterministic headline finding and points at the fixes", () => {
     expect(code(REPORT)).toContain("headlineFinding(view)");
     expect(code(REPORT)).toMatch(/href="#fixes"/);
-    expect(code(REPORT)).toMatch(/id="fixes"/);
+    expect(code(REPORT)).toMatch(/id=\{TOC_TARGETS\.fixes\}/);
     expect(code(PRINT)).toContain("headlineFinding(view)");
   });
 
@@ -141,7 +141,7 @@ describe("one story, on every surface", () => {
 
   it("checked-and-fine and under-the-hood come after the fixes, on both surfaces", () => {
     const report = code(REPORT);
-    const fixes = report.indexOf('id="fixes"');
+    const fixes = report.indexOf("id={TOC_TARGETS.fixes}");
     const passes = report.indexOf("<WhatPasses");
     const hood = report.indexOf("Under the hood");
     expect(fixes).toBeGreaterThan(0);
@@ -160,7 +160,9 @@ describe("one story, on every surface", () => {
     for (const p of ["src/lib/report/SiteHealth.svelte", "src/lib/report/GoalFit.svelte", SOURCE]) {
       expect(code(p), p).toMatch(/href="#passes"/);
     }
-    expect(code("src/lib/report/WhatPasses.svelte")).toMatch(/id="passes"[^>]*scroll-mt/);
+    // `#passes` is on the appendix band's section so a jump lands at the
+    // band's top; the id is read through TOC_TARGETS like the others.
+    expect(code(REPORT)).toMatch(/id=\{TOC_TARGETS\.passes\}[^>]*scroll-mt/);
     expect(code(REPORT)).toMatch(/Back to where you were/);
   });
 
