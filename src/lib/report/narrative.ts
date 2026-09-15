@@ -565,3 +565,36 @@ export function allFixes(view: ReportView): Fix[] {
     ...view.fixes.filter((f) => f.origin !== "measured"),
   ];
 }
+
+/**
+ * The report's top-level sections, keyed by the id their `<section>` carries.
+ * One table, used by the contents list, the anchors and the current-section
+ * observer, so a renamed id fails a test rather than a jump.
+ */
+export const TOC_TARGETS = {
+  aiSays: "ai-says",
+  control: "control",
+  fixes: "fixes",
+  passes: "passes",
+  talk: "talk",
+} as const;
+
+export type TocEntry = {
+  id: (typeof TOC_TARGETS)[keyof typeof TOC_TARGETS];
+  label: string;
+};
+
+/**
+ * The table of contents: the five sections in page order, minus any the
+ * report does not render for this view. Labels are the section titles without
+ * their dynamic parts — "3 things to fix, in order" lists as "What to fix".
+ */
+export function tocEntries(fixes: Fix[]): TocEntry[] {
+  return [
+    { id: TOC_TARGETS.aiSays, label: "What an AI says about you" },
+    { id: TOC_TARGETS.control, label: "What you control" },
+    ...(fixes.length ? [{ id: TOC_TARGETS.fixes, label: "What to fix" } as const] : []),
+    { id: TOC_TARGETS.passes, label: "What passes, and how we measured" },
+    { id: TOC_TARGETS.talk, label: "Talk it through" },
+  ];
+}
