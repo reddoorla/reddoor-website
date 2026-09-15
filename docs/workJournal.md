@@ -267,6 +267,8 @@ them, since the document is now published.
 
 ## 2026-09-14 — `/boise`, `/bew` and the per-city content pipeline (#183, `feat/boise-industry-lp`)
 
+> Superseded in part by 2026-09-14 — The `hide` tag makes a document staging-only (#185, `feat/hide-tag-staging-only`), which sits above this entry because `staging` merged in first.
+
 Tim is working Boise Entrepreneur Week (28 September to 2 October, JUMP,
 downtown Boise) and asked for "the medtech funnel, pointed at Boise". The
 page that shipped is a **city** page, not an event page: `/boise` is a second
