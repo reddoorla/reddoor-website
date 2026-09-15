@@ -53,6 +53,15 @@ export const GHL_STAGE_NEW_INQUIRY = "d4d833e0-6663-456a-8c01-4c0be26625c8";
 export const TAG_APPLICATION_STARTED = "application started";
 export const TAG_APPLICATION_COMPLETED = "application completed";
 
+/** First-touch marker for a lead whose landing URL carries the Boise
+ *  Entrepreneur Week short link's attribution: utm_source=bew or
+ *  utm_campaign=bew-2026 (src/lib/bew.ts, matched in ./events.ts). The utm
+ *  values themselves do not survive as CRM fields (see attributionFields); a
+ *  tag does, so a smart list can select the cohort. The tag carries no year on
+ *  purpose: the year is in utm_campaign, which the attribution note records; a
+ *  later event gets its own constant rather than reusing this one. */
+export const TAG_EVENT_BEW = "bew";
+
 /**
  * A visitor who answered the budget gate with "No" (see BUDGET_GATE in
  * questions.ts). NOT the template's vocabulary — its nearest, "lead rejected",

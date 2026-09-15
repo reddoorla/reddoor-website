@@ -150,8 +150,8 @@
   {:else if slice.variation === "iconColumns"}
     <!-- Landing-page process rail: numbered step + arrow, two-line red label and
          small body per column, under a red rule that spans the content column
-         only (not the rail). The `icon` field is still in the model but is no
-         longer rendered — the board replaced the per-step icons with the numbers
+         only (not the rail). The `icon` field is gone from the model and nothing
+         renders one — the board replaced the per-step icons with the numbers
          below, which are derived from position rather than authored. -->
     <!-- `animateItems`: the rail label arrives on its own and the steps run
          their own two-beat sequence, rather than the whole row fading as one

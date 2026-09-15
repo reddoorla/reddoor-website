@@ -1,0 +1,124 @@
+{
+  "logos": [
+    {
+      "name": "1-800-DENTIST",
+      "file": "logo-1-800-dentist.png",
+      "negative": "logo-1-800-dentist-rev.png",
+      "rollover": "rollover-1-800-dentist.jpg",
+      "rolloverMobile": "rollover-1-800-dentist-mobile.jpg",
+      "project": "1-800-dentist"
+    },
+    {
+      "name": "Progress Lighting",
+      "file": "logo-progress-lighting.png",
+      "negative": "logo-progress-lighting-rev.png",
+      "rollover": "rollover-progress-lighting.jpg",
+      "rolloverMobile": "rollover-progress-lighting-mobile.jpg",
+      "project": "progress-lighting"
+    },
+    {
+      "name": "SummitTrek",
+      "file": "logo-summittrek.png",
+      "negative": "logo-summittrek-rev.png",
+      "rollover": "rollover-summittrek.jpg",
+      "rolloverMobile": "rollover-summittrek-mobile.jpg",
+      "project": "summittrek"
+    },
+    {
+      "name": "Worthe",
+      "file": "logo-worthe.png",
+      "negative": "logo-worthe-rev.png",
+      "rollover": "rollover-worthe.jpg",
+      "rolloverMobile": "rollover-worthe-mobile.jpg",
+      "project": "worthe"
+    },
+    {
+      "name": "Zero Labs",
+      "file": "logo-zero-labs.png",
+      "negative": "logo-zero-labs-rev.png",
+      "rollover": "rollover-zero-labs.jpg",
+      "rolloverMobile": "rollover-zero-labs-mobile.jpg",
+      "project": "rubrik-zero-labs"
+    },
+    {
+      "name": "Gallery Sonder",
+      "file": "logo-gallery-sonder.png",
+      "negative": "logo-gallery-sonder-rev.png",
+      "rollover": "rollover-gallery-sonder.jpg",
+      "rolloverMobile": "rollover-gallery-sonder-mobile.jpg",
+      "project": "gallery-sonder"
+    },
+    {
+      "name": "CEO of LA County",
+      "file": "logo-ceo-of-la-county.png",
+      "negative": "logo-ceo-of-la-county-rev.png",
+      "rollover": "rollover-ceo-of-la-county.jpg",
+      "rolloverMobile": "rollover-ceo-of-la-county-mobile.jpg",
+      "project": "ceo-la"
+    },
+    {
+      "name": "St. James' Episcopal School",
+      "file": "logo-st-james-episcopal-school.png",
+      "negative": "logo-st-james-episcopal-school-rev.png",
+      "rollover": "rollover-st-james-episcopal-school.jpg",
+      "rolloverMobile": "rollover-st-james-episcopal-school-mobile.jpg",
+      "project": "st-james-episcopal-school"
+    },
+    {
+      "name": "Hearts & Minds",
+      "file": "logo-hearts-and-minds.png",
+      "negative": "logo-hearts-and-minds-rev.png",
+      "rollover": "rollover-hearts-and-minds.jpg",
+      "rolloverMobile": "rollover-hearts-and-minds-mobile.jpg",
+      "project": "hearts-and-minds"
+    }
+  ],
+  "files": [
+    "blue-butterfly-mugs.jpg",
+    "enzos-after-1-brand-board.png",
+    "enzos-after-2-van.png",
+    "enzos-after-3-signage.png",
+    "enzos-after-4-brand-guide.jpg",
+    "hero-PLACEHOLDER-licensed-boise-photo-needed.png",
+    "icon-diagnosis-audit.svg",
+    "icon-rebuild.svg",
+    "icon-rollout-launch.svg",
+    "logo-1-800-dentist-rev.png",
+    "logo-1-800-dentist.png",
+    "logo-ceo-of-la-county-rev.png",
+    "logo-ceo-of-la-county.png",
+    "logo-gallery-sonder-rev.png",
+    "logo-gallery-sonder.png",
+    "logo-hearts-and-minds-rev.png",
+    "logo-hearts-and-minds.png",
+    "logo-progress-lighting-rev.png",
+    "logo-progress-lighting.png",
+    "logo-st-james-episcopal-school-rev.png",
+    "logo-st-james-episcopal-school.png",
+    "logo-summittrek-rev.png",
+    "logo-summittrek.png",
+    "logo-worthe-rev.png",
+    "logo-worthe.png",
+    "logo-zero-labs-rev.png",
+    "logo-zero-labs.png",
+    "rollover-1-800-dentist-mobile.jpg",
+    "rollover-1-800-dentist.jpg",
+    "rollover-ceo-of-la-county-mobile.jpg",
+    "rollover-ceo-of-la-county.jpg",
+    "rollover-gallery-sonder-mobile.jpg",
+    "rollover-gallery-sonder.jpg",
+    "rollover-hearts-and-minds-mobile.jpg",
+    "rollover-hearts-and-minds.jpg",
+    "rollover-progress-lighting-mobile.jpg",
+    "rollover-progress-lighting.jpg",
+    "rollover-st-james-episcopal-school-mobile.jpg",
+    "rollover-st-james-episcopal-school.jpg",
+    "rollover-summittrek-mobile.jpg",
+    "rollover-summittrek.jpg",
+    "rollover-worthe-mobile.jpg",
+    "rollover-worthe.jpg",
+    "rollover-zero-labs-mobile.jpg",
+    "rollover-zero-labs.jpg",
+    "testimonial-albert-turgon.png"
+  ]
+}

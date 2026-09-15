@@ -288,7 +288,8 @@ custom fields looked like a better home.
 ### 4.3 Tags
 
 `application started` · `application completed` · `scheduled a call` — the
-CRM's own vocabulary. Two things to know:
+CRM's own vocabulary. Two site-defined tags sit beside them: `not a good fit`
+(the $10k+ gate answered No, 2026-08-24) and `bew` (an event marker for the Boise Entrepreneur Week link, applied on either touch, 2026-09-14). Two things to know:
 
 - **Tags are ADDED via `POST /contacts/{id}/tags`, never sent on upsert.** The
   upsert body's `tags` property **overwrites the entire array**, which would
@@ -459,11 +460,13 @@ so the template's original shape is not necessarily what is in there now.
 
 What the site writes, and when — this half is hard fact, from `ghl/constants.ts`:
 
-| When                                      | Tag applied             | Written by             |
-| ----------------------------------------- | ----------------------- | ---------------------- |
-| Email captured (modal step one)           | `application started`   | `syncInquiryToCrm`     |
-| Questionnaire + contact details submitted | `application completed` | `syncApplicationToCrm` |
-| Intro call booked                         | `scheduled a call`      | `POST /api/book`       |
+| When                                                                                                | Tag applied             | Written by                                                 |
+| --------------------------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| Email captured (modal step one)                                                                     | `application started`   | `syncInquiryToCrm`                                         |
+| Questionnaire + contact details submitted                                                           | `application completed` | `syncApplicationToCrm`                                     |
+| Intro call booked                                                                                   | `scheduled a call`      | `POST /api/book`                                           |
+| Questionnaire answered "No" to the $10k+ budget gate                                                | `not a good fit`        | `syncApplicationToCrm`                                     |
+| Either touch, when the landing URL carries the BEW link's utm (source `bew` or campaign `bew-2026`) | `bew`                   | `syncInquiryToCrm`, `syncApplicationToCrm` via `eventTags` |
 
 Exact strings, lower-case, no trailing space.
 
@@ -1311,6 +1314,9 @@ page did — see `stripQueryParams` — so the link needs no reshaping.
 
 ### 6.16 What is reachable by API, and what needs a human in the builder
 
+> Corrected in part by §6.20 (2026-09-15): inline bodies are editable through
+> the builder, by script.
+
 Tucker asked, of four links, which could be switched over from here. Probed
 2026-08-19; the answers split cleanly along one line — **custom values are
 API-writable, message bodies are not.**
@@ -1799,6 +1805,37 @@ by bad luck:
   a11y defect it was. Fixed; see `docs/a11y-landmark-and-heading-gaps.md` for
   why a green a11y suite never mentioned it.
 
+### 6.20 Inline bodies, edited by script — 2026-09-15
+
+§6.16 drew the line at "custom values are API-writable, message bodies are
+not", and its `phone` history warned against depending on "a hand-edit in a
+builder that cannot be read back". Half of that is now wrong. No API reads or
+writes an inline body, but the builder does, and it can be driven from a script
+over Chrome's debugging port: attach to the automation iframe's own target, find
+the workflow through the list store, capture its saved JSON by hooking the
+frame's XHR, edit the TipTap email body as a ProseMirror transaction, save
+twice, refetch. The tooling and the full recipe are in `scripts/crm/README.md`.
+
+**verified** — A-102-1's "Inquiry reminder 1" and "Inquiry reminder 3" now end
+their `{{custom_values.sub_domain_url}}/inquiry?…` link in
+`&funnel={{contact.funnel}}` (workflow versions 12 and 13, status still
+published, read back from the server after a fresh load). `/inquiry` already
+honoured the param — the `funnel` allowlist in `src/routes/inquiry/+server.ts`
+— so a lead who abandons on `/boise` is now chased back to `/boise` rather
+than to `/medtech`. "Inquiry reminder 2" has no link at all.
+
+Two beliefs corrected on the way. The builder's DOM is not its state: setting
+`href` on the `<a>` looks right in the editor and is redrawn from ProseMirror's
+document on the next transaction, and cloning the node to force a re-parse
+reverts as well; only a transaction against the `Editor` instance TipTap leaves
+on the element changes the document. And "read back" has to mean from the
+server: `editor.getHTML()` after "Save action" shows the new href whether or
+not the header Save ran.
+
+**inferred** — `{{contact.funnel}}` is the custom field key the site writes
+(`contact.funnel`, id `NlnuKejf3ThqsfBVvMgU`) in the form every other custom
+field takes in the picker; it has not been seen rendered in a delivered email.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
@@ -1818,6 +1855,9 @@ by bad luck:
 6. **Never print or echo token values** (`CRM_FUNNEL_ACTIVE_TOKEN`, `CRM_CLAUDE_TOKEN`, `DISCORD_BOT_KEY`, …).
 7. Some message bodies live in **Marketing → Snippets**, not the workflow
    builder — editing the workflow won't change them.
+8. **Inline workflow bodies are editable by script, not by API** — `scripts/crm/`
+   drives the builder over Chrome's debugging port. Rule 1 still applies, and a
+   save is not done until the workflow reads back from the server (§6.20).
 
 ---
 

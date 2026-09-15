@@ -22,9 +22,9 @@
 // matched by name — but it is a new shot, not a re-export. Worth a look before
 // publishing.
 //
-// Usage: node scripts/medtech/stage-hr-rollovers.mjs [--dry-run]
+// Usage: node scripts/industry/medtech/stage-hr-rollovers.mjs [--dry-run]
 import sharp from "sharp";
-import { readdir, mkdir } from "node:fs/promises";
+import { readdir, mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,9 +37,11 @@ const DRY = process.argv.includes("--dry-run");
 // worth preferring over the API path: the console tokens this repo has used
 // expire in ~4h and had to be re-pasted every session.
 //   curl -L -o hr.zip "<share-url>&dl=1"
-const SOURCE_DIR =
-  process.env.HR_DIR ??
-  "/private/tmp/claude-501/-Users-tuckerlemos-Documents-GitHub-reddoor-website/32c72721-961a-42b9-bca3-8fd8ad31a640/scratchpad/hr/unpacked";
+const SOURCE_DIR = process.env.HR_DIR;
+if (!SOURCE_DIR) {
+  console.error("Set HR_DIR to the unpacked Dropbox folder (see the comment above).");
+  process.exit(1);
+}
 
 // Eight of nine name their brand outright. "Demo Day TV" does not — it is
 // Preveta by elimination (nine files, nine brands, the other eight matched) and
@@ -87,6 +89,7 @@ for (const [file, slug] of Object.entries(MAP)) {
     .jpeg({ quality: 86, mozjpeg: true })
     .toFile(`${dest}.tmp`);
   await sharp(`${dest}.tmp`).toFile(dest);
+  await unlink(`${dest}.tmp`);
   staged++;
 }
 

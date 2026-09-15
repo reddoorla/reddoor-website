@@ -30,9 +30,9 @@
 // A knockout (`-rev`) is normalised to the same fractions as its colour mark, so
 // the hover swap stays pixel-exact by construction rather than by luck.
 //
-// Usage: node scripts/medtech/normalize-logos.mjs [--check]
+// Usage: node scripts/industry/medtech/normalize-logos.mjs [--check]
 import sharp from "sharp";
-import { readdir } from "node:fs/promises";
+import { readdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -114,6 +114,7 @@ for (const [brand, board] of Object.entries(BOARD)) {
       .png()
       .toFile(`${src}.tmp`);
     await sharp(`${src}.tmp`).toFile(src);
+    await unlink(`${src}.tmp`);
   }
 }
 

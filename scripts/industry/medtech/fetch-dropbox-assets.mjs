@@ -16,7 +16,7 @@
  * without it, paths resolve against the personal member folder and the shared
  * "Reddoor Creative Dropbox" tree is invisible.
  *
- *   node scripts/medtech/fetch-dropbox-assets.mjs [--keep-originals]
+ *   node scripts/industry/medtech/fetch-dropbox-assets.mjs [--keep-originals]
  *
  * Requires `sips` (macOS). Re-runnable; overwrites its outputs.
  */
@@ -29,7 +29,11 @@ import { fileURLToPath } from "node:url";
 const run = promisify(execFile);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, "assets");
-const MAINTENANCE_ENV = path.resolve(HERE, "../../../reddoor-maintenance/.env");
+// Resolves from the CHECKOUT'S PARENT directory: correct for a checkout in
+// ~/Documents/GitHub/, wrong from inside a worktree (two levels deeper). The read
+// below swallows a miss, so a worktree run reports the Dropbox vars as unset.
+// Run this helper from the main checkout.
+const MAINTENANCE_ENV = path.resolve(HERE, "../../../../reddoor-maintenance/.env");
 
 /**
  * Each entry: a Dropbox original plus the derivation applied to it.
@@ -188,7 +192,7 @@ const ASSETS = [
  * Credentials, in order of preference. Reads the maintenance .env (the fleet's
  * shared store) and this repo's .env.local, so either can hold them.
  */
-const ENV_FILES = [MAINTENANCE_ENV, path.resolve(HERE, "../../.env.local")];
+const ENV_FILES = [MAINTENANCE_ENV, path.resolve(HERE, "../../../.env.local")];
 const envText = (await Promise.all(ENV_FILES.map((f) => readFile(f, "utf8").catch(() => "")))).join(
   "\n",
 );
