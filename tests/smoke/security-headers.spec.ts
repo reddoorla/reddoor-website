@@ -87,3 +87,20 @@ test("a credential-bearing page keeps its own stricter referrer policy", async (
   expect(res?.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
   await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "no-referrer");
 });
+
+test("the slice simulator can be framed by Slice Machine and the Page Builder", async ({
+  request,
+}) => {
+  // Both load this one route in an iframe from another origin (localhost:9999
+  // and prismic.io). Every other route stays SAMEORIGIN; this one carries no
+  // X-Frame-Options at all, since that header has no multi-origin form, and
+  // names its framers in frame-ancestors instead.
+  const res = await request.get("/slice-simulator");
+  expect(res.status()).toBe(200);
+  const headers = res.headers();
+  expect(headers["x-frame-options"]).toBeUndefined();
+  expect(headers["content-security-policy"]).toContain(
+    "frame-ancestors 'self' http://localhost:* https://*.prismic.io https://prismic.io",
+  );
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+});

@@ -1,5 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>reddoorla/.github:renovate-config"],
-  "baseBranches": ["staging"]
+  "baseBranchPatterns": ["staging"]
 }

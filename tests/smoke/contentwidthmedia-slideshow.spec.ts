@@ -28,6 +28,19 @@ async function forceReducedMotion(page: Page, reduce: boolean) {
   }, reduce);
 }
 
+// `load` fires when the document's resources are done, which says nothing about
+// whether Svelte has hydrated — and the carousel's chrome reveal is pure CSS
+// (`group-hover:opacity-100`), so it reaches opacity 1 on hover whether or not
+// the click handlers exist yet. That made "hovered and visible" a false green:
+// under a cold vite compile the Pause click landed on an inert button, isPlaying
+// never flipped, and the failure surfaced one line later as a missing "Play
+// slideshow". The root layout stamps `html[data-hydrated]` from onMount, so wait
+// for that instead — the same gate the portfolio specs use.
+async function openFixture(page: Page) {
+  await page.goto(FIXTURE, { waitUntil: "load" });
+  await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+}
+
 test.describe("ContentWidthMedia slideshow item", () => {
   test("renders the gallery images as a carousel", async ({ page }) => {
     const consoleErrors: string[] = [];
@@ -40,7 +53,7 @@ test.describe("ContentWidthMedia slideshow item", () => {
     });
 
     await forceReducedMotion(page, false);
-    await page.goto(FIXTURE, { waitUntil: "load" });
+    await openFixture(page);
 
     const section = page.locator(SECTION);
     await expect(section).toBeVisible();
@@ -56,7 +69,7 @@ test.describe("ContentWidthMedia slideshow item", () => {
     page,
   }) => {
     await forceReducedMotion(page, false); // motion allowed → autoplay runs
-    await page.goto(FIXTURE, { waitUntil: "load" });
+    await openFixture(page);
 
     const section = page.locator(SECTION);
     const carousel = section.locator(".\\@container").first();
@@ -75,14 +88,18 @@ test.describe("ContentWidthMedia slideshow item", () => {
     // The revealed pause control works, and once paused the chrome stays put even
     // after the pointer leaves (no longer auto-advancing).
     await section.getByRole("button", { name: "Pause slideshow" }).click();
+    // Assert the pause LANDED before moving the pointer. The label flips on the
+    // same element, so this is the state change itself — and checking it first
+    // means a dead click fails here, naming the cause, instead of being masked
+    // by an opacity that reads "1" for a moment on its way back down to 0.
+    await expect(section.getByRole("button", { name: "Play slideshow" })).toBeVisible();
     await page.mouse.move(5, 5);
     await expect.poll(controlsOpacity).toBe("1");
-    await expect(section.getByRole("button", { name: "Play slideshow" })).toBeVisible();
   });
 
   test("omits the pause control under reduced motion (WCAG 2.2.2)", async ({ page }) => {
     await forceReducedMotion(page, true);
-    await page.goto(FIXTURE, { waitUntil: "load" });
+    await openFixture(page);
 
     const section = page.locator(SECTION);
     await expect(section).toBeVisible();
@@ -101,7 +118,7 @@ test.describe("ContentWidthMedia slideshow item", () => {
 
     test("hides arrows below the container threshold (auto-run, chrome-less)", async ({ page }) => {
       await forceReducedMotion(page, false);
-      await page.goto(FIXTURE, { waitUntil: "load" });
+      await openFixture(page);
 
       const section = page.locator(SECTION);
       await expect(section).toBeVisible();

@@ -23,10 +23,11 @@ export const GET: RequestHandler = async ({ fetch }) => {
       lastmod: doc.last_publication_date,
     }));
 
-  // Every listing surface filters hide-tagged projects — the sitemap must not
-  // advertise them to crawlers either.
+  // Hidden documents never reach here: the client filters them out of every
+  // query unless this deploy shows hidden content (staging), and staging's
+  // sitemap is never submitted anywhere.
   const projectPaths = projects
-    .filter((doc) => doc.uid && !doc.tags.includes("hide"))
+    .filter((doc) => doc.uid)
     .map((doc) => ({
       url: `/portfolio/${doc.uid}`,
       lastmod: doc.last_publication_date,

@@ -5,6 +5,7 @@ vi.mock("$env/dynamic/private", () => ({
 }));
 
 const { loadReport } = await import("./load");
+import { EDIT_COOKIE } from "./edit-auth";
 
 const REPORT = { url: "https://acme.example/", businessName: "Acme Roofing", scores: {} };
 const TOKEN = "aB3-_xY9zQ1rS2tU4vW6xY";
@@ -110,5 +111,71 @@ describe("both routes use the shared loader", () => {
       const { evt } = event("short", respondWith(200, REPORT));
       await expect(route.load(evt as never)).rejects.toMatchObject({ status: 404 });
     }
+  });
+});
+
+describe("loadReport — edit sessions are not readers", () => {
+  /** Captures the headers sent upstream, and every cookie name asked for. */
+  function spyEvent(cookieValue: string | undefined) {
+    const seen: Record<string, string> = {};
+    const asked: string[] = [];
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      Object.assign(seen, Object.fromEntries(new Headers(init?.headers).entries()));
+      return new Response(JSON.stringify({ report: REPORT, overrides: null }), { status: 200 });
+    }) as unknown as typeof globalThis.fetch;
+    return {
+      evt: {
+        params: { token: TOKEN },
+        fetch: fetchImpl,
+        setHeaders: () => {},
+        cookies: {
+          get: (name: string) => {
+            asked.push(name);
+            return cookieValue;
+          },
+        },
+      },
+      seen,
+      asked,
+    };
+  }
+
+  it("declares an edit session upstream when the edit cookie is present", async () => {
+    const { evt, seen } = spyEvent("s3cret");
+    await loadReport(evt as never);
+    expect(seen["x-reddoor-edit-session"]).toBe("1");
+  });
+
+  // The obvious version of the test above hands back a value for ANY cookie
+  // name, so it passes just as well against an implementation reading the wrong
+  // one — and the symptom of that bug is `opened_at` silently recording every
+  // operator preview as a prospect read, which nothing else would catch.
+  it("asks for the edit cookie by name, not just for some cookie", async () => {
+    const { evt, asked } = spyEvent("s3cret");
+    await loadReport(evt as never);
+    expect(asked).toContain(EDIT_COOKIE);
+  });
+
+  it("sends no such header for an ordinary reader", async () => {
+    const { evt, seen } = spyEvent(undefined);
+    await loadReport(evt as never);
+    expect(seen["x-reddoor-edit-session"]).toBeUndefined();
+  });
+
+  // A real SvelteKit event always carries `cookies`, but `loadReport` is called
+  // in tests without one and must take the ordinary-reader path rather than
+  // throwing on a missing property.
+  it("treats a caller with no cookies at all as an ordinary reader", async () => {
+    const seen: Record<string, string> = {};
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      Object.assign(seen, Object.fromEntries(new Headers(init?.headers).entries()));
+      return new Response(JSON.stringify({ report: REPORT, overrides: null }), { status: 200 });
+    }) as unknown as typeof globalThis.fetch;
+    await loadReport({
+      params: { token: TOKEN },
+      fetch: fetchImpl,
+      setHeaders: () => {},
+    } as never);
+    expect(seen["x-reddoor-edit-session"]).toBeUndefined();
   });
 });
