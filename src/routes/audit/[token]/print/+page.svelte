@@ -6,7 +6,13 @@
     wasNamed,
     type Assertion,
   } from "$lib/report/model";
-  import { allFixes, displayQuote, headlineFinding, passes } from "$lib/report/narrative";
+  import {
+    allFixes,
+    auditedOn,
+    displayQuote,
+    headlineFinding,
+    passes,
+  } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
   import type { PageData } from "./$types";
 
@@ -16,15 +22,7 @@
   const who = $derived(view.businessName ?? "your business");
   const headline = $derived(headlineFinding(view));
 
-  const auditedOn = $derived(
-    view.generatedAt
-      ? new Date(view.generatedAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })
-      : null,
-  );
+  const audited = $derived(auditedOn(view));
 
   const ANSWERED_LABEL = {
     yes: "Yes",
@@ -119,8 +117,8 @@
     <p class="eyebrow">Prospect audit</p>
     <h1>When AI answers for {who}</h1>
     <p class="meta">
-      {view.url}{#if auditedOn}
-        &middot; audited {auditedOn}{/if}
+      {view.url}{#if audited}
+        &middot; audited {audited}{/if}
     </p>
   </header>
 

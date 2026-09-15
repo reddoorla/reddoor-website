@@ -54,6 +54,20 @@ describe("one story, on every surface", () => {
     expect(code(PRINT)).toContain("headlineFinding(view)");
   });
 
+  it("the primer's prose is composed in narrative.ts, and the template prints it first", () => {
+    expect(code(REPORT)).toMatch(/primer\(view, fixes\)/);
+    expect(code(REPORT)).toMatch(/auditedOn\(view\)/);
+    expect(code(PRINT)).toMatch(/auditedOn\(view\)/);
+    // The copy itself is not in the template: a sentence that varies with
+    // the view is asserted on the function, not string-matched here.
+    expect(code(REPORT)).not.toMatch(/two routes/);
+    expect(code(REPORT)).toMatch(/id=\{TOC_TARGETS\.about\}/);
+    // Before the first finding.
+    expect(code(REPORT).indexOf("id={TOC_TARGETS.about}")).toBeLessThan(
+      code(REPORT).indexOf("id={TOC_TARGETS.aiSays}"),
+    );
+  });
+
   it("the token route renders the same body as the fixture route", () => {
     expect(code(PAGE)).toMatch(/<Report\b/);
     expect(code("src/routes/dev/audit-report/+page.svelte")).toMatch(/<Report\b/);
