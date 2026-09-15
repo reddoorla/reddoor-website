@@ -264,3 +264,45 @@ load average to 45 during the run), and a staging-mode build that prerenders
 `/boise`, its OG card and the hidden projects. The eleven `/boise` smoke tests
 live on the Boise branch (#183) and go green there once this merges beneath
 them, since the document is now published.
+
+## 2026-09-15 — The `hide` tag reached production (#186, `4503065`)
+
+Tucker published the medtech release (`aqiaQxMAAFcNpGFf`) himself, so the
+promotion did not wait on Tim. The promotion PR's required check went red
+twice before it went green, for two different reasons, and neither was the
+code: the first run built before the release was published and died on the
+`404 /portfolio/strategy-advantage-website (linked from /medtech)` link the
+#185 entry predicted; the re-run died in the smoke suite's dev server with
+`ConnectTimeoutError ... reddoor-la.cdn.prismic.io:443` (the runner could not
+reach the Prismic CDN at all, so every Prismic-backed page failed), while the
+pull-request-event run of the same commit passed. A third run passed and #186
+merged at 03:04 UTC.
+
+Measured on `reddoorla.com` after the build: `/health` reports
+`hiddenContent: "hidden"`; `/boise`, `/og/industry/boise.png`,
+`/portfolio/hbo-signage`, `/portfolio/strategy-advantage-website` and
+`/showcase/cre-branding-design` are 404; `/medtech` still shows the Strategy
+Advantage logo but no longer links it; the sitemap lists 49 URLs and none of
+the sixteen hidden documents; `/slice-simulator` carries no `X-Frame-Options`
+and the widened `frame-ancestors` from #184. One reading in the verification
+script looked wrong and was not: it reported "strategy-advantage listed:
+true" in the sitemap, because it matched a substring, and the hit is the
+unhidden project `strategy-advantage1`, not the hidden
+`strategy-advantage-website`. Check the full slug, not a prefix.
+
+A belief corrected on the way: the Boise branch's local `vitest run`, after
+`staging` merged into it, reported 19 failures across 15 files this session
+never touched (`og/card`, the GHL clients, the report loaders, the schedule
+helpers, `security/headers`). The load average was 45 at the time; the four
+lightest of those files passed 31 of 31 in isolation once it fell to 15, and
+CI on the same commit passed, the eleven `/boise` smoke tests included. The pattern to
+recognise is one failure per file, usually the first test, which is the
+module import paying for a starved worker rather than a defect.
+
+Housekeeping: the `hide-tag` and `sim-framing` worktrees and their local
+branches are gone (GitHub deleted the remote branches on merge). Still owed by
+people: Tim's copy review of `/boise` against the eleven `_contentGaps`, a
+licensed Boise hero, the A-102-1 chase-link edit in the CRM builder, and the
+CRM smart list on the `bew` tag. Taking `/boise` live is now a content act,
+not a deploy: remove the `hide` tag and publish, and the Prismic build hook
+rebuilds `main`.
