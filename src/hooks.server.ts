@@ -16,5 +16,7 @@ import { applySecurityHeaders } from "$lib/security/headers";
  * meaningful locally.
  */
 export const handle: Handle = async ({ event, resolve }) => {
-  return applySecurityHeaders(await resolve(event));
+  // The path picks the framing policy: /slice-simulator is the one route the
+  // CMS loads in an iframe from another origin (CMS_FRAMED_ROUTES).
+  return applySecurityHeaders(await resolve(event), event.url.pathname);
 };

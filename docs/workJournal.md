@@ -165,6 +165,106 @@ rotation verified by fingerprint on both sites. The lesson is narrow and cheap:
 a probe that handles credentials should redact at the point of printing, not
 rely on the author remembering which header happens to contain one.
 
+## 2026-09-14 — The CMS could not frame the slice simulator (#184, `fix/slice-simulator-framing`)
+
+Tucker's screenshot showed the Prismic Page Builder with a red "Error" where
+every slice's preview should be, in the Boise document and the medtech one
+alike, and he had Slice Machine running. First hypothesis, abandoned within
+minutes: the slice screenshots. Every local slice model has an empty
+`imageUrl`, so the pushed models all point at Slice Machine's shared
+placeholder image, and a dead placeholder would explain a repository-wide
+failure. It resolves fine, and the one slice with a real screenshot
+(`rich_text`) resolves too. The thumbnails were never the mechanism.
+
+The mechanism is framing. Slice Machine at `localhost:9999` and the Page
+Builder at `prismic.io` both load `/slice-simulator` in an iframe, and a dev
+server answered that route with `X-Frame-Options: SAMEORIGIN` and
+`frame-ancestors 'self'`, which refuse any cross-origin frame. Those headers
+reached dev responses in `97b5d15` on 2026-08-19, when `hooks.server.ts`
+started applying the site policy to everything the server renders. The
+comment in `netlify.toml` said the simulator framed only the local dev server
+"so neither is affected", which was true while dev responses carried no
+headers and became false that day. The belief survived four weeks because
+nobody opened the Page Builder with Slice Machine running until tonight.
+
+The fix is one exemption, not a weaker policy: `/slice-simulator` is the
+single entry in `CMS_FRAMED_ROUTES`, gets no `X-Frame-Options` (the header has
+no multi-origin form) and a `frame-ancestors` that names localhost and
+prismic.io, and is `prerender = false` so the hook rather than the static
+`[[headers]]` block decides its headers on every host. Netlify cannot exempt
+one path from a `/*` block without sending two policies, both of which apply.
+The page renders nothing but the slices it is handed, so there is nothing on
+it to clickjack. Two unit cases pin the exemption to that one path and
+same-origin everywhere else, and the header smoke spec now fetches the route.
+Prismic's documentation pages for the simulator returned 404 at the two URLs
+tried, so the framing origins come from observation, not a spec.
+
+## 2026-09-14 — The `hide` tag makes a document staging-only (#185, `feat/hide-tag-staging-only`)
+
+Tucker asked for it in one line: a document tagged `hide` should be staging
+only. Two facts turned that from a feature into an incident. Sixteen published
+documents already carried the tag (the `boise` page, nine projects, six
+showcases), and the site honoured it in exactly four places as "unlisted": the
+layout's latest-four, both portfolio queries and the sitemap's project list.
+The page itself still rendered. And the `boise` document had been published at
+00:34 with the tag on it, so `reddoorla.com/boise` was public with my
+unreviewed copy and the placeholder hero, and in the live sitemap, while the
+tag did nothing. Tucker chose to leave it up and ship the enforcement rather
+than unpublish, and confirmed the 15 older documents should leave production
+too.
+
+**The belief that did not survive contact: a client-level default filter.** The
+design was one `defaultParams.filters` entry on the shared Prismic client,
+covering all 25 query sites, the prerender entry lists, the sitemap and the OG
+route at once. The live repository disagreed within a minute: with only the
+default set, `getByUID("industry", "boise")` returned the hidden page,
+`getAllByType("project")` returned 52 of 52, and `getByID` of a hidden project
+returned it; only the raw `dangerouslyGetAll` honoured the filter (65 of 81).
+The client's source explains it: every typed method appends its own filters
+and ends in `get()`, which calls `buildQueryURL`, and that method spreads the
+call's params over `defaultParams`, so `filters` is replaced, never merged. The
+seam is `buildQueryURL` itself. A subclass that appends the filter there passes
+the whole matrix: hidden `getByUID` and `getByID` throw not-found, projects
+list 43 of 52, showcases 5 of 11, `getAllByIDs` of one hidden and one public id
+returns one, a four-item page returns four untagged documents. The API also
+rejects the bare-string form of `filter.not("document.tags", …)`; the array
+form works.
+
+The decision is a pure function of three inputs and fails safe: shown under
+`vite dev` (so the smoke suite, which runs on the dev server, sees every
+published document), shown when `PRISMIC_HIDDEN_CONTENT` is `show` (set on the
+`reddoor-staging` Netlify site only), shown inside a Prismic preview session
+(the cookie is set only through the dashboard's token flow, so Tim can Preview
+a hidden page on production), hidden otherwise, deploy previews included.
+`/health` says which. The unit test for the client builds a query URL against a
+stubbed repository fetch, since `buildQueryURL` resolves the ref before it
+builds anything.
+
+**The hazard the change creates is the one worth remembering.** Prerendering
+follows every link in a prerendered page and `svelte.config.js` makes a 404
+fatal, so a public page that links to a hidden document fails the production
+build. Reproduced at the branch head with the variable unset:
+`Error: 404 /portfolio/strategy-advantage-website (linked from /medtech)`. The
+medtech logo grid links to a hidden project; `/boise` and the `logo_soup`
+document link to none. Tucker chose to drop the link rather than untag the
+project, so the edit sits in Prismic release `aqiaQxMAAFcNpGFf` for Tim to
+publish, and promotion to `main` waits on it. The failure is the guard, not a
+bug: the alternative is a public page shipping a dead link. The rule is in
+`.env.example` and the industry runbook.
+
+The evening's other fix, #184, is unrelated in mechanism and related in
+timing: the Page Builder Tucker was using to inspect the Boise document showed
+"Error" on every slice, because the site's framing headers had been refusing
+the simulator iframe since 2026-08-19. Both surfaced because someone finally
+opened the editor with Slice Machine running.
+
+Verification at the head: 540 unit tests, 179 smoke green with one
+load-induced failure that passed three times alone (other sessions pushed the
+load average to 45 during the run), and a staging-mode build that prerenders
+`/boise`, its OG card and the hidden projects. The eleven `/boise` smoke tests
+live on the Boise branch (#183) and go green there once this merges beneath
+them, since the document is now published.
+
 ## 2026-09-14 — `/boise`, `/bew` and the per-city content pipeline (#183, `feat/boise-industry-lp`)
 
 Tim is working Boise Entrepreneur Week (28 September to 2 October, JUMP,

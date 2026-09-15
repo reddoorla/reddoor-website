@@ -11,12 +11,13 @@
 # Notes on what is deliberately NOT restricted, so nothing breaks:
 #   - Permissions-Policy lists only features the site never uses; autoplay and
 #     fullscreen are left untouched so the Vimeo background embeds keep working.
-#   - X-Frame-Options is SAMEORIGIN. The Slice Machine simulator frames the
-#     LOCAL dev server (localSliceSimulatorURL = localhost:5173), not this
-#     deployed origin, and the Prismic preview toolbar injects a script rather
-#     than framing — so neither is affected. If the slice simulator is ever
-#     pointed at a deployed URL, /slice-simulator will need a frame-ancestors
-#     carve-out (CSP) instead.
+#   - X-Frame-Options is SAMEORIGIN for every static file. The one page the
+#     CMS frames from another origin, /slice-simulator (Slice Machine at
+#     localhost:9999, the Page Builder at prismic.io), is prerender = false so
+#     hooks.server.ts, not this block, serves it: no X-Frame-Options and a
+#     wider frame-ancestors — see CMS_FRAMED_ROUTES in
+#     src/lib/security/headers.ts. The Prismic preview toolbar injects a
+#     script rather than framing, so it needs nothing.
 #
 # Content-Security-Policy is ENFORCING (promoted from Report-Only 2026-07-16
 # after a crawl with securitypolicyviolation listeners recorded zero violations
