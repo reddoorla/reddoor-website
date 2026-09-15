@@ -4,6 +4,7 @@ import {
   toReportView,
   type Assertion,
   type BuyerQuestion,
+  type Fix,
   type GoalRequirement,
   type ReportView,
 } from "./model";
@@ -16,6 +17,8 @@ import {
   healthFixes,
   passes,
   passCount,
+  tocEntries,
+  TOC_TARGETS,
 } from "./narrative";
 import { healthRows } from "./health";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
@@ -1020,5 +1023,41 @@ describe("a map that overrides nothing changes nothing", () => {
     const out = dump(landed);
     expect(out).toContain(NEVER);
     expect(out).not.toBe(baseline);
+  });
+});
+
+describe("tocEntries", () => {
+  // Only the count of fixes decides whether the section renders, so a
+  // placeholder is all the entry needs; the Fix shape is covered elsewhere.
+  const oneFix = [{} as unknown as Fix];
+
+  it("lists the four sections in page order when there are fixes", () => {
+    expect(tocEntries(oneFix)).toEqual([
+      { id: "ai-says", label: "What an AI says about you" },
+      { id: "control", label: "What you control" },
+      { id: "fixes", label: "What to fix" },
+      { id: "talk", label: "Talk it through" },
+    ]);
+  });
+
+  it("never lists the appendix, which keeps its anchor for the in-page links", () => {
+    expect(tocEntries(oneFix).map((e) => e.id)).not.toContain(TOC_TARGETS.passes);
+    expect(TOC_TARGETS.passes).toBe("passes");
+  });
+
+  it("omits What to fix when the report renders no fixes", () => {
+    expect(tocEntries([]).map((e) => e.id)).toEqual(["ai-says", "control", "talk"]);
+    // The all-pass fixture is NOT that case. Every check passes, but its
+    // analyze stage carries two recommendations, so the page renders "2 things
+    // to fix" and the list has all four. Wired through allFixes here so a
+    // fixture change that drops them fails this line rather than a jump.
+    const v = view();
+    expect(allFixes(v)).toHaveLength(2);
+    expect(tocEntries(allFixes(v))).toHaveLength(4);
+  });
+
+  it("only ever emits ids from TOC_TARGETS", () => {
+    const known = new Set<string>(Object.values(TOC_TARGETS));
+    for (const e of tocEntries(oneFix)) expect(known.has(e.id)).toBe(true);
   });
 });
