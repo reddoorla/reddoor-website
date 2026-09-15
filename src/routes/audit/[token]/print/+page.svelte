@@ -22,7 +22,7 @@
   const who = $derived(view.businessName ?? "your business");
   const headline = $derived(headlineFinding(view));
 
-  const audited = $derived(auditedOn(view));
+  const auditDate = $derived(auditedOn(view));
 
   const ANSWERED_LABEL = {
     yes: "Yes",
@@ -117,8 +117,8 @@
     <p class="eyebrow">Prospect audit</p>
     <h1>When AI answers for {who}</h1>
     <p class="meta">
-      {view.url}{#if audited}
-        &middot; audited {audited}{/if}
+      {view.url}{#if auditDate}
+        &middot; audited {auditDate}{/if}
     </p>
   </header>
 
