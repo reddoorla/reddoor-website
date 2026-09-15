@@ -411,3 +411,64 @@ One stale comment found in passing: `netlify.toml` still calls the SSR
 headers gap open and points at `hooks.server.ts` as the fix, and
 `hooks.server.ts` has since done exactly that. The comment is wrong in the
 safe direction and is left for a separate change.
+
+## 2026-09-15 — The `hide` tag reached production (#186, `4503065`)
+
+Tucker published the medtech release (`aqiaQxMAAFcNpGFf`) himself, so the
+promotion did not wait on Tim. The promotion PR's required check went red
+twice before it went green, for two different reasons, and neither was the
+code: the first run built before the release was published and died on the
+`404 /portfolio/strategy-advantage-website (linked from /medtech)` link the
+#185 entry predicted; the re-run died in the smoke suite's dev server with
+`ConnectTimeoutError ... reddoor-la.cdn.prismic.io:443` (the runner could not
+reach the Prismic CDN at all, so every Prismic-backed page failed), while the
+pull-request-event run of the same commit passed. A third run passed and #186
+merged at 03:04 UTC.
+
+Measured on `reddoorla.com` after the build: `/health` reports
+`hiddenContent: "hidden"`; `/boise`, `/og/industry/boise.png`,
+`/portfolio/hbo-signage`, `/portfolio/strategy-advantage-website` and
+`/showcase/cre-branding-design` are 404; `/medtech` still shows the Strategy
+Advantage logo but no longer links it; the sitemap lists 49 URLs and none of
+the sixteen hidden documents; `/slice-simulator` carries no `X-Frame-Options`
+and the widened `frame-ancestors` from #184. One reading in the verification
+script looked wrong and was not: it reported "strategy-advantage listed:
+true" in the sitemap, because it matched a substring, and the hit is the
+unhidden project `strategy-advantage1`, not the hidden
+`strategy-advantage-website`. Check the full slug, not a prefix.
+
+A belief corrected on the way: the Boise branch's local `vitest run`, after
+`staging` merged into it, reported 19 failures across 15 files this session
+never touched (`og/card`, the GHL clients, the report loaders, the schedule
+helpers, `security/headers`). The load average was 45 at the time; the four
+lightest of those files passed 31 of 31 in isolation once it fell to 15, and
+CI on the same commit passed, the eleven `/boise` smoke tests included. The pattern to
+recognise is one failure per file, usually the first test, which is the
+module import paying for a starved worker rather than a defect.
+
+Housekeeping: the `hide-tag` and `sim-framing` worktrees and their local
+branches are gone (GitHub deleted the remote branches on merge). Still owed by
+people: Tim's copy review of `/boise` against the eleven `_contentGaps`, a
+licensed Boise hero, the A-102-1 chase-link edit in the CRM builder, and the
+CRM smart list on the `bew` tag. Taking `/boise` live is now a content act,
+not a deploy: remove the `hide` tag and publish, and the Prismic build hook
+rebuilds `main`.
+
+The A-102-1 chase link now sends the funnel. The 2026-08 accounting called
+the builder's inline email bodies unreachable because no API reads or writes
+them; the builder itself does both, and it can be driven from a script over
+Chrome's debugging port. Two of the three reminder emails carry the
+`{{custom_values.sub_domain_url}}/inquiry?…` link (reminder 2, "Still
+interested?", has no link at all, a content gap of its own); both now end in
+`&funnel={{contact.funnel}}`, saved as workflow versions 12 and 13 with the
+status still published, and read back from the server after a fresh load.
+What it took, for the next edit: the list page ignores `parentId` and
+`folderId` in the URL, so the workflow id came from the list store's search
+action; the workflow JSON sits in no store, so it was captured by hooking the
+frame's XHR and bouncing the router; and the email editor is TipTap, which
+redraws the DOM from its own state, so an `href` edit on the `<a>` element is
+silently undone and cloning the node to force a re-parse reverts too. Only a
+ProseMirror transaction against the `Editor` instance TipTap leaves on the
+editor element changes the document. `/inquiry` honoured the param already,
+so nothing deployed; `{{contact.funnel}}` is the field key the site writes and
+has not been verified by a rendered email.
