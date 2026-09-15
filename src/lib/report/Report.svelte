@@ -130,17 +130,14 @@
     const el = root;
     if (!el) return;
     const entries = toc;
-    // Bookkeeping for the observer callback, never read by the template, so
-    // a plain Set on purpose: nothing subscribes to it.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
-    const visible = new Set<string>();
+    let visible: string[] = [];
     const io = new IntersectionObserver(
       (records) => {
         for (const r of records) {
-          if (r.isIntersecting) visible.add(r.target.id);
-          else visible.delete(r.target.id);
+          visible = visible.filter((id) => id !== r.target.id);
+          if (r.isIntersecting) visible.push(r.target.id);
         }
-        current = [...entries].reverse().find((t) => visible.has(t.id))?.id ?? null;
+        current = [...entries].reverse().find((t) => visible.includes(t.id))?.id ?? null;
       },
       { rootMargin: "-96px 0px -60% 0px" },
     );
@@ -228,14 +225,16 @@
        width, never duplicated or moved with CSS. `lg:pt-24` matches the first
        section's top padding so the list's resting position lines up with its
        heading; when stuck, `top-24` is the same clearance `scroll-mt-24`
-       gives the anchors. -->
+       gives the anchors. `lg:z-10` lifts it above the rows: every RailRow
+       wraps itself in a `relative` ContentWidth, a later sibling, whose empty
+       rail cell would otherwise sit over the list and take its clicks. -->
   <div class="relative">
     <div
       class="pointer-events-none lg:absolute lg:inset-y-0 lg:left-[4%] lg:w-[92%] lg:max-w-[1220px] lg:pt-24 xl:inset-x-0 xl:mx-auto xl:max-w-[1440px]"
     >
       <nav
         aria-label="In this report"
-        class="pointer-events-auto mx-[4%] mt-12 w-[92%] lg:sticky lg:top-24 lg:mx-0 lg:mt-0 lg:w-[240px] print:hidden"
+        class="pointer-events-auto mx-[4%] mt-12 w-[92%] lg:sticky lg:top-24 lg:z-10 lg:mx-0 lg:mt-0 lg:w-[240px] print:hidden"
       >
         <p class="type-kicker m-0 text-primary">In this report</p>
         <ol class="m-0 mt-4 flex list-none flex-col gap-2 p-0">
@@ -265,10 +264,10 @@
        describes them to strangers right now and they have never seen what it
        says. Unlike a score it needs no explanation of our method. -->
     <section id={TOC_TARGETS.aiSays} class="w-full scroll-mt-24 py-16 md:py-24">
-      <ContentWidth class="relative">
+      <RailRow fill>
         <h2 class="type-display m-0 text-black">What an AI says about you</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
-      </ContentWidth>
+      </RailRow>
 
       <RailRow label="What it says" labelAs="h3" fill labelAbove>
         <div class="flex flex-col gap-10">
@@ -338,10 +337,10 @@
        before and an after. The visibility measurement above does not behave
        that way and is deliberately not printed beside these. -->
     <section id={TOC_TARGETS.control} class="bg-paper w-full scroll-mt-24 py-16 md:py-24">
-      <ContentWidth class="relative">
+      <RailRow fill>
         <h2 class="type-display m-0 text-black">What you control</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
-      </ContentWidth>
+      </RailRow>
 
       <RailRow label="Your scores" labelAs="h3" fill labelAbove>
         <div class="flex flex-col gap-10">
@@ -486,12 +485,12 @@
        diagnosis jumps straight here. -->
     {#if fixes.length}
       <section id={TOC_TARGETS.fixes} class="w-full scroll-mt-24 py-16 md:py-24">
-        <ContentWidth class="relative">
+        <RailRow fill>
           <h2 class="type-display m-0 text-primary">
             {fixes.length === 1 ? "One thing to fix" : `${fixes.length} things to fix, in order`}
           </h2>
           <hr class="mt-7.5 mb-7.5 border-primary" />
-        </ContentWidth>
+        </RailRow>
         <RailRow label="Start here" labelAs="p" fill labelAbove>
           <FixList {fixes} />
         </RailRow>
