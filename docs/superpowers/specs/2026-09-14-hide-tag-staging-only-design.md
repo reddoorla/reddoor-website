@@ -25,21 +25,36 @@ inside a Prismic preview session it is a normal document.
   sessions open only through the dashboard's token flow, so Tim can Preview a
   hidden page on `reddoorla.com` before it exists there.
 
-## 3. Mechanism: one default filter on the shared client
+## 3. Mechanism: one filter, appended where every query builds its URL
 
 Every Prismic query in the app goes through `createClient()` in
 `src/lib/prismicio.ts` (25 call sites, plus the `entries()` generators, the
-sitemap and the OG card route). The factory gains one default parameter:
+sitemap and the OG card route). When hidden content is off, the factory returns
+a subclass of the client whose `buildQueryURL` appends
+`filter.not("document.tags", ["hide"])` to whatever filters the call carries:
 
 ```ts
-defaultParams: showHidden ? {} : { filters: [prismic.filter.not("document.tags", ["hide"])] };
+class FilteredClient extends prismic.Client {
+  async buildQueryURL(params = {}) {
+    return super.buildQueryURL({ ...params, filters: [...toArray(params.filters), HIDE_FILTER] });
+  }
+}
 ```
 
-Verified against the live repository on 2026-09-14: `filter.not("document.tags",
-[...])` is accepted (the bare-string form is rejected by the API), the filtered
-`dangerouslyGetAll` returns 65 of 81 documents, and `getByUID` on an excluded
-document throws `NotFoundError`, which the `[uid]`, portfolio and showcase
-routes already turn into a 404. The three routes that fetch linked documents
+That is the only seam that catches everything. Every typed method (`getByUID`,
+`getByID`, `getAllByType`, `getSingle`, …) adds its own `filters` and ends in
+`get()`, which calls `this.buildQueryURL(params)`; and `buildQueryURL` spreads
+the call's params over `defaultParams`, so a filter set as a client default is
+**replaced** by any method's own. Measured on 2026-09-14 with only
+`defaultParams.filters` set: `getByUID("industry", "boise")`,
+`getAllByType("project")` (52 of 52) and `getByID` of a hidden project all
+returned hidden documents; only the raw `dangerouslyGetAll` honoured it. With
+the subclass: the hidden `getByUID` and `getByID` throw `NotFoundError`
+(which the `[uid]`, portfolio and showcase routes already turn into a 404),
+projects list 43 of 52, showcases 5 of 11, `getAllByIDs` of one hidden and one
+public id returns one, a `pageSize: 4` query returns four untagged documents,
+and `dangerouslyGetAll` returns 65 of 81. `filter.not("document.tags", [...])`
+needs the array form; the API rejects a bare string. The three routes that fetch linked documents
 after their main query (twenty-for-twenty by id, showcase featured and related
 by uid) already wrap those fetches in try/catch and skip the row; the portfolio
 prev/next list is a list query and is filtered like any other. No per-route
@@ -87,14 +102,14 @@ does.
 
 ## 6. Tests
 
-| Test                                           | Change                                                                                                                                           |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/lib/server/content-visibility.test.ts`    | new: the four rows of the table above, and the filter list for each result                                                                       |
-| `src/lib/prismicio.test.ts`                    | new: `createClient()` carries the filter when hidden and no filter when shown, read from the client's `defaultParams`                            |
-| `src/routes/layout.server.test.ts`             | the mocked query no longer expects a local `hide` filter                                                                                         |
-| `tests/smoke/health.spec.ts` (or the existing) | `/health` reports `hiddenContent: "shown"` under `vite dev`                                                                                      |
-| existing `/boise` smoke tests                  | go green: the document is published and dev shows hidden content. That is the staging behaviour, proven.                                         |
-| production behaviour                           | not testable under `vite dev`; verified after each deploy by `/health` and a `curl` of `/boise` on both hosts, and by a local `pnpm build` (§5). |
+| Test                                           | Change                                                                                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/server/content-visibility.test.ts`    | new: the four rows of the table above, and the filter list for each result                                                                                   |
+| `src/lib/prismicio.test.ts`                    | new: with a stubbed repository fetch, the hidden client's `buildQueryURL` carries the not-filter next to a call's own filter and the shown client's does not |
+| `src/routes/layout.server.test.ts`             | the mocked query no longer expects a local `hide` filter                                                                                                     |
+| `tests/smoke/health.spec.ts` (or the existing) | `/health` reports `hiddenContent: "shown"` under `vite dev`                                                                                                  |
+| existing `/boise` smoke tests                  | go green: the document is published and dev shows hidden content. That is the staging behaviour, proven.                                                     |
+| production behaviour                           | not testable under `vite dev`; verified after each deploy by `/health` and a `curl` of `/boise` on both hosts, and by a local `pnpm build` (§5).             |
 
 ## 7. Rollout
 
