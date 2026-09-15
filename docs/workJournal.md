@@ -562,3 +562,85 @@ closed disclosures and shorter than a viewport — and a line highlighted for
 one scroll-tick and then not read as a line to skip. Its anchor stays,
 because three in-page links land on it. Four entries at most now, three
 without fixes.
+
+## 2026-09-15 — The report opens with what it is (`feat/report-primer`)
+
+Tucker's brief, in the same breath as the contents list: one section at the
+top "that describes what this report is and what was done and why", telling
+"the whole story as we have it setup", before "What an AI says about you" and
+the results. The reason is the reading the report was getting: an assistant's
+paragraph about the business, then scores, and nothing before either saying
+that most of the document is machinery. Read cold, it was an AI's opinion of
+a website — the thing we are least willing to sell — rather than the output
+of an instrument that ran seventy-odd named checks before an assistant was
+asked anything. The first copy draft made that case and was rejected twice:
+once for missing the mechanical checks entirely ("we need to demonstrate the
+work that we've done building this tool and how this is different than just
+asking an ai to audit the site from a standing start"), then, with them in,
+for length — "at least twice as long as I'd want it to be, this is the first
+section we want to inform the reader not lose them". The approved version is
+three paragraphs, about 190 words: the two routes a buyer takes and that this
+is a measurement on a date, not a promise; the machinery in the order it ran
+(crawl twice, the battery, the accessibility rules, robots.txt as the
+crawlers read it, clicks to contact) and only then the assistant; and how to
+read it (receipts, unmeasured is not scored against you, passes in one place,
+fixes in order, worth taking again). Title "What this report is", kicker "In
+short", on the hero's paper as front matter, first in the contents list.
+
+The prose is composed in `narrative.ts` rather than written in the template,
+and the reason is the honesty rule. The copy names four values — the
+business, the date, the count of named checks, the count of AI crawlers —
+and five clauses that each claim a stage ran. `primer(view, fixes)` reads
+every one off the view and drops any clause whose stage did not run rather
+than defaulting it: `accessibility.measured`, `crawlerReach.measured &&
+checked > 0`, the journey stage's presence, `categoryProbes.length`,
+`fixes.length`. A primer saying "we read your robots.txt" over a report whose
+checks never ran would be the exact overstatement the report exists to avoid,
+and a template with five `{#if}`s inside one sentence is where that mistake
+would have hidden. Composed in code, every branch is a unit test, and the
+review's probe ran all of them for double spaces and stray punctuation (the
+first version spliced ", check…" onto "about {who}"; it is whole sentences
+joined by a space now). The fallbacks read: "taken on one day", "ran its named
+checks", the machinery sentence dropped whole, "about your business and check
+each statement against your own pages", and the receipts sentence without the
+fixes clause. The hard-case sample (no business name, no date, no probes)
+prints exactly those. Two of the plan's beliefs were wrong on contact: its
+null-view fixture forgot `businessName`, so the "your business" assertion
+failed against "Example Studio" until the implementer nulled it; and an
+empty battery printed "ran 0 named checks", so the gate is on the count, the
+way `health.ts` treats null and `[]` alike. `auditedOn(view)` moved into the
+same module so the masthead's "Audited September 3, 2026" and the primer's
+"taken on September 3, 2026" are one function; the print route uses it too,
+which is the one thing this branch touches in the PDF — the PDF has no primer
+and still promises "the same story", a gap for a later entry.
+
+Layout. The section carries `pt-12 pb-16 md:pb-24 lg:pt-0` and the contents
+list's positioning column lost its `lg:pt-24`: at `lg` the hero's own bottom
+padding is the seam, so the section's top, the list's top and the heading's
+top all measure 581.375px at 1280×800 (list x=51.19, heading x=311.19), and
+the smoke pins the list to the heading within 1px. Below `lg` the list's
+`mt-12` and the section's `pt-12` give 688.78 → 876.78 → 924.78 at 390×844.
+The defect the first build had is the one the screenshot caught and the
+review predicted: with the primer on its own `bg-paper` and the wrapper
+transparent, the list sat on a 236px strip of plain white between two paper
+bands on a phone (before this branch its white ran into the white first
+finding). The wrapper carries the paper now and the two white sections paint
+`bg-white` over it; a responsive `lg:bg-none` on the column would not have
+worked, since `.bg-paper` is unlayered and beats utilities. The phone smoke
+asserts the band behind the list, the primer's heading and the first
+finding's heading.
+
+One more thing found on the way, unrelated to the primer: the unit tests
+were timezone-dependent. The fixture stamps `generatedAt` at `09:00Z`, and
+`TZ=Pacific/Honolulu pnpm vitest run` printed "September 2, 2026" — CI is UTC
+and every Pacific machine is fine, so nothing had ever failed, the same shape
+as #133. `vitest.config.js` pins `env.TZ` to UTC.
+
+Counts: 578 unit tests in 51 files; `report-primer.spec.ts` (2) and
+`report-toc.spec.ts` (5) passed in 15.2s on a fresh vite, with
+`.audit-sample.json` moved aside so the fixture renders as in CI; lint and
+check clean. Same day, Tucker's review of the contents list removed the
+arrow from the current entry and the appendix from the list; those are in
+the entry above, and the primer stacks on that branch (PR #190) as its first
+entry. Still to check by hand: edit mode on staging, where the primer should
+be offered as no target, since none of its text is a payload field.

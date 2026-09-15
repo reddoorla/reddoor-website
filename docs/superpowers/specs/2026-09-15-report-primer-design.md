@@ -204,3 +204,24 @@ Manual before the PR leaves draft: the hard-case sample on `/dev/audit-report`
 - The hero: its "Read on for what we found … or jump to what to fix" line
   stays.
 - A measure cap for body prose in the report.
+
+## Amendment, 2026-09-15 (during implementation)
+
+Three things the build changed. First, the paper. With the primer on its own
+`bg-paper` and the wrapper transparent, a phone showed the contents list on a
+236px strip of plain white between the hero's paper and the primer's (hero
+paper ending near y=640, primer starting at 876.8 at 390×844) — before this
+branch the list's white ran into the white first finding. The wrapper
+`div.relative` now carries `bg-paper`, the two white sections ("What an AI
+says about you", "What to fix") paint `bg-white` over it, and the primer, the
+control section and the appendix carry no background of their own. At `lg`
+nothing changes; below `lg` the hero, the list and the primer are one paper
+band. `report-copy.test.ts`'s "share one paper band" assertion reads the
+wrapper's class now, and the phone smoke asserts the band behind the list,
+the primer's heading and the first finding's heading. Second, the print route
+also formats its date through `auditedOn(view)`; "keeps its own copy" above
+is superseded, though the PDF still has no primer. Third, names: the derived
+values in `Report.svelte` are `about` (the primer) and `auditDate`, not
+`intro` and `audited`. The unit tests also run with `TZ=UTC` pinned in
+`vitest.config.js`: the fixture's `09:00Z` stamp printed "September 2, 2026"
+under `TZ=Pacific/Honolulu`, and CI is UTC.
