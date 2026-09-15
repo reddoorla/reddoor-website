@@ -69,13 +69,13 @@ pages do not pass it and are unchanged.
 One pure function, `tocEntries(view, fixes)` in `src/lib/report/narrative.ts`
 beside `headlineFinding` and `allFixes`, returns the entries in page order:
 
-| Label                             | Target     | Present when        |
-| --------------------------------- | ---------- | ------------------- |
-| What an AI says about you         | `#ai-says` | always              |
-| What you control                  | `#control` | always              |
-| What to fix                       | `#fixes`   | `fixes.length > 0`  |
-| What passes, and how we measured  | `#passes`  | always              |
-| Talk it through                   | `#talk`    | always              |
+| Label                            | Target     | Present when       |
+| -------------------------------- | ---------- | ------------------ |
+| What an AI says about you        | `#ai-says` | always             |
+| What you control                 | `#control` | always             |
+| What to fix                      | `#fixes`   | `fixes.length > 0` |
+| What passes, and how we measured | `#passes`  | always             |
+| Talk it through                  | `#talk`    | always             |
 
 Labels are the section titles without their dynamic parts ("3 things to fix,
 in order" lists as "What to fix"). The ids live on the `section` elements, each with `scroll-mt-24` so a jump
@@ -160,3 +160,16 @@ Manual before the PR leaves draft: the hard-case sample on
 - Any change to the industry landing pages' `RailRow` usage.
 - Smooth scrolling (the site gates it on reduced motion already; the anchors
   inherit whatever the page does).
+
+## Amendment, 2026-09-15 (during implementation)
+
+Each section's `h2` and red rule lived in a full-width `ContentWidth` spanning
+both columns, which the design above never mentioned. At rest the list's top
+(`lg:pt-24`) coincided with the first heading's top (both 677.4px at 1280×800)
+and the heading, a later sibling, painted over the first entry's link; stuck,
+every heading passed through the list. The headings now sit in the content
+column as label-less `RailRow`s, so the rail column holds nothing but the
+list, and the red rule spans the content column rather than the full content
+width. Also: the all-pass fixture carries two `recommendation` fixes, so
+`/dev/audit-report` renders "2 things to fix" and a five-entry list; the
+omission of "What to fix" is asserted in the unit test, not the smoke test.

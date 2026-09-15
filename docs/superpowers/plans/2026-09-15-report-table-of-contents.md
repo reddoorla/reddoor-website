@@ -17,6 +17,7 @@
 ### Task 1: `tocEntries` and `TOC_TARGETS` in the narrative layer
 
 **Files:**
+
 - Modify: `src/lib/report/narrative.ts` (append after `allFixes`, which ends the file)
 - Test: `src/lib/report/narrative.test.ts`
 
@@ -124,6 +125,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 2: `RailRow` learns `labelAbove`
 
 **Files:**
+
 - Modify: `src/lib/components/RailRow.svelte`
 
 No unit test: the repo's Vitest runs in the node environment with no component tests. The smoke test in Task 4 asserts the behaviour on the real page.
@@ -151,26 +153,26 @@ Change the rail cell's `{#if railLabel}` to `{#if railLabel && !labelAbove}`.
 Change the content column from
 
 ```svelte
-    <div class="min-w-0">
-      {@render children()}
-    </div>
+<div class="min-w-0">
+  {@render children()}
+</div>
 ```
 
 to
 
 ```svelte
-    <div class="min-w-0">
-      {#if railLabel && labelAbove}
-        <svelte:element
-          this={labelAs}
-          use:anim={{ enabled: animateIn && animateItems }}
-          class="type-kicker mb-6 {labelClass}"
-        >
-          {railLabel}
-        </svelte:element>
-      {/if}
-      {@render children()}
-    </div>
+<div class="min-w-0">
+  {#if railLabel && labelAbove}
+    <svelte:element
+      this={labelAs}
+      use:anim={{ enabled: animateIn && animateItems }}
+      class="type-kicker mb-6 {labelClass}"
+    >
+      {railLabel}
+    </svelte:element>
+  {/if}
+  {@render children()}
+</div>
 ```
 
 - [ ] **Step 3: Check and lint**
@@ -191,6 +193,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 3: The nav in `Report.svelte`
 
 **Files:**
+
 - Modify: `src/lib/report/Report.svelte`
 - Modify: `src/lib/report/WhatPasses.svelte` (line 22: remove `id="passes"` and its `scroll-mt-24`)
 
@@ -199,13 +202,13 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 Change the narrative import to:
 
 ```ts
-  import { allFixes, headlineFinding, tocEntries, TOC_TARGETS } from "./narrative";
+import { allFixes, headlineFinding, tocEntries, TOC_TARGETS } from "./narrative";
 ```
 
 After `const fixes = $derived(allFixes(view));` add:
 
 ```ts
-  const toc = $derived(tocEntries(fixes));
+const toc = $derived(tocEntries(fixes));
 ```
 
 - [ ] **Step 2: The current-section observer**
@@ -213,39 +216,39 @@ After `const fixes = $derived(allFixes(view));` add:
 After the `closingInView` effect (the one that observes `closing`), add:
 
 ```ts
-  // Which section the reader is in, for the contents list.
-  //
-  // One observer over the anchors the list points at, watching a band from
-  // just under the fixed nav to 40% of the way down the viewport. A section is
-  // "in" that band while any of it overlaps it; when two do (the seam between
-  // sections), the lower one wins, so the entry flips as a heading passes the
-  // nav rather than when a section first appears at the bottom of the screen.
-  // Nothing is current while only the hero is on screen. Observers, not a
-  // scroll listener with pixel thresholds, for the reason given above: the
-  // sections' heights change with the content.
-  let current: string | null = $state(null);
+// Which section the reader is in, for the contents list.
+//
+// One observer over the anchors the list points at, watching a band from
+// just under the fixed nav to 40% of the way down the viewport. A section is
+// "in" that band while any of it overlaps it; when two do (the seam between
+// sections), the lower one wins, so the entry flips as a heading passes the
+// nav rather than when a section first appears at the bottom of the screen.
+// Nothing is current while only the hero is on screen. Observers, not a
+// scroll listener with pixel thresholds, for the reason given above: the
+// sections' heights change with the content.
+let current: string | null = $state(null);
 
-  $effect(() => {
-    const el = root;
-    if (!el) return;
-    const entries = toc;
-    const visible = new Set<string>();
-    const io = new IntersectionObserver(
-      (records) => {
-        for (const r of records) {
-          if (r.isIntersecting) visible.add(r.target.id);
-          else visible.delete(r.target.id);
-        }
-        current = [...entries].reverse().find((t) => visible.has(t.id))?.id ?? null;
-      },
-      { rootMargin: "-96px 0px -60% 0px" },
-    );
-    for (const t of entries) {
-      const target = el.querySelector<HTMLElement>(`#${t.id}`);
-      if (target) io.observe(target);
-    }
-    return () => io.disconnect();
-  });
+$effect(() => {
+  const el = root;
+  if (!el) return;
+  const entries = toc;
+  const visible = new Set<string>();
+  const io = new IntersectionObserver(
+    (records) => {
+      for (const r of records) {
+        if (r.isIntersecting) visible.add(r.target.id);
+        else visible.delete(r.target.id);
+      }
+      current = [...entries].reverse().find((t) => visible.has(t.id))?.id ?? null;
+    },
+    { rootMargin: "-96px 0px -60% 0px" },
+  );
+  for (const t of entries) {
+    const target = el.querySelector<HTMLElement>(`#${t.id}`);
+    if (target) io.observe(target);
+  }
+  return () => io.disconnect();
+});
 ```
 
 - [ ] **Step 3: Ids and scroll margins on the targets**
@@ -348,6 +351,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 4: Smoke coverage
 
 **Files:**
+
 - Create: `tests/smoke/report-toc.spec.ts`
 
 - [ ] **Step 1: Write the spec**
@@ -442,7 +446,9 @@ test.describe("report table of contents", () => {
     await ready(page, 1280, 800);
     await page.locator(`${NAV} a[href="#passes"]`).click();
     await expect
-      .poll(() => page.evaluate(() => document.querySelector("#passes")!.getBoundingClientRect().top))
+      .poll(() =>
+        page.evaluate(() => document.querySelector("#passes")!.getBoundingClientRect().top),
+      )
       .toBeLessThanOrEqual(NAV_LINE + 1);
     await expect(page.getByRole("button", { name: /back to where you were/i })).toBeVisible();
   });
@@ -504,6 +510,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 5: Journal entry
 
 **Files:**
+
 - Modify: `docs/workJournal.md` (append at the end)
 
 - [ ] **Step 1: Append the entry**
