@@ -2,7 +2,7 @@
   import { PrismicPreview } from "@prismicio/svelte/kit";
   import { Menu, X } from "@lucide/svelte";
   import { page } from "$app/state";
-  import { repositoryName } from "$lib/prismicio";
+  import { repositoryName } from "$lib/prismic-repo";
   import { SITE_URL } from "$lib/site";
 
   import "../app.css";

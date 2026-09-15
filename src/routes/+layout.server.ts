@@ -1,5 +1,4 @@
 import { createClient } from "$lib/prismicio";
-import { filter } from "@prismicio/client";
 import { ogCardPath } from "$lib/og/url";
 import type { LayoutServerLoad } from "./$types";
 
@@ -51,8 +50,6 @@ export const load: LayoutServerLoad = async ({ url, fetch, cookies, setHeaders }
       field: "document.first_publication_date",
       direction: "desc",
     },
-
-    filters: [filter.not("document.tags", ["hide"])],
     pageSize: 4,
   });
 

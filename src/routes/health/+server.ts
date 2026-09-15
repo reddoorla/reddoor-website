@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { env as privateEnv } from "$env/dynamic/private";
 import { env as publicEnv } from "$env/dynamic/public";
 import * as prismicio from "$lib/prismicio";
+import { currentlyShowsHidden } from "$lib/server/content-visibility";
 import type { RequestHandler } from "./$types";
 
 // A live probe — must never be prerendered.
@@ -53,5 +54,8 @@ export const GET: RequestHandler = async ({ fetch }) => {
   // We're inside the handler, so the function ran; ok is false only when the
   // Prismic probe actively errored.
   const ok = prismic !== "error";
-  return json({ ok, prismic, forms });
+  // Per deploy, not per request: the cookie case is a preview session, not a
+  // mode. Production answers "hidden"; the staging site answers "shown".
+  const hiddenContent = currentlyShowsHidden(undefined) ? "shown" : "hidden";
+  return json({ ok, prismic, forms, hiddenContent });
 };

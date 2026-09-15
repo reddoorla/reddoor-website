@@ -1,5 +1,4 @@
 import { createClient } from "$lib/prismicio";
-import { filter } from "@prismicio/client";
 import { error } from "@sveltejs/kit";
 import { ogCardPath } from "$lib/og/url";
 import { loadRouteMeta } from "$lib/server/route-meta";
@@ -15,7 +14,6 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
         field: "document.first_publication_date",
         direction: "asc",
       },
-      filters: [filter.not("document.tags", ["hide"])],
     });
   } catch (err) {
     // A Prismic failure renders the error page as a 503, not an unhandled 500

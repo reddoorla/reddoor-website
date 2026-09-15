@@ -1,12 +1,11 @@
 import * as prismic from "@prismicio/client";
 import { enableAutoPreviews } from "@prismicio/svelte/kit";
 import type { CreateClientConfig } from "@prismicio/svelte/kit";
-import config from "../../slicemachine.config.json";
+import { currentlyShowsHidden, HIDE_FILTER, PREVIEW_COOKIE } from "$lib/server/content-visibility";
+import type { AllDocumentTypes } from "../prismicio-types";
+import { repositoryName } from "./prismic-repo";
 
-/**
- * The project's Prismic repository name.
- */
-export const repositoryName = config.repositoryName;
+export { repositoryName };
 
 /**
  * A list of Route Resolver objects that define how a document's `url` field is resolved.
@@ -47,14 +46,43 @@ const routes: prismic.ClientConfig["routes"] = [
 ];
 
 /**
- * Creates a Prismic client for the project's repository. The client is used to
- * query content from the Prismic API.
+ * A client that appends the hide filter to every query it builds.
+ *
+ * This is the only seam that catches everything: every typed method
+ * (`getByUID`, `getByID`, `getAllByType`, `getSingle`, …) adds its own
+ * `filters` and ends in `get()`, which calls `this.buildQueryURL(params)`,
+ * and `buildQueryURL` spreads the call's params over `defaultParams`, so a
+ * filter set as a client default is REPLACED by any method's own. Measured
+ * 2026-09-14: with only `defaultParams.filters` set, `getByUID`,
+ * `getAllByType` and `getByID` all returned hidden documents.
+ */
+export class HiddenContentFilteredClient extends prismic.Client<AllDocumentTypes> {
+  override async buildQueryURL(
+    params: Parameters<prismic.Client["buildQueryURL"]>[0] = {},
+  ): Promise<string> {
+    const own =
+      params.filters == null
+        ? []
+        : Array.isArray(params.filters)
+          ? params.filters
+          : [params.filters];
+    return super.buildQueryURL({ ...params, filters: [...own, HIDE_FILTER] });
+  }
+}
+
+/**
+ * Creates a Prismic client for the project's repository. A document tagged
+ * `hide` is invisible to it unless this process or request shows hidden
+ * content (see `$lib/server/content-visibility`): under `vite dev`, on the
+ * staging site, or inside a preview session.
  */
 export const createClient = ({ cookies, ...config }: CreateClientConfig = {}) => {
-  const client = prismic.createClient(repositoryName, {
-    routes,
-    ...config,
-  });
+  const options = { routes, ...config };
+  const client: prismic.Client<AllDocumentTypes> = currentlyShowsHidden(
+    cookies?.get(PREVIEW_COOKIE),
+  )
+    ? prismic.createClient(repositoryName, options)
+    : new HiddenContentFilteredClient(repositoryName, options);
 
   enableAutoPreviews({ client, cookies });
 
