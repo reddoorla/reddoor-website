@@ -6,8 +6,8 @@
 // are the durable reference; they are recorded here.
 //
 // Usage
-//   node --env-file=../reddoor-maintenance/.env scripts/medtech/export-assets.mjs
-//   FIGMA_PAT=… node scripts/medtech/export-assets.mjs
+//   node --env-file=../reddoor-maintenance/.env scripts/industry/medtech/export-assets.mjs
+//   FIGMA_PAT=… node scripts/industry/medtech/export-assets.mjs
 //
 // Board: "Sales Funnel v2" (4791:818) in file HRxyQGlQwQDEqOuRlEaZoL.
 import { mkdir, writeFile } from "node:fs/promises";

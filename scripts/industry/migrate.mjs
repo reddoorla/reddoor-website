@@ -1,9 +1,10 @@
-// MedTech industry landing page — content migration.
+// Industry landing page — content migration.
 //
-// Creates (or updates) the `industry` document with uid `medtech` from the
-// frozen ./data.json, uploading the Figma-exported assets in ./assets alongside
-// it. The copy is transcribed from the Figma board "Sales Funnel v2"; see
-// data.json's _source / _copyEdits / _contentGaps keys.
+// Creates (or updates) one `industry` document from
+// scripts/industry/<uid>/data.json, uploading the assets staged in
+// scripts/industry/<uid>/assets/ alongside it. Each city or vertical is a
+// folder; this script is shared. data.json's _source / _copyEdits /
+// _contentGaps keys record where the copy came from and what is still missing.
 //
 // Behaviour
 //   • Every field written is validated against the LOCAL src/lib/slices/*/model.json
@@ -11,28 +12,45 @@
 //     drift becomes a loud failure instead of a silently malformed document.
 //   • Content is staged as an UNPUBLISHED DRAFT — the Prismic Migration API never
 //     auto-publishes. Review in Prismic and Publish to go live.
-//   • Re-runnable: if `medtech` already exists the script updates it in place
+//   • Re-runnable: if the uid already exists the script updates it in place
 //     rather than creating a duplicate.
+//   • `--industry <uid>` must match data.json's `uid`, so a copied folder can
+//     never overwrite the wrong document.
 //
 // PREREQUISITE: the slice + custom-type MODELS must be pushed to the Prismic repo
 // first — migrate() validates slices against the repo's pushed models, and a write
-// token cannot push models. Run `pnpm slicemachine`, log in, push, then run this.
+// token cannot push models. (Already true for every slice the industry type uses.)
 //
 // Usage
-//   node --env-file=.env.local scripts/medtech/migrate.mjs --dry-run
-//   node --env-file=.env.local scripts/medtech/migrate.mjs
+//   node scripts/industry/migrate.mjs --industry boise --dry-run
+//   node --env-file=.env.local scripts/industry/migrate.mjs --industry boise
 //
-// Needs PRISMIC_WRITE_TOKEN (Prismic → Settings → API & Security → Write APIs).
+// Needs PRISMIC_WRITE_TOKEN (Prismic → Settings → API & Security → Write APIs)
+// for the real run only.
 import * as prismic from "@prismicio/client";
 import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { industryFromArgs, missingRequiredKeys, uidMismatch } from "./lib.mjs";
 
-const DRY_RUN = process.argv.includes("--dry-run");
+const ARGS = process.argv.slice(2);
+const DRY_RUN = ARGS.includes("--dry-run");
+const INDUSTRY = industryFromArgs(ARGS);
+if (!INDUSTRY) {
+  console.error("Usage: node scripts/industry/migrate.mjs --industry <uid> [--dry-run]");
+  process.exit(1);
+}
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ASSET_DIR = path.join(HERE, "assets");
+const DATA_DIR = path.join(HERE, INDUSTRY);
+const DATA_FILE = path.join(DATA_DIR, "data.json");
+const ASSET_DIR = path.join(DATA_DIR, "assets");
 const SLICES_DIR = path.resolve(HERE, "../../src/lib/slices");
+if (!existsSync(DATA_FILE)) {
+  console.error(`No such industry: ${DATA_FILE} does not exist.`);
+  process.exit(1);
+}
 
 // Prismic client errors can embed the request URL — including ?access_token=… —
 // in their message. Never print one unredacted.
@@ -382,7 +400,24 @@ async function buildSlices(d, stage, projects) {
 const config = JSON.parse(
   await readFile(path.resolve(HERE, "../../slicemachine.config.json"), "utf8"),
 );
-const d = JSON.parse(await readFile(path.join(HERE, "data.json"), "utf8"));
+let d;
+try {
+  d = JSON.parse(await readFile(DATA_FILE, "utf8"));
+} catch (e) {
+  console.error(`✗ ${path.relative(process.cwd(), DATA_FILE)} is not valid JSON: ${e.message}`);
+  process.exit(1);
+}
+const rel = path.relative(process.cwd(), DATA_FILE);
+const mismatch = uidMismatch(d.uid, INDUSTRY);
+if (mismatch) {
+  console.error(`✗ ${rel} ${mismatch}`);
+  process.exit(1);
+}
+const missing = missingRequiredKeys(d);
+if (missing.length) {
+  console.error(`✗ ${rel} is missing ${missing.join(", ")}`);
+  process.exit(1);
+}
 
 const writeToken = process.env.PRISMIC_WRITE_TOKEN;
 if (!writeToken && !DRY_RUN) {
@@ -437,13 +472,13 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`\nMedTech landing page → ${config.repositoryName}`);
+console.log(`\n${d.title} → ${config.repositoryName}`);
 console.log(`  uid:    ${d.uid}`);
 console.log(`  slices: ${slices.length}`);
 for (const s of slices) console.log(`    · ${s.slice_type} (${s.variation})`);
 console.log(`  linked projects: ${[...projects.keys()].join(", ")}`);
 console.log(`  models validated: OK`);
-for (const gap of d._contentGaps) console.log(`  ! ${gap}`);
+for (const gap of d._contentGaps ?? []) console.log(`  ! ${gap}`);
 
 if (DRY_RUN) {
   console.log("\nDRY-RUN: nothing sent.");

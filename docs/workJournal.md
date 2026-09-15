@@ -265,6 +265,153 @@ load average to 45 during the run), and a staging-mode build that prerenders
 live on the Boise branch (#183) and go green there once this merges beneath
 them, since the document is now published.
 
+## 2026-09-14 — `/boise`, `/bew` and the per-city content pipeline (#183, `feat/boise-industry-lp`)
+
+> Superseded in part by 2026-09-14 — The `hide` tag makes a document staging-only (#185, `feat/hide-tag-staging-only`), which sits above this entry because `staging` merged in first.
+
+Tim is working Boise Entrepreneur Week (28 September to 2 October, JUMP,
+downtown Boise) and asked for "the medtech funnel, pointed at Boise". The
+page that shipped is a **city** page, not an event page: `/boise` is a second
+`industry` document that outlives the week, and `/bew` is a static route that
+302s to it with `utm_source=bew&utm_medium=event&utm_campaign=bew-2026`
+attached. Any incoming `utm_*` overrides the matching default, so one route
+serves the booth card (`utm_content=booth-card`), the closing slide and the
+email signature; every other parameter is dropped and the destination is a
+fixed path. San Antonio is the next city, and this branch is the proof that a
+niche page is now a data file, a folder of assets and one command. The five
+inquiry questions and the $10k+ gate were reused byte for byte: `funnel` in
+the CRM is the page uid, so the second page cost nothing on the CRM side.
+
+**The medtech build's repeatability claim held**, with two exceptions worth
+naming. No models, no slices, no CRM schema and no route code changed for the
+second document; the `[uid]` route's page→industry fallback needed nothing,
+and the OG card at `/og/industry/boise.png` came free. The first exception is
+the chase link: `/inquiry` honours `funnel=` but defaults to `medtech`, and
+the A-102-1 message body in the CRM never sends the parameter. Until someone
+appends `&funnel={{contact.funnel}}` in the workflow builder (body text is not
+API-writable), every abandoned lead, Boise included, is chased back to
+`/medtech`. The site half is in place and pinned by a smoke test. The second
+exception was a belief corrected on contact: the design assumed the `utm_*`
+values ride into the CRM as custom fields. They do not. The four utm fields
+were removed from the sync on 2026-08-18 because GHL blanks them on
+API-created contacts, so the values survive only as text in the contact's
+attribution note and in central ingest. A BEW lead and an organic Boise lead
+are therefore identical to a smart list. Tucker chose a first-touch tag,
+`bew`, applied on both touches (the add-tags endpoint appends, so the repeat
+is harmless). The code review then caught that the redirect deliberately lets
+collateral override `utm_source`, which would have left exactly the printed
+cohort untagged; the tag now fires on the source or the campaign, read from
+`src/lib/bew.ts` so the strings have one owner.
+
+**Scoping found two things nobody had written down.** The live `/medtech` hero
+is still the unlicensed iStock comp (`hero-PLACEHOLDER-istock-comp.png` in
+Prismic); it is not fixed here, and the Boise hero is a named placeholder
+(`hero-PLACEHOLDER-licensed-boise-photo-needed.png`, 3058×1720) until Tim
+supplies a licensed Boise image, so the gap is at least visible in the CMS.
+And the site's own `logo_soup` document is a ready-made logo source: colour
+mark, knockout, rollover art and project link per brand, which is where nine
+of the grid's logos came from without a Figma board.
+
+**The board-less logo fit has numbers.** `scripts/industry/fit-logos.mjs` pads
+each mark onto a 900×315 canvas (3× the 300×105 LogoGrid box) so that ink
+fills at most 72% of the width or 62% of the height. The 72% is not taste:
+648px on the canvas is 216 CSS px at 3×, inside the 220px the component
+already declares in `sizes`, so nothing decodes more than it asked for. A
+near-square mark paints narrow under that rule (St. James' Episcopal School's
+ink is 173×195 and lands at about 19% of the canvas width while the wordmarks
+in the same row reach 72%), and the script does not guess: `FILL_OVERRIDES`
+is where a human raises one logo after looking at the row. `--check` verifies
+the canvas size, orphaned knockouts, ink centring to ±1px, the fill cap and
+undersize (the tightest Boise mark reaches 0.9938 of its cap; the floor is
+0.98). Re-running the script over its own output can move a mark by one pixel
+on the first pass and then converges, so `--check` is the oracle, not a byte
+diff. Rollover art is resized to 3840 wide and cut to the 1080×1920 portrait
+the grid serves below 768px with sharp's `attention` position; two brands
+needed overrides (Hearts & Minds `centre`, SummitTrek `entropy`), and Hearts
+& Minds has no 9:16 crop that keeps its subject, which is recorded as a
+content gap rather than hidden. The smoke test that refuses an untouched
+auto-crop as the phone backdrop is what makes the distinct mobile crop a
+requirement rather than a habit.
+
+**Defects, named.** Moving the medtech helpers one directory deeper broke the
+credential paths in `fetch-dropbox-assets.mjs` silently, because both reads
+were wrapped in `.catch(() => "")`; nothing failed until the script ran with
+empty tokens. The fix was one more `../` on each, and the verification
+command then used the wrong absolute path because a worktree sits two levels
+below the main checkout: the depths are correct for the main checkout, and the
+script now says so. Enzo's van PNG carries an alpha channel, and writing it as
+a JPEG flattened the transparency to black; the stager now refuses to write
+`.jpg` from a non-opaque source (`isOpaque` guard) and the brand board leads
+the case study instead. The `qrcode` CLI, run from a background shell to make
+the event QR codes, sat for eight minutes with empty output: `bin/qrcode`
+checks `process.stdin.isTTY` and otherwise waits for stdin to end, which a
+background job never does. The codes were generated through the library
+(1024px, level H, quiet zone 2) and decoded back with jsQR to prove the
+payloads. And one smoke test, "draws each arrow before its copy fills in",
+flaked once in two full runs and passed three times alone after the industry
+spec grew from 13 to 20 tests; the commit does not touch it, so the mechanism
+is worker contention on an animation-timing assertion, and CI's two retries
+absorb it.
+
+**Sequencing.** Eleven smoke tests for `/boise` are red on this branch by
+design: the dev server reads Prismic's published ref, and the `boise` document
+is a draft in a migration release (`aqh9xRMAACcApDnG`), which Tim will find
+under the Releases view, not the Migration tool. The full run at the PR head
+is 556 unit tests green and 182 smoke tests green, 7 skipped, those eleven
+red, plus two that failed only under load and passed in isolation: a
+`/twenty-for-twenty` navigation timeout, and `/sitemap.xml` answering 500,
+because the route's three Prismic fetches have no fallback when one of them
+fails. Other sessions were driving the load average past 96 during the run,
+which is the number to remember before trusting a red smoke suite on this
+machine. The eleven go green with no code change when Tim publishes, and the
+`reddoorla` Netlify project already has a Prismic build hook on `main` (from
+2024-08-22), so the publish builds production on its own. Two of the eleven
+came from the reviews: `/boise` advertises `/og/industry/boise.png`, the
+generated card, and the card itself is fetched and must be a PNG, the first
+test that has ever rendered an industry card (medtech's passes today). The
+satori route's known failure mode is a function that 502s while CI stays
+green; whether the card is actually prerendered is still a manual
+post-publish check, since a `vite dev` run cannot tell prerendered from
+on-demand. The same review removed a shadowed name from the industry smoke
+spec: the six composition checks loop over every industry page while the
+numeral-geometry checks pin one, and the pinned constant was called `PATH`,
+the same identifier the loop bound, so a reader 300 lines down could not tell
+"each industry" from "the one page these pin". It is `PINNED_PATH` now. The copy is my draft from the spec's positioning; the eleven items in
+`data.json` under `_contentGaps` are Tim's review checklist: the hero photo,
+the founder-in-Boise claims, the MSOT testimonial (kept, flagged), pricing
+that mirrors `/medtech` ($1,500 and 7 days for the diagnosis; roughly $20,000
+to six figures for the rebuild; Erik owns the language), the renamed Design
+System items, the all-national logo row, and the fact that enzoshandwash.com
+now redirects to a car dealer while the project's website mockup reads
+"COMING SOON". Enzo's stays as the case study because it is the only named
+Boise client; Tim tells us what happened. Rejected during the copy review: a
+false alt on the Bronco image, a "Big-League Branding, Built in Boise"
+headline, and a pricing contradiction between the FAQ and the banner.
+
+**What the final review caught that the per-task reviews could not.** The
+worst was a runbook trap: `fit-logos.mjs` was listed as a shared tool with no
+caveat, but medtech's logos were normalised per asset from a Figma-measured
+table, so `--check` on medtech reports 29 failures and a bare run would have
+rewritten all of them in place, into a gitignored folder whose only recovery
+is re-exporting the board. The script now refuses any city that has its own
+`normalize-logos.mjs`. The uid-equals-folder assertion, the branch's headline
+safety property, had been verified by hand and never by a test; it lives in
+`scripts/industry/lib.mjs` now with one. The three framework icons the
+pipeline stages and both data files name are rendered by nothing, because the
+TextColumns model dropped its `icon` field when the board replaced icons with
+numerals; they are medtech's Figma exports byte for byte, not "the studio's
+own" as the Boise stager claimed, and `shared/README.md` now says so. The
+`/bew` value cap of 100 characters had no companion cap on the number of
+`utm_` keys, and each key becomes a line in the CRM note; twelve is the
+ceiling now. And medtech's two image helpers had left 24 `.tmp` files behind,
+which is why the `.gitignore` comment measured "~39 MB" against a real 34.3 MB
+over 47 files.
+
+One stale comment found in passing: `netlify.toml` still calls the SSR
+headers gap open and points at `hooks.server.ts` as the fix, and
+`hooks.server.ts` has since done exactly that. The comment is wrong in the
+safe direction and is left for a separate change.
+
 ## 2026-09-15 — The `hide` tag reached production (#186, `4503065`)
 
 Tucker published the medtech release (`aqiaQxMAAFcNpGFf`) himself, so the

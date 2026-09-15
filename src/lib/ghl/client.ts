@@ -9,6 +9,7 @@ import {
   TAG_APPLICATION_STARTED,
   TAG_NOT_A_FIT,
 } from "./constants";
+import { eventTags } from "./events";
 import { normalizePhone } from "./phone";
 import { isBudgetOptOut, questionsFor, SMS_CONSENT } from "./questions";
 
@@ -444,12 +445,15 @@ export async function syncInquiryToCrm(opts: {
   if (!contact.ok) return contact;
 
   // Best-effort from here: the lead is already recorded, so a failed tag is
-  // logged rather than surfaced as a failure to the visitor.
+  // logged rather than surfaced as a failure to the visitor. The event tag
+  // rides on both touches because a visitor who reopens the modal on a fresh
+  // URL still carried it on touch one, and the add-tags endpoint appends, so a
+  // repeat is harmless.
   const tagged = await addCrmTags({
     token: opts.token,
     fetch: opts.fetch,
     contactId: contact.data.contactId,
-    tags: [TAG_APPLICATION_STARTED],
+    tags: [TAG_APPLICATION_STARTED, ...eventTags(opts.sourceUrl)],
   });
   return { ok: true, data: { ...contact.data, taggedOk: tagged.ok } };
 }
@@ -531,7 +535,10 @@ export async function syncApplicationToCrm(opts: {
     token,
     fetch: f,
     contactId,
-    tags: optedOut ? [TAG_APPLICATION_COMPLETED, TAG_NOT_A_FIT] : [TAG_APPLICATION_COMPLETED],
+    tags: [
+      ...(optedOut ? [TAG_APPLICATION_COMPLETED, TAG_NOT_A_FIT] : [TAG_APPLICATION_COMPLETED]),
+      ...eventTags(opts.sourceUrl),
+    ],
   });
   const opportunity = optedOut
     ? { ok: true as const, data: { opportunityId: "", created: false } }

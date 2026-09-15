@@ -158,7 +158,7 @@
    * The ladder used to stop at 1920 because that WAS the source, which left a
    * 1440 viewport at DPR 2 served ~67% of the pixels it asks for. The backdrops
    * are now staged from the designer's high-resolution originals at 3840
-   * (scripts/medtech/stage-hr-rollovers.mjs), so the ladder runs to the new
+   * (scripts/industry/medtech/stage-hr-rollovers.mjs), so the ladder runs to the new
    * ceiling: 2880 covers 1440@2x exactly and 3840 covers 1920@2x. Nothing above
    * 3840 — imgix would enlarge past the source and return a bigger, softer file.
    */
@@ -353,7 +353,8 @@
                  those two unreachable no matter how the artwork was padded.
 
                  The assets are normalised to this exact aspect (300:105) by
-                 scripts/medtech/normalize-logos.mjs, which pads each canvas so
+                 scripts/industry/medtech/normalize-logos.mjs (board-measured) or
+                 scripts/industry/fit-logos.mjs (board-less), which pad each canvas so
                  the artwork occupies the board's fraction of the box — that is
                  what makes one uniform box reproduce nine different optical
                  sizes. Change either number and the assets must be regenerated.

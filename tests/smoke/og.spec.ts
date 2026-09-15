@@ -15,11 +15,26 @@ test("the endpoint serves a PNG card and 404s an unknown slug", async ({ request
   expect((await request.get("/og/nope/about.png")).status()).toBe(404);
 });
 
+// An industry document with no meta image advertises its generated card, and
+// satori is where a new document's title first meets a renderer. /boise is
+// red until the document is published, like every /boise check.
+for (const uid of ["medtech", "boise"]) {
+  test(`the industry card renders for ${uid}`, async ({ request }) => {
+    const res = await request.get(`/og/industry/${uid}.png`);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("image/png");
+    expect(Array.from((await res.body()).subarray(0, 4))).toEqual([137, 80, 78, 71]);
+  });
+}
+
 for (const [path, card] of [
   ["/about", "/og/site/about.png"],
   ["/contact", "/og/site/contact.png"],
   ["/portfolio", "/og/site/portfolio.png"],
   ["/showcase", "/og/site/showcase.png"],
+  // boise sets no meta image, so its card is the generated industry one. Red
+  // until the document is published, like every /boise check.
+  ["/boise", "/og/industry/boise.png"],
   ["/this-page-does-not-exist", "/og/site/default.png"],
 ]) {
   test(`${path} advertises ${card}`, async ({ page }) => {

@@ -34,9 +34,19 @@ function attachConsoleWatcher(page: Page, extraAllowed: RegExp[] = []) {
   return errors;
 }
 
-// "/medtech" is an `industry` document, not a `page` — it exercises the
-// page→industry fallback in the [uid] route.
-const ROUTES = ["/", "/about", "/portfolio", "/twenty-for-twenty", "/contact", "/medtech"];
+// "/medtech" and "/boise" are `industry` documents, not `page`s — they exercise
+// the page→industry fallback in the [uid] route, and a second one catches
+// rendering that is coupled to the first document's content rather than to
+// its type.
+const ROUTES = [
+  "/",
+  "/about",
+  "/portfolio",
+  "/twenty-for-twenty",
+  "/contact",
+  "/medtech",
+  "/boise",
+];
 
 for (const path of ROUTES) {
   test(`${path} loads with no console errors`, async ({ page }) => {

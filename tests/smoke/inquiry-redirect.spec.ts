@@ -65,11 +65,22 @@ test("utm params survive the hop", async ({ request }) => {
 });
 
 test("an explicit funnel is honoured when it names a live industry", async ({ request }) => {
-  // The CRM holds the industry as `contact.funnel`. The message body does not
-  // send it yet, but the day somebody adds `&funnel={{contact.funnel}}` this
-  // starts routing on it with no deploy.
+  // The CRM holds the industry as `contact.funnel`, and A-102-1's reminder
+  // emails have sent `&funnel={{contact.funnel}}` since 2026-09-15, so this
+  // is the path a resumed lead actually takes.
   const to = await locationOf(request, `/inquiry?${LEAD}&funnel=medtech`);
   expect(to.pathname).toBe("/medtech");
+});
+
+test("a second industry routes on its own funnel, not medtech's", async ({ request }) => {
+  // The A-102-1 chase message must send `&funnel={{contact.funnel}}` for this
+  // to matter in production; without it every abandoned lead, Boise included,
+  // is chased back to /medtech. This is the code half of that fix.
+  // The allowlist is built from every published industry document, so this is
+  // the case that proves a second one is honoured, not only the first.
+  const to = await locationOf(request, `/inquiry?${LEAD}&funnel=boise`);
+  expect(to.pathname).toBe("/boise");
+  expect(to.searchParams.get("email")).toBe("pat@example.com");
 });
 
 test("an unknown funnel falls back instead of redirecting anywhere it names", async ({
