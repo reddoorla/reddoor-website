@@ -78,7 +78,8 @@ beside `headlineFinding` and `allFixes`, returns the entries in page order:
 | Talk it through                   | `#talk`    | always              |
 
 Labels are the section titles without their dynamic parts ("3 things to fix,
-in order" lists as "What to fix"). The ids live on the `section` elements.
+in order" lists as "What to fix"). The ids live on the `section` elements, each with `scroll-mt-24` so a jump
+lands under the fixed nav.
 `#fixes` exists today. `#passes` today sits on a `div` inside the appendix
 band (`WhatPasses.svelte`); it moves to the band's `section` so the jump lands
 at the band's top, and the two in-page links that already point at `#passes`
