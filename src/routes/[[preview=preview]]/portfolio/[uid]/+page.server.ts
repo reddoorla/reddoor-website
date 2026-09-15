@@ -1,5 +1,5 @@
 import { createClient } from "$lib/prismicio";
-import { isFilled, filter } from "@prismicio/client";
+import { isFilled } from "@prismicio/client";
 import { error } from "@sveltejs/kit";
 import { ogCardPath } from "$lib/og/url";
 import type { PageServerLoad } from "./$types";
@@ -24,8 +24,6 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
       field: "document.first_publication_date",
       direction: "desc",
     },
-
-    filters: [filter.not("document.tags", ["hide"])],
   });
 
   // A hide-tagged project isn't in allProjects: findIndex yields -1, and
