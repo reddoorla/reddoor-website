@@ -122,8 +122,8 @@ with the content.
 - `aria-current="true"` on the current entry; colour is not the only signal
   (the leading mark).
 - Heading levels are unchanged: the labels keep their element (`h3`, `h2`,
-  `p`) when they move above the content, so the outline `RichTextBody`/axe
-  see today is the outline tomorrow.
+  `p`) when they move above the content, so the page outline axe sees today
+  is the outline tomorrow.
 - Focus: the links are ordinary anchors in document order; the nav precedes
   the first section in the DOM at every width, so keyboard users meet it
   before the content.
