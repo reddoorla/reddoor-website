@@ -77,6 +77,7 @@ describe("primer", () => {
   // Every gated stage absent, and no fixes: the wording each fallback prints.
   const bare = (): ReportView => ({
     ...view(),
+    businessName: null,
     generatedAt: "",
     siteChecks: null,
     crawlerReach: null,
