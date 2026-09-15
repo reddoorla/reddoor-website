@@ -173,3 +173,17 @@ list, and the red rule spans the content column rather than the full content
 width. Also: the all-pass fixture carries two `recommendation` fixes, so
 `/dev/audit-report` renders "2 things to fix" and a five-entry list; the
 omission of "What to fix" is asserted in the unit test, not the smoke test.
+
+The current-section rule, as built: the observer's `rootMargin` of
+`-96px 0px -60% 0px` trims the viewport to a band from the nav line down to
+40% of the viewport's height, so a section becomes current when its top
+crosses the 40% line — as its heading approaches the nav, not when it reaches
+it — and at a seam the lower section wins; the closing band is current
+whenever it is on screen, from the observer the floating CTA already uses.
+The current entry carries `aria-current="location"`, the token for the
+current location within a context, rather than the generic `true`. The
+"`TOC_TARGETS` has exactly the ids `Report.svelte` renders" assertion is
+carried by `report-copy.test.ts`, which reads the component source for
+`id={TOC_TARGETS.<key>}` for every key of the table, plus the smoke test's
+live-target loop over the rendered hrefs; a unit test cannot see the rendered
+ids any other way.

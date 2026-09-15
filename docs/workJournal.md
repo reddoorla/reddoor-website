@@ -500,10 +500,12 @@ red band so the list never sits on it, and below `lg` the same element is
 simply a block under the hero — one nav, never duplicated. The current
 section is one `IntersectionObserver` over the five targets with
 `rootMargin: "-96px 0px -60% 0px"` (96 is `top-24`, the fixed header's
-clearance, the same number as the anchors' `scroll-mt-24`): a section is
-current while any of it overlaps that band, and at a seam the lower one wins,
-so the entry flips as a heading passes under the header rather than when a
-section first shows at the bottom of the screen.
+clearance, the same number as the anchors' `scroll-mt-24`), which trims the
+viewport to a band from the nav line down to 40% of its height: a section is
+current while any of it overlaps that band, so it becomes current when its top
+crosses the 40% line — as its heading approaches the header, not when it
+reaches it — and at a seam the lower one wins; the closing band is current
+whenever it is on screen, from the observer the floating CTA already uses.
 
 Three beliefs corrected on contact, in the order they surfaced. First, the
 spec and plan both said `/dev/audit-report` — the all-pass fixture — renders
