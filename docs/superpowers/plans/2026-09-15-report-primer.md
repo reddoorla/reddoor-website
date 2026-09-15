@@ -1,5 +1,12 @@
 # Report Primer Implementation Plan
 
+> Amended by the spec's two amendments (2026-09-15): the wrapper carries the
+> paper (Task 2's `bg-paper` on the section is gone), the derived values are
+> `about` and `auditDate`, the print route uses `auditedOn`, the smoke gained
+> a band check, and the assistant sentence in `primer()` is gated on the
+> accuracy stage and the probes. Read the spec before applying a task here
+> literally.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A "What this report is" section between the hero and the first finding, three approved paragraphs with the view's own numbers, listed first in the contents list.

@@ -600,11 +600,22 @@ and a template with five `{#if}`s inside one sentence is where that mistake
 would have hidden. Composed in code, every branch is a unit test, and the
 review's probe ran all of them for double spaces and stray punctuation (the
 first version spliced ", check…" onto "about {who}"; it is whole sentences
-joined by a space now). The fallbacks read: "taken on one day", "ran its named
-checks", the machinery sentence dropped whole, "about your business and check
-each statement against your own pages", and the receipts sentence without the
-fixes clause. The hard-case sample (no business name, no date, no probes)
-prints exactly those. Two of the plan's beliefs were wrong on contact: its
+joined by a space now). The fallbacks read: "taken on one day"; "ran its named checks on what came
+back." with no examples of rows that did not run; the machinery sentence
+dropped whole; "your business" for the name; and the receipts sentence
+without the fixes clause. The hard-case sample on `/dev/audit-report`
+(apple.com: no business name, no date, no probes, no accuracy stage — but the
+full battery, eight crawlers, accessibility over 20 pages, a journey over 15
+and two fixes) prints "taken on one day" and "your business" and everything
+else live, and it is where the final review caught the one clause the gates
+had missed: "Only then did we ask an assistant about your business and check
+each statement against your own pages" printed over a report whose accuracy
+stage never ran, while SourceCheck two sections down said no assistant answer
+had been captured to check against. That sentence is gated now on the
+accuracy stage (the same `answersRead` SourceCheck reads), the branded probes
+and the category probes, in five shapes, and a report with none of the three
+has no assistant sentence at all; a journey that examined no pages counts no
+clicks either. Two of the plan's beliefs were wrong on contact: its
 null-view fixture forgot `businessName`, so the "your business" assertion
 failed against "Example Studio" until the implementer nulled it; and an
 empty battery printed "ran 0 named checks", so the gate is on the count, the
@@ -636,7 +647,7 @@ were timezone-dependent. The fixture stamps `generatedAt` at `09:00Z`, and
 and every Pacific machine is fine, so nothing had ever failed, the same shape
 as #133. `vitest.config.js` pins `env.TZ` to UTC.
 
-Counts: 578 unit tests in 51 files; `report-primer.spec.ts` (2) and
+Counts: 581 unit tests in 51 files; `report-primer.spec.ts` (2) and
 `report-toc.spec.ts` (5) passed in 15.2s on a fresh vite, with
 `.audit-sample.json` moved aside so the fixture renders as in CI; lint and
 check clean. Same day, Tucker's review of the contents list removed the

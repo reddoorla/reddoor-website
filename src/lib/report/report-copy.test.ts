@@ -198,7 +198,9 @@ describe("one story, on every surface", () => {
     // wrapper that encloses it is the one that carries `bg-paper`.
     const open = report.lastIndexOf("<section", passes);
     expect(report.slice(open, passes)).not.toMatch(/bg-white/);
-    expect(report.lastIndexOf('<div class="bg-paper relative">', open)).toBeGreaterThan(0);
+    const wrapper = report.search(/<div class="(?=[^"]*\bbg-paper\b)(?=[^"]*\brelative\b)[^"]*">/);
+    expect(wrapper).toBeGreaterThan(0);
+    expect(wrapper).toBeLessThan(open);
     // A finding under "Does it work" always has a matching fix, and says so.
     expect(code("src/lib/report/SiteHealth.svelte")).toMatch(/href="#fixes"/);
   });

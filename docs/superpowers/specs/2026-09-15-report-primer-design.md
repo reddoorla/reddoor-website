@@ -225,3 +225,23 @@ values in `Report.svelte` are `about` (the primer) and `auditDate`, not
 `intro` and `audited`. The unit tests also run with `TZ=UTC` pinned in
 `vitest.config.js`: the fixture's `09:00Z` stamp printed "September 2, 2026"
 under `TZ=Pacific/Honolulu`, and CI is UTC.
+
+## Amendment 2, 2026-09-15 (review of the whole branch)
+
+The table above gates the last sentence of the second paragraph only on the
+category probes, and prints "Only then did we ask an assistant about {Acme
+Co} and check each statement against your own pages" whatever else ran. On
+the hard-case sample that was a lie: its accuracy stage never ran, and
+`SourceCheck.svelte` two sections down says so ("no assistant answer about
+this business was captured to check against"). The sentence is now built
+from three gates — the accuracy stage with `answersRead > 0` (the same gate
+SourceCheck uses) for "check each statement", the branded probes for the ask
+by name, the category probes for the buyer's questions — in five shapes:
+all three; name and check; name and questions; name alone ("Only then did
+we ask an assistant about {Acme Co}."); questions alone ("Only then did we
+put a buyer's questions to an assistant live, keeping every source it
+cited."). With none of the three there is no sentence. Two smaller gates
+from the same review: without a battery the sentence ends "ran its named
+checks on what came back." and names no example rows, since the three
+examples are battery rows; and a journey that examined no pages does not
+count clicks.
