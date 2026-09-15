@@ -14,7 +14,7 @@
   import SearchResults from "./SearchResults.svelte";
   import WhatPasses from "./WhatPasses.svelte";
   import { openingSummary, type ReportView } from "./model";
-  import { allFixes, headlineFinding } from "./narrative";
+  import { allFixes, headlineFinding, tocEntries, TOC_TARGETS } from "./narrative";
 
   // The report body, shared by the token route and the fixture route.
   //
@@ -30,14 +30,17 @@
   // so every section's content column shares a left edge. `fill` on every row:
   // the content takes the whole ContentWidth beside the rail, because this is
   // a document with tables and lists, and the board's 760px measure read as
-  // compressed. The rail label names each block (the site's own pattern) so
-  // the subsection headings are the kicker, not a second type scale.
+  // compressed. Each block's label is the kicker (the site's own pattern),
+  // rendered above the block rather than in the rail: the rail column carries
+  // the contents list, which is sticky from the first section to the end of
+  // the appendix.
 
   let { view }: { view: ReportView } = $props();
 
   const who = $derived(view.businessName ?? "your business");
   const headline = $derived(headlineFinding(view));
   const fixes = $derived(allFixes(view));
+  const toc = $derived(tocEntries(fixes));
 
   // Back to where you were reading.
   //
@@ -111,6 +114,43 @@
     return () => io.disconnect();
   });
 
+  // Which section the reader is in, for the contents list.
+  //
+  // One observer over the anchors the list points at, watching a band from
+  // just under the fixed nav to 40% of the way down the viewport. A section is
+  // "in" that band while any of it overlaps it; when two do (the seam between
+  // sections), the lower one wins, so the entry flips as a heading passes the
+  // nav rather than when a section first appears at the bottom of the screen.
+  // Nothing is current while only the hero is on screen. Observers, not a
+  // scroll listener with pixel thresholds, for the reason given above: the
+  // sections' heights change with the content.
+  let current: string | null = $state(null);
+
+  $effect(() => {
+    const el = root;
+    if (!el) return;
+    const entries = toc;
+    // Bookkeeping for the observer callback, never read by the template, so
+    // a plain Set on purpose: nothing subscribes to it.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    const visible = new Set<string>();
+    const io = new IntersectionObserver(
+      (records) => {
+        for (const r of records) {
+          if (r.isIntersecting) visible.add(r.target.id);
+          else visible.delete(r.target.id);
+        }
+        current = [...entries].reverse().find((t) => visible.has(t.id))?.id ?? null;
+      },
+      { rootMargin: "-96px 0px -60% 0px" },
+    );
+    for (const t of entries) {
+      const target = el.querySelector<HTMLElement>(`#${t.id}`);
+      if (target) io.observe(target);
+    }
+    return () => io.disconnect();
+  });
+
   const auditedOn = $derived(
     view.generatedAt
       ? new Date(view.generatedAt).toLocaleDateString("en-US", {
@@ -178,311 +218,375 @@
     </ContentWidth>
   </section>
 
-  <!-- ── What an AI says about you ───────────────────────────────────────── -->
-  <!-- First, because it is the section this report is named for: an engine
+  <!-- ── The document, with its contents in the rail ─────────────────────── -->
+  <!-- Everything between the hero and the closing band, so the sticky list
+       runs from the first section to the end of the appendix and never sits
+       on the red band. The list's column copies ContentWidth's horizontal
+       geometry so its left edge is the rail's; the rows keep their own grid
+       and pass `labelAbove`, which leaves their rail cells empty for it. Below
+       `lg` the same element is a plain block under the hero: one nav, at every
+       width, never duplicated or moved with CSS. `lg:pt-24` matches the first
+       section's top padding so the list's resting position lines up with its
+       heading; when stuck, `top-24` is the same clearance `scroll-mt-24`
+       gives the anchors. -->
+  <div class="relative">
+    <div
+      class="pointer-events-none lg:absolute lg:inset-y-0 lg:left-[4%] lg:w-[92%] lg:max-w-[1220px] lg:pt-24 xl:inset-x-0 xl:mx-auto xl:max-w-[1440px]"
+    >
+      <nav
+        aria-label="In this report"
+        class="pointer-events-auto mx-[4%] mt-12 w-[92%] lg:sticky lg:top-24 lg:mx-0 lg:mt-0 lg:w-[240px] print:hidden"
+      >
+        <p class="type-kicker m-0 text-primary">In this report</p>
+        <ol class="m-0 mt-4 flex list-none flex-col gap-2 p-0">
+          {#each toc as entry (entry.id)}
+            <li class="m-0">
+              <a
+                href="#{entry.id}"
+                aria-current={current === entry.id ? "true" : undefined}
+                class="type-kicker inline-flex items-start gap-2 font-normal no-underline transition-colors hover:underline focus-visible:underline {current ===
+                entry.id
+                  ? 'text-primary'
+                  : 'text-muted'}"
+              >
+                <span aria-hidden="true" class="w-3 shrink-0"
+                  >{current === entry.id ? "→" : ""}</span
+                >
+                <span>{entry.label}</span>
+              </a>
+            </li>
+          {/each}
+        </ol>
+      </nav>
+    </div>
+
+    <!-- ── What an AI says about you ───────────────────────────────────────── -->
+    <!-- First, because it is the section this report is named for: an engine
        describes them to strangers right now and they have never seen what it
        says. Unlike a score it needs no explanation of our method. -->
-  <section class="w-full py-16 md:py-24">
-    <ContentWidth class="relative">
-      <h2 class="type-display m-0 text-black">What an AI says about you</h2>
-      <hr class="mt-7.5 mb-7.5 border-primary" />
-    </ContentWidth>
+    <section id={TOC_TARGETS.aiSays} class="w-full scroll-mt-24 py-16 md:py-24">
+      <ContentWidth class="relative">
+        <h2 class="type-display m-0 text-black">What an AI says about you</h2>
+        <hr class="mt-7.5 mb-7.5 border-primary" />
+      </ContentWidth>
 
-    <RailRow label="What it says" labelAs="h3" fill>
-      <div class="flex flex-col gap-10">
-        <p class="type-lede m-0 text-black">
-          We asked a live AI assistant about {who} and took its answer apart statement by statement. Each
-          one is sorted by where it came from — never by whether it is true. We cannot know that; you
-          can.
-        </p>
-        <SourceCheck {view} />
-      </div>
-    </RailRow>
-
-    <!-- Where they stand: measured out in the world, reported with receipts,
-         promised never. A subsection here rather than its own band, because
-         it is the same instrument pointed at a different question. -->
-    {#if view.categoryProbes.length}
-      <RailRow label="Where you stand" labelAs="h3" fill class="mt-16 md:mt-24">
+      <RailRow label="What it says" labelAs="h3" fill labelAbove>
         <div class="flex flex-col gap-10">
           <p class="type-lede m-0 text-black">
-            We asked the assistant the questions a buyer types before they have heard of you, and
-            recorded every source it cited back.
+            We asked a live AI assistant about {who} and took its answer apart statement by statement.
+            Each one is sorted by where it came from — never by whether it is true. We cannot know that;
+            you can.
           </p>
-
-          <Standing {view} />
-
-          <div class="flex flex-col border-t border-light">
-            <ReportDisclosure headingTag="h4" title="See each search we ran, and what came back">
-              <SearchResults probes={view.categoryProbes} businessName={view.businessName} />
-            </ReportDisclosure>
-
-            {#if view.brandedProbes.length}
-              <ReportDisclosure
-                headingTag="h4"
-                title="What the assistant said when asked about you by name"
-              >
-                <div class="flex flex-col gap-5 pt-1">
-                  {#each view.brandedProbes as probe (probe.query)}
-                    <div class="flex flex-col gap-2">
-                      <p class="m-0 font-medium text-black">&ldquo;{probe.query}&rdquo;</p>
-                      <p class="type-meta m-0 text-muted">
-                        {probe.snippet}{probe.truncated ? "…" : ""}
-                      </p>
-                      {#if probe.citedDomains.length}
-                        <p class="type-meta m-0 text-muted">
-                          Sources: {sourceList(probe.citedDomains)}
-                        </p>
-                      {/if}
-                    </div>
-                  {/each}
-                  <p class="type-meta m-0 text-muted">
-                    A branded search cannot tell you whether someone who has never heard of you
-                    would find you. It answers a different question, and for most businesses a more
-                    useful one: when the assistant describes you, is it accurate, and is it reading
-                    your site or somebody else's page about you.
-                  </p>
-                </div>
-              </ReportDisclosure>
-            {/if}
-          </div>
+          <SourceCheck {view} />
         </div>
       </RailRow>
-    {/if}
-  </section>
 
-  <!-- ── What you control ────────────────────────────────────────────────── -->
-  <!-- The half of the report that moves because we edit the site, with a
+      <!-- Where they stand: measured out in the world, reported with receipts,
+         promised never. A subsection here rather than its own band, because
+         it is the same instrument pointed at a different question. -->
+      {#if view.categoryProbes.length}
+        <RailRow label="Where you stand" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
+          <div class="flex flex-col gap-10">
+            <p class="type-lede m-0 text-black">
+              We asked the assistant the questions a buyer types before they have heard of you, and
+              recorded every source it cited back.
+            </p>
+
+            <Standing {view} />
+
+            <div class="flex flex-col border-t border-light">
+              <ReportDisclosure headingTag="h4" title="See each search we ran, and what came back">
+                <SearchResults probes={view.categoryProbes} businessName={view.businessName} />
+              </ReportDisclosure>
+
+              {#if view.brandedProbes.length}
+                <ReportDisclosure
+                  headingTag="h4"
+                  title="What the assistant said when asked about you by name"
+                >
+                  <div class="flex flex-col gap-5 pt-1">
+                    {#each view.brandedProbes as probe (probe.query)}
+                      <div class="flex flex-col gap-2">
+                        <p class="m-0 font-medium text-black">&ldquo;{probe.query}&rdquo;</p>
+                        <p class="type-meta m-0 text-muted">
+                          {probe.snippet}{probe.truncated ? "…" : ""}
+                        </p>
+                        {#if probe.citedDomains.length}
+                          <p class="type-meta m-0 text-muted">
+                            Sources: {sourceList(probe.citedDomains)}
+                          </p>
+                        {/if}
+                      </div>
+                    {/each}
+                    <p class="type-meta m-0 text-muted">
+                      A branded search cannot tell you whether someone who has never heard of you
+                      would find you. It answers a different question, and for most businesses a
+                      more useful one: when the assistant describes you, is it accurate, and is it
+                      reading your site or somebody else's page about you.
+                    </p>
+                  </div>
+                </ReportDisclosure>
+              {/if}
+            </div>
+          </div>
+        </RailRow>
+      {/if}
+    </section>
+
+    <!-- ── What you control ────────────────────────────────────────────────── -->
+    <!-- The half of the report that moves because we edit the site, with a
        before and an after. The visibility measurement above does not behave
        that way and is deliberately not printed beside these. -->
-  <section class="bg-paper w-full py-16 md:py-24">
-    <ContentWidth class="relative">
-      <h2 class="type-display m-0 text-black">What you control</h2>
-      <hr class="mt-7.5 mb-7.5 border-primary" />
-    </ContentWidth>
+    <section id={TOC_TARGETS.control} class="bg-paper w-full scroll-mt-24 py-16 md:py-24">
+      <ContentWidth class="relative">
+        <h2 class="type-display m-0 text-black">What you control</h2>
+        <hr class="mt-7.5 mb-7.5 border-primary" />
+      </ContentWidth>
 
-    <RailRow label="Your scores" labelAs="h3" fill>
-      <div class="flex flex-col gap-10">
-        <p class="type-lede m-0 text-black">
-          Everything in this section is work on your own site, so every number here is one we can
-          move and show you the before and after of.
-        </p>
-        <ScoreBars {view} />
-      </div>
-    </RailRow>
+      <RailRow label="Your scores" labelAs="h3" fill labelAbove>
+        <div class="flex flex-col gap-10">
+          <p class="type-lede m-0 text-black">
+            Everything in this section is work on your own site, so every number here is one we can
+            move and show you the before and after of.
+          </p>
+          <ScoreBars {view} />
+        </div>
+      </RailRow>
 
-    <!-- Ahead of every finding, and the only section that grades nothing.
+      <!-- Ahead of every finding, and the only section that grades nothing.
          "Here is what you are running" answers the reader's first silent
          question — do these people know what they are talking about — before
          they are asked to accept anything we found. -->
-    {#if view.stack}
-      <RailRow label="What you're running" labelAs="h3" fill class="mt-16 md:mt-24">
-        <Stack {view} />
-      </RailRow>
-    {/if}
+      {#if view.stack}
+        <RailRow label="What you're running" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
+          <Stack {view} />
+        </RailRow>
+      {/if}
 
-    <!-- Findings, not a score: a count of broken links is a fact the reader
+      <!-- Findings, not a score: a count of broken links is a fact the reader
          can check in thirty seconds. -->
-    <RailRow label="Does it work" labelAs="h3" fill class="mt-16 md:mt-24">
-      <SiteHealth {view} />
-    </RailRow>
+      <RailRow label="Does it work" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
+        <SiteHealth {view} />
+      </RailRow>
 
-    <!-- After "Does it work" and before the goal, because it is the same kind
+      <!-- After "Does it work" and before the goal, because it is the same kind
          of claim as the first — a machine ran a rule and here is what it said
          — and because it must not be the loudest thing on the page. -->
-    {#if view.accessibility}
-      <RailRow label="Can everyone use it" labelAs="h3" fill class="mt-16 md:mt-24">
-        <Accessibility {view} />
-      </RailRow>
-    {/if}
+      {#if view.accessibility}
+        <RailRow label="Can everyone use it" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
+          <Accessibility {view} />
+        </RailRow>
+      {/if}
 
-    <!-- Framed in the reader's terms rather than ours: "nobody can book
+      <!-- Framed in the reader's terms rather than ours: "nobody can book
          without calling you" is a sentence about their business. -->
-    {#if view.goalFit}
-      <RailRow label="Does your site do its job" labelAs="h3" fill class="mt-16 md:mt-24">
-        <GoalFit {view} />
-      </RailRow>
-    {/if}
+      {#if view.goalFit}
+        <RailRow
+          label="Does your site do its job"
+          labelAs="h3"
+          fill
+          labelAbove
+          class="mt-16 md:mt-24"
+        >
+          <GoalFit {view} />
+        </RailRow>
+      {/if}
 
-    {#if view.buyerQuestions.length}
-      <RailRow label="What buyers can and cannot learn" labelAs="h3" fill class="mt-16 md:mt-24">
-        <div class="flex flex-col gap-10">
-          <!-- Derived from the same verdicts the table prints, so it cannot
+      {#if view.buyerQuestions.length}
+        <RailRow
+          label="What buyers can and cannot learn"
+          labelAs="h3"
+          fill
+          labelAbove
+          class="mt-16 md:mt-24"
+        >
+          <div class="flex flex-col gap-10">
+            <!-- Derived from the same verdicts the table prints, so it cannot
                say an answer exists where the table says No. -->
-          {#if openingSummary(view)}
-            <p class="type-lede m-0 text-black">{openingSummary(view)}</p>
-          {/if}
+            {#if openingSummary(view)}
+              <p class="type-lede m-0 text-black">{openingSummary(view)}</p>
+            {/if}
 
-          <QuestionMeter
-            yes={view.questionTally.yes}
-            partial={view.questionTally.partial}
-            no={view.questionTally.no}
-            unknown={view.questionTally.unknown}
-          />
+            <QuestionMeter
+              yes={view.questionTally.yes}
+              partial={view.questionTally.partial}
+              no={view.questionTally.no}
+              unknown={view.questionTally.unknown}
+            />
 
-          <div class="flex flex-col border-t border-light">
-            <ReportDisclosure
-              headingTag="h4"
-              title="See all {view.buyerQuestions
-                .length} questions and what your site says about each"
-            >
-              <div class="overflow-x-auto pt-1">
-                <table class="w-full min-w-[420px] border-collapse">
-                  <thead>
-                    <tr>
-                      <th class="type-eyebrow border-b border-light py-2 pr-4 text-left text-muted">
-                        What buyers ask
-                      </th>
-                      <th class="type-eyebrow border-b border-light py-2 pr-4 text-left text-muted">
-                        On your site
-                      </th>
-                      <th class="type-eyebrow border-b border-light py-2 text-left text-muted">
-                        What it says
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {#each view.buyerQuestions as q (q.question)}
+            <div class="flex flex-col border-t border-light">
+              <ReportDisclosure
+                headingTag="h4"
+                title="See all {view.buyerQuestions
+                  .length} questions and what your site says about each"
+              >
+                <div class="overflow-x-auto pt-1">
+                  <table class="w-full min-w-[420px] border-collapse">
+                    <thead>
                       <tr>
-                        <td class="type-meta border-b border-light py-2.5 pr-4 align-top text-muted"
-                          >{q.question}</td
+                        <th
+                          class="type-eyebrow border-b border-light py-2 pr-4 text-left text-muted"
                         >
-                        <td
-                          class="type-eyebrow border-b border-light py-2.5 pr-4 align-top {q.answered ===
-                          'no'
-                            ? 'text-primary'
-                            : 'text-muted'}"
+                          What buyers ask
+                        </th>
+                        <th
+                          class="type-eyebrow border-b border-light py-2 pr-4 text-left text-muted"
                         >
-                          {ANSWERED_LABEL[q.answered]}
-                        </td>
-                        <!-- The receipt. A verdict with no passage beside it
-                             is a claim the reader cannot check. -->
-                        <td class="type-meta border-b border-light py-2.5 align-top text-muted">
-                          {#if q.evidence}
-                            &ldquo;{q.evidence}&rdquo;
-                          {:else if q.answered === "unknown"}
-                            not judged on this audit
-                          {:else}
-                            no passage an assistant could quote
-                          {/if}
-                        </td>
+                          On your site
+                        </th>
+                        <th class="type-eyebrow border-b border-light py-2 text-left text-muted">
+                          What it says
+                        </th>
                       </tr>
-                    {/each}
-                  </tbody>
-                </table>
-              </div>
-              <p class="type-meta m-0 pt-4 text-muted">
-                &ldquo;Partial&rdquo; means the information exists but not in a passage an assistant
-                could quote back — usually a list of terms rather than a sentence.
-              </p>
-            </ReportDisclosure>
+                    </thead>
+                    <tbody>
+                      {#each view.buyerQuestions as q (q.question)}
+                        <tr>
+                          <td
+                            class="type-meta border-b border-light py-2.5 pr-4 align-top text-muted"
+                            >{q.question}</td
+                          >
+                          <td
+                            class="type-eyebrow border-b border-light py-2.5 pr-4 align-top {q.answered ===
+                            'no'
+                              ? 'text-primary'
+                              : 'text-muted'}"
+                          >
+                            {ANSWERED_LABEL[q.answered]}
+                          </td>
+                          <!-- The receipt. A verdict with no passage beside it
+                             is a claim the reader cannot check. -->
+                          <td class="type-meta border-b border-light py-2.5 align-top text-muted">
+                            {#if q.evidence}
+                              &ldquo;{q.evidence}&rdquo;
+                            {:else if q.answered === "unknown"}
+                              not judged on this audit
+                            {:else}
+                              no passage an assistant could quote
+                            {/if}
+                          </td>
+                        </tr>
+                      {/each}
+                    </tbody>
+                  </table>
+                </div>
+                <p class="type-meta m-0 pt-4 text-muted">
+                  &ldquo;Partial&rdquo; means the information exists but not in a passage an
+                  assistant could quote back — usually a list of terms rather than a sentence.
+                </p>
+              </ReportDisclosure>
+            </div>
           </div>
-        </div>
-      </RailRow>
-    {/if}
-  </section>
-
-  <!-- ── What to fix ─────────────────────────────────────────────────────── -->
-  <!-- Anchored from the hero: a reader who wants the remedy before the
-       diagnosis jumps straight here. -->
-  {#if fixes.length}
-    <section id="fixes" class="w-full scroll-mt-24 py-16 md:py-24">
-      <ContentWidth class="relative">
-        <h2 class="type-display m-0 text-primary">
-          {fixes.length === 1 ? "One thing to fix" : `${fixes.length} things to fix, in order`}
-        </h2>
-        <hr class="mt-7.5 mb-7.5 border-primary" />
-      </ContentWidth>
-      <RailRow label="Start here" labelAs="p" fill>
-        <FixList {fixes} />
-      </RailRow>
+        </RailRow>
+      {/if}
     </section>
-  {/if}
 
-  {#if returnTo !== null}
-    <!-- Fixed, bottom right, above the closing band. Rendered only after an
+    <!-- ── What to fix ─────────────────────────────────────────────────────── -->
+    <!-- Anchored from the hero: a reader who wants the remedy before the
+       diagnosis jumps straight here. -->
+    {#if fixes.length}
+      <section id={TOC_TARGETS.fixes} class="w-full scroll-mt-24 py-16 md:py-24">
+        <ContentWidth class="relative">
+          <h2 class="type-display m-0 text-primary">
+            {fixes.length === 1 ? "One thing to fix" : `${fixes.length} things to fix, in order`}
+          </h2>
+          <hr class="mt-7.5 mb-7.5 border-primary" />
+        </ContentWidth>
+        <RailRow label="Start here" labelAs="p" fill labelAbove>
+          <FixList {fixes} />
+        </RailRow>
+      </section>
+    {/if}
+
+    {#if returnTo !== null}
+      <!-- Fixed, bottom right, above the closing band. Rendered only after an
          in-page jump and gone after one use, so it never competes with the
          page when nobody needs it. Takes the corner back from the CTA below:
          a reader who jumped asked to go somewhere, and getting them back is
          the more urgent of the two. -->
-    <button
-      type="button"
-      class="type-eyebrow fixed right-6 bottom-6 z-30 rounded-full border border-dark bg-white px-4 py-2.5 text-dark shadow-md transition-colors hover:bg-dark hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      onclick={goBack}
-    >
-      ↑ Back to where you were
-    </button>
-  {:else if pastHero && !closingInView}
-    <!-- The same corner, once the reader is in the document proper. Same words
+      <button
+        type="button"
+        class="type-eyebrow fixed right-6 bottom-6 z-30 rounded-full border border-dark bg-white px-4 py-2.5 text-dark shadow-md transition-colors hover:bg-dark hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        onclick={goBack}
+      >
+        ↑ Back to where you were
+      </button>
+    {:else if pastHero && !closingInView}
+      <!-- The same corner, once the reader is in the document proper. Same words
          and same destination as the closing band, in the site's button
          language: nothing here is a second offer, it is the same one brought
          within reach. -->
-    <a
-      href="/contact"
-      class="bump fixed right-6 bottom-6 z-30 rounded-[4px] border-1 border-primary bg-white px-[15px] py-2.5 text-center text-[14px] leading-[normal] font-normal text-nowrap text-primary shadow-md transition-all duration-300 hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-    >
-      Start a conversation
-    </a>
-  {/if}
+      <a
+        href="/contact"
+        class="bump fixed right-6 bottom-6 z-30 rounded-[4px] border-1 border-primary bg-white px-[15px] py-2.5 text-center text-[14px] leading-[normal] font-normal text-nowrap text-primary shadow-md transition-all duration-300 hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+      >
+        Start a conversation
+      </a>
+    {/if}
 
-  <!-- ── What passes, and how we measured ────────────────────────────────── -->
-  <!-- The appendix: every pass on the page in one openable list, then the
+    <!-- ── What passes, and how we measured ────────────────────────────────── -->
+    <!-- The appendix: every pass on the page in one openable list, then the
        method, in one paper band after the fixes. Neither is a finding, which is
        why they share a band and sit last. Nothing above lists a pass; this is
        where the receipts for breadth live, and the in-page links land here. -->
-  <section class="bg-paper w-full py-16 md:py-24">
-    <RailRow label="Checked and fine" labelAs="p" fill>
-      <WhatPasses {view} />
-    </RailRow>
+    <section id={TOC_TARGETS.passes} class="bg-paper w-full scroll-mt-24 py-16 md:py-24">
+      <RailRow label="Checked and fine" labelAs="p" fill labelAbove>
+        <WhatPasses {view} />
+      </RailRow>
 
-    <!-- Tighter than the section rhythm: the method is the second half of the
+      <!-- Tighter than the section rhythm: the method is the second half of the
          appendix, not a section of its own. -->
-    <RailRow label="Under the hood" labelAs="h2" fill class="mt-12 md:mt-16">
-      <div class="flex flex-col border-t border-light">
-        <ReportDisclosure title="What we ran, and what we could not measure">
-          <div class="flex flex-col gap-3 pt-1 text-muted">
-            <p class="m-0">
-              We crawled your site twice over — once as a plain request and once with a real browser
-              — so we could measure how much of each page depends on JavaScript.
-            </p>
-            {#if view.categoryProbes.length || view.brandedProbes.length}
+      <RailRow label="Under the hood" labelAs="h2" fill labelAbove class="mt-12 md:mt-16">
+        <div class="flex flex-col border-t border-light">
+          <ReportDisclosure title="What we ran, and what we could not measure">
+            <div class="flex flex-col gap-3 pt-1 text-muted">
               <p class="m-0">
-                The visibility test ran {view.categoryProbes.length + view.brandedProbes.length} live
-                searches. Every source listed is a citation the assistant actually returned, not something
-                inferred from its wording.
+                We crawled your site twice over — once as a plain request and once with a real
+                browser — so we could measure how much of each page depends on JavaScript.
               </p>
-            {/if}
-            <p class="m-0">
-              <strong class="text-black">What we did not measure:</strong> we tested one AI assistant
-              (Claude), not all of them. Results vary between assistants and change over time, which is
-              the argument for measuring again rather than treating any single number as fixed.
-            </p>
-            <!-- Deliberately in the methodology section rather than the findings:
+              {#if view.categoryProbes.length || view.brandedProbes.length}
+                <p class="m-0">
+                  The visibility test ran {view.categoryProbes.length + view.brandedProbes.length} live
+                  searches. Every source listed is a citation the assistant actually returned, not something
+                  inferred from its wording.
+                </p>
+              {/if}
+              <p class="m-0">
+                <strong class="text-black">What we did not measure:</strong> we tested one AI assistant
+                (Claude), not all of them. Results vary between assistants and change over time, which
+                is the argument for measuring again rather than treating any single number as fixed.
+              </p>
+              <!-- Deliberately in the methodology section rather than the findings:
                  llms.txt is neither scored nor recommended, and this paragraph
                  says so instead of leaving its absence to be noticed. -->
-            <p class="m-0">
-              <strong class="text-black">A note on llms.txt.</strong> If you have been told to add one,
-              we are not going to tell you the same. We look for it, but we do not score it and it will
-              never appear in your fix list. It is a 2024 proposal that no answer engine has committed
-              to reading, and there is no measured evidence that having one changes whether you get cited.
-              If that changes, we will say so and start scoring it.
-            </p>
-            <p class="m-0">
-              Every finding here comes with the receipt we based it on. If any of it looks wrong,
-              tell us — we would rather correct it than defend it.
-            </p>
-          </div>
-        </ReportDisclosure>
-      </div>
-    </RailRow>
-  </section>
+              <p class="m-0">
+                <strong class="text-black">A note on llms.txt.</strong> If you have been told to add one,
+                we are not going to tell you the same. We look for it, but we do not score it and it will
+                never appear in your fix list. It is a 2024 proposal that no answer engine has committed
+                to reading, and there is no measured evidence that having one changes whether you get
+                cited. If that changes, we will say so and start scoring it.
+              </p>
+              <p class="m-0">
+                Every finding here comes with the receipt we based it on. If any of it looks wrong,
+                tell us — we would rather correct it than defend it.
+              </p>
+            </div>
+          </ReportDisclosure>
+        </div>
+      </RailRow>
+    </section>
+  </div>
 
   <!-- ── Close ───────────────────────────────────────────────────────────── -->
   <!-- The site's closing band: solid red stock, white type. `labelClass` is
        load bearing — the rail label defaults to the board's red kicker, which
        on this band is red on red. -->
-  <section bind:this={closing} class="bg-paper-red w-full py-16 md:py-24">
-    <RailRow label="Next" labelAs="p" labelClass="text-white" fill>
+  <section
+    bind:this={closing}
+    id={TOC_TARGETS.talk}
+    class="bg-paper-red w-full scroll-mt-24 py-16 md:py-24"
+  >
+    <RailRow label="Next" labelAs="p" labelClass="text-white" fill labelAbove>
       <div class="flex flex-col gap-5">
         <h2 class="type-display m-0 text-white">Half an hour, and we will walk you through it</h2>
         <p class="type-lede m-0 text-white">
