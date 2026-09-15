@@ -306,3 +306,22 @@ licensed Boise hero, the A-102-1 chase-link edit in the CRM builder, and the
 CRM smart list on the `bew` tag. Taking `/boise` live is now a content act,
 not a deploy: remove the `hide` tag and publish, and the Prismic build hook
 rebuilds `main`.
+
+The A-102-1 chase link now sends the funnel. The 2026-08 accounting called
+the builder's inline email bodies unreachable because no API reads or writes
+them; the builder itself does both, and it can be driven from a script over
+Chrome's debugging port. Two of the three reminder emails carry the
+`{{custom_values.sub_domain_url}}/inquiry?…` link (reminder 2, "Still
+interested?", has no link at all, a content gap of its own); both now end in
+`&funnel={{contact.funnel}}`, saved as workflow versions 12 and 13 with the
+status still published, and read back from the server after a fresh load.
+What it took, for the next edit: the list page ignores `parentId` and
+`folderId` in the URL, so the workflow id came from the list store's search
+action; the workflow JSON sits in no store, so it was captured by hooking the
+frame's XHR and bouncing the router; and the email editor is TipTap, which
+redraws the DOM from its own state, so an `href` edit on the `<a>` element is
+silently undone and cloning the node to force a re-parse reverts too. Only a
+ProseMirror transaction against the `Editor` instance TipTap leaves on the
+editor element changes the document. `/inquiry` honoured the param already,
+so nothing deployed; `{{contact.funnel}}` is the field key the site writes and
+has not been verified by a rendered email.
