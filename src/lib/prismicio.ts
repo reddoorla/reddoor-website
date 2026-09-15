@@ -1,12 +1,9 @@
 import * as prismic from "@prismicio/client";
 import { enableAutoPreviews } from "@prismicio/svelte/kit";
 import type { CreateClientConfig } from "@prismicio/svelte/kit";
-import config from "../../slicemachine.config.json";
+import { repositoryName } from "./prismic-repo";
 
-/**
- * The project's Prismic repository name.
- */
-export const repositoryName = config.repositoryName;
+export { repositoryName };
 
 /**
  * A list of Route Resolver objects that define how a document's `url` field is resolved.
