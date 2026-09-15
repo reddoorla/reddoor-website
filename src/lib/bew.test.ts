@@ -44,6 +44,13 @@ describe("bewTarget", () => {
     expect(to.searchParams.get("utm_content")).toHaveLength(100);
   });
 
+  it("caps how many utm_ keys survive, since each becomes a note line", () => {
+    const many = Array.from({ length: 20 }, (_, i) => `utm_${String.fromCharCode(97 + i)}=v${i}`);
+    const to = target(many.join("&"));
+    expect(Array.from(to.searchParams).length).toBeLessThanOrEqual(12);
+    expect(bewTarget(new URLSearchParams(many.join("&")))).toMatch(/^\/boise\?/);
+  });
+
   it("only accepts lowercase utm_ keys, the shape GA and the CRM read", () => {
     const to = target("UTM_SOURCE=shout&utm_source=quiet&utm_9=nope");
     expect(to.searchParams.get("utm_source")).toBe("quiet");

@@ -40,22 +40,38 @@
 //
 // medtech/normalize-logos.mjs does the same job with a per-logo table measured
 // off a Figma board; this is the board-less version for pages with no design.
+// A city that has its own normalize-logos.mjs is therefore refused outright —
+// this script's fixed canvas would overwrite the measured geometry.
 //
 // Usage: node scripts/industry/fit-logos.mjs --industry <uid> [--check]
 import sharp from "sharp";
 import { readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { industryFromArgs } from "./lib.mjs";
 
 const ARGS = process.argv.slice(2);
-const at = ARGS.indexOf("--industry");
-const INDUSTRY = at >= 0 ? ARGS[at + 1] : undefined;
+const INDUSTRY = industryFromArgs(ARGS);
 if (!INDUSTRY) {
   console.error("Usage: node scripts/industry/fit-logos.mjs --industry <uid> [--check]");
   process.exit(1);
 }
 const CHECK = ARGS.includes("--check");
-const ASSETS = path.join(path.dirname(fileURLToPath(import.meta.url)), INDUSTRY, "assets");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+// A city whose logos were measured off a board normalises them per asset; this
+// script's one canvas is not that geometry, so refuse before touching a file.
+const OWN_NORMALISER = path.join(HERE, INDUSTRY, "normalize-logos.mjs");
+if (existsSync(OWN_NORMALISER)) {
+  console.error(
+    `✗ ${INDUSTRY} normalises its logos per asset from a measured table (${path.relative(process.cwd(), OWN_NORMALISER)}); ` +
+      "fit-logos would overwrite them with the wrong geometry. Nothing written.",
+  );
+  process.exit(1);
+}
+
+const ASSETS = path.join(HERE, INDUSTRY, "assets");
 
 const CANVAS = { w: 900, h: 315 };
 const FILL = { w: 0.72, h: 0.62 };

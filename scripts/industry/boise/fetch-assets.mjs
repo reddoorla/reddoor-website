@@ -5,7 +5,8 @@
 //   case study   the `enzos` project document
 //   featured     the `blue-butterfly` project document
 //   icons        the three framework SVGs, tracked at scripts/industry/shared/
-//                (the studio's own process icons — not medtech's)
+//                (medtech's Figma exports, copied; see shared/README.md — not
+//                rendered today)
 //   testimonial  Albert Turgon's headshot, still borrowed from the medtech
 //                staging folder (gitignored) — see data.json's _contentGaps
 //                for why the MSOT quote stands in for now

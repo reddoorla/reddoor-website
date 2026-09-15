@@ -32,12 +32,12 @@ import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { industryFromArgs, missingRequiredKeys, uidMismatch } from "./lib.mjs";
 
 const ARGS = process.argv.slice(2);
 const DRY_RUN = ARGS.includes("--dry-run");
-const industryAt = ARGS.indexOf("--industry");
-const INDUSTRY = industryAt >= 0 ? ARGS[industryAt + 1] : undefined;
-if (!INDUSTRY || INDUSTRY.startsWith("-") || !/^[a-z0-9-]+$/.test(INDUSTRY)) {
+const INDUSTRY = industryFromArgs(ARGS);
+if (!INDUSTRY) {
   console.error("Usage: node scripts/industry/migrate.mjs --industry <uid> [--dry-run]");
   process.exit(1);
 }
@@ -407,11 +407,15 @@ try {
   console.error(`✗ ${path.relative(process.cwd(), DATA_FILE)} is not valid JSON: ${e.message}`);
   process.exit(1);
 }
-if (d.uid !== INDUSTRY) {
-  console.error(
-    `✗ ${path.relative(process.cwd(), DATA_FILE)} has uid "${d.uid}" but --industry is "${INDUSTRY}". ` +
-      "The folder name and the document uid must agree.",
-  );
+const rel = path.relative(process.cwd(), DATA_FILE);
+const mismatch = uidMismatch(d.uid, INDUSTRY);
+if (mismatch) {
+  console.error(`✗ ${rel} ${mismatch}`);
+  process.exit(1);
+}
+const missing = missingRequiredKeys(d);
+if (missing.length) {
+  console.error(`✗ ${rel} is missing ${missing.join(", ")}`);
   process.exit(1);
 }
 

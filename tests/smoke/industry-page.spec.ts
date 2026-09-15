@@ -176,7 +176,7 @@ for (const PATH of PATHS) {
     await expect(steps).toHaveCount(3);
 
     // The board replaced the per-step icons with numbers; a leftover <img> would
-    // mean the slice is still rendering the (still-modelled) `icon` field.
+    // mean an icon crept back in; the model has no `icon` field any more.
     await expect(framework.locator("img")).toHaveCount(0);
 
     // Numbers are derived from position, so this also pins that ordering.

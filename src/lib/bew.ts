@@ -28,12 +28,18 @@ export const BEW_UTM = {
 /** The key shape this campaign's collateral uses: lowercase, letters only after the prefix. GA also allows multi-word keys (utm_source_platform); nothing here sends them. */
 const UTM_KEY = /^utm_[a-z]+$/;
 const MAX_VALUE = 100;
+/** The CRM attribution note renders one line per utm_ key, so cap how many. */
+const MAX_KEYS = 12;
 
 export function bewTarget(incoming: URLSearchParams): string {
   const params = new URLSearchParams(BEW_UTM);
   for (const [key, raw] of incoming) {
     const value = raw.trim();
-    if (UTM_KEY.test(key) && value) params.set(key, value.slice(0, MAX_VALUE));
+    if (!UTM_KEY.test(key) || !value) continue;
+    // An existing key may still be overridden once the cap is reached; only a
+    // NEW one is dropped, so the defaults never lose to a flood of junk keys.
+    if (!params.has(key) && params.size >= MAX_KEYS) continue;
+    params.set(key, value.slice(0, MAX_VALUE));
   }
   return `${BEW_LANDING}?${params.toString()}`;
 }

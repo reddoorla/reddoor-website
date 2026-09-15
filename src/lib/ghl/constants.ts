@@ -57,7 +57,9 @@ export const TAG_APPLICATION_COMPLETED = "application completed";
  *  Entrepreneur Week short link's attribution: utm_source=bew or
  *  utm_campaign=bew-2026 (src/lib/bew.ts, matched in ./events.ts). The utm
  *  values themselves do not survive as CRM fields (see attributionFields); a
- *  tag does, so a smart list can select the cohort. */
+ *  tag does, so a smart list can select the cohort. The tag carries no year on
+ *  purpose: the year is in utm_campaign, which the attribution note records; a
+ *  later event gets its own constant rather than reusing this one. */
 export const TAG_EVENT_BEW = "bew";
 
 /**
