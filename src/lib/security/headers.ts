@@ -46,6 +46,26 @@ export const CONTENT_SECURITY_POLICY = [
   "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net",
 ].join("; ");
 
+/**
+ * Routes the CMS loads in an iframe from another origin. Slice Machine
+ * (http://localhost:9999) and the Prismic Page Builder (https://*.prismic.io)
+ * both frame /slice-simulator to render slice previews. SAMEORIGIN plus
+ * `frame-ancestors 'self'` made every preview in the editor read "Error" from
+ * the day hooks.server.ts started applying this policy to dev responses
+ * (2026-08-19); the route is also `prerender = false` so the same hook, not
+ * netlify.toml, decides its headers on every host. X-Frame-Options has no
+ * multi-origin form, so the route carries none and names its framers in the
+ * CSP instead. The page renders nothing but the slices it is handed, so there
+ * is nothing on it to clickjack.
+ */
+export const CMS_FRAMED_ROUTES: ReadonlySet<string> = new Set(["/slice-simulator"]);
+export const CMS_FRAME_ANCESTORS =
+  "frame-ancestors 'self' http://localhost:* https://*.prismic.io https://prismic.io";
+export const CMS_FRAMED_CONTENT_SECURITY_POLICY = CONTENT_SECURITY_POLICY.replace(
+  "frame-ancestors 'self'",
+  CMS_FRAME_ANCESTORS,
+);
+
 /** Applied to every SSR response, HTML or not. */
 export const BASE_SECURITY_HEADERS: Record<string, string> = {
   "X-Frame-Options": "SAMEORIGIN",
@@ -64,14 +84,22 @@ export const BASE_SECURITY_HEADERS: Record<string, string> = {
  * `cache-control: no-store`. A blanket overwrite here would quietly undo both.
  * CSP goes on HTML only — a JSON error body has no content to govern, and a
  * policy header on it is noise in every response the funnel makes.
+ *
+ * `pathname` selects the framing policy: a route in CMS_FRAMED_ROUTES gets no
+ * X-Frame-Options and the wider frame-ancestors; everything else is SAMEORIGIN.
  */
-export function applySecurityHeaders(response: Response): Response {
+export function applySecurityHeaders(response: Response, pathname = ""): Response {
+  const cmsFramed = CMS_FRAMED_ROUTES.has(pathname);
   for (const [name, value] of Object.entries(BASE_SECURITY_HEADERS)) {
+    if (cmsFramed && name === "X-Frame-Options") continue;
     if (!response.headers.has(name)) response.headers.set(name, value);
   }
   const type = response.headers.get("content-type") ?? "";
   if (type.includes("text/html") && !response.headers.has("Content-Security-Policy")) {
-    response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+    response.headers.set(
+      "Content-Security-Policy",
+      cmsFramed ? CMS_FRAMED_CONTENT_SECURITY_POLICY : CONTENT_SECURITY_POLICY,
+    );
   }
   return response;
 }
