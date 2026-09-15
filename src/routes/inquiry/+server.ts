@@ -21,10 +21,10 @@ import type { RequestHandler } from "./$types";
  */
 
 /** Where a chase link that names no industry goes. The CRM knows the industry
- *  as `contact.funnel`, but the link predates that and does not send it; adding
- *  `&funnel={{contact.funnel}}` to the message body is honoured below the
- *  moment somebody does it. Until then a chase link lands here whatever
- *  industry the lead came from. */
+ *  as `contact.funnel`, and since 2026-09-15 A-102-1's two linked reminder
+ *  emails send `&funnel={{contact.funnel}}`, so a resumed lead lands on the
+ *  page they started on. This covers links sent before that edit and contacts
+ *  with no funnel. */
 const DEFAULT_INDUSTRY_UID = "medtech";
 
 /** Carried through to the landing page. utm_* is not listed because it is

@@ -65,9 +65,9 @@ test("utm params survive the hop", async ({ request }) => {
 });
 
 test("an explicit funnel is honoured when it names a live industry", async ({ request }) => {
-  // The CRM holds the industry as `contact.funnel`. The message body does not
-  // send it yet, but the day somebody adds `&funnel={{contact.funnel}}` this
-  // starts routing on it with no deploy.
+  // The CRM holds the industry as `contact.funnel`, and A-102-1's reminder
+  // emails have sent `&funnel={{contact.funnel}}` since 2026-09-15, so this
+  // is the path a resumed lead actually takes.
   const to = await locationOf(request, `/inquiry?${LEAD}&funnel=medtech`);
   expect(to.pathname).toBe("/medtech");
 });
