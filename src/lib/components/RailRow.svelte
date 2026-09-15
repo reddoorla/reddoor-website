@@ -40,6 +40,13 @@
      *  cannot fix this: `text-primary` is a Tailwind utility and would still win
      *  over anything declared in `@layer base` or `@layer components`. */
     labelClass?: string;
+    /** Render the label as the first child of the content column instead of
+     *  in the rail, at every width. Below `lg` this changes nothing visible —
+     *  the label already stacks above the content there. From `lg` it leaves
+     *  the rail cell empty, which the audit report uses to put its sticky
+     *  contents list in that column. The cell itself stays, so the grid and
+     *  the content column's left edge do not move. */
+    labelAbove?: boolean;
     class?: string;
     /** Extra rail content under the label (CaseStudy's services + before/after
      *  switch). It flows after the label rather than being positioned against
@@ -59,6 +66,7 @@
     animateIn = false,
     animateItems = false,
     labelClass = "text-primary",
+    labelAbove = false,
     class: className = "",
     rail,
     children,
@@ -87,7 +95,7 @@
     <!-- `contents` below `lg` so the label and any rail extra become siblings of
          the content column in the mobile flex order; a real grid cell from `lg`. -->
     <div class="contents lg:block">
-      {#if railLabel}
+      {#if railLabel && !labelAbove}
         <!-- `.type-kicker` (app.css) is the board's 16px bold red kicker. It
              pins font-family too, which is load bearing: this renders as an h2
              by default, and the global `h2` rule is Besley 60px whose family
@@ -113,6 +121,15 @@
       {/if}
     </div>
     <div class="min-w-0">
+      {#if railLabel && labelAbove}
+        <svelte:element
+          this={labelAs}
+          use:anim={{ enabled: animateIn && animateItems }}
+          class="type-kicker mb-6 {labelClass}"
+        >
+          {railLabel}
+        </svelte:element>
+      {/if}
       {@render children()}
     </div>
   </div>
