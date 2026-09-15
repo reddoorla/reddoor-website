@@ -653,18 +653,22 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   // Digits, not words: numberWord spells out only one to ten, and the rest of
   // the report already says "of the 76 checks". `?.length` rather than a
   // truthy check on the array itself: an empty battery should word like a
-  // missing one, the way health.ts treats null and [] alike, not print
-  // "ran 0 named checks".
-  const checkCount = view.siteChecks?.length
-    ? `${view.siteChecks.length} named checks`
-    : "its named checks";
+  // missing one, the way health.ts treats null and [] alike, not print "ran 0
+  // named checks" — and with none to run, the three named examples did not
+  // run either, so the sentence names no rows at all.
+  const battery = view.siteChecks?.length
+    ? `${view.siteChecks.length} named checks on what came back, from dead links to structured ` +
+      "data to whether a phone can fill in your forms."
+    : "its named checks on what came back.";
   const machinery: string[] = [];
   if (view.accessibility?.measured) machinery.push("ran the accessibility rules");
   const reach = view.crawlerReach;
   if (reach?.measured && reach.checked > 0) {
     machinery.push(`read your robots.txt as ${numberWord(reach.checked)} AI crawlers would`);
   }
-  if (view.journey) machinery.push("counted the clicks from any page to reaching you");
+  if (view.journey && view.journey.pagesExamined > 0) {
+    machinery.push("counted the clicks from any page to reaching you");
+  }
 
   // Whole sentences joined by a single space, rather than splicing a comma or
   // "and" onto `about ${who}` — so no branch (an empty `machinery`, a missing
@@ -672,12 +676,30 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   // punctuation.
   const fetched =
     "Most of it is machinery, not an AI's opinion. It fetched every page twice, plain and " +
-    `in a real browser, then ran ${checkCount} on what came back, from dead links to ` +
-    "structured data to whether a phone can fill in your forms.";
-  const asked = view.categoryProbes.length
-    ? `Only then did we ask an assistant about ${who}, check each statement against your own ` +
-      "pages, and put a buyer's questions to it live, keeping every source it cited."
-    : `Only then did we ask an assistant about ${who} and check each statement against your own pages.`;
+    `in a real browser, then ran ${battery}`;
+
+  // The assistant, last, and only the parts that ran. The accuracy stage is
+  // the "check each statement" claim — SourceCheck.svelte gates its section
+  // on the same answersRead — the branded probes are the ask by name, and
+  // the category probes are the buyer's questions. A report with none of the
+  // three gets no sentence about an assistant, not a sentence about work
+  // nobody did.
+  const checked = view.accuracy !== null && view.accuracy.answersRead > 0;
+  const byName = checked || view.brandedProbes.length > 0;
+  const live = view.categoryProbes.length > 0;
+  const asked = byName
+    ? `Only then did we ask an assistant about ${who}` +
+      (checked && live
+        ? ", check each statement against your own pages, and put a buyer's questions to it " +
+          "live, keeping every source it cited."
+        : checked
+          ? " and check each statement against your own pages."
+          : live
+            ? " and put a buyer's questions to it live, keeping every source it cited."
+            : ".")
+    : live
+      ? "Only then did we put a buyer's questions to an assistant live, keeping every source it cited."
+      : null;
   const how = [fetched, machinery.length ? `It ${joinList(machinery)}.` : null, asked]
     .filter((s): s is string => s !== null)
     .join(" ");

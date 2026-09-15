@@ -1086,6 +1086,8 @@ describe("primer", () => {
     accessibility: null,
     journey: null,
     categoryProbes: [],
+    accuracy: null,
+    brandedProbes: [],
   });
 
   it("prints every live value on the all-pass fixture", () => {
@@ -1114,20 +1116,62 @@ describe("primer", () => {
   it("drops every clause it cannot stand behind, and words around the missing values", () => {
     const p = primer(bare(), []);
     expect(p.what).toContain("taken on one day, not a promise");
-    expect(p.how).toContain("then ran its named checks on what came back");
+    expect(p.how).toContain("then ran its named checks on what came back.");
+    expect(p.how).not.toContain("dead links");
     expect(p.how).not.toContain("robots.txt");
     expect(p.how).not.toContain("accessibility rules");
     expect(p.how).not.toContain("clicks");
-    expect(p.how).toContain(
-      "Only then did we ask an assistant about your business and check each statement " +
-        "against your own pages.",
-    );
+    expect(p.how).not.toContain("Only then");
+    expect(p.how).not.toContain("assistant about");
     expect(p.how).not.toContain("buyer's questions");
     expect(p.receipts).toContain(
       "What passed sits in one place near the end, and because an assistant's answers move, " +
         "this is worth taking again.",
     );
     expect(p.receipts).not.toContain("the fixes are");
+  });
+
+  it("still credits the assistant sentence to 'your business' when only the businessName is missing", () => {
+    const p = primer({ ...view(), businessName: null }, []);
+    expect(p.how).toContain(
+      "Only then did we ask an assistant about your business, check each statement against " +
+        "your own pages, and put a buyer's questions to it live",
+    );
+  });
+
+  it("names only the assistant work that ran", () => {
+    const v = view();
+    expect(v.accuracy?.answersRead ?? 0).toBeGreaterThan(0);
+    expect(v.brandedProbes.length).toBeGreaterThan(0);
+    expect(v.categoryProbes.length).toBeGreaterThan(0);
+
+    const noAccuracy = primer({ ...v, accuracy: null }, []).how;
+    expect(noAccuracy).toContain(
+      "Only then did we ask an assistant about Example Studio and put a buyer's questions to " +
+        "it live, keeping every source it cited.",
+    );
+    expect(noAccuracy).not.toContain("check each statement");
+
+    const unread = primer({ ...v, accuracy: { ...v.accuracy!, answersRead: 0 } }, []).how;
+    expect(unread).toContain(
+      "Only then did we ask an assistant about Example Studio and put a buyer's questions to " +
+        "it live, keeping every source it cited.",
+    );
+    expect(unread).not.toContain("check each statement");
+
+    const nameOnly = primer({ ...v, accuracy: null, brandedProbes: [] }, []).how;
+    expect(nameOnly).toContain(
+      "Only then did we put a buyer's questions to an assistant live, keeping every source it cited.",
+    );
+
+    const nothing = primer({ ...v, accuracy: null, brandedProbes: [], categoryProbes: [] }, []).how;
+    expect(nothing).not.toContain("Only then");
+
+    const noLive = primer({ ...v, categoryProbes: [] }, []).how;
+    expect(noLive).toContain(
+      "Only then did we ask an assistant about Example Studio and check each statement " +
+        "against your own pages.",
+    );
   });
 
   it("drops only the clause whose stage is missing", () => {
@@ -1152,6 +1196,12 @@ describe("primer", () => {
     for (const [name, patch, sentence] of cases) {
       expect(primer({ ...v, ...patch }, []).how, name).toContain(sentence);
     }
+  });
+
+  it("counts no clicks when the journey stage examined no pages", () => {
+    const v = view();
+    const p = primer({ ...v, journey: { ...v.journey!, pagesExamined: 0 } }, []);
+    expect(p.how).not.toContain("clicks");
   });
 
   it("does not name a crawler count the checks stage never measured", () => {
