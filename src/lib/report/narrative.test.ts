@@ -1106,6 +1106,11 @@ describe("primer", () => {
     );
   });
 
+  it("words an empty battery like a missing one, not 'ran 0 named checks'", () => {
+    const p = primer({ ...view(), siteChecks: [] }, []);
+    expect(p.how).toContain("then ran its named checks on what came back");
+  });
+
   it("drops every clause it cannot stand behind, and words around the missing values", () => {
     const p = primer(bare(), []);
     expect(p.what).toContain("taken on one day, not a promise");
@@ -1126,13 +1131,27 @@ describe("primer", () => {
   });
 
   it("drops only the clause whose stage is missing", () => {
-    const v: ReportView = {
-      ...view(),
-      crawlerReach: { measured: false, blocked: [], checked: 0 },
-    };
-    expect(primer(v, []).how).toContain(
-      "It ran the accessibility rules and counted the clicks from any page to reaching you.",
-    );
+    const v = view();
+    const cases: [string, Partial<ReportView>, string][] = [
+      [
+        "crawlerReach",
+        { crawlerReach: { measured: false, blocked: [], checked: 0 } },
+        "It ran the accessibility rules and counted the clicks from any page to reaching you.",
+      ],
+      [
+        "accessibility",
+        { accessibility: { ...v.accessibility!, measured: false } },
+        "It read your robots.txt as eight AI crawlers would and counted the clicks from any page to reaching you.",
+      ],
+      [
+        "journey",
+        { journey: null },
+        "It ran the accessibility rules and read your robots.txt as eight AI crawlers would.",
+      ],
+    ];
+    for (const [name, patch, sentence] of cases) {
+      expect(primer({ ...v, ...patch }, []).how, name).toContain(sentence);
+    }
   });
 
   it("does not name a crawler count the checks stage never measured", () => {

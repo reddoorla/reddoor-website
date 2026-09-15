@@ -17,5 +17,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "scripts/**/*.test.mjs"],
+    // Fixtures stamp generatedAt at 09:00Z; a date printed through
+    // toLocaleDateString rolls back a day west of UTC-9, and CI runs in UTC
+    // — a TZ-dependent assertion already reached #133 once (see the note at
+    // the top of .github/workflows/ci.yml), so pin these unit tests to it.
+    env: { TZ: "UTC" },
   },
 });
