@@ -57,6 +57,11 @@ new city or vertical needs **no models pushed and no code**, only content.
   `customtypes/industry/index.json` before any network call.
 - Linked project uids must be published documents.
 - Nothing is ever auto-published.
+- A public page must not link to a document tagged `hide` (staging-only, see
+  `src/lib/server/content-visibility.ts`). Prerendering follows every link and
+  a 404 is fatal by config, so the production build fails on such a link. The
+  loader does not check this; `pnpm build` with `PRISMIC_HIDDEN_CONTENT` unset
+  does.
 - The slice sequence and the `data.json` key shape (`hero`, `services`,
   `framework`, `caseStudy`, `logoGrid`, `testimonial`, `featuredProject`,
   `about`, `faq`, `cta`) are hardcoded in `migrate.mjs`. "A data file and one
