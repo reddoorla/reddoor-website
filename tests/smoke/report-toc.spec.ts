@@ -19,8 +19,11 @@ async function ready(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
   await page.goto("/dev/audit-report");
   await page.locator("html[data-hydrated]").waitFor();
-  // The root layout scrolls to the top 600ms after navigation; a scripted
-  // scroll inside that window is undone.
+}
+
+/** The root layout scrolls to the top 600ms after navigation; a scripted
+ *  scroll inside that window is undone. Only the tests that scroll wait. */
+async function pastScrollReset(page: Page) {
   await page.waitForTimeout(700);
 }
 
@@ -62,16 +65,23 @@ test.describe("report table of contents", () => {
     page,
   }) => {
     await ready(page, 1280, 800);
+    await pastScrollReset(page);
     const nav = page.locator(NAV);
-    // The rail cell of the first block: first child of the RailRow grid.
-    const railCell = page.locator('#ai-says [class*="lg:grid-cols"] > div').first();
+    // The row that gave up its label: the first block of the section, whose
+    // "What it says" kicker now sits in the content column. (The section's
+    // heading row is a label-less RailRow, so `.first()` on the grids would
+    // match an empty cell that was never anything else.)
+    const row = page
+      .locator('#ai-says [class*="lg:grid-cols"]')
+      .filter({ has: page.locator("h3", { hasText: "What it says" }) });
+    const railCell = row.locator("> div").first();
+    await expect(railCell).toHaveText("");
+    await expect(row.locator("> div").nth(1).locator("h3.type-kicker")).toHaveText("What it says");
     const [navBox, cellBox] = await Promise.all([nav.boundingBox(), railCell.boundingBox()]);
     expect(navBox).not.toBeNull();
     expect(cellBox).not.toBeNull();
     expect(Math.abs(navBox!.x - cellBox!.x)).toBeLessThanOrEqual(1);
     expect(Math.round(navBox!.width)).toBe(240);
-    // With the label above the content, the rail cell holds nothing.
-    await expect(railCell).toHaveText("");
 
     // Nothing is current over the hero.
     await expect(page.locator(`${NAV} a[aria-current]`)).toHaveCount(0);
@@ -82,18 +92,23 @@ test.describe("report table of contents", () => {
     await expect.poll(async () => Math.round((await nav.boundingBox())!.y)).toBe(NAV_LINE);
     const control = page.locator(`${NAV} a[href="#control"]`);
     const aiSays = page.locator(`${NAV} a[href="#ai-says"]`);
-    await expect(control).toHaveAttribute("aria-current", "true");
+    await expect(control).toHaveAttribute("aria-current", "location");
     await expect(aiSays).not.toHaveAttribute("aria-current", /.*/);
   });
 
   test("an entry jumps to its section and offers the way back", async ({ page }) => {
     await ready(page, 1280, 800);
+    await pastScrollReset(page);
     await page.locator(`${NAV} a[href="#passes"]`).click();
+    // Lands ON the nav line, not merely above it.
     await expect
       .poll(() =>
-        page.evaluate(() => document.querySelector("#passes")!.getBoundingClientRect().top),
+        page.evaluate(
+          (line) => Math.abs(document.querySelector("#passes")!.getBoundingClientRect().top - line),
+          NAV_LINE,
+        ),
       )
-      .toBeLessThanOrEqual(NAV_LINE + 1);
+      .toBeLessThanOrEqual(1);
     await expect(page.getByRole("button", { name: /back to where you were/i })).toBeVisible();
   });
 
@@ -111,20 +126,36 @@ test.describe("report table of contents", () => {
     const navBox = (await nav.boundingBox())!;
     expect(navBox.y).toBeGreaterThanOrEqual(heroBottom);
     expect(navBox.y + navBox.height).toBeLessThanOrEqual(firstHeadingTop);
-    // The first block's label is inside the content column, above the content.
-    const label = page.locator("#ai-says h3.type-kicker").first();
-    const content = label.locator("xpath=following-sibling::*[1]");
-    const [labelBox, contentBox] = await Promise.all([label.boundingBox(), content.boundingBox()]);
-    expect(labelBox!.y + labelBox!.height).toBeLessThanOrEqual(contentBox!.y);
-    expect(Math.abs(labelBox!.x - contentBox!.x)).toBeLessThanOrEqual(1);
+
+    // Every moved label — a kicker that is the first child of a content
+    // column — sits above its block, on the block's left edge. The count
+    // guard keeps the loop from passing on nothing.
+    const labels = page.locator("main div.min-w-0 > .type-kicker");
+    expect(await labels.count()).toBeGreaterThanOrEqual(5);
+    const pairs = await labels.evaluateAll((els) =>
+      els.map((el) => {
+        const a = el.getBoundingClientRect();
+        const b = el.nextElementSibling!.getBoundingClientRect();
+        return {
+          label: el.textContent!.trim(),
+          bottom: a.bottom,
+          x: a.x,
+          nextTop: b.top,
+          nextX: b.x,
+        };
+      }),
+    );
+    for (const p of pairs) {
+      expect(p.bottom, p.label).toBeLessThanOrEqual(p.nextTop);
+      expect(Math.abs(p.x - p.nextX), p.label).toBeLessThanOrEqual(1);
+    }
   });
 
-  test("the nav is a named landmark and axe is clean around it", async ({ page }) => {
+  test("the nav is a named landmark and the page stays clean with it", async ({ page }) => {
     await ready(page, 1280, 800);
     await expect(page.getByRole("navigation", { name: "In this report" })).toHaveCount(1);
     const results = await new AxeBuilder({ page })
-      .include(NAV)
-      .withTags(["wcag2a", "wcag2aa", "best-practice"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"])
       .analyze();
     expect(results.violations).toEqual([]);
   });

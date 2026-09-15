@@ -116,15 +116,19 @@
 
   // Which section the reader is in, for the contents list.
   //
-  // One observer over the anchors the list points at, watching a band from
-  // just under the fixed nav to 40% of the way down the viewport. A section is
-  // "in" that band while any of it overlaps it; when two do (the seam between
-  // sections), the lower one wins, so the entry flips as a heading passes the
-  // nav rather than when a section first appears at the bottom of the screen.
-  // Nothing is current while only the hero is on screen. Observers, not a
-  // scroll listener with pixel thresholds, for the reason given above: the
-  // sections' heights change with the content.
-  let current: string | null = $state(null);
+  // One observer over the anchors the list points at, with a root margin that
+  // trims the viewport to a band from the nav line (96px, `top-24`) down to
+  // 40% of the viewport's height. A section is "in" the band while any of it
+  // overlaps it, so a section becomes current when its top crosses the 40%
+  // line — as its heading approaches the nav, not when it reaches it. When
+  // two sections overlap the band (the seam between them) the lower one wins.
+  // The closing band is current whenever it is on screen, from the observer
+  // that already watches it for the floating CTA. Nothing is current while
+  // only the hero is on screen. Observers, not a scroll listener with pixel
+  // thresholds, for the reason given above: the sections' heights change with
+  // the content.
+  let observed: string | null = $state(null);
+  const current = $derived(closingInView ? TOC_TARGETS.talk : observed);
 
   $effect(() => {
     const el = root;
@@ -137,7 +141,7 @@
           visible = visible.filter((id) => id !== r.target.id);
           if (r.isIntersecting) visible.push(r.target.id);
         }
-        current = [...entries].reverse().find((t) => visible.includes(t.id))?.id ?? null;
+        observed = [...entries].reverse().find((t) => visible.includes(t.id))?.id ?? null;
       },
       { rootMargin: "-96px 0px -60% 0px" },
     );
@@ -242,7 +246,7 @@
             <li class="m-0">
               <a
                 href="#{entry.id}"
-                aria-current={current === entry.id ? "true" : undefined}
+                aria-current={current === entry.id ? "location" : undefined}
                 class="type-kicker inline-flex items-start gap-2 font-normal no-underline transition-colors hover:underline focus-visible:underline {current ===
                 entry.id
                   ? 'text-primary'

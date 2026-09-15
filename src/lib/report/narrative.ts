@@ -593,7 +593,7 @@ export function tocEntries(fixes: Fix[]): TocEntry[] {
   return [
     { id: TOC_TARGETS.aiSays, label: "What an AI says about you" },
     { id: TOC_TARGETS.control, label: "What you control" },
-    ...(fixes.length ? [{ id: TOC_TARGETS.fixes, label: "What to fix" } as const] : []),
+    ...(fixes.length ? [{ id: TOC_TARGETS.fixes, label: "What to fix" }] : []),
     { id: TOC_TARGETS.passes, label: "What passes, and how we measured" },
     { id: TOC_TARGETS.talk, label: "Talk it through" },
   ];

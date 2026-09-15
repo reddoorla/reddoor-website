@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { TOC_TARGETS } from "./narrative";
 
 /**
  * Sentences the report must and must not contain.
@@ -44,7 +45,12 @@ describe("one story, on every surface", () => {
   it("the hero leads with the one deterministic headline finding and points at the fixes", () => {
     expect(code(REPORT)).toContain("headlineFinding(view)");
     expect(code(REPORT)).toMatch(/href="#fixes"/);
+    expect(TOC_TARGETS.fixes).toBe("fixes");
     expect(code(REPORT)).toMatch(/id=\{TOC_TARGETS\.fixes\}/);
+    // Every id in the table is rendered: the component source names each key.
+    for (const k of Object.keys(TOC_TARGETS)) {
+      expect(code(REPORT)).toContain(`id={TOC_TARGETS.${k}}`);
+    }
     expect(code(PRINT)).toContain("headlineFinding(view)");
   });
 
@@ -160,6 +166,7 @@ describe("one story, on every surface", () => {
     for (const p of ["src/lib/report/SiteHealth.svelte", "src/lib/report/GoalFit.svelte", SOURCE]) {
       expect(code(p), p).toMatch(/href="#passes"/);
     }
+    expect(TOC_TARGETS.passes).toBe("passes");
     // `#passes` is on the appendix band's section so a jump lands at the
     // band's top; the id is read through TOC_TARGETS like the others.
     expect(code(REPORT)).toMatch(/id=\{TOC_TARGETS\.passes\}[^>]*scroll-mt/);

@@ -114,7 +114,7 @@
              offset from the label is the board's rail auto-layout gap. -->
         <div
           use:anim={{ enabled: animateIn && animateItems }}
-          class="order-1 lg:order-none {railLabel ? 'lg:mt-2.5' : ''}"
+          class="order-1 lg:order-none {railLabel && !labelAbove ? 'lg:mt-2.5' : ''}"
         >
           {@render rail()}
         </div>
@@ -125,7 +125,7 @@
         <svelte:element
           this={labelAs}
           use:anim={{ enabled: animateIn && animateItems }}
-          class="type-kicker mb-6 {labelClass}"
+          class="type-kicker mb-4 lg:mb-6 {labelClass}"
         >
           {railLabel}
         </svelte:element>
