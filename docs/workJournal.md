@@ -473,6 +473,30 @@ editor element changes the document. `/inquiry` honoured the param already,
 so nothing deployed; `{{contact.funnel}}` is the field key the site writes and
 has not been verified by a rendered email.
 
+## 2026-09-15 — Boise shipped to production, still hidden (#183, #188, `4788977`)
+
+Tucker asked for #183 to go in after seeing `/boise` on production in Firefox.
+Production was not serving it: fetched from here the URL was a 404 with the
+`hide` tag still on the document, and the same URL with any
+`io.prismic.preview` cookie at all, even `io.prismic.preview=x`, returned the
+page. The hide filter lifts on the cookie's presence, which is the approved
+"previews show hidden documents" rule, but presence is not a session: a
+browser keeps the cookie after a Prismic preview ends, and a forged one works
+just as well. Firefox had a leftover preview cookie. The check should require
+the repository's own preview entry in the cookie (what Prismic's own
+`getPreviewCookie` looks for); not changed yet, recorded here as open.
+
+The promotion (#188) went through on the required check alone. Lighthouse
+failed twice without reaching the site: `npx @lhci/cli@0.15` resolved
+`@types/node@26.6.0` and npm returned 404 for the tarball, on both runs,
+eleven minutes apart. The same routes had passed Lighthouse on #183's own
+preview an hour earlier, which is the evidence the merge rested on. After the
+build: `/bew` 302s to `/boise?utm_source=bew&utm_medium=event&utm_campaign=bew-2026`,
+`/boise` and its OG card 404, `/health` reports hidden content. Taking the
+page live is now a content act, not a deploy: remove the tag and publish.
+
+Also in this promotion: #187, the CRM builder runbook under `scripts/crm/`.
+
 ## 2026-09-15 — The report carries its own contents in the rail (`feat/report-toc`)
 
 The audit report's only wayfinding was one sentence in the hero ("jump to
