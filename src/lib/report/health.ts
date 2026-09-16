@@ -125,7 +125,7 @@ function healthRowsGenerated(view: ReportView): HealthRow[] {
             : `${untappable.length} ${plural(untappable.length, "number is", "numbers are")} plain text`,
         alert: untappable.length > 0,
         detail:
-          "On a phone, a number written as text is something the visitor has to memorise and retype. Written as a " +
+          "On a phone, a number written as text is something the visitor has to memorize and retype. Written as a " +
           "link it is one tap. It is a one-attribute change and it is the moment they were most likely to call.",
       });
     }

@@ -247,6 +247,33 @@ describe("one story, on every surface", () => {
     expect(code(REPORT)).not.toMatch(/Every finding here is one you can reproduce/);
   });
 
+  // Tim's MarkUp round on the Reddoor report, 2026-09-15.
+  it("names the report as an AEO / SEO audit, on both surfaces", () => {
+    expect(code(REPORT)).toMatch(/AEO \/ SEO Audit Report for: \{who\}/);
+    expect(code(PRINT)).toMatch(/AEO \/ SEO Audit Report for: \{who\}/);
+    expect(code(PRINT)).not.toMatch(/Prospect audit/);
+  });
+
+  it("does not call the assistant 'live', and sorts by source, not 'never' by truth", () => {
+    for (const p of [REPORT, PRINT, "src/lib/report/Standing.svelte"]) {
+      expect(code(p), p).not.toMatch(/\blive\s+(AI|searches|visibility)\b|of a live/);
+    }
+    expect(code(REPORT)).toMatch(/not by whether it is true/);
+  });
+
+  it("the own-site summary under the claims is not styled as a footnote", () => {
+    expect(code(SOURCE)).toMatch(
+      /<p class="type-question m-0 border-t border-light pt-6 text-black">\s*\{numberWord\(confirmed\)/,
+    );
+  });
+
+  it("the opener's question count links to the questions and opens them", () => {
+    const src = code(REPORT);
+    expect(src).toMatch(/href="#buyer-questions"/);
+    expect(src).toMatch(/id="buyer-questions"/);
+    expect(src).toMatch(/bind:open=\{questionsOpen\}/);
+  });
+
   it("the robots.txt explanation appears once", () => {
     const src = code("src/lib/report/ScoreBars.svelte");
     expect(src.match(/pass\/fail, not a score/g) ?? []).toHaveLength(1);

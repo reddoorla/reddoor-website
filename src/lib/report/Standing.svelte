@@ -67,7 +67,7 @@
     if (listings === 0) {
       return "It cited no directories at all. Every source was an individual website.";
     }
-    return `${listings} of the ${total} citations went to directories, review sites and platforms we recognise. The other ${other} went to individual websites, named below.`;
+    return `${listings} of the ${total} citations went to directories, review sites and platforms we recognize. The other ${other} went to individual websites, named below.`;
   });
 
   // The reader's own standing, stated plainly and AFTER the field is described.
@@ -178,7 +178,7 @@
   </div>
 {:else}
   <p class="type-lede m-0 text-muted">
-    The live visibility test did not run on this audit, so there is nothing to report here. That is
-    a gap in the measurement, not a finding about your site.
+    The visibility test did not run on this audit, so there is nothing to report here. That is a gap
+    in the measurement, not a finding about your site.
   </p>
 {/if}

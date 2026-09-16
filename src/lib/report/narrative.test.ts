@@ -76,7 +76,7 @@ describe("the all-pass fixture is actually all pass", () => {
   it("collects a pass in every group", () => {
     const groups = passes(v);
     expect(groups.map((g) => g.title)).toEqual([
-      "What an AI says about you",
+      "What AI is saying about you",
       "Does it work",
       "Does your site do its job",
       "What buyers can learn from your site",
@@ -299,7 +299,7 @@ describe("passes", () => {
   });
 
   it("counts confirmed statements as one line, not one line each", () => {
-    const ai = passes(view()).find((g) => g.title === "What an AI says about you");
+    const ai = passes(view()).find((g) => g.title === "What AI is saying about you");
     expect(ai?.items.some((i) => /statements? the assistant made match/.test(i))).toBe(true);
   });
 
@@ -310,7 +310,7 @@ describe("passes", () => {
         conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
       })),
     );
-    const ai = passes(v).find((g) => g.title === "What an AI says about you");
+    const ai = passes(v).find((g) => g.title === "What AI is saying about you");
     expect(ai?.items.some((i) => /knew who you are/.test(i))).toBe(false);
   });
 });
@@ -1036,7 +1036,7 @@ describe("tocEntries", () => {
   it("lists the five sections in page order when there are fixes, the primer first", () => {
     expect(tocEntries(oneFix)).toEqual([
       { id: "about", label: "What this report is" },
-      { id: "ai-says", label: "What an AI says about you" },
+      { id: "ai-says", label: "What AI is saying about you" },
       { id: "control", label: "What you control" },
       { id: "fixes", label: "What to fix" },
       { id: "talk", label: "Talk it through" },
@@ -1100,7 +1100,7 @@ describe("primer", () => {
     );
     expect(p.how).toContain(
       "Only then did we ask an assistant about Example Studio, check each statement against " +
-        "your own pages, and put a buyer's questions to it live, keeping every source it cited.",
+        "your own pages, and put a buyer's questions to it, keeping every source it cited.",
     );
     expect(p.receipts).toContain(
       "What passed sits in one place near the end, the fixes are in the order we would do " +
@@ -1159,7 +1159,7 @@ describe("primer", () => {
     const p = primer({ ...view(), businessName: null }, []);
     expect(p.how).toContain(
       "Only then did we ask an assistant about your business, check each statement against " +
-        "your own pages, and put a buyer's questions to it live",
+        "your own pages, and put a buyer's questions to it,",
     );
   });
 
@@ -1172,20 +1172,20 @@ describe("primer", () => {
     const noAccuracy = primer({ ...v, accuracy: null }, []).how;
     expect(noAccuracy).toContain(
       "Only then did we ask an assistant about Example Studio and put a buyer's questions to " +
-        "it live, keeping every source it cited.",
+        "it, keeping every source it cited.",
     );
     expect(noAccuracy).not.toContain("check each statement");
 
     const unread = primer({ ...v, accuracy: { ...v.accuracy!, answersRead: 0 } }, []).how;
     expect(unread).toContain(
       "Only then did we ask an assistant about Example Studio and put a buyer's questions to " +
-        "it live, keeping every source it cited.",
+        "it, keeping every source it cited.",
     );
     expect(unread).not.toContain("check each statement");
 
     const nameOnly = primer({ ...v, accuracy: null, brandedProbes: [] }, []).how;
     expect(nameOnly).toContain(
-      "Only then did we put a buyer's questions to an assistant live, keeping every source it cited.",
+      "Only then did we put a buyer's questions to an assistant, keeping every source it cited.",
     );
 
     const nothing = primer({ ...v, accuracy: null, brandedProbes: [], categoryProbes: [] }, []).how;

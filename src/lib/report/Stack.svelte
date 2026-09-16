@@ -69,7 +69,7 @@
          hand-built site, and it must not read as a failure. -->
     <p class="type-lede m-0 text-black">
       We read the markup on {stack.pagesExamined}
-      {stack.pagesExamined === 1 ? "page" : "pages"} and did not recognise a platform, framework or tracking
+      {stack.pagesExamined === 1 ? "page" : "pages"} and did not recognize a platform, framework or tracking
       script — which is what a hand-built site looks like.
     </p>
   {:else}
