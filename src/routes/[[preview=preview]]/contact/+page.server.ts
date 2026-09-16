@@ -3,6 +3,7 @@ import { env } from "$env/dynamic/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { ogCardPath } from "$lib/og/url";
 import { createClient } from "$lib/prismicio";
+import { replyCopyFor } from "$lib/server/reply-copy";
 import { loadRouteMeta } from "$lib/server/route-meta";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -33,7 +34,11 @@ function elapsedMs(tsRaw: FormDataEntryValue | null): number | null {
 }
 
 export const actions: Actions = {
-  default: async ({ request, fetch, url, getClientAddress }) => {
+  default: async (event) => {
+    // Destructured from the event rather than in the signature: replyCopyFor
+    // needs the whole RequestEvent to build a Prismic client bound to this
+    // request's fetch.
+    const { request, fetch, url, getClientAddress } = event;
     const form = await request.formData();
 
     // Bot screen: a filled honeypot or an implausibly fast fill is silently
@@ -91,6 +96,12 @@ export const actions: Actions = {
       ...(userAgent ? { userAgent } : {}),
     };
 
+    // Confirmation-email copy the client wrote in Prismic, resolved
+    // server-side. Undefined until the `form replies` document is written —
+    // the shared package then sends its own per-form-type default, so this
+    // form keeps replying exactly as it does today until copy exists.
+    const reply = await replyCopyFor(event, "contact");
+
     const result = await submitToIngest({
       url: env.FORMS_INGEST_URL,
       token: env.FORMS_INGEST_TOKEN,
@@ -109,6 +120,7 @@ export const actions: Actions = {
         // every real sink.
         ...(form.get("testMode")?.toString() === "true" ? { testMode: true } : {}),
         ...(Object.keys(meta).length ? { _meta: meta } : {}),
+        ...(reply ? { _reply: reply } : {}),
       },
     });
 
