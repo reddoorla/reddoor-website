@@ -71,10 +71,28 @@
           });
         }
 
+        // Production only. This same app.html ships to `vite dev` on a laptop,
+        // to every Netlify deploy preview and to staging, so without a host
+        // check the property counts our own runs as visitors. That is not a
+        // rounding error: for the 30 days to 2026-09-14 GA4 recorded 16,072
+        // users on this property and 15,971 of them were `localhost` — the
+        // Playwright smoke suite, which clicks and scrolls and so trips the
+        // interaction gate below. Real traffic over the same window was 87,
+        // and the maintenance report mailed the noise as a 510% rise.
+        //
+        // Exact hostnames, never a suffix match: `staging.reddoorla.com` ends
+        // with the production domain and must NOT be measured. This file
+        // cannot import $lib/site.ts, so a unit test keeps the two in step.
+        var MEASURED_HOSTS = ["reddoorla.com", "www.reddoorla.com"];
+        function hostIsMeasured() {
+          return MEASURED_HOSTS.indexOf(location.hostname) !== -1;
+        }
+
         var events = ["pointerdown", "keydown", "scroll", "touchstart"];
         var loaded = false;
         function loadGA() {
           if (loaded) return;
+          if (!hostIsMeasured()) return;
           // Checked here rather than at registration, and deliberately WITHOUT
           // setting `loaded` or removing the listeners: this is a SPA, so a
           // visitor can navigate from a report to an ordinary page in the same
