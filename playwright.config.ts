@@ -23,11 +23,20 @@ export default defineConfig({
   globalSetup: "./tests/smoke/global-setup.ts",
   use: {
     ...base.use,
-    // NOTE: `reducedMotion` is deliberately NOT set here. Measured on
-    // Playwright 1.62.1: the config-level value reaches neither
-    // matchMedia nor the CSS cascade, so it reads as protection the suite
-    // does not have. Tests that need it call page.emulateMedia({
-    // reducedMotion: "reduce" }) themselves — see schedule.spec.ts.
+    // NOTE: `reducedMotion` is not set here because the shared base now sets
+    // it — `contextOptions: { reducedMotion: "reduce" }`, suite-wide.
+    //
+    // This NOTE used to say the config-level value "reaches neither matchMedia
+    // nor the CSS cascade". That measurement was real but it was measuring the
+    // wrong placement: `reducedMotion` is a BrowserContextOptions member, so at
+    // the top level of `use` Playwright drops it as an unknown key. Under
+    // `contextOptions` it works, and reaches both. It arrived here with
+    // @reddoorla/maintenance 0.95.1 (#193).
+    //
+    // Consequence: the default is now `reduce`. Tests asserting that something
+    // MOVES must opt out with page.emulateMedia({ reducedMotion:
+    // "no-preference" }) — see twenty-video.spec.ts. Per-test emulateMedia
+    // overrides the context value in both directions.
     ...(smokePort ? { baseURL: `http://localhost:${smokePort}` } : {}),
   },
   ...(smokePort
