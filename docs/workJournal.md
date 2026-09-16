@@ -472,3 +472,363 @@ ProseMirror transaction against the `Editor` instance TipTap leaves on the
 editor element changes the document. `/inquiry` honoured the param already,
 so nothing deployed; `{{contact.funnel}}` is the field key the site writes and
 has not been verified by a rendered email.
+
+## 2026-09-15 — Boise shipped to production, still hidden (#183, #188, `4788977`)
+
+Tucker asked for #183 to go in after seeing `/boise` on production in Firefox.
+Production was not serving it: fetched from here the URL was a 404 with the
+`hide` tag still on the document, and the same URL with any
+`io.prismic.preview` cookie at all, even `io.prismic.preview=x`, returned the
+page. The hide filter lifts on the cookie's presence, which is the approved
+"previews show hidden documents" rule, but presence is not a session: a
+browser keeps the cookie after a Prismic preview ends, and a forged one works
+just as well. Firefox had a leftover preview cookie. The check should require
+the repository's own preview entry in the cookie (what Prismic's own
+`getPreviewCookie` looks for); not changed yet, recorded here as open.
+
+The promotion (#188) went through on the required check alone. Lighthouse
+failed twice without reaching the site: `npx @lhci/cli@0.15` resolved
+`@types/node@26.6.0` and npm returned 404 for the tarball, on both runs,
+eleven minutes apart. The same routes had passed Lighthouse on #183's own
+preview an hour earlier, which is the evidence the merge rested on. After the
+build: `/bew` 302s to `/boise?utm_source=bew&utm_medium=event&utm_campaign=bew-2026`,
+`/boise` and its OG card 404, `/health` reports hidden content. Taking the
+page live is now a content act, not a deploy: remove the tag and publish.
+
+Also in this promotion: #187, the CRM builder runbook under `scripts/crm/`.
+
+## 2026-09-15 — The report carries its own contents in the rail (`feat/report-toc`)
+
+The audit report's only wayfinding was one sentence in the hero ("jump to
+what to fix") and the scrollbar, on a document of five bands and up to a dozen
+blocks. It now has a sticky "In this report" list in the left rail from `lg`
+up and a plain list under the hero below, every entry an anchor, the current
+section marked. Spec and plan under `docs/superpowers/*/2026-09-15-report-
+table-of-contents*`.
+
+Why the rail became the map rather than a new column: the 240px rail in every
+`RailRow` was already taken by the red sub-section labels ("Your scores",
+"Does it work"), but below `lg` those labels already stack above their
+blocks. Rendering them above at every width (`labelAbove` on `RailRow`)
+changes nothing a phone reader sees and empties the column at `lg`+. The
+entries come from one pure function, `tocEntries(fixes)` in `narrative.ts`,
+fed by the same count that decides whether "What to fix" renders, and the
+ids live in a `TOC_TARGETS` table so a rename fails a unit test instead of a
+jump. Why an overlaid column rather than one document grid: the sections
+alternate full-bleed white and paper bands, and a single grid would be a
+rewrite. Instead a `relative` wrapper around the four post-hero sections
+holds one absolutely positioned column that copies `ContentWidth`'s geometry
+(`left-[4%] w-[92%] max-w-[1220px]`, at `xl` `inset-x-0 mx-auto
+max-w-[1440px]`) whose sticky child is the nav; the wrapper closes before the
+red band so the list never sits on it, and below `lg` the same element is
+simply a block under the hero — one nav, never duplicated. The current
+section is one `IntersectionObserver` over the five targets with
+`rootMargin: "-96px 0px -60% 0px"` (96 is `top-24`, the fixed header's
+clearance, the same number as the anchors' `scroll-mt-24`), which trims the
+viewport to a band from the nav line down to 40% of its height: a section is
+current while any of it overlaps that band, so it becomes current when its top
+crosses the 40% line — as its heading approaches the header, not when it
+reaches it — and at a seam the lower one wins; the closing band is current
+whenever it is on screen, from the observer the floating CTA already uses.
+
+Three beliefs corrected on contact, in the order they surfaced. First, the
+spec and plan both said `/dev/audit-report` — the all-pass fixture — renders
+no "What to fix" and therefore a four-entry list, and the smoke test was
+written to prove the omission on the real page. The fixture's analyze stage
+carries two `recommendation` fixes ("Add a short case study for each of the
+three service lines", "Publish the answers to the ten buyer questions as a
+single FAQ page"), so the page renders "2 things to fix, in order" and all
+five entries; "all pass" means every check passes. The omission is asserted
+by the unit test on `tocEntries([])`, and the fixture is pinned there at two
+fixes and five entries. Second, each section's `h2` and red rule sat in a
+full-width `ContentWidth` outside the `RailRow` grid, which neither document
+mentioned. Measured at 1280×800: the list's resting top (`lg:pt-24`) was
+677.4px, the first h2's top was 677.4px, and the h2 ran x=51.2 to 1228.8 —
+straight through the rail. `elementFromPoint` at the first entry's centre
+returned the h2, a later sibling that painted over the link and took its
+click; stuck at y=96, every heading passed through the list. The three
+headings are now label-less `RailRow`s, so the h2 sits in the content column
+(x=311.2, 917.6 wide), the rule spans that column instead of the full width,
+and the list rests level with the first heading without touching it; stuck,
+"What you control" passes 20px to the right of the list's edge (nav right
+291.2, h2 left 311.2). Third, and the one a first-entry-only probe would have
+missed: after the move the hit-test returned the header row's empty rail
+cell (`div.contents.lg:block`). Every `RailRow` wraps itself in a `relative`
+`ContentWidth`, a later sibling with no z-index, so its transparent cell sat
+over the list wherever a row was behind it — the plan's design had this
+from the start, hidden behind the h2. `lg:z-10` on the nav (under the site
+header's `z-20` and the report's fixed buttons' `z-30`) and all five entries
+hit-test on their own link; Playwright's click in the "jumps" smoke test
+would otherwise have failed on pointer interception.
+
+Smaller things the plan met on the way: `report-copy.test.ts` string-matches
+the sources for `id="fixes"` and `id="passes"`, so three assertions now read
+the `{TOC_TARGETS.*}` form; `svelte/prefer-svelte-reactivity` rejects a plain
+`Set` inside a component, so the observer's bookkeeping is an array; the
+plan's `toReportView(ALL_PASS_REPORT, null)` does not type (`overrides:
+OverrideMap = {}`); and the spec and plan themselves failed prettier on HEAD
+(107 and 14 whitespace lines), so `pnpm lint` was red on the branch before
+any code — formatted in the docs commit. `font-normal` does beat
+`.type-kicker`'s 700 on the links (computed 400).
+
+Counts: 569 unit tests in 51 files; `report-toc.spec.ts` (5) plus
+`industry-page.spec.ts` (20, RailRow's other consumer) passed in 1.1 min at
+load 21.9 falling to 17.1. The full smoke suite was not run — the machine sat
+at load 26 when the session started, against the plan's threshold of 10. The
+hard-case sample on `/dev/audit-report` and edit mode on staging are still
+to be checked by hand before the PR leaves draft.
+
+Tucker's review of the built list, same day: the arrow went, so the current
+entry is marked by colour alone, and the appendix left the list. As an entry
+it was current only for the moment between "What to fix" leaving the
+observer's band and the closing band arriving on screen — the appendix is two
+closed disclosures and shorter than a viewport — and a line highlighted for
+one scroll-tick and then not read as a line to skip. Its anchor stays,
+because three in-page links land on it. Four entries at most now, three
+without fixes.
+
+## 2026-09-15 — The report opens with what it is (`feat/report-primer`)
+
+> Superseded in part by 2026-09-15 — The primer counts the checks that came back.
+
+Tucker's brief, in the same breath as the contents list: one section at the
+top "that describes what this report is and what was done and why", telling
+"the whole story as we have it setup", before "What an AI says about you" and
+the results. The reason is the reading the report was getting: an assistant's
+paragraph about the business, then scores, and nothing before either saying
+that most of the document is machinery. Read cold, it was an AI's opinion of
+a website — the thing we are least willing to sell — rather than the output
+of an instrument that ran seventy-odd named checks before an assistant was
+asked anything. The first copy draft made that case and was rejected twice:
+once for missing the mechanical checks entirely ("we need to demonstrate the
+work that we've done building this tool and how this is different than just
+asking an ai to audit the site from a standing start"), then, with them in,
+for length — "at least twice as long as I'd want it to be, this is the first
+section we want to inform the reader not lose them". The approved version is
+three paragraphs, about 190 words: the two routes a buyer takes and that this
+is a measurement on a date, not a promise; the machinery in the order it ran
+(crawl twice, the battery, the accessibility rules, robots.txt as the
+crawlers read it, clicks to contact) and only then the assistant; and how to
+read it (receipts, unmeasured is not scored against you, passes in one place,
+fixes in order, worth taking again). Title "What this report is", kicker "In
+short", on the hero's paper as front matter, first in the contents list.
+
+The prose is composed in `narrative.ts` rather than written in the template,
+and the reason is the honesty rule. The copy names four values — the
+business, the date, the count of named checks, the count of AI crawlers —
+and five clauses that each claim a stage ran. `primer(view, fixes)` reads
+every one off the view and drops any clause whose stage did not run rather
+than defaulting it: `accessibility.measured`, `crawlerReach.measured &&
+checked > 0`, the journey stage's presence, `categoryProbes.length`,
+`fixes.length`. A primer saying "we read your robots.txt" over a report whose
+checks never ran would be the exact overstatement the report exists to avoid,
+and a template with five `{#if}`s inside one sentence is where that mistake
+would have hidden. Composed in code, every branch is a unit test, and the
+review's probe ran all of them for double spaces and stray punctuation (the
+first version spliced ", check…" onto "about {who}"; it is whole sentences
+joined by a space now). The fallbacks read: "taken on one day"; "ran its named checks on what came
+back." with no examples of rows that did not run; the machinery sentence
+dropped whole; "your business" for the name; and the receipts sentence
+without the fixes clause. The hard-case sample on `/dev/audit-report`
+(apple.com: no business name, no date, no probes, no accuracy stage — but the
+full battery, eight crawlers, accessibility over 20 pages, a journey over 15
+and two fixes) prints "taken on one day" and "your business" and everything
+else live, and it is where the final review caught the one clause the gates
+had missed: "Only then did we ask an assistant about your business and check
+each statement against your own pages" printed over a report whose accuracy
+stage never ran, while SourceCheck two sections down said no assistant answer
+had been captured to check against. That sentence is gated now on the
+accuracy stage (the same `answersRead` SourceCheck reads), the branded probes
+and the category probes, in five shapes, and a report with none of the three
+has no assistant sentence at all; a journey that examined no pages counts no
+clicks either. Two of the plan's beliefs were wrong on contact: its
+null-view fixture forgot `businessName`, so the "your business" assertion
+failed against "Example Studio" until the implementer nulled it; and an
+empty battery printed "ran 0 named checks", so the gate is on the count, the
+way `health.ts` treats null and `[]` alike. `auditedOn(view)` moved into the
+same module so the masthead's "Audited September 3, 2026" and the primer's
+"taken on September 3, 2026" are one function; the print route uses it too,
+which is the one thing this branch touches in the PDF — the PDF has no primer
+and still promises "the same story", a gap for a later entry.
+
+Layout. The section carries `pt-12 pb-16 md:pb-24 lg:pt-0` and the contents
+list's positioning column lost its `lg:pt-24`: at `lg` the hero's own bottom
+padding is the seam, so the section's top, the list's top and the heading's
+top all measure 581.375px at 1280×800 (list x=51.19, heading x=311.19), and
+the smoke pins the list to the heading within 1px. Below `lg` the list's
+`mt-12` and the section's `pt-12` give 688.78 → 876.78 → 924.78 at 390×844.
+The defect the first build had is the one the screenshot caught and the
+review predicted: with the primer on its own `bg-paper` and the wrapper
+transparent, the list sat on a 236px strip of plain white between two paper
+bands on a phone (before this branch its white ran into the white first
+finding). The wrapper carries the paper now and the two white sections paint
+`bg-white` over it; a responsive `lg:bg-none` on the column would not have
+worked, since `.bg-paper` is unlayered and beats utilities. The phone smoke
+asserts the band behind the list, the primer's heading and the first
+finding's heading.
+
+One more thing found on the way, unrelated to the primer: the unit tests
+were timezone-dependent. The fixture stamps `generatedAt` at `09:00Z`, and
+`TZ=Pacific/Honolulu pnpm vitest run` printed "September 2, 2026" — CI is UTC
+and every Pacific machine is fine, so nothing had ever failed, the same shape
+as #133. `vitest.config.js` pins `env.TZ` to UTC.
+
+Counts: 581 unit tests in 51 files; `report-primer.spec.ts` (2) and
+`report-toc.spec.ts` (5) passed in 15.2s on a fresh vite, with
+`.audit-sample.json` moved aside so the fixture renders as in CI; lint and
+check clean. Same day, Tucker's review of the contents list removed the
+arrow from the current entry and the appendix from the list; those are in
+the entry above, and the primer stacks on that branch (PR #190) as its first
+entry. Still to check by hand: edit mode on staging, where the primer should
+be offered as no target, since none of its text is a payload field.
+
+## 2026-09-15 — The primer counts the checks that came back (`fix/report-check-count`)
+
+Tucker, on reading the shipped primer: bring back the number of checks run
+rather than just "named" checks. The primer said "then ran 76 named checks on
+what came back", and 76 is the size of the battery, not the work. No site
+meets all of it. On the hard-case sample 48 rows passed and 13 failed, while
+14 were `not-applicable` — no form to test, no sitemap to read — and one was
+`unmeasured`, so 61 checks actually returned a verdict and the sentence
+credited us with fifteen we never ran. 61 is also, exactly, the number the
+approved copy carried as "{sixty-one}"; the implementation reached for
+`siteChecks.length` and the spec table blessed it, and neither review caught
+that the placeholder had been a different quantity all along. The count is
+now the rows whose status is `pass` or `fail`. The all-pass fixture prints
+70, its other six having nothing on that site to apply to.
+
+The numberless fallback went with it. "Then ran its named checks on what came
+back" was what printed when the battery was missing, and a count is the whole
+point of that clause, so with nothing to report the clause is dropped and the
+sentence ends at "in a real browser." A report whose battery never ran should
+not imply that it did. Also corrected: the comment justifying digits over
+words claimed "the rest of the report already says 'of the 76 checks'".
+Nothing in the report says that. "What passes" counts clean items (99 on the
+fixture, 52 on the sample) and "Does it work" counts health rows; the primer's
+is the only battery count on the page, which is why it had nothing keeping it
+honest.
+
+One environment cost worth writing down, because it looks like a catastrophe
+and is not: a newly created worktree fails 49 of its 51 unit test files with
+"[TSCONFIG_ERROR] Failed to load tsconfig '.svelte-kit/tsconfig.json'". Only
+two files pass and 21 tests run. Nothing is broken — `pnpm test:unit` is a
+bare `vitest run`, and `.svelte-kit/tsconfig.json` is generated by
+`svelte-kit sync`, which of the package scripts only `pnpm check` calls. An
+established checkout has one from an earlier build, so this bites only on a
+fresh `git worktree add`. `pnpm exec svelte-kit sync` once, and the same
+suite goes 51 files and 582 tests green.
+
+## 2026-09-16 — The analytics number was mostly our own test suite (`fix/ga-hostname-gate`)
+
+Tucker, on the September maintenance report: analytics seem way higher than
+they have been, what gives. The email said 15,063 Users, up 510% against the
+previous thirty days, 2,471 → 15,063. It was not traffic. Broken down by
+`hostName` for the thirty days to 2026-09-14, GA4 property "Reddoor Creative
+Site" holds 16,072 users: 15,971 on `localhost`, 87 on `reddoorla.com`, 29
+across deploy previews and staging. Source and medium agrees — 16,048 of the
+16,072 are `(direct) / (none)`, which is what a scripted browser looks like.
+
+The mechanism is this file. `src/app.html` carries one measurement id and
+ships to every environment, and the tag defers until the first `pointerdown`,
+`keydown`, `scroll` or `touchstart` — exactly what a Playwright test does.
+Every test runs in a fresh browser context with no cookies, so every test is a
+new GA client id and therefore a new "user". The smoke suite is 176 tests
+across 25 spec files, CI ran it 365 times in that window against 149 the month
+before, and the audit-report work meant many more runs on this laptop. The
+privacy hardening from MED-7 made it worse in one narrow sense: the
+interaction gate that spares a zero-interaction human bounce does nothing to
+spare a robot that clicks.
+
+Two things worth keeping. First, this is not new — the previous window was
+1,807 localhost against 176 real, already 91% noise. The metric has been
+junk for months and nobody noticed, because 2,471 is a number a small studio
+site could plausibly earn. It only became visible when CI volume more than
+doubled and pushed it to six times plausible. A measurement that is wrong by
+9x and still believable is more dangerous than one that is wrong by 60x.
+Second, the real finding was hidden underneath: production traffic did not
+rise 510%, it fell by half, 176 → 87. The noise was not merely padding the
+number, it was inverting the sign.
+
+The gate here is an exact hostname match against `MEASURED_HOSTS`, never a
+suffix test, because `staging.reddoorla.com` ends with the production domain
+and must not be measured — it is in the GA hostname list already. `app.html`
+cannot import `$lib/site.ts`, so `analytics-hostname.test.ts` cross-checks the
+literal against `SITE_URL` and fails if they drift. Nothing in the app calls
+`window.gtag`, so only the script load is gated; the `dataLayer` shim stays,
+and a future `gtag("event", …)` will not throw on a laptop.
+
+This repo's gate only cleans future months. The other half is in
+reddoor-maintenance: `src/reports/ga/client.ts` asks GA4 for `activeUsers`
+with no `dimensionFilter` at all, so the report would keep printing historical
+noise. That change rides its own PR there.
+
+Checked across the fleet before assuming it was ours alone: of twelve GA
+properties, only this one (99% not real) and Revogen (29%, 246 localhost
+users) are affected. Every client property is between 0% and 8%, and
+Beachfront Dentistry — whose report went out on 08-20 — is at 0%, so no
+client has been mailed an inflated number. One caveat on the arithmetic: the
+report measures a rolling window ending when it runs, so the window queried
+here is close to but not identical with the email's, which is why these
+totals are 16,072 and 1,992 where the email said 15,063 and 2,471. The shape
+is the same.
+
+## 2026-09-16 — Staging went red because the reduced-motion emulation started working (#196, `ea9ef95`)
+
+Staging had been failing since late on 09-15, and every PR based on it
+inherited the same three failures: `schedule.spec.ts:333` ("the in-flight
+button animates without changing its accessible name") and two in
+`twenty-video.spec.ts` ("video reveals itself once it actually plays",
+"fallback returns when playback stalls mid-stream"). Each burned its full
+retry budget on CI — 3 of 3 attempts — so they were deterministic. I described
+them as flaky before I had that evidence, which was wrong and sent me looking
+in the wrong place first.
+
+The cause is one word of placement. `@reddoorla/maintenance` 0.95.1 arrived via
+#193 (`da76aac`), the only commit on staging between the last green run at
+16:41 and the first red one at 03:05, and its shared Playwright base sets
+`contextOptions: { reducedMotion: "reduce" }` suite-wide.
+
+**The belief this corrects.** `playwright.config.ts` carried a NOTE saying the
+config-level value "reaches neither matchMedia nor the CSS cascade", measured
+on Playwright 1.62.1. That measurement was real. It was measuring the wrong
+placement. `reducedMotion` is a `BrowserContextOptions` member: at the top
+level of `use`, Playwright drops it as an unknown key, and `pnpm check` never
+catches it because svelte-check does not typecheck `playwright.config.ts`. The
+starter carried it there, inert, from 2026-06 to 2026-09-01. Under
+`contextOptions` it works and reaches both. So the honest summary is not "the
+config doesn't work" but "the option has one legal home and we had it in the
+wrong one for three months".
+
+The failures follow directly. `SendingDots` holds its dots still under
+`@media (prefers-reduced-motion: reduce)` — deliberately, the label already
+says "Sending" — so `animationName` came back `"none"`. The twenty-for-twenty
+page renders its Vimeo iframe behind `{#if !prefersReducedMotion}`, and the
+`$effect` at line 170 reads `matchMedia` at hydration, so the iframe is
+server-rendered and then torn out. The assertion log records that precisely:
+`5 x locator resolved to <iframe ...> unexpected value "0"`, then
+`element(s) not found`.
+
+**Two specs were green for the wrong reason,** and that is the part worth
+keeping. "Vimeo iframe is granted autoplay permission" and "fallback sketch
+stays visible when the video cannot play" both passed under the new default —
+not because they were unaffected, but because they assert early enough to beat
+the hydration teardown. A race they happened to win. Both now opt into motion
+explicitly and exercise the path they claim to.
+
+The fix keeps the suite-wide default rather than switching it off: the README
+relies on reduced motion for determinism, and per-test `emulateMedia` overrides
+the context value in both directions. Opting out per test is already the
+pattern here — `industry-page.spec.ts:501` does it, with a comment noting that
+`reducedMotion` does reach `matchMedia` on 1.62. Someone met this before me.
+
+Measured: 3 failed of 204 before, reproduced locally on the untouched branch;
+after, 204 passed, 7 skipped, 0 failed, 0 flaky, alongside lint clean, check
+clean over 4630 files, and 582 unit tests. Six specs still carry comments
+asserting the old no-op claim; they emulate `reduce` explicitly so they are
+redundant rather than wrong, and that prose sweep does not belong in a change
+whose job is getting staging green.
+
+Also open from this session and not yet journaled, since they land on their own
+PRs: #195 gates the GA tag on hostname and #841 adds a `hostName` filter to the
+maintenance GA query, after the September report counted 15,971 localhost
+sessions from our own Playwright runs as client traffic.

@@ -331,6 +331,10 @@ test.describe("in Los Angeles", () => {
   });
 
   test("the in-flight button animates without changing its accessible name", async ({ page }) => {
+    // The suite runs with reduced motion emulated (shared Playwright base), and
+    // SendingDots deliberately holds its dots still under that media query. This
+    // test is about the dots MOVING, so it has to opt back into motion.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     await stubApi(page);
     // Hold the booking open, or the in-flight state never exists to be looked at.
     await page.route("**/api/book", async (route) => {

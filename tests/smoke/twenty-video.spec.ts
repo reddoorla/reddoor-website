@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 // Behaviour added when fixing the "20 for 20" background video not running on
 // iPad: the cross-origin Vimeo iframe now (1) carries the autoplay permission
@@ -7,6 +7,15 @@ import { test, expect } from "@playwright/test";
 
 const FALLBACK = "img[alt='Hand-drawn sketch of the number 20']";
 const IFRAME = "iframe[title='20 for 20 animated sketch']";
+
+// The shared Playwright base (@reddoorla/maintenance) emulates reduced motion for
+// the whole suite via `use.contextOptions`, and this page honours it: the iframe
+// sits behind `{#if !prefersReducedMotion}` and is torn out of the DOM at
+// hydration. So every test below that is about the video PLAYING has to opt back
+// into motion first — otherwise it asserts against an element the page removes
+// out from under it, which is what the assertion log shows ("5 x locator
+// resolved ... unexpected value 0", then "element(s) not found").
+const allowMotion = (page: Page) => page.emulateMedia({ reducedMotion: "no-preference" });
 
 test("Reduce Motion: video is never embedded, only the static sketch shows", async ({
   browser,
@@ -22,6 +31,7 @@ test("Reduce Motion: video is never embedded, only the static sketch shows", asy
 });
 
 test("Vimeo iframe is granted autoplay permission", async ({ page }) => {
+  await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
   const iframe = page.locator(IFRAME);
   await expect(iframe).toBeAttached();
@@ -37,6 +47,7 @@ test("fallback sketch stays visible when the video cannot play (iPad case)", asy
   // outcome as iPad Low Power Mode / a blocked autoplay: no play event arrives.
   await page.route(/player\.vimeo\.com/, (route) => route.abort());
 
+  await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
   const fallback = page.locator(FALLBACK);
@@ -50,6 +61,7 @@ test("fallback sketch stays visible when the video cannot play (iPad case)", asy
 });
 
 test("video reveals itself once it actually plays", async ({ page }) => {
+  await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
   const fallback = page.locator(FALLBACK);
@@ -77,6 +89,7 @@ test("fallback returns when playback stalls mid-stream (the iPad bug)", async ({
   await page.route(/player\.vimeo\.com/, (route) =>
     route.fulfill({ contentType: "text/html", body: STALLING_VIMEO_STUB }),
   );
+  await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
   const fallback = page.locator(FALLBACK);

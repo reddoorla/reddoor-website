@@ -565,3 +565,156 @@ export function allFixes(view: ReportView): Fix[] {
     ...view.fixes.filter((f) => f.origin !== "measured"),
   ];
 }
+
+/**
+ * The report's top-level sections, keyed by the id their `<section>` carries.
+ * One table, used by the contents list, the anchors and the current-section
+ * observer, so a renamed id fails a test rather than a jump.
+ */
+export const TOC_TARGETS = {
+  about: "about",
+  aiSays: "ai-says",
+  control: "control",
+  fixes: "fixes",
+  passes: "passes",
+  talk: "talk",
+} as const;
+
+export type TocEntry = {
+  id: (typeof TOC_TARGETS)[keyof typeof TOC_TARGETS];
+  label: string;
+};
+
+/**
+ * The table of contents: the sections in page order, the primer first, minus
+ * any the report does not render for this view. Labels are the section
+ * titles without their dynamic parts — "3 things to fix, in order" lists as
+ * "What to fix".
+ *
+ * The appendix (`passes`) is deliberately not listed. It is two closed
+ * disclosures, less than a screen, and as an entry it was current for a
+ * moment between "What to fix" and the closing band and then gone — a line in
+ * the list that the eye skipped. It keeps its id: three in-page links land
+ * there.
+ */
+export function tocEntries(fixes: Fix[]): TocEntry[] {
+  return [
+    { id: TOC_TARGETS.about, label: "What this report is" },
+    { id: TOC_TARGETS.aiSays, label: "What an AI says about you" },
+    { id: TOC_TARGETS.control, label: "What you control" },
+    ...(fixes.length ? [{ id: TOC_TARGETS.fixes, label: "What to fix" }] : []),
+    { id: TOC_TARGETS.talk, label: "Talk it through" },
+  ];
+}
+
+/** "September 3, 2026": the day the audit ran, as the masthead prints it.
+ *  Null when the report carries no date; the callers word around it. */
+export function auditedOn(view: ReportView): string | null {
+  return view.generatedAt
+    ? new Date(view.generatedAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
+}
+
+export type Primer = {
+  /** What the report is: the two routes a buyer takes, and that this is a measurement. */
+  what: string;
+  /** How it was made: the machinery first, the assistant last. */
+  how: string;
+  /** How to read it: receipts, what was not measured, where the passes and fixes sit. */
+  receipts: string;
+};
+
+/**
+ * The primer, "What this report is": three paragraphs before the first
+ * finding, so the results read as the output of an instrument rather than an
+ * assistant's opinion of the site. Composed here rather than in the template
+ * because two of the three paragraphs change with what the audit measured,
+ * and prose composed in code can be asserted exactly.
+ *
+ * Every number is the view's own, and every clause that names a measurement
+ * is gated on the stage that made it. Where a stage did not run the clause is
+ * dropped, not defaulted: a primer that says "we read your robots.txt" over a
+ * report whose checks never ran is the exact overstatement the report exists
+ * to avoid.
+ */
+export function primer(view: ReportView, fixes: Fix[]): Primer {
+  const who = view.businessName ?? "your business";
+  const day = auditedOn(view) ?? "one day";
+  const what =
+    "Someone checking you out before they call now has two routes: a search, or a question " +
+    "to an AI assistant, which answers from whatever it can find. This report is what it " +
+    "finds today and what on your own site shapes that. " +
+    `It is a measurement taken on ${day}, not a promise about rankings or leads.`;
+
+  // Checks that came back with a verdict, not the size of the battery. Every
+  // check in it is named and shipped, but a given site never meets all of
+  // them: on the sample fifteen of the seventy-six are "not-applicable" (no
+  // form to test, no sitemap to read) or "unmeasured", and counting those as
+  // work done is the overstatement this report exists to avoid — the honest
+  // number is the forty-eight that passed plus the thirteen that failed.
+  // Digits, not words: numberWord spells out only one to ten.
+  const ran =
+    view.siteChecks?.filter((c) => c.status === "pass" || c.status === "fail").length ?? 0;
+  const machinery: string[] = [];
+  if (view.accessibility?.measured) machinery.push("ran the accessibility rules");
+  const reach = view.crawlerReach;
+  if (reach?.measured && reach.checked > 0) {
+    machinery.push(`read your robots.txt as ${numberWord(reach.checked)} AI crawlers would`);
+  }
+  if (view.journey && view.journey.pagesExamined > 0) {
+    machinery.push("counted the clicks from any page to reaching you");
+  }
+
+  // Whole sentences joined by a single space, rather than splicing a comma or
+  // "and" onto `about ${who}` — so no branch (an empty `machinery`, a missing
+  // `categoryProbes`) can leave a double space or a stray space before
+  // punctuation.
+  // With nothing to report the clause goes rather than softening to "its
+  // named checks": a count is the whole point of the sentence, and a report
+  // whose battery never ran should not imply it did.
+  const fetched =
+    "Most of it is machinery, not an AI's opinion. It fetched every page twice, plain and " +
+    "in a real browser" +
+    (ran
+      ? `, then ran ${ran} named checks on what came back, from dead links to structured ` +
+        "data to whether a phone can fill in your forms."
+      : ".");
+
+  // The assistant, last, and only the parts that ran. The accuracy stage is
+  // the "check each statement" claim — SourceCheck.svelte gates its section
+  // on the same answersRead — the branded probes are the ask by name, and
+  // the category probes are the buyer's questions. A report with none of the
+  // three gets no sentence about an assistant, not a sentence about work
+  // nobody did.
+  const checked = view.accuracy !== null && view.accuracy.answersRead > 0;
+  const byName = checked || view.brandedProbes.length > 0;
+  const live = view.categoryProbes.length > 0;
+  const asked = byName
+    ? `Only then did we ask an assistant about ${who}` +
+      (checked && live
+        ? ", check each statement against your own pages, and put a buyer's questions to it " +
+          "live, keeping every source it cited."
+        : checked
+          ? " and check each statement against your own pages."
+          : live
+            ? " and put a buyer's questions to it live, keeping every source it cited."
+            : ".")
+    : live
+      ? "Only then did we put a buyer's questions to an assistant live, keeping every source it cited."
+      : null;
+  const how = [fetched, machinery.length ? `It ${joinList(machinery)}.` : null, asked]
+    .filter((s): s is string => s !== null)
+    .join(" ");
+
+  const receipts =
+    "Every finding carries its receipt. What we could not measure is marked, not scored " +
+    "against you. What passed sits in one place near the end, " +
+    (fixes.length ? "the fixes are in the order we would do them, " : "") +
+    "and because an assistant's answers move, this is worth taking again.";
+
+  return { what, how, receipts };
+}
