@@ -718,6 +718,60 @@ established checkout has one from an earlier build, so this bites only on a
 fresh `git worktree add`. `pnpm exec svelte-kit sync` once, and the same
 suite goes 51 files and 582 tests green.
 
+## 2026-09-16 — The analytics number was mostly our own test suite (`fix/ga-hostname-gate`)
+
+Tucker, on the September maintenance report: analytics seem way higher than
+they have been, what gives. The email said 15,063 Users, up 510% against the
+previous thirty days, 2,471 → 15,063. It was not traffic. Broken down by
+`hostName` for the thirty days to 2026-09-14, GA4 property "Reddoor Creative
+Site" holds 16,072 users: 15,971 on `localhost`, 87 on `reddoorla.com`, 29
+across deploy previews and staging. Source and medium agrees — 16,048 of the
+16,072 are `(direct) / (none)`, which is what a scripted browser looks like.
+
+The mechanism is this file. `src/app.html` carries one measurement id and
+ships to every environment, and the tag defers until the first `pointerdown`,
+`keydown`, `scroll` or `touchstart` — exactly what a Playwright test does.
+Every test runs in a fresh browser context with no cookies, so every test is a
+new GA client id and therefore a new "user". The smoke suite is 176 tests
+across 25 spec files, CI ran it 365 times in that window against 149 the month
+before, and the audit-report work meant many more runs on this laptop. The
+privacy hardening from MED-7 made it worse in one narrow sense: the
+interaction gate that spares a zero-interaction human bounce does nothing to
+spare a robot that clicks.
+
+Two things worth keeping. First, this is not new — the previous window was
+1,807 localhost against 176 real, already 91% noise. The metric has been
+junk for months and nobody noticed, because 2,471 is a number a small studio
+site could plausibly earn. It only became visible when CI volume more than
+doubled and pushed it to six times plausible. A measurement that is wrong by
+9x and still believable is more dangerous than one that is wrong by 60x.
+Second, the real finding was hidden underneath: production traffic did not
+rise 510%, it fell by half, 176 → 87. The noise was not merely padding the
+number, it was inverting the sign.
+
+The gate here is an exact hostname match against `MEASURED_HOSTS`, never a
+suffix test, because `staging.reddoorla.com` ends with the production domain
+and must not be measured — it is in the GA hostname list already. `app.html`
+cannot import `$lib/site.ts`, so `analytics-hostname.test.ts` cross-checks the
+literal against `SITE_URL` and fails if they drift. Nothing in the app calls
+`window.gtag`, so only the script load is gated; the `dataLayer` shim stays,
+and a future `gtag("event", …)` will not throw on a laptop.
+
+This repo's gate only cleans future months. The other half is in
+reddoor-maintenance: `src/reports/ga/client.ts` asks GA4 for `activeUsers`
+with no `dimensionFilter` at all, so the report would keep printing historical
+noise. That change rides its own PR there.
+
+Checked across the fleet before assuming it was ours alone: of twelve GA
+properties, only this one (99% not real) and Revogen (29%, 246 localhost
+users) are affected. Every client property is between 0% and 8%, and
+Beachfront Dentistry — whose report went out on 08-20 — is at 0%, so no
+client has been mailed an inflated number. One caveat on the arithmetic: the
+report measures a rolling window ending when it runs, so the window queried
+here is close to but not identical with the email's, which is why these
+totals are 16,072 and 1,992 where the email said 15,063 and 2,471. The shape
+is the same.
+
 ## 2026-09-16 — Staging went red because the reduced-motion emulation started working (#196, `ea9ef95`)
 
 Staging had been failing since late on 09-15, and every PR based on it
