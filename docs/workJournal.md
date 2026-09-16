@@ -771,6 +771,7 @@ report measures a rolling window ending when it runs, so the window queried
 here is close to but not identical with the email's, which is why these
 totals are 16,072 and 1,992 where the email said 15,063 and 2,471. The shape
 is the same.
+
 ## 2026-09-16 — Staging went red because the reduced-motion emulation started working (#196, `ea9ef95`)
 
 Staging had been failing since late on 09-15, and every PR based on it
