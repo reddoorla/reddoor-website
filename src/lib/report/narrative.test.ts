@@ -1093,7 +1093,7 @@ describe("primer", () => {
   it("prints every live value on the all-pass fixture", () => {
     const p = primer(view(), allFixes(view()));
     expect(p.what).toContain("It is a measurement taken on September 3, 2026, not a promise");
-    expect(p.how).toContain("then ran 76 named checks on what came back");
+    expect(p.how).toContain("then ran 70 named checks on what came back");
     expect(p.how).toContain(
       "It ran the accessibility rules, read your robots.txt as eight AI crawlers would and " +
         "counted the clicks from any page to reaching you.",
@@ -1108,15 +1108,39 @@ describe("primer", () => {
     );
   });
 
-  it("words an empty battery like a missing one, not 'ran 0 named checks'", () => {
-    const p = primer({ ...view(), siteChecks: [] }, []);
-    expect(p.how).toContain("then ran its named checks on what came back");
+  it("counts the checks that came back with a verdict, not the size of the battery", () => {
+    // The fixture ships the whole battery, six rows of which have nothing on
+    // this site to apply to, so the honest count is the seventy that returned
+    // a verdict.
+    expect(view().siteChecks).toHaveLength(76);
+    expect(primer(view(), []).how).toContain("then ran 70 named checks on what came back");
+
+    // Said plainly: a check with nothing to apply to, and one we could not
+    // measure, are not work the reader was done.
+    const mixed = [
+      { status: "pass" },
+      { status: "fail" },
+      { status: "not-applicable" },
+      { status: "unmeasured" },
+    ] as unknown as ReportView["siteChecks"];
+    expect(primer({ ...view(), siteChecks: mixed }, []).how).toContain("then ran 2 named checks");
+  });
+
+  it("says nothing about checks when none came back", () => {
+    for (const siteChecks of [[], null] as ReportView["siteChecks"][]) {
+      const p = primer({ ...view(), siteChecks }, []);
+      expect(p.how).toContain("plain and in a real browser.");
+      expect(p.how).not.toContain("then ran");
+      expect(p.how).not.toContain("named checks");
+      expect(p.how).not.toContain("dead links");
+    }
   });
 
   it("drops every clause it cannot stand behind, and words around the missing values", () => {
     const p = primer(bare(), []);
     expect(p.what).toContain("taken on one day, not a promise");
-    expect(p.how).toContain("then ran its named checks on what came back.");
+    expect(p.how).toContain("plain and in a real browser.");
+    expect(p.how).not.toContain("then ran");
     expect(p.how).not.toContain("dead links");
     expect(p.how).not.toContain("robots.txt");
     expect(p.how).not.toContain("accessibility rules");
