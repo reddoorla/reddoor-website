@@ -93,7 +93,7 @@
 </script>
 
 <svelte:head>
-  <title>Prospect audit — {who}</title>
+  <title>AEO / SEO Audit Report — {who}</title>
   <meta name="robots" content="noindex, nofollow, noarchive" />
 </svelte:head>
 
@@ -114,7 +114,7 @@
 -->
 <article class="sheet">
   <header>
-    <p class="eyebrow">Prospect audit</p>
+    <p class="eyebrow">AEO / SEO Audit Report for: {who}</p>
     <h1>When AI answers for {who}</h1>
     <p class="meta">
       {view.url}{#if auditDate}
@@ -160,7 +160,7 @@
        about something a client knows is true would discredit the page. -->
   {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
     <section>
-      <h2>What an AI says about you</h2>
+      <h2>What AI is saying about you</h2>
       {#if collision}
         <div class="callout">
           <h3>
@@ -250,8 +250,8 @@
     <section>
       <h2>Where you stand in AI answers</h2>
       <p class="lede">
-        Each of these is a search a buyer would type before they had heard of you, asked of a live
-        AI assistant. Every site listed is one it cited back.
+        Each of these is a search a buyer would type before they had heard of you, asked of an AI
+        assistant. Every site listed is one it cited back.
       </p>
       {#each view.categoryProbes as probe (probe.query)}
         {@const domains = uniqueDomains(probe.citedDomains)}
@@ -349,7 +349,7 @@
       <h2>Our recommendations</h2>
       <p class="lede">
         What we would do next, in order. The rows marked measured come straight from a check above;
-        the rest are judgement. None of them is a promise about what an engine will do.
+        the rest are judgment. None of them is a promise about what an engine will do.
       </p>
       {#each orderedFixes as fix, i (fix.title)}
         <div class="fix">
@@ -387,9 +387,8 @@
     </p>
     {#if view.categoryProbes.length || view.brandedProbes.length}
       <p>
-        The visibility test ran {view.categoryProbes.length + view.brandedProbes.length} live searches.
-        Every source listed is a citation the assistant actually returned, not something inferred from
-        its wording.
+        The visibility test ran {view.categoryProbes.length + view.brandedProbes.length} searches. Every
+        source listed is a citation the assistant actually returned, not something inferred from its wording.
       </p>
     {/if}
     <p>

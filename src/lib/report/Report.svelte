@@ -62,6 +62,11 @@
   let root: HTMLElement | undefined = $state();
   let returnTo: number | null = $state(null);
 
+  // The opener counts "the ten questions buyers ask first" and the list sits
+  // in a closed disclosure under the meter, where a reader asked what ten
+  // questions (Tim, 2026-09-15). The opener links to it and opens it.
+  let questionsOpen = $state(false);
+
   $effect(() => {
     const el = root;
     if (!el) return;
@@ -190,7 +195,7 @@
   <section bind:this={hero} class="bg-paper w-full pt-32 pb-16 md:pb-24">
     <ContentWidth class="flex flex-col gap-6">
       <p class="type-meta m-0 flex flex-wrap gap-x-6 gap-y-1 text-muted">
-        <span class="type-eyebrow text-primary">{who}</span>
+        <span class="type-eyebrow text-primary">AEO / SEO Audit Report for: {who}</span>
         <span>{view.url}</span>
         {#if auditDate}<span>Audited {auditDate}</span>{/if}
       </p>
@@ -288,22 +293,22 @@
       </RailRow>
     </section>
 
-    <!-- ── What an AI says about you ───────────────────────────────────────── -->
+    <!-- ── What AI is saying about you ───────────────────────────────────────── -->
     <!-- The first finding, and the section this report is named for: an engine
        describes them to strangers right now and they have never seen what it
        says. Unlike a score it needs no explanation of our method. -->
     <section id={TOC_TARGETS.aiSays} class="bg-white w-full scroll-mt-24 py-16 md:py-24">
       <RailRow fill>
-        <h2 class="type-display m-0 text-black">What an AI says about you</h2>
+        <h2 class="type-display m-0 text-black">What AI is saying about you</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
       </RailRow>
 
       <RailRow label="What it says" labelAs="h3" fill labelAbove>
         <div class="flex flex-col gap-10">
           <p class="type-lede m-0 text-black">
-            We asked a live AI assistant about {who} and took its answer apart statement by statement.
-            Each one is sorted by where it came from — never by whether it is true. We cannot know that;
-            you can.
+            We asked an AI assistant about {who} and took its answer apart statement by statement. Each
+            one is sorted by where it came from — not by whether it is true. We cannot know that; you
+            can.
           </p>
           <SourceCheck {view} />
         </div>
@@ -432,7 +437,12 @@
             <!-- Derived from the same verdicts the table prints, so it cannot
                say an answer exists where the table says No. -->
             {#if openingSummary(view)}
-              <p class="type-lede m-0 text-black">{openingSummary(view)}</p>
+              <p class="type-lede m-0 text-black">
+                {openingSummary(view)}
+                <a class="underline" href="#buyer-questions" onclick={() => (questionsOpen = true)}
+                  >See the questions.</a
+                >
+              </p>
             {/if}
 
             <QuestionMeter
@@ -442,8 +452,9 @@
               unknown={view.questionTally.unknown}
             />
 
-            <div class="flex flex-col border-t border-light">
+            <div id="buyer-questions" class="flex scroll-mt-24 flex-col border-t border-light">
               <ReportDisclosure
+                bind:open={questionsOpen}
                 headingTag="h4"
                 title="See all {view.buyerQuestions
                   .length} questions and what your site says about each"
@@ -574,7 +585,7 @@
               </p>
               {#if view.categoryProbes.length || view.brandedProbes.length}
                 <p class="m-0">
-                  The visibility test ran {view.categoryProbes.length + view.brandedProbes.length} live
+                  The visibility test ran {view.categoryProbes.length + view.brandedProbes.length}
                   searches. Every source listed is a citation the assistant actually returned, not something
                   inferred from its wording.
                 </p>

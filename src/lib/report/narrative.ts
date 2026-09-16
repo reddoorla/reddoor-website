@@ -263,7 +263,7 @@ function passesGenerated(view: ReportView): PassGroup[] {
   const learn = view.buyerQuestions.filter((q) => q.answered === "yes").map((q) => q.question);
 
   return [
-    { title: "What an AI says about you", items: ai },
+    { title: "What AI is saying about you", items: ai },
     { title: "Does it work", items: works },
     { title: "Does your site do its job", items: job },
     { title: "What buyers can learn from your site", items: learn },
@@ -331,7 +331,7 @@ function collisionFixGenerated(view: ReportView): Fix | null {
       "Put the full name, the place and the work in one sentence at the top of the home page and the " +
       "About page, and in both page titles — that is the sentence an assistant quotes when it has to " +
       "say which one you are. Make the profiles it read instead say the same sentence. Then mark the " +
-      "organisation up: a schema.org Organization block with the name, the address and links to the " +
+      "organization up: a schema.org Organization block with the name, the address and links to the " +
       "profiles you own, so the connections are stated rather than guessed.",
     impact: "high",
     effort: "low",
@@ -600,7 +600,7 @@ export type TocEntry = {
 export function tocEntries(fixes: Fix[]): TocEntry[] {
   return [
     { id: TOC_TARGETS.about, label: "What this report is" },
-    { id: TOC_TARGETS.aiSays, label: "What an AI says about you" },
+    { id: TOC_TARGETS.aiSays, label: "What AI is saying about you" },
     { id: TOC_TARGETS.control, label: "What you control" },
     ...(fixes.length ? [{ id: TOC_TARGETS.fixes, label: "What to fix" }] : []),
     { id: TOC_TARGETS.talk, label: "Talk it through" },
@@ -696,15 +696,15 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   const asked = byName
     ? `Only then did we ask an assistant about ${who}` +
       (checked && live
-        ? ", check each statement against your own pages, and put a buyer's questions to it " +
-          "live, keeping every source it cited."
+        ? ", check each statement against your own pages, and put a buyer's questions to it, " +
+          "keeping every source it cited."
         : checked
           ? " and check each statement against your own pages."
           : live
-            ? " and put a buyer's questions to it live, keeping every source it cited."
+            ? " and put a buyer's questions to it, keeping every source it cited."
             : ".")
     : live
-      ? "Only then did we put a buyer's questions to an assistant live, keeping every source it cited."
+      ? "Only then did we put a buyer's questions to an assistant, keeping every source it cited."
       : null;
   const how = [fetched, machinery.length ? `It ${joinList(machinery)}.` : null, asked]
     .filter((s): s is string => s !== null)

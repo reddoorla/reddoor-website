@@ -832,3 +832,72 @@ Also open from this session and not yet journaled, since they land on their own
 PRs: #195 gates the GA tag on hostname and #841 adds a `hostName` filter to the
 maintenance GA query, after the September report counted 15,971 localhost
 sessions from our own Playwright runs as client traffic.
+
+## 2026-09-16 — Tim's MarkUp round on the audit report: title, "live", heading, question link (fix/report-tim-markup)
+
+Tim marked up the Reddoor report (`/audit/xZMVU1EaZLC1ZLAJ81Rzxg`) on 09-15
+at 14:13–14:35 PT and never sent the link; it surfaced in
+`#rd-clients-by-design` on 09-16. The board is "AEO / SEO Report", 8 pins.
+Pin screenshots could not be fetched this session (reading the MarkUp key for
+the screenshot endpoint was refused by the permission classifier), so each pin
+was placed by matching its comment to the page text and its y% to the scroll
+order Tim worked in. That is inference, and the pins it rests on most are
+named below.
+
+Applied, in renderer copy only — stored audits are untouched, so every existing
+token shows the change:
+
+- The eyebrow reads "AEO / SEO Audit Report for: {who}" (pin 1, Tim's wording
+  verbatim), on the web page and the print sheet. The print sheet's eyebrow and
+  `<title>` said "Prospect audit", our internal word for the reader, printed to
+  the reader. The h1 stays: its comment records why "When AI answers for" was
+  chosen over a discovery promise, and the pin reads as a label, not a retitle.
+- "live" is gone wherever it described the assistant (pin 3: Tim laughed at
+  it). Five sites: the What-it-says lede, three primer branches in
+  `narrative.ts`, "N live searches" on both surfaces, "The live visibility
+  test", and the print sheet's "asked of a live AI assistant". "Findings live"
+  in the closing band is about the meeting and stays. Pin 3's real question —
+  ask ChatGPT and Grok too — is a pipeline decision and is not addressed here.
+- "never by whether it is true" → "not by whether it is true" (pin 4; the
+  placement is the least certain of the round — "never" also appears in the
+  llms.txt note and in stored fix text, but this is the one on the screen Tim
+  had just pinned).
+- The section heading "What an AI says about you" → "What AI is saying about
+  you" (pin 5), in sentence case to match every other heading rather than
+  Tim's title case. Also the TOC label and the passes group title.
+- Pins 7 and 8 ("what ten questions?", "do we link to the questions?"): the
+  opener said "Of the ten questions buyers ask first" with the list two blocks
+  down in a closed disclosure. The opener now ends in "See the questions.",
+  which jumps to `#buyer-questions` and opens it (the disclosure's `open` is
+  bound), and the root's delegated handler offers the way back like every other
+  in-page link. Verified in a browser on `/dev/audit-report`.
+- Erik noticed "memorise" in the report. American spelling in the renderer's
+  reader-facing strings: memorize, recognize (×2), organization, color,
+  judgment. Fixture strings and the maintenance pipeline's stored text
+  ("enquiry form", "memorised" in `goals.ts`, "memorise" in
+  `measured-fixes.ts`) are not in this change; the pipeline copy lands in new
+  audits only, and needs its own PR there.
+
+Left open, deliberately. Pin 2 ("Project goal and what we did to get there")
+predates the primer (#191 merged 17:26 PT the same day) and reads as the
+request the primer answers. Pin 6 ("seems important, like a summary sentence,
+but the visual hierarchy makes it look like a footnote") is almost certainly
+"{who} was not among them, in any of the N questions we asked" — and
+`Standing.svelte` demotes it on purpose: a zero at the top of that section took
+over the meeting, and it is the one number nothing we do reliably moves.
+Promoting it reverses a recorded decision, so it goes to Tucker.
+
+Scoped, not built: asking more than one assistant. The pipeline already has a
+`VisibilityEngine` interface and a Perplexity adapter behind
+`PERPLEXITY_API_KEY`; the renderer is what is not ready — `toReportView` pools
+every engine into one count, `{#each}` blocks keyed by `probe.query` would
+collide with two engines asking the same question, and `report-copy.test.ts`
+requires the copy to say one assistant. The three adapters already mean
+different things by "cited" (API Claude = retrieved plus cited, `claude -p` =
+retrieved only, Perplexity = used), so a side-by-side count would measure the
+plumbing. Rough estimate: 25–40 h for one extra engine on probes only, 75–110 h
+for parity across three or four.
+
+Gates: lint clean, check 0 errors over 4631 files, 589 unit tests, the 7
+report smoke specs; three new guards in `report-copy.test.ts` for the title,
+the "live" wording and the question link.

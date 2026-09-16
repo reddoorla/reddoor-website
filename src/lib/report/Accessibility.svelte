@@ -115,7 +115,7 @@
           <ReportDisclosure title="Rules the scan could not decide" headingTag="h4">
             <p class="type-meta m-0 pt-2 text-muted">
               {a.rulesIncomplete}
-              {a.rulesIncomplete === 1 ? "rule needs" : "rules need"} a human to look — usually colour
+              {a.rulesIncomplete === 1 ? "rule needs" : "rules need"} a human to look — usually color
               contrast over an image or a gradient, where the scanner cannot tell what is behind the text.
               These are neither passes nor failures, and they are not counted as either above.
             </p>
