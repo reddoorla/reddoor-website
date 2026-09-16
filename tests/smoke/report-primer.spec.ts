@@ -1,7 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 
 // The primer, "What this report is", against the all-pass fixture: Example
-// Studio, audited 2026-09-03, 76 named checks, 8 AI crawlers, accessibility
+// Studio, audited 2026-09-03, 70 of its 76 named checks back with a verdict
+// (the other six have nothing on that site to apply to), 8 AI crawlers, accessibility
 // measured, the journey stage present, two category probes and two fixes, so
 // the values the smoke checks all print. The fallbacks are unit-tested on
 // `primer()`.
@@ -66,7 +67,7 @@ test.describe("report primer", () => {
 
     const text = (await about.innerText()).replace(/\s+/g, " ");
     expect(text).toContain("taken on September 3, 2026");
-    expect(text).toContain("ran 76 named checks");
+    expect(text).toContain("ran 70 named checks");
     expect(text).toContain("read your robots.txt as eight AI crawlers would");
     expect(text).toContain("ask an assistant about Example Studio");
 

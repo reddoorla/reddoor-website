@@ -650,16 +650,15 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
     "finds today and what on your own site shapes that. " +
     `It is a measurement taken on ${day}, not a promise about rankings or leads.`;
 
-  // Digits, not words: numberWord spells out only one to ten, and the rest of
-  // the report already says "of the 76 checks". `?.length` rather than a
-  // truthy check on the array itself: an empty battery should word like a
-  // missing one, the way health.ts treats null and [] alike, not print "ran 0
-  // named checks" — and with none to run, the three named examples did not
-  // run either, so the sentence names no rows at all.
-  const battery = view.siteChecks?.length
-    ? `${view.siteChecks.length} named checks on what came back, from dead links to structured ` +
-      "data to whether a phone can fill in your forms."
-    : "its named checks on what came back.";
+  // Checks that came back with a verdict, not the size of the battery. Every
+  // check in it is named and shipped, but a given site never meets all of
+  // them: on the sample fifteen of the seventy-six are "not-applicable" (no
+  // form to test, no sitemap to read) or "unmeasured", and counting those as
+  // work done is the overstatement this report exists to avoid — the honest
+  // number is the forty-eight that passed plus the thirteen that failed.
+  // Digits, not words: numberWord spells out only one to ten.
+  const ran =
+    view.siteChecks?.filter((c) => c.status === "pass" || c.status === "fail").length ?? 0;
   const machinery: string[] = [];
   if (view.accessibility?.measured) machinery.push("ran the accessibility rules");
   const reach = view.crawlerReach;
@@ -674,9 +673,16 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   // "and" onto `about ${who}` — so no branch (an empty `machinery`, a missing
   // `categoryProbes`) can leave a double space or a stray space before
   // punctuation.
+  // With nothing to report the clause goes rather than softening to "its
+  // named checks": a count is the whole point of the sentence, and a report
+  // whose battery never ran should not imply it did.
   const fetched =
     "Most of it is machinery, not an AI's opinion. It fetched every page twice, plain and " +
-    `in a real browser, then ran ${battery}`;
+    "in a real browser" +
+    (ran
+      ? `, then ran ${ran} named checks on what came back, from dead links to structured ` +
+        "data to whether a phone can fill in your forms."
+      : ".");
 
   // The assistant, last, and only the parts that ran. The accuracy stage is
   // the "check each statement" claim — SourceCheck.svelte gates its section

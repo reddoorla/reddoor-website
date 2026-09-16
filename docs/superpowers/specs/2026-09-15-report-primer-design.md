@@ -245,3 +245,22 @@ from the same review: without a battery the sentence ends "ran its named
 checks on what came back." and names no example rows, since the three
 examples are battery rows; and a journey that examined no pages does not
 count clicks.
+
+## Amendment 3, 2026-09-15 (the count is what ran, not what shipped)
+
+The table above takes the count from `view.siteChecks.length`, so the copy
+said "ran 76 named checks" on every report. The battery is 76 rows, but no
+site meets all of them. On the hard-case sample 48 passed and 13 failed
+while 14 were not-applicable (no form to test, no sitemap to read) and one
+was unmeasured, so the honest number is 61 — which is the number the
+approved copy carried as "{sixty-one}" and the implementation lost by
+reaching for the array's length. The count is now the rows whose status is
+`pass` or `fail`.
+
+With none of them, the clause goes entirely and the sentence ends at "in a
+real browser.", rather than softening to "its named checks": a count is the
+point of that clause, and a report whose battery never ran should not imply
+it did. The all-pass fixture prints 70, its other six rows having nothing on
+that site to apply to. Nothing else in the report prints a battery count, so
+there is no second number to keep this one in step with: "What passes" counts
+clean items and "Does it work" counts health rows.
