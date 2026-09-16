@@ -901,3 +901,26 @@ for parity across three or four.
 Gates: lint clean, check 0 errors over 4631 files, 589 unit tests, the 7
 report smoke specs; three new guards in `report-copy.test.ts` for the title,
 the "live" wording and the question link.
+
+## 2026-09-16 — Pin 6 was the own-site summary, not the standing zero; one assistant stays (fix/report-tim-markup)
+
+Corrects the entry above ("Tim's MarkUp round…"), which said pin 6 was
+"almost certainly" `Standing.svelte`'s "{who} was not among them" and parked it
+as a reversal of a recorded decision. Tucker had the screenshot: the pin sits
+on `SourceCheck.svelte`'s closing sentence — "Five statements the assistant made
+match a passage on your own site … That is the proof that editing your pages
+changes the answer". Text matching found the right _kind_ of sentence (a grey
+summary under a list) and the wrong instance; there are two on the page, and the
+y% alone could not separate them. The standing line is untouched.
+
+That sentence was `type-meta text-muted` (14px grey, the footnote role) under a
+list of claims in `font-medium` black, so the summary read as smaller than the
+things it summarises. It now takes `type-question text-black` — the size and
+colour of the h4s beside it ("What the AI says about you", "Who else the
+assistant read") — measured 21px, rgb(0,0,0) at 1440 on `/dev/audit-report`.
+Not `type-lede`: the section's serif lede is directly above it, and two ledes in
+a row would flatten the hierarchy in the other direction.
+
+Decisions from Tucker: pin 2 counts as answered by the primer; pin 3 stays at
+one assistant for now, so the scoping in the entry above is reference, not a
+plan, and the singular-copy guard in `report-copy.test.ts` stays.

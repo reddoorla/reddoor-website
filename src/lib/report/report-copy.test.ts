@@ -261,6 +261,12 @@ describe("one story, on every surface", () => {
     expect(code(REPORT)).toMatch(/not by whether it is true/);
   });
 
+  it("the own-site summary under the claims is not styled as a footnote", () => {
+    expect(code(SOURCE)).toMatch(
+      /<p class="type-question m-0 border-t border-light pt-6 text-black">\s*\{numberWord\(confirmed\)/,
+    );
+  });
+
   it("the opener's question count links to the questions and opens them", () => {
     const src = code(REPORT);
     expect(src).toMatch(/href="#buyer-questions"/);

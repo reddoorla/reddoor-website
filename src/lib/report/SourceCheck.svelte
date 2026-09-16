@@ -200,8 +200,10 @@
 
     {#if confirmed > 0}
       <!-- The proof that editing the site changes the answer, in one sentence.
-           The statements themselves are in the passes list. -->
-      <p class="type-meta m-0 border-t border-light pt-6 text-muted">
+           The statements themselves are in the passes list. It is the summary
+           of the lists above, so it takes the h4s' size and colour rather than
+           the grey meta of a footnote (Tim, MarkUp 2026-09-15). -->
+      <p class="type-question m-0 border-t border-light pt-6 text-black">
         {numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())}
         {confirmed === 1 ? "statement" : "statements"} the assistant made
         {confirmed === 1 ? "matches" : "match"} a passage on your own site, and across the answers we
