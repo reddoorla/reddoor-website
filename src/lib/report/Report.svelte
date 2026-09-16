@@ -14,7 +14,14 @@
   import SearchResults from "./SearchResults.svelte";
   import WhatPasses from "./WhatPasses.svelte";
   import { openingSummary, type ReportView } from "./model";
-  import { allFixes, headlineFinding, tocEntries, TOC_TARGETS } from "./narrative";
+  import {
+    allFixes,
+    auditedOn,
+    headlineFinding,
+    primer,
+    tocEntries,
+    TOC_TARGETS,
+  } from "./narrative";
 
   // The report body, shared by the token route and the fixture route.
   //
@@ -41,6 +48,7 @@
   const headline = $derived(headlineFinding(view));
   const fixes = $derived(allFixes(view));
   const toc = $derived(tocEntries(fixes));
+  const about = $derived(primer(view, fixes));
 
   // Back to where you were reading.
   //
@@ -152,15 +160,7 @@
     return () => io.disconnect();
   });
 
-  const auditedOn = $derived(
-    view.generatedAt
-      ? new Date(view.generatedAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })
-      : null,
-  );
+  const auditDate = $derived(auditedOn(view));
 
   const ANSWERED_LABEL = {
     yes: "Yes",
@@ -192,7 +192,7 @@
       <p class="type-meta m-0 flex flex-wrap gap-x-6 gap-y-1 text-muted">
         <span class="type-eyebrow text-primary">{who}</span>
         <span>{view.url}</span>
-        {#if auditedOn}<span>Audited {auditedOn}</span>{/if}
+        {#if auditDate}<span>Audited {auditDate}</span>{/if}
       </p>
 
       <!-- "Can AI find you?" was a discovery promise on an instrument that
@@ -222,19 +222,23 @@
   <!-- ── The document, with its contents in the rail ─────────────────────── -->
   <!-- Everything between the hero and the closing band, so the sticky list
        runs from the first section to the end of the appendix and never sits
-       on the red band. The list's column copies ContentWidth's horizontal
-       geometry so its left edge is the rail's; the rows keep their own grid
-       and pass `labelAbove`, which leaves their rail cells empty for it. Below
-       `lg` the same element is a plain block under the hero: one nav, at every
-       width, never duplicated or moved with CSS. `lg:pt-24` matches the first
-       section's top padding so the list's resting position lines up with its
-       heading; when stuck, `top-24` is the same clearance `scroll-mt-24`
-       gives the anchors. `lg:z-10` lifts it above the rows: every RailRow
-       wraps itself in a `relative` ContentWidth, a later sibling, whose empty
-       rail cell would otherwise sit over the list and take its clicks. -->
-  <div class="relative">
+       on the red band. The wrapper carries the paper: below `lg` the list is
+       a block between the hero and the primer, and it belongs to the same
+       front matter, so it sits on the same paper; the two white sections
+       paint `bg-white` over it. The list's column copies ContentWidth's
+       horizontal geometry so its left edge is the rail's; the rows keep their
+       own grid and pass `labelAbove`, which leaves their rail cells empty for
+       it. Below `lg` the same element is a plain block under the hero: one
+       nav, at every width, never duplicated or moved with CSS. The column has
+       no top padding: the first section, the primer, has none at `lg` either,
+       so the list rests level with its heading; when stuck, `top-24` is the
+       same clearance `scroll-mt-24` gives the anchors. `lg:z-10` lifts it
+       above the rows: every RailRow wraps itself in a `relative`
+       ContentWidth, a later sibling, whose empty rail cell would otherwise
+       sit over the list and take its clicks. -->
+  <div class="bg-paper relative">
     <div
-      class="pointer-events-none lg:absolute lg:inset-y-0 lg:left-[4%] lg:w-[92%] lg:max-w-[1220px] lg:pt-24 xl:inset-x-0 xl:mx-auto xl:max-w-[1440px]"
+      class="pointer-events-none lg:absolute lg:inset-y-0 lg:left-[4%] lg:w-[92%] lg:max-w-[1220px] xl:inset-x-0 xl:mx-auto xl:max-w-[1440px]"
     >
       <nav
         aria-label="In this report"
@@ -260,11 +264,35 @@
       </nav>
     </div>
 
+    <!-- ── What this report is ─────────────────────────────────────────────── -->
+    <!-- Front matter, on the hero's paper: what the reader is holding, what
+       was done to make it and in what order, before the first finding asks
+       them to trust one. The prose is composed in narrative.ts because two of
+       its three paragraphs change with what the audit measured, and a clause
+       about a stage that never ran is dropped there, not here. No top padding
+       at `lg`: the hero's bottom padding already separates the two on the
+       same paper, and the contents list rests level with this heading; below
+       `lg` the list sits between them, so `pt-12` there. -->
+    <section id={TOC_TARGETS.about} class="w-full scroll-mt-24 pt-12 pb-16 md:pb-24 lg:pt-0">
+      <RailRow fill>
+        <h2 class="type-display m-0 text-black">What this report is</h2>
+        <hr class="mt-7.5 mb-7.5 border-primary" />
+      </RailRow>
+
+      <RailRow label="In short" labelAs="p" fill labelAbove>
+        <div class="flex flex-col gap-6">
+          <p class="type-lede m-0 text-black">{about.what}</p>
+          <p class="m-0 text-black">{about.how}</p>
+          <p class="m-0 text-black">{about.receipts}</p>
+        </div>
+      </RailRow>
+    </section>
+
     <!-- ── What an AI says about you ───────────────────────────────────────── -->
-    <!-- First, because it is the section this report is named for: an engine
+    <!-- The first finding, and the section this report is named for: an engine
        describes them to strangers right now and they have never seen what it
        says. Unlike a score it needs no explanation of our method. -->
-    <section id={TOC_TARGETS.aiSays} class="w-full scroll-mt-24 py-16 md:py-24">
+    <section id={TOC_TARGETS.aiSays} class="bg-white w-full scroll-mt-24 py-16 md:py-24">
       <RailRow fill>
         <h2 class="type-display m-0 text-black">What an AI says about you</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
@@ -337,7 +365,7 @@
     <!-- The half of the report that moves because we edit the site, with a
        before and an after. The visibility measurement above does not behave
        that way and is deliberately not printed beside these. -->
-    <section id={TOC_TARGETS.control} class="bg-paper w-full scroll-mt-24 py-16 md:py-24">
+    <section id={TOC_TARGETS.control} class="w-full scroll-mt-24 py-16 md:py-24">
       <RailRow fill>
         <h2 class="type-display m-0 text-black">What you control</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
@@ -485,7 +513,7 @@
     <!-- Anchored from the hero: a reader who wants the remedy before the
        diagnosis jumps straight here. -->
     {#if fixes.length}
-      <section id={TOC_TARGETS.fixes} class="w-full scroll-mt-24 py-16 md:py-24">
+      <section id={TOC_TARGETS.fixes} class="bg-white w-full scroll-mt-24 py-16 md:py-24">
         <RailRow fill>
           <h2 class="type-display m-0 text-primary">
             {fixes.length === 1 ? "One thing to fix" : `${fixes.length} things to fix, in order`}
@@ -529,7 +557,7 @@
        method, in one paper band after the fixes. Neither is a finding, which is
        why they share a band and sit last. Nothing above lists a pass; this is
        where the receipts for breadth live, and the in-page links land here. -->
-    <section id={TOC_TARGETS.passes} class="bg-paper w-full scroll-mt-24 py-16 md:py-24">
+    <section id={TOC_TARGETS.passes} class="w-full scroll-mt-24 py-16 md:py-24">
       <RailRow label="Checked and fine" labelAs="p" fill labelAbove>
         <WhatPasses {view} />
       </RailRow>

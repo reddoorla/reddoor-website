@@ -3,7 +3,7 @@ import { AxeBuilder } from "@axe-core/playwright";
 
 // The contents list, against the all-pass fixture. Every check in that fixture
 // passes, but its analyze stage carries two recommendations, so the page
-// renders "2 things to fix, in order" and the list has all four entries. The
+// renders "2 things to fix, in order" and the list has all five entries. The
 // omission of "What to fix" on a report with no fixes is covered by the unit
 // test on `tocEntries([])`, not here.
 //
@@ -48,6 +48,7 @@ test.describe("report table of contents", () => {
     await expect(page.locator(NAV)).toHaveCount(1);
     const links = page.locator(`${NAV} a`);
     await expect(links).toHaveText([
+      "What this report is",
       "What an AI says about you",
       "What you control",
       "What to fix",
@@ -123,7 +124,7 @@ test.describe("report table of contents", () => {
       const h1 = document.querySelector("h1")!;
       return h1.closest("section")!.getBoundingClientRect().bottom + window.scrollY;
     });
-    const firstHeadingTop = await pageTopOf(page, "#ai-says h2");
+    const firstHeadingTop = await pageTopOf(page, "#about h2");
     const navBox = (await nav.boundingBox())!;
     expect(navBox.y).toBeGreaterThanOrEqual(heroBottom);
     expect(navBox.y + navBox.height).toBeLessThanOrEqual(firstHeadingTop);

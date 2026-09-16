@@ -54,6 +54,20 @@ describe("one story, on every surface", () => {
     expect(code(PRINT)).toContain("headlineFinding(view)");
   });
 
+  it("the primer's prose is composed in narrative.ts, and the template prints it first", () => {
+    expect(code(REPORT)).toMatch(/primer\(view, fixes\)/);
+    expect(code(REPORT)).toMatch(/auditedOn\(view\)/);
+    expect(code(PRINT)).toMatch(/auditedOn\(view\)/);
+    // The copy itself is not in the template: a sentence that varies with
+    // the view is asserted on the function, not string-matched here.
+    expect(code(REPORT)).not.toMatch(/two routes/);
+    const src = code(REPORT);
+    const about = src.indexOf("id={TOC_TARGETS.about}");
+    expect(about).toBeGreaterThan(0);
+    // The first section id in the template is the primer's.
+    expect(src.search(/id=\{TOC_TARGETS\.\w+\}/)).toBe(about);
+  });
+
   it("the token route renders the same body as the fixture route", () => {
     expect(code(PAGE)).toMatch(/<Report\b/);
     expect(code("src/routes/dev/audit-report/+page.svelte")).toMatch(/<Report\b/);
@@ -179,8 +193,14 @@ describe("one story, on every surface", () => {
     const hood = report.indexOf("Under the hood");
     // No section boundary between them: one band, two rails.
     expect(report.slice(passes, hood)).not.toMatch(/<\/section>|<section\b/);
+    // The band is the wrapper's paper: the section paints nothing over it
+    // (the white sections carry `bg-white`; this one must not), and the
+    // wrapper that encloses it is the one that carries `bg-paper`.
     const open = report.lastIndexOf("<section", passes);
-    expect(report.slice(open, passes)).toMatch(/bg-paper/);
+    expect(report.slice(open, passes)).not.toMatch(/bg-white/);
+    const wrapper = report.search(/<div class="(?=[^"]*\bbg-paper\b)(?=[^"]*\brelative\b)[^"]*">/);
+    expect(wrapper).toBeGreaterThan(0);
+    expect(wrapper).toBeLessThan(open);
     // A finding under "Does it work" always has a matching fix, and says so.
     expect(code("src/lib/report/SiteHealth.svelte")).toMatch(/href="#fixes"/);
   });
