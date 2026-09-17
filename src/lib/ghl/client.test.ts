@@ -23,7 +23,7 @@ import {
   TAG_EVENT_BEW,
   TAG_NOT_A_FIT,
 } from "./constants";
-import { BUDGET_GATE, SMS_CONSENT } from "./questions";
+import { BUDGET_GATE, DIGITAL_QUESTION_SET_ID, SMS_CONSENT, questionsFor } from "./questions";
 
 /**
  * Routes by URL rather than replaying a queue: the sync functions call several
@@ -559,5 +559,34 @@ describe("syncApplicationToCrm", () => {
     const res = await syncApplicationToCrm({ ...base, fetch });
     expect(res.ok).toBe(false);
     expect(calls).toHaveLength(1);
+  });
+});
+
+describe("writableFieldIds across two question sets", () => {
+  const digital = writableFieldIds(DIGITAL_QUESTION_SET_ID);
+  const a101 = writableFieldIds(DEFAULT_INQUIRY_SURVEY_ID);
+
+  it("covers the digital set's custom fields and excludes `website`", () => {
+    const tags = questionsFor(DIGITAL_QUESTION_SET_ID)!.map((q) => q.tag);
+    for (const tag of tags.filter((t) => t !== "website")) expect(digital.has(tag)).toBe(true);
+    expect(digital.has("website")).toBe(false);
+    expect(digital.has(SMS_CONSENT.tag)).toBe(false);
+  });
+
+  it("does not let one funnel write the other's fields", () => {
+    for (const id of a101) expect(digital.has(id)).toBe(false);
+    for (const id of digital) expect(a101.has(id)).toBe(false);
+  });
+
+  it("drops a medtech field id forged into a digital submission", () => {
+    const { customFields, standard } = partitionAnswers(
+      { [BUDGET_GATE.tag]: "No", website: "https://acme.test" },
+      digital,
+    );
+    // The budget gate's field is medtech's. Posted under the digital key it is
+    // not written at all — so it cannot reach isBudgetOptOut's answer map on
+    // the server, and cannot be used to route a digital lead to /not-a-fit.
+    expect(customFields).toEqual([]);
+    expect(standard).toEqual({ website: "https://acme.test" });
   });
 });
