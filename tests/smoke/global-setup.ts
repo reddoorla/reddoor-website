@@ -41,6 +41,7 @@ const ROUTES = [
   "/about",
   "/contact",
   "/portfolio",
+  "/medtech",
   "/twenty-for-twenty",
   "/schedule",
   "/not-a-fit",

@@ -332,7 +332,7 @@
     <ContentWidth class="flex flex-col md:flex-row py-12 md:py-24">
       <div class="md:w-2/5">
         <p class="w-full max-w-lg large-body">
-          We'll continue to build on this collection throughout the year, leading up to our 20th
+          We’ll continue to build on this collection throughout the year, leading up to our 20th
           anniversary on October 2, 2026. Thanks for joining us on the journey!
         </p>
         <div
@@ -437,7 +437,7 @@
   <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
     <div use:anim>
       <h3 class="text-white md:w-3/5">
-        It's time to arm your brand with a clear story and compelling design
+        It’s time to arm your brand with a clear story and compelling design
       </h3>
     </div>
     <div use:anim>

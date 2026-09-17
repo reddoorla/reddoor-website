@@ -52,7 +52,7 @@
 <div class="w-screen h-[50vh] max-h-96 relative bg-paper">
   <ContentWidth class="h-full flex flex-col justify-evenly items-start">
     <div class="h-32"></div>
-    <h4 class="text-primary z-10 md:ml-[20%]">We're excited to hear from you.</h4>
+    <h4 class="text-primary z-10 md:ml-[20%]">We’re excited to hear from you.</h4>
   </ContentWidth>
 </div>
 <div class="w-screen bg-white py-12">
@@ -83,12 +83,12 @@
   <ContentWidth class="flex flex-col md:flex-row mb-48" animateIn>
     <h6 class="md:w-1/5 text-primary my-4">Via Email</h6>
     <div class="w-full md:w-4/5 flex flex-col gap-8">
-      <h5>Complete this form and we'll get back to you.</h5>
+      <h5>Complete this form and we’ll get back to you.</h5>
       {#if form?.success}
         <!-- role="status": announces the confirmation to screen readers (and is
              the success signal the fleet form-e2e probe waits for). -->
         <p role="status" class="text-primary mt-2">
-          Thanks — your message is on its way. We'll be in touch shortly.
+          Thanks — your message is on its way. We’ll be in touch shortly.
         </p>
       {:else}
         <!-- `inquire` is the no-JS destination for the industry landing pages'
@@ -110,7 +110,7 @@
           <input type="hidden" name="ts" value={data.formTs} />
           <p class="hidden" aria-hidden="true">
             <label
-              >Don't fill this out if you're human: <input
+              >Don’t fill this out if you’re human: <input
                 name="bot-field"
                 tabindex="-1"
                 autocomplete="off"
@@ -197,7 +197,7 @@
           <div use:anim>
             <input
               type="submit"
-              value={submitting ? "SENDING…" : "LET'S CONNECT"}
+              value={submitting ? "SENDING…" : "LET’S CONNECT"}
               disabled={submitting}
               class="text-primary border-b-2 hover:bg-primary hover:text-white p-3 font-bold border-primary bump cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             />

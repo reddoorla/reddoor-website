@@ -144,7 +144,7 @@ test("warns that the recap send is not wired yet", async ({ page }) => {
   await page.getByLabel("Send the client a conversation recap").check();
   await page.getByRole("button", { name: "Save outcome" }).click();
 
-  await expect(page.getByText(/can't fire yet/)).toBeVisible();
+  await expect(page.getByText(/can’t fire yet/)).toBeVisible();
 });
 
 test("stays out of search results and out of Referer", async ({ page }) => {

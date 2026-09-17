@@ -78,7 +78,7 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         slotStatus = "error";
-        slotsError = data?.error ?? "We couldn't load available times.";
+        slotsError = data?.error ?? "We couldn’t load available times.";
         return;
       }
       const raw: unknown = data?.slots;
@@ -90,7 +90,7 @@
       slotStatus = "ready";
     } catch {
       slotStatus = "error";
-      slotsError = "We couldn't load available times.";
+      slotsError = "We couldn’t load available times.";
     }
   }
 
@@ -115,7 +115,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        formError = data?.error ?? "We couldn't move that booking. Please try again.";
+        formError = data?.error ?? "We couldn’t move that booking. Please try again.";
         if (data?.gone) gone = true;
         if (data?.refreshSlots) {
           selectedSlot = null;
@@ -139,9 +139,9 @@
     <div class="h-32"></div>
     <h1 class="type-hero text-primary z-10 md:ml-[20%]">
       {#if moved}
-        You're all set.
+        You’re all set.
       {:else}
-        Let's find a better time.
+        Let’s find a better time.
       {/if}
     </h1>
   </ContentWidth>
@@ -161,14 +161,14 @@
         <div class="done" role="status" tabindex="-1" bind:this={doneEl}>
           <p class="done-when">{formatFullSlot(moved, timeZone)}</p>
           <p class="done-body">
-            We've sent an updated confirmation, and the calendar invite has moved with it — the same
+            We’ve sent an updated confirmation, and the calendar invite has moved with it — the same
             Zoom link still works.
           </p>
         </div>
       {:else if lookup === "loading"}
         <p class="muted" role="status">Finding your booking…</p>
       {:else if lookup === "missing"}
-        <p class="lede">We couldn't find that booking.</p>
+        <p class="lede">We couldn’t find that booking.</p>
         <p class="muted">
           The link may have expired, or the call may already have happened. You can
           <a class="text-primary underline" href="/schedule">book a new time</a>
@@ -176,12 +176,12 @@
           <a class="text-primary underline" href="mailto:info@reddoorla.com">info@reddoorla.com</a>.
         </p>
       {:else if lookup === "error"}
-        <p class="form-error" role="alert">We couldn't load that booking.</p>
+        <p class="form-error" role="alert">We couldn’t load that booking.</p>
         <button type="button" class="ghost mt-4" onclick={loadAppointment}>Try again</button>
       {:else if gone}
         <p class="lede">That call is no longer on the calendar.</p>
         <p class="muted">
-          It's been cancelled, or it has already passed. <a
+          It’s been cancelled, or it has already passed. <a
             class="text-primary underline"
             href="/schedule">Book a new time</a
           > whenever suits.
@@ -193,7 +193,7 @@
             <span class="current-when">{formatFullSlot(current, timeZone)}</span>
           </p>
         {/if}
-        <p class="lede">Choose a new time and we'll move it. Nothing else changes.</p>
+        <p class="lede">Choose a new time and we’ll move it. Nothing else changes.</p>
 
         {#if slotStatus === "loading"}
           <p class="muted" role="status">Loading available times…</p>
@@ -202,9 +202,9 @@
           <button type="button" class="ghost mt-4" onclick={loadSlots}>Try again</button>
         {:else if days.length === 0}
           <p class="muted">
-            There's nothing open in the next couple of weeks. Email
+            There’s nothing open in the next couple of weeks. Email
             <a class="text-primary underline" href="mailto:info@reddoorla.com">info@reddoorla.com</a
-            > and we'll find you a time.
+            > and we’ll find you a time.
           </p>
         {:else}
           <SlotPicker

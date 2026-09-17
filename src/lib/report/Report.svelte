@@ -355,7 +355,7 @@
                       A branded search cannot tell you whether someone who has never heard of you
                       would find you. It answers a different question, and for most businesses a
                       more useful one: when the assistant describes you, is it accurate, and is it
-                      reading your site or somebody else's page about you.
+                      reading your site or somebody else’s page about you.
                     </p>
                   </div>
                 </ReportDisclosure>
@@ -391,7 +391,7 @@
          question — do these people know what they are talking about — before
          they are asked to accept anything we found. -->
       {#if view.stack}
-        <RailRow label="What you're running" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
+        <RailRow label="What you’re running" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
           <Stack {view} />
         </RailRow>
       {/if}

@@ -4,11 +4,11 @@
   import SendingDots from "$lib/components/SendingDots.svelte";
 
   /**
-   * Where GHL's unsubscribe view lands someone once it has taken them off the
+   * Where GHL’s unsubscribe view lands someone once it has taken them off the
    * list. Replaces go.reddoorla.com/unsubscribe.
    *
    * This page confirms; it does not unsubscribe. The suppression itself stays
-   * with GHL's own tooling, which is the record of who asked us to stop — a
+   * with GHL’s own tooling, which is the record of who asked us to stop — a
    * second home-grown way to suppress someone is a second thing to get wrong
    * about a legal obligation. The only thing here that writes is the recovery
    * form, and it only ever opts back IN.
@@ -63,9 +63,9 @@
     <div class="h-32"></div>
     <h1 class="type-hero text-primary z-10 md:ml-[20%]">
       {#if done}
-        You're back on the list.
+        You’re back on the list.
       {:else}
-        You're unsubscribed.
+        You’re unsubscribed.
       {/if}
     </h1>
   </ContentWidth>
@@ -84,7 +84,7 @@
              added after it exists. Focus is moved here as well. -->
         <div class="done" role="status" tabindex="-1" bind:this={doneEl}>
           <p class="body">
-            We've turned your emails back on. You'll hear from us the next time we have something
+            We’ve turned your emails back on. You’ll hear from us the next time we have something
             worth sending.
           </p>
           <p class="body">
@@ -93,14 +93,14 @@
         </div>
       {:else}
         <p class="lede">
-          That's done — you won't get marketing emails from us any more. Nothing else changes: if
-          you've got a call booked, its confirmation and reminders still come through, and you can
-          still reply to anything we've already sent.
+          That’s done — you won’t get marketing emails from us any more. Nothing else changes: if
+          you’ve got a call booked, its confirmation and reminders still come through, and you can
+          still reply to anything we’ve already sent.
         </p>
 
         <div class="recover">
-          <h3 class="recover-title">Didn't mean to?</h3>
-          <p class="body">Put the same address in and we'll turn them back on.</p>
+          <h3 class="recover-title">Didn’t mean to?</h3>
+          <p class="body">Put the same address in and we’ll turn them back on.</p>
 
           <form class="resub" onsubmit={resubscribe} novalidate>
             <!-- Honeypot: off-screen rather than display:none (some bots skip

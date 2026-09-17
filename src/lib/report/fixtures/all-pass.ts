@@ -670,7 +670,7 @@ export const ALL_PASS_REPORT: AuditReport = {
         key: "logo-served",
         label: "A logo that loads",
         status: "pass",
-        evidence: "the first image with 'logo' in its file name loads",
+        evidence: "the first image with ‘logo’ in its file name loads",
         why: "A logo that does not load leaves a broken-image icon at the top of every page, and it is the first thing on the page.",
         scope: "quick",
       },
