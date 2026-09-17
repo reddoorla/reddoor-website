@@ -31,3 +31,21 @@ export function missingRequiredKeys(d) {
   if (!Array.isArray(d?.logoGrid?.logos)) missing.push("logoGrid.logos");
   return missing;
 }
+
+/** The document's Inquiry-tab fields, from an optional `inquiry` block in the
+ *  data file. Absent keys are omitted rather than written empty: the Migration
+ *  API replaces `data` wholesale, so a present-but-empty key would clear a
+ *  value an editor set in Prismic. A data file with no block writes nothing,
+ *  which is what keeps medtech's and boise's hand-set tabs intact. */
+export function inquiryFields(d) {
+  const i = d?.inquiry;
+  if (!i) return {};
+  const map = {
+    inquiry_title: i.title,
+    inquiry_prompt: i.prompt,
+    inquiry_thanks: i.thanks,
+    inquiry_form_id: i.formId,
+    inquiry_survey_id: i.surveyId,
+  };
+  return Object.fromEntries(Object.entries(map).filter(([, v]) => typeof v === "string" && v));
+}
