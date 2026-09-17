@@ -51,6 +51,11 @@
     /** The page uid; recorded in the CRM's attribution note. */
     campaign?: string;
     class?: string;
+    /** Which triggers this instance answers. A trigger names its modal with
+     *  `data-inquire="<key>"`; an instance with no key owns the unkeyed triggers,
+     *  which is every CTA in the site's content today. Only the fixtures route
+     *  mounts more than one. */
+    triggerKey?: string;
   }
 
   let {
@@ -62,6 +67,7 @@
     surveyId = "",
     campaign = "",
     class: className = "",
+    triggerKey = "",
   }: Props = $props();
 
   let open = $state(false);
@@ -200,10 +206,16 @@
    *
    * The strip itself lives in `$lib/url/stripQueryParams` — see there for why
    * it defers past hydration before touching the address bar.
+   *
+   * Owned by the unkeyed instance only, same as the click trigger: the chase
+   * link carries no key of its own (it is bare `?email=&full_name=&phone=`),
+   * so with two instances mounted a keyed one would otherwise resume from the
+   * same params and pop its own dialog alongside the unkeyed instance's.
    */
   const LINK_PARAMS = ["email", "full_name", "name", "phone"] as const;
 
   onMount(() => {
+    if (triggerKey) return;
     const p = page.url.searchParams;
     const linkEmail = (p.get("email") ?? "").trim();
     const linkName = (p.get("full_name") ?? p.get("name") ?? "").trim();
@@ -268,6 +280,7 @@
         'a[href="#inquire"], a[href$="#inquire"], [data-inquire]',
       );
       if (!trigger) return;
+      if ((trigger.getAttribute("data-inquire") ?? "") !== triggerKey) return;
       e.preventDefault();
       // A CTA may name the section it sits in via data-inquire-step so the lead
       // traces back to where it was opened; absent that, stepLabel falls back to
