@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { questionsFor, SMS_CONSENT, BUDGET_GATE, isBudgetOptOut } from "./questions";
+import {
+  questionsFor,
+  SMS_CONSENT,
+  BUDGET_GATE,
+  isBudgetOptOut,
+  DIGITAL_QUESTION_SET_ID,
+} from "./questions";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "./constants";
 
 // These assertions pin the CRM contract, not our prose. Every tag is a GHL
@@ -65,5 +71,54 @@ describe("the A-101 question set", () => {
     expect(SMS_CONSENT.label).toBe(
       "I agree to receive text messages at this number. We will only use this number for text communication regarding this application.",
     );
+  });
+});
+
+describe("the digital question set", () => {
+  const questions = questionsFor(DIGITAL_QUESTION_SET_ID)!;
+
+  it("resolves under its own key and leaves unknown keys undefined", () => {
+    expect(questions).toBeDefined();
+    expect(questionsFor("not-a-set")).toBeUndefined();
+  });
+
+  it("is five questions in slide order, website second", () => {
+    expect(questions).toHaveLength(5);
+    expect(questions.map((q) => q.kind)).toEqual(["checkbox", "text", "radio", "radio", "radio"]);
+    expect(questions[1].tag).toBe("website");
+  });
+
+  it("writes only real CRM field ids", () => {
+    // Every tag is either the standard `website` field or a 20-char GHL id.
+    for (const q of questions) {
+      if (q.tag === "website") continue;
+      expect(q.tag).toMatch(/^[A-Za-z0-9]{20}$/);
+    }
+  });
+
+  it("shares no custom field with the medtech set", () => {
+    const a101 = questionsFor(DEFAULT_INQUIRY_SURVEY_ID)!.map((q) => q.tag);
+    const shared = questions.map((q) => q.tag).filter((t) => a101.includes(t));
+    // `website` is a standard contact field and is deliberately shared; a
+    // shared CUSTOM field would mix two funnels' picklists in one column.
+    expect(shared).toEqual(["website"]);
+  });
+
+  it("carries the budget ranges as offered, and no budget gate", () => {
+    const budget = questions[4] as Extract<(typeof questions)[number], { kind: "radio" }>;
+    expect(budget.options).toEqual([
+      "Under $5,000",
+      "$5,000 - $10,000",
+      "$10,000 - $25,000",
+      "$25,000+",
+      "Not sure yet",
+    ]);
+    // The gate belongs to the medtech set. No digital answer can trip it —
+    // not even one that names the gate's own opt-out string.
+    expect(questions.some((q) => q.tag === BUDGET_GATE.tag)).toBe(false);
+    const answered = Object.fromEntries(
+      questions.map((q) => [q.tag, q.kind === "checkbox" ? ["No"] : "No"]),
+    );
+    expect(isBudgetOptOut(answered)).toBe(false);
   });
 });
