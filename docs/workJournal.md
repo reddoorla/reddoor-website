@@ -978,3 +978,86 @@ narrower than the brief's literal step (it doesn't exercise
 `validateCustomType` or the real asset-staging path), so if anyone needs the
 full dry-run output, it will need either the exported assets present first or
 a permission grant for `scripts/industry/*` before running it.
+
+## 2026-09-17 — A second funnel, and the budget gate that was reading the wrong map (#200, `526673f..4327b5a`)
+
+A lead came in through `/contact` on 2026-09-16 — a windows-and-doors startup
+wanting "a webpage and website" — and there was nowhere to send him. `/contact`
+reaches ingest and the team's inbox only; the one funnel page we had sells a
+medtech brand rebuild behind a $10,000 yes/no gate, which that lead would
+almost certainly have answered "No" to, landing him on `/not-a-fit`. So: a
+catch-all web-first page at `/digital`, and with it the first **second question
+set**, which is the part that mattered. Boise proved a new page is a data file;
+it reused A-101's five questions unchanged, so nothing had ever exercised
+questions-per-page.
+
+The seam turned out to already be there. `writableFieldIds()` derives the
+server's writable-CRM-field allow-list from `questionsFor()`, so turning that
+function from a ternary into a lookup table was the whole of the code change —
+`client.ts` needed no edit for the write path. Four new GHL contact fields hold
+the answers (`6ADqYeIoiuoZYjNOVe65` needs, `LF7fDBprx9TnmuuE0r3Z` goal,
+`hFMs3VYZALF59mloih9F` stakeholders, `2gNEfoXr5XwltWMFhaxS` budget), created by
+`scripts/crm/create-digital-fields.mjs` and read back by id before a single
+option string entered the repo. The budget question is ranges with **no gate**:
+nobody on this funnel is turned away.
+
+**The defect worth the entry.** Our own new test asserted that a forged payload
+naming medtech's gate field under the digital key "cannot reach
+isBudgetOptOut's answer map on the server". It could. `syncApplicationToCrm`
+filtered what it _wrote_ through the allow-list and then read `opts.fields` —
+the raw browser payload — to decide routing. A POST carrying
+`surveyId: "digital"` and `{xW6eFrHUFBNQCijp1mOM: "No"}` wrote no custom field
+and still tagged the contact `not a good fit`, suppressed its pipeline card,
+and appended a note saying the visitor had been "routed to the not-a-fit page"
+when they never were — aimable at any email address the sender knows, because
+the upsert matches on email. The hole predates this branch (it shipped with the
+gate on 2026-08-24); what this branch added was the claim that it was closed.
+The fix is one predicate — `writable.has(BUDGET_GATE.tag) && isBudgetOptOut(…)`
+— which also makes the gate belong to a question set rather than to the flow.
+For medtech the predicate collapses to what it was, so its behaviour is
+bit-identical. The spec said the same false thing and was corrected in place.
+
+**Two more found by running more than the brief asked.** The chase-link resume
+in `InquiryModal`'s `onMount` reads global URL params, so once a second
+instance existed both modals popped open on the same `?email=…` link — caught
+only because the task demanded the whole spec file run, not just the new test.
+The first fix for it put the ownership guard above `stripQueryParams`, which
+quietly scoped a privacy mechanism to instance ownership: a page mounting only
+keyed instances would have left a lead's email in the address bar and in
+history, live for gtag.js on first interaction. The strip is unconditional
+again; only the dialog-opening is gated.
+
+**Content.** 12 slices in medtech's order, 13 recorded content gaps, 46 staged
+assets. `logo_soup` holds exactly 12 brands and MSOT is not among them, so MSOT
+appears as the featured project rather than in the grid; medtech's own exported
+logos are gitignored and only 3 of its 44 assets exist in any checkout, so
+borrowing was not an option either. The services band ships two columns into a
+grid the loader hardcodes to three tracks (`migrate.mjs:198`), leaving the right
+third empty — recorded as a gap with both levers named, because `_contentGaps`
+is what Tim reads, and the implementer's report is not.
+
+**Corrected on contact.** The standing belief — written down in several places —
+that GHL's chase workflows cannot fire from an API sync is not what the CRM
+shows. The one outside submission through `/medtech` (2026-08-21, contact
+created 18:44) got "your questionnaire was successfully submitted" by SMS and
+email at 18:51, then four booking chases across three days, ending with the
+`nurture` tag; an email-only test contact got the "your inquiry wasn't
+completed" chase. Both API-created. What is still unknown is whether enrolment
+was automatic or done by hand during the August walkthroughs — workflow
+triggers are readable only in the builder. Worth settling before anyone designs
+around either answer.
+
+**Dead ends, so nobody walks them twice.** `migrate.mjs --dry-run` can never
+preview the Inquiry tab: it exits at line 483 and `docData` is assembled at 504.
+The property was verified instead by reading the created draft back from
+Prismic, which is stronger. Moving `docData` above the exit is the follow-up.
+And `pnpm lint` reds in any worktree running the planning skill, because
+prettier walks its gitignored scratch files — `.superpowers` now sits in
+`.prettierignore` beside `.worktrees`, which documents the identical class.
+
+The document is an **unpublished draft**. The promotion to `main` has to land
+before Tim publishes it: a published `digital` doc against a production build
+that predates the question set makes the modal fall back to A-101 — medtech's
+questions, medtech's fields and the $10k gate, shown to web leads. The same
+fallback fires if the Inquiry tab's key is ever blanked, which is why that
+field's label now says so; the model change is in the repo but unpushed.
