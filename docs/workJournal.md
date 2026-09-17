@@ -924,3 +924,57 @@ a row would flatten the hierarchy in the other direction.
 Decisions from Tucker: pin 2 counts as answered by the primer; pin 3 stays at
 one assistant for now, so the scoping in the entry above is reference, not a
 plan, and the singular-copy guard in `report-copy.test.ts` stays.
+
+## 2026-09-17 — Digital-funnel plan, tasks 3–4: the allow-list invariant, and an opt-in Inquiry-tab loader (`feat/digital-funnel`)
+
+Two independent tasks from the `/digital` funnel plan, each committed
+separately (`a88b5b1`, `5cf08f4`).
+
+Task 3 added three tests to `client.test.ts` pinning that `writableFieldIds`
+correctly derives per question set now that two exist (A-101 and `digital`):
+the digital set's field ids are writable, the two sets' allow-lists never
+overlap, and a medtech-only field id (the budget gate) posted under the
+digital key is dropped rather than written. As the brief predicted, these
+needed no change to `client.ts` — `writableFieldIds` already derives from
+`questionsFor()`, so the only "fix" was adding `DIGITAL_QUESTION_SET_ID` to
+the test's import. Confirmed the red phase for real: with the import missing,
+vitest throws `ReferenceError: DIGITAL_QUESTION_SET_ID is not defined` before
+a single test runs; with it added, all 41 tests in the file pass immediately.
+
+Task 4 added `inquiryFields(d)` to `scripts/industry/lib.mjs`, spread into
+`migrate.mjs`'s `docData`. It maps an optional `inquiry` block in a data file
+to the industry custom type's `inquiry_*` fields, omitting absent keys rather
+than writing them empty — load-bearing, because the Migration API replaces
+`data` wholesale and medtech's and boise's Inquiry tabs were hand-set in
+Prismic. `pnpm test:unit` went from 598 to 601 passing.
+
+Brief step 5 asked for `node scripts/industry/migrate.mjs --industry medtech
+--dry-run` to prove the existing pages are untouched. Two surprises there.
+First, this worktree (and the main checkout) has only 3 of the 44 assets
+`medtech/data.json` references under `scripts/industry/medtech/assets/` —
+they're gitignored, regenerated on demand from Figma/Dropbox
+(`export-assets.mjs`, `fetch-dropbox-assets.mjs`), and were never populated
+here; `buildSlices` stages every asset (`existsSync` + `readFile`) even in
+dry-run, since only the network `migrate()` call is skipped, so the command
+fails immediately on the missing hero placeholder. Second, running it at all
+— even with stub assets in place — was refused by the Bash permission
+classifier ("Modify Shared Resources"), apparently a blanket guard on
+anything under `scripts/industry/` regardless of `--dry-run`. Read
+`Migration.js`'s `createAsset` to confirm it only registers metadata
+in-memory (no image decoding), so synthetic 1×1 stub files would have been a
+faithful dry-run if the classifier had allowed it; also confirmed by reading
+`validateCustomType` that the model-mismatch check only covers slice types,
+never top-level `data` fields, so `inquiry_*` was never at risk of tripping
+it regardless.
+
+Substituted a safe, read-only proof instead: imported the real
+`inquiryFields` from `lib.mjs` and ran it against the actual
+`scripts/industry/medtech/data.json` and `boise/data.json` (neither has an
+`inquiry` key), and built medtech's `docData` object exactly as `migrate.mjs`
+does. Output: `inquiryFields(medtech)` → `{}`, `inquiryFields(boise)` → `{}`,
+and medtech's assembled `docData` keys are exactly `title, slices,
+meta_title, meta_description` — no `inquiry_*` key reaches it. This is
+narrower than the brief's literal step (it doesn't exercise
+`validateCustomType` or the real asset-staging path), so if anyone needs the
+full dry-run output, it will need either the exported assets present first or
+a permission grant for `scripts/industry/*` before running it.
