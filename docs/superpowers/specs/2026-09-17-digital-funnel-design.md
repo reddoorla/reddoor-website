@@ -177,12 +177,23 @@ and the existing calendar.
   anything else stays `undefined` (no wizard, email capture only). The key is a
   question-set id this repo owns, documented as such, because GHL surveys cannot
   be created through the API and nothing submits to one.
-- **`src/lib/ghl/client.ts`** — no change. `writableFieldIds()` derives the
-  allow-list from `questionsFor()`, so the digital set can only write its own
-  four ids, and a forged medtech id posted under `"digital"` is dropped.
-- **Budget gate** — no change. `isBudgetOptOut()` matches medtech's field id
-  and its exact stored `"No"`; the digital set never carries that id, so no
-  digital lead can reach `/not-a-fit` or be tagged `not a good fit`.
+- **`src/lib/ghl/client.ts`** — `writableFieldIds()` derives the allow-list from
+  `questionsFor()`, so the digital set can only write its own four ids, and a
+  forged medtech id posted under `"digital"` is dropped from the write.
+- **Budget gate** — one change, because the first draft of this section was
+  wrong. It claimed the gate needed no change since "the digital set never
+  carries that id". That is true of the questions the wizard asks and false of
+  what the server receives: `syncApplicationToCrm()` read `isBudgetOptOut()`
+  off the raw request map, which the allow-list never filtered. A forged POST
+  carrying `surveyId: "digital"` plus medtech's gate id and its stored `"No"`
+  wrote no custom field and still tagged the contact `not a good fit`,
+  suppressed the pipeline card, and appended a note claiming the visitor was
+  routed to `/not-a-fit` — aimable at any email address, since the upsert
+  matches on email. The gate is therefore read through the same allow-list that
+  governs the write (`writable.has(BUDGET_GATE.tag) && isBudgetOptOut(...)`),
+  which is what makes the gate belong to a question set rather than to the
+  flow. Only then can no digital lead reach `/not-a-fit` or be tagged
+  `not a good fit`.
 - **`src/lib/components/InquiryModal.svelte`** — only if Q2 cannot be skipped
   today (§5.1).
 - **`scripts/industry/migrate.mjs`** — the optional `inquiry` block (§4.3).

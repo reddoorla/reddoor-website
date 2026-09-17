@@ -482,6 +482,29 @@ describe("syncApplicationToCrm", () => {
     expect(String(find("/notes")[0].body.body)).not.toContain("budget gate");
   });
 
+  it("ignores medtech's gate id forged into a digital application", async () => {
+    const { fetch, find } = stubCrm();
+    const res = await syncApplicationToCrm({
+      ...base,
+      fetch,
+      surveyId: DIGITAL_QUESTION_SET_ID,
+      // A forged POST: the digital key, carrying medtech's gate field with its
+      // exact stored opt-out value. The gate belongs to the question set that
+      // asks it, so a set that never asks it must not be routed by it — the
+      // routing read is filtered by the same allow-list as the write.
+      fields: { website: "https://acme.test", [BUDGET_GATE.tag]: BUDGET_GATE.optOut },
+    });
+    expect(res.ok).toBe(true);
+    // Not tagged `not a good fit`, and the pipeline card is opened as usual:
+    // a digital lead is never a self-opt-out, however the payload is shaped.
+    expect(find("/tags")[0].body).toEqual({ tags: [TAG_APPLICATION_COMPLETED] });
+    expect(find("/opportunities/").filter((c) => c.method === "POST")).toHaveLength(1);
+    // And the note does not claim a routing that never happened.
+    expect(String(find("/notes")[0].body.body)).not.toContain("budget gate");
+    const cf = find("/contacts/upsert")[0].body.customFields as { id: string }[];
+    expect(cf.some((f) => f.id === BUDGET_GATE.tag)).toBe(false);
+  });
+
   it("names the opportunity by email when no name was given", async () => {
     const { fetch, find } = stubCrm();
     await syncApplicationToCrm({ ...base, fetch, name: "   " });
@@ -584,8 +607,11 @@ describe("writableFieldIds across two question sets", () => {
       digital,
     );
     // The budget gate's field is medtech's. Posted under the digital key it is
-    // not written at all — so it cannot reach isBudgetOptOut's answer map on
-    // the server, and cannot be used to route a digital lead to /not-a-fit.
+    // not written at all. The allow-list only covers the WRITE: the raw answer
+    // map still holds whatever was posted, so what keeps a forged gate id from
+    // routing a digital lead to /not-a-fit is syncApplicationToCrm consulting
+    // this same set before it reads the gate (the `writable.has(BUDGET_GATE.tag)`
+    // guard, covered by its own test in syncApplicationToCrm above).
     expect(customFields).toEqual([]);
     expect(standard).toEqual({ website: "https://acme.test" });
   });
