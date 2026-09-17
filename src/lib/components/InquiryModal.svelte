@@ -207,21 +207,32 @@
    * The strip itself lives in `$lib/url/stripQueryParams` — see there for why
    * it defers past hydration before touching the address bar.
    *
-   * Owned by the unkeyed instance only, same as the click trigger: the chase
-   * link carries no key of its own (it is bare `?email=&full_name=&phone=`),
-   * so with two instances mounted a keyed one would otherwise resume from the
-   * same params and pop its own dialog alongside the unkeyed instance's.
+   * The RESUME (opening a dialog on the parsed address) is owned by the
+   * unkeyed instance only, same as the click trigger: the chase link carries
+   * no key of its own (it is bare `?email=&full_name=&phone=`), so with two
+   * instances mounted a keyed one would otherwise resume from the same params
+   * and pop its own dialog alongside the unkeyed instance's. The STRIP is not
+   * gated the same way — see below.
    */
   const LINK_PARAMS = ["email", "full_name", "name", "phone"] as const;
 
   onMount(() => {
-    if (triggerKey) return;
     const p = page.url.searchParams;
     const linkEmail = (p.get("email") ?? "").trim();
     const linkName = (p.get("full_name") ?? p.get("name") ?? "").trim();
     const linkPhone = (p.get("phone") ?? "").trim();
-    // Unconditional, so even a malformed link leaves nothing in the URL bar.
+    // Unconditional, so even a malformed link leaves nothing in the URL bar —
+    // and unconditional on triggerKey too: a page could someday mount only
+    // keyed instances (a future /digital page with its own data-inquire CTAs,
+    // or this fixture with its unkeyed mount removed), and the PII in the URL
+    // still has to go regardless of which instance is here to resume into.
+    // stripQueryParams no-ops when nothing is present, so calling it from
+    // several instances on one page costs nothing extra.
     stripQueryParams(LINK_PARAMS);
+
+    // Resuming into a dialog IS owned by the unkeyed instance only (see the
+    // doc comment above) — but only past this point, after the strip ran.
+    if (triggerKey) return;
 
     // An address we cannot use is not a resume — fall through to the normal
     // page, rather than opening a modal over it for no reason.
