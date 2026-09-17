@@ -93,3 +93,92 @@ test.describe("typographic marks in rendered copy", () => {
     });
   }
 });
+
+test.describe("testimonial quote hangs its opening mark", () => {
+  // The mark is CSS chrome on `.quote` (src/lib/slices/Testimonial/index.svelte),
+  // so the CMS stores the quote bare and every testimonial is punctuated the
+  // same way. Hanging it means the first line of the quote starts on the same
+  // vertical as the lines under it and as the rest of the 760px column, instead
+  // of being pushed in by the width of the glyph.
+  //
+  // `hanging-punctuation: first` is Safari-only, so this is measured rather
+  // than declared.
+  for (const [label, width] of [
+    ["desktop", 1280],
+    ["mobile", 390],
+  ] as const) {
+    test(`first line is flush with the lines below it (${label})`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/medtech");
+      // The root layout scrolls to top 600ms after a navigation; measuring
+      // inside that window measures a page that is about to move.
+      await page.waitForTimeout(1200);
+      const figure = page.locator("figure").filter({ has: page.locator("blockquote") });
+      await figure.scrollIntoViewIfNeeded();
+
+      const geometry = await page.evaluate(() => {
+        const quote = document.querySelector("blockquote p")!;
+        const box = quote.getBoundingClientRect();
+        // One rect per line box of the quote's own text. The ::before mark is a
+        // pseudo-element and is not in the range, so these are the positions of
+        // the words themselves — which is the alignment Tim is looking at.
+        const range = document.createRange();
+        range.selectNodeContents(quote);
+        const lines = [...range.getClientRects()].map((r) => r.left);
+        const mark = getComputedStyle(quote, "::before");
+        const column = quote.closest("figure")!.getBoundingClientRect();
+        return {
+          lines,
+          left: box.left,
+          width: box.width,
+          columnLeft: column.left,
+          markContent: mark.content,
+          markPosition: mark.position,
+          markWidth: parseFloat(mark.width),
+          markRight: parseFloat(mark.right),
+          // What is painted just outside the column, level with the first line?
+          // Hit-testing a pseudo-element returns the element that owns it.
+          hitsQuote: (() => {
+            const first = [...range.getClientRects()][0];
+            return (
+              document.elementFromPoint(Math.max(1, box.left - 4), first.top + first.height / 2) ===
+              quote
+            );
+          })(),
+        };
+      });
+
+      // The quote wraps, or "flush with the lines below it" says nothing.
+      expect(geometry.lines.length, "the quote wraps to several lines").toBeGreaterThan(1);
+      for (const [i, left] of geometry.lines.entries()) {
+        expect(
+          Math.abs(left - geometry.lines[0]),
+          `line ${i + 1} is flush with line 1`,
+        ).toBeLessThanOrEqual(0.5);
+      }
+
+      // The column did not move to pay for it: the quote's box still starts
+      // exactly where the rest of the section's content column does, and at
+      // desktop that column is still the board's 760px.
+      expect(
+        Math.abs(geometry.lines[0] - geometry.left),
+        "text starts at the column's left edge",
+      ).toBeLessThanOrEqual(0.5);
+      expect(
+        Math.abs(geometry.left - geometry.columnLeft),
+        "the quote's box is flush with the figure",
+      ).toBeLessThanOrEqual(0.5);
+      if (width === 1280) expect(Math.round(geometry.width)).toBe(760);
+
+      // The mark is still drawn — outside the column, on the first line.
+      expect(geometry.markContent).toContain("\u201C");
+      expect(geometry.markPosition, "the mark is out of flow").toBe("absolute");
+      expect(geometry.markWidth, "the mark has real width").toBeGreaterThan(2);
+      expect(
+        Math.abs(geometry.markRight - geometry.width),
+        "the mark's right edge sits on the column's left edge",
+      ).toBeLessThanOrEqual(0.5);
+      expect(geometry.hitsQuote, "the mark is painted in the margin").toBe(true);
+    });
+  }
+});
