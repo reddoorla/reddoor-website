@@ -1,0 +1,308 @@
+{
+  "_source": "No design board. Drafted 2026-09-17 by Claude from the PUBLISHED /medtech page (scripts/industry/medtech/data.json) and the treatment table in docs/superpowers/specs/2026-09-17-digital-funnel-design.md §4.2, for the catch-all web-first funnel. The slice sequence, band rhythm and voice are medtech's; the brand-credibility offer is not. Every field is a draft pending Tim's approval; record his edits in _copyEdits, dated.",
+  "_copyEdits": [
+    "2026-09-17, drafted from /medtech: the two branding service columns (Brand Identity, Design System) were dropped per the spec's reading of \"no branding elements\". The surviving column is medtech's Digital Presence, item for item, plus a second column carrying medtech's two published social items. No service name on this page is new — see _contentGaps for what that leaves out.",
+    "2026-09-17: framework.eyebrow no longer says \"Brand Credibility Framework\" and the three steps were re-pointed at a website (Site & Search Audit / Design and Development / Go Live and Get Found). The three icon filenames and the three-step shape are unchanged; step 2's title reads \"The Build:\" rather than medtech's \"The Rebuild:\" because a first-ever site is not a rebuild.",
+    "2026-09-17: hero.cardLabel \"Brand-Credibility Framework\" → \"Our Website Process\", and hero.headline keeps medtech's \"from X to Y\" shape with web-native nouns. Alternatives are listed in _contentGaps rather than lost.",
+    "2026-09-17: the logo grid's slots 4 and 5 are Worthe and Progress Lighting, which were not on the client's list, while three names that were — Hearts & Minds, CEO of LA County and St. James' — sit at 6, 7 and 9. The client's first four were Zero Labs, MSOT, 1-800-DENTIST and Gallery Sonder; MSOT is not in logo_soup (see the gaps below), so only three of the four could lead, and the six slots after them were ordered by how the fitted mark actually paints rather than by the list. Worthe (648x166 ink) and Progress Lighting (648x164) fill the grid box fullest; St. James' paints 173px wide in a 900px canvas and Hearts & Minds is a 644x58 hairline. Nothing binds Tim to that order — the array IS the layout, so reorder at review.",
+    "2026-09-17: logoGrid.label \"Clients: Join these brands in building trust\" → \"Clients: Some of the companies we work with\". The published line is brand-credibility framing, which this page does not sell, and the neutral line is also the honest one: not every brand in the grid is a website client.",
+    "2026-09-17: caseStudy.services reads \"Website, Digital\" rather than the Rubrik project's full scope, which was brand-led (the project document's own Challenge section is about an over-designed brand and a slow report design system). Narrowing a case study's claim to the part this page sells is deliberate; confirming the narrowed claim is accurate is a gap below.",
+    "2026-09-17: featuredProject.services narrowed from medtech's \"brand, digital\" to \"digital\" for the same reason. The project, the image and the link are otherwise medtech's exactly.",
+    "2026-09-17: about.lede is medtech's verbatim. about.body[0]'s two example readers (the CMO, the rep carrying a sell sheet into a hospital) became the two people a website has to serve, and body[1]'s trust outcome became three outcomes a site can be measured on.",
+    "2026-09-17: the FAQ is nine entries rather than medtech's eight — the objection medtech leads with (\"we need sales, not a logo\") becomes \"our site works, why rebuild it\", and questions about AEO, content, keeping the current site and life after launch are the ones a web buyer actually asks. Em-dashes in body copy are kept to medtech's habit of periods; straight apostrophes throughout, since medtech's file mixes both.",
+    "2026-09-17: the budget ranges in faq[1] are four of the question set's five option strings, byte for byte (src/lib/ghl/questions.ts, DIGITAL_QUESTIONS). The fifth, \"Not sure yet\", is not a range and stays out of the prose on purpose. If Tim changes one of the four, both move together or the card in the CRM stops agreeing with the page."
+  ],
+  "_contentGaps": [
+    "PRICING IS A PLACEHOLDER. The four ranges in faq[1] (Under $5,000 / $5,000 - $10,000 / $10,000 - $25,000 / $25,000+) are mine, not Erik's or Tim's, and they exist because the inquiry's budget question needs the page to agree with it. Nothing here may be published before the real numbers are set, and the question set moves with them.",
+    "TIMELINE IS A PLACEHOLDER TOO. faq[3] says the audit is about a week and a straightforward site is 4 to 8 weeks from kickoff to launch. Those are plausible, not measured, and no one has confirmed them.",
+    "SERVICE NAMES. The second services column carries only two items (Social Media Launch Kits, Social Media Management) because those are the only non-branding item names already published on /medtech. The things a web client asks about most — hosting, maintenance, analytics and reporting, content updates, a care plan — have no published names anywhere, so they are absent from the services band and answered only in prose in faq[6]. If the studio sells ongoing care, it needs names and a price before this page can carry it. IT ALSO SHOWS: the loader hardcodes this slice's desktopColumns to \"3\" (migrate.mjs:198) and TextColumns maps that to md:grid-cols-3, so on desktop the two lists paint across the left two thirds and the right third of the band is empty, the second list three rows deep against the first's five. data.json cannot express anything else. The lever is the loaded document — desktopColumns is a Select on the slice and Tim can flip it to \"2\" in Prismic; deriving it from d.services.columns.length in migrate.mjs is the follow-up that would stop the next page tripping on this.",
+    "THE TESTIMONIAL IS MEDTECH'S. Albert Turgon's quote is reproduced word for word because a client's words are never edited to fit a page. It argues brand credibility on a page that sells websites, and it names \"their branding and web work\", which is why it is defensible here at all. A web-only client quote (name, role, headshot) would be better; Rubrik Zero Labs' own \"Exceeding Every Metric\" line sits unattributed in that project document and could become one if someone will put a name to it.",
+    "THE HERO IS A REPURPOSED PROJECT IMAGE, not art made for this page: Rubrik Zero Labs' newsroom mockup (6000x3991 source, staged at 2880 wide) from the rubrik-zero-labs project document. It is a real website on a real laptop, which beats the unlicensed iStock comp /medtech still ships, but it shows a client's site rather than the page's own idea, and it is dark where medtech's hero is bright. Tim may want something made for this.",
+    "MSOT IS NOT IN logo_soup, and neither are SCFAI or Strategy Advantage — the other two names the design spec listed. The logo grid can only draw from the twelve brands that document holds, and medtech's own exported logo assets are gitignored and absent from every checkout, so they cannot be borrowed either. MSOT therefore carries the page as the featured project and the testimonial instead of appearing in the grid, and the grid leads with Zero Labs, 1-800-DENTIST and Gallery Sonder. Strategy Advantage could not be linked in any case: strategy-advantage-website is hide-tagged, and a public link to a hidden document fails the production build. Adding MSOT or SCFAI to the grid means adding them to logo_soup first, with a colour mark, a knockout and rollover art.",
+    "ZERO LABS IS A DOUBLE QUALITY GAP, carried over from /boise and now on a second page. Its colour mark in logo_soup is a 235x66 raster where every other brand's is SVG, so fit-logos upscales it ~2.8x to reach the 648px fill, and its rollover art is 1920x1280 against a 3840 ladder, so the desktop backdrop is under-served and the phone crop is upscaled. It leads the grid here, which is the most visible position it could have. Needs an SVG mark and a larger photo.",
+    "THE CASE STUDY CLAIM NEEDS CONFIRMING. caseStudy.services says \"Website, Digital\"; nothing in the rubrik-zero-labs project document says who built the site, only who designed it. If Reddoor designed but did not develop it, this page must not imply otherwise, because \"Website Development\" is one of the four services it sells two bands above.",
+    "NO BEFORE IMAGE for the case study, so the slice hides its before/after toggle, exactly as Boise's does. The Rubrik project document has no pre-redesign screenshot; the Wayback Machine would have one if a before/after is wanted.",
+    "LOGO GRID PHONE CROPS are machine-chosen (sharp 'attention', with hearts-and-minds and summittrek overridden in fetch-assets.mjs, the two Boise measured). ceo-of-la-county, progress-lighting and zero-labs clip a title and CAN be hand-cropped in Prismic on active_background_mobile, as medtech's were. Hearts & Minds is unfixable at this aspect — its headline spans ~70% of a 5768x4320 source and a 9:16 cover keeps 42% of the width — so it needs a purpose-made portrait asset or an accepted truncation.",
+    "ST. JAMES' PAINTS NARROW in the grid: its trimmed ink is 173x195, near-square, so it reaches only ~19% of the 900px canvas where the wordmarks beside it reach 72%. fit-logos.mjs has a commented-out FILL_OVERRIDES entry for exactly this; a human looking at the fitted row decides whether to switch it on, and the same decision applies to /boise.",
+    "HEADLINE ALTERNATIVES, kept so the dead ends are not walked twice: hero.headline is \"from Scrolled Past to Short List\", which borrows medtech's noun and adds a web-native verb. If Tim wants it plainer: \"from Hard to Find to Hard to Ignore\" (leans on the search half of the offer), \"from Overlooked to the Obvious Choice\", or \"from a Brochure to a Salesperson\".",
+    "AEO LANGUAGE IS DELIBERATELY MODEST. faq[2] says nobody can promise a ranking or an AI mention and that the work is removing the reasons you are invisible. That is the honest position and it matches what the audit tool actually measures; if marketing wants a stronger claim, the claim has to be something we can show."
+  ],
+  "uid": "digital",
+  "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>) and the text on the generated OG card, with '| Reddoor Creative' stripped. meta_title is what search shows.",
+  "title": "Web Design & Development | Reddoor Creative",
+  "meta_title": "Website Design & Development Studio | Reddoor Creative",
+  "meta_description": "We design, build and launch websites, then make sure people and AI search can find them. A senior team, 20 years in, 300+ companies.",
+  "hero": {
+    "headline": "We'll Take Your \nWebsite from Scrolled Past to Short List",
+    "cardLabel": "Our Website Process",
+    "cardBody": "Three steps, and we handle all of them. We audit the site you have and how it shows up in search, design and build the one you need, then launch it and make sure people can find it. The senior team you meet first is the team that does the work.",
+    "image": "hero-rubrik-zero-labs-newsroom.jpg",
+    "imageAlt": "The Rubrik Zero Labs newsroom open on a laptop",
+    "buttons": [
+      {
+        "label": "Get Started",
+        "url": "/contact#inquire"
+      }
+    ]
+  },
+  "services": {
+    "eyebrow": "What we do for you:",
+    "lead": "A Website People Can Find, and Trust Once They Get There",
+    "subBody": "We handle everything, from auditing the site you have now, to designing and building the one you need, then launching it and making sure search engines and AI assistants can read it. You keep running the business while the website does the explaining.",
+    "columns": [
+      {
+        "title": "Digital Presence",
+        "items": [
+          "Website Design",
+          "Website Development",
+          "AEO/SEO Development",
+          "AEO/SEO Deployment"
+        ]
+      },
+      {
+        "title": "Social Media",
+        "items": ["Social Media Launch Kits", "Social Media Management"]
+      }
+    ]
+  },
+  "framework": {
+    "eyebrow": "How We Do It: Our Three-Step Website Process",
+    "lead": "A website that earns attention doesn't happen by accident. It takes a tried and true process, the one we've been running for 20 years.",
+    "columns": [
+      {
+        "icon": "icon-diagnosis-audit.svg",
+        "iconAlt": "",
+        "title": "The Diagnosis:",
+        "subtitle": "Site & Search Audit",
+        "body": "We go through the site you have now, page by page, and check what Google and AI assistants can actually read on it. You get a prioritized list of what's costing you visitors and what's worth fixing first."
+      },
+      {
+        "icon": "icon-rebuild.svg",
+        "iconAlt": "",
+        "title": "The Build:",
+        "subtitle": "Design and Development",
+        "body": "We design the site around the job it has to do, then build it to be fast, accessible, and easy for your team to keep current. You see it working before it goes live."
+      },
+      {
+        "icon": "icon-rollout-launch.svg",
+        "iconAlt": "",
+        "title": "The Launch:",
+        "subtitle": "Go Live and Get Found",
+        "body": "We ship it, connect analytics, and structure the pages so search engines and AI assistants can quote them. Then we measure what the site is actually doing, not what we hoped it would."
+      }
+    ]
+  },
+  "caseStudy": {
+    "label": "Case Study",
+    "projectName": "Rubrik Zero Labs",
+    "services": "Website, Digital",
+    "heading": "Turning dense security research into a site people actually read.",
+    "afterImage": "rubrik-after-1-report-landing.png",
+    "afterImageAlt": "A Rubrik Zero Labs report landing page on a desktop display",
+    "afterSlides": [
+      {
+        "file": "rubrik-after-2-blog-post.jpg",
+        "alt": "A Rubrik Zero Labs blog post, with the article beside an index of related threat reports"
+      },
+      {
+        "file": "rubrik-after-3-mission-tablet.jpg",
+        "alt": "The site's mission page and featured report, on a tablet"
+      },
+      {
+        "file": "rubrik-after-4-article-laptop.jpg",
+        "alt": "A Rubrik Zero Labs threat report open on a laptop"
+      }
+    ]
+  },
+  "logoGrid": {
+    "label": "Clients: Some of the companies we work with",
+    "buttonLabel": "Our Work",
+    "buttonUrl": "/portfolio",
+    "logos": [
+      {
+        "name": "Zero Labs",
+        "file": "logo-zero-labs.png",
+        "negative": "logo-zero-labs-rev.png",
+        "project": "rubrik-zero-labs",
+        "rollover": "rollover-zero-labs.jpg",
+        "rolloverMobile": "rollover-zero-labs-mobile.jpg"
+      },
+      {
+        "name": "1-800-DENTIST",
+        "file": "logo-1-800-dentist.png",
+        "negative": "logo-1-800-dentist-rev.png",
+        "project": "1-800-dentist",
+        "rollover": "rollover-1-800-dentist.jpg",
+        "rolloverMobile": "rollover-1-800-dentist-mobile.jpg"
+      },
+      {
+        "name": "Gallery Sonder",
+        "file": "logo-gallery-sonder.png",
+        "negative": "logo-gallery-sonder-rev.png",
+        "project": "gallery-sonder",
+        "rollover": "rollover-gallery-sonder.jpg",
+        "rolloverMobile": "rollover-gallery-sonder-mobile.jpg"
+      },
+      {
+        "name": "Worthe",
+        "file": "logo-worthe.png",
+        "negative": "logo-worthe-rev.png",
+        "project": "worthe",
+        "rollover": "rollover-worthe.jpg",
+        "rolloverMobile": "rollover-worthe-mobile.jpg"
+      },
+      {
+        "name": "Progress Lighting",
+        "file": "logo-progress-lighting.png",
+        "negative": "logo-progress-lighting-rev.png",
+        "project": "progress-lighting",
+        "rollover": "rollover-progress-lighting.jpg",
+        "rolloverMobile": "rollover-progress-lighting-mobile.jpg"
+      },
+      {
+        "name": "CEO of LA County",
+        "file": "logo-ceo-of-la-county.png",
+        "negative": "logo-ceo-of-la-county-rev.png",
+        "project": "ceo-la",
+        "rollover": "rollover-ceo-of-la-county.jpg",
+        "rolloverMobile": "rollover-ceo-of-la-county-mobile.jpg"
+      },
+      {
+        "name": "St. James' Episcopal School",
+        "file": "logo-st-james-episcopal-school.png",
+        "negative": "logo-st-james-episcopal-school-rev.png",
+        "project": "st-james-episcopal-school",
+        "rollover": "rollover-st-james-episcopal-school.jpg",
+        "rolloverMobile": "rollover-st-james-episcopal-school-mobile.jpg"
+      },
+      {
+        "name": "SummitTrek",
+        "file": "logo-summittrek.png",
+        "negative": "logo-summittrek-rev.png",
+        "project": "summittrek",
+        "rollover": "rollover-summittrek.jpg",
+        "rolloverMobile": "rollover-summittrek-mobile.jpg"
+      },
+      {
+        "name": "Hearts & Minds",
+        "file": "logo-hearts-and-minds.png",
+        "negative": "logo-hearts-and-minds-rev.png",
+        "project": "hearts-and-minds",
+        "rollover": "rollover-hearts-and-minds.jpg",
+        "rolloverMobile": "rollover-hearts-and-minds-mobile.jpg"
+      }
+    ]
+  },
+  "testimonial": {
+    "label": "What clients are saying:",
+    "quote": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
+    "name": "Albert Turgon",
+    "role": "COO of MSOT (Medical Solutions of Texas)",
+    "avatar": "testimonial-albert-turgon.png",
+    "avatarAlt": "Albert Turgon"
+  },
+  "featuredProject": {
+    "title": "Medical Solutions of Texas",
+    "services": "digital",
+    "image": "msot-web-mockup.jpg",
+    "imageAlt": "The Medical Solutions of Texas website shown on a desktop display",
+    "link": {
+      "type": "project",
+      "uid": "msot"
+    },
+    "hasTextureBleed": true
+  },
+  "about": {
+    "displayTitle": "On Your Behalf",
+    "eyebrow": "About Us",
+    "lede": "Reddoor's been at this for 20 years. In that time we've helped more than 300 companies stand out, and we've never gotten comfortable with work that's merely \"fine.\" Clarity beats clever, every time.",
+    "body": [
+      "We're a nimble senior team with people in San Antonio, Los Angeles, and Boise, and we've stayed that way on purpose. The people you meet in the first conversation are the people building your website. Nothing gets handed down. We care about your company and about the people inside it who actually use what we make. The owner who has to explain the whole business in one sentence at the top of the page. The person on your team who has to keep it current after we leave. Both have to be able to do their job with the work.",
+      "That's why every decision ties back to an outcome you can name. For a website there are usually three: the right people find you, they understand what you do inside a few seconds, and enough of them call, book or buy that the site pays for itself."
+    ],
+    "readMoreLabel": "Read More +"
+  },
+  "faq": {
+    "label": "Frequently Asked Questions",
+    "questions": [
+      {
+        "q": "Our site works. Why would we rebuild it?",
+        "a": [
+          "Maybe you shouldn't. \"It works\" and \"it brings us business\" are different bars, though, and the gap between them is usually measurable. People land, don't find what they came for, and leave.",
+          "That's what the audit is for. It tells you where visitors are dropping off, what a search engine or an AI assistant can and can't read on your site, and what the competitor you keep losing to is doing that you aren't.",
+          "If the answer comes back that the site is fine and the problem is somewhere else, that's a good week's money."
+        ]
+      },
+      {
+        "q": "How does pricing work?",
+        "a": [
+          "Every project is scoped and priced before anything starts, so there's no meter running.",
+          "Most website projects land in one of four ranges. Under $5,000 for a small, focused site. $5,000 - $10,000 for a standard business site. $10,000 - $25,000 when there are a lot of pages, custom templates, or a CMS your team will run day to day. $25,000+ when the site has to do something unusual.",
+          "We tell you which one you're in, in writing, before you commit to anything."
+        ]
+      },
+      {
+        "q": "What's AEO, and why does it matter now?",
+        "a": [
+          "SEO is about ranking in a list of blue links. AEO, answer engine optimization, is about being the source an AI assistant uses when someone asks it a question instead of running a search.",
+          "They overlap more than the two acronyms suggest, because it's largely the same work: a site that loads fast, is structured so a machine can parse it, and says plainly what you do, who you do it for, and where.",
+          "We'll tell you what we can and can't control. Nobody can promise you a ranking or an AI mention. What we can do is take away the reasons you're currently invisible to both."
+        ]
+      },
+      {
+        "q": "What's the timeline, and how much of our time does it take?",
+        "a": [
+          "The audit takes about a week. Design and build depend on how many pages there are and how much of the content already exists. A straightforward business site is usually four to eight weeks from kickoff to launch.",
+          "Your time lands in a handful of review sessions, plus whatever it takes to get us your content. We handle everything in between."
+        ]
+      },
+      {
+        "q": "Who writes the copy and supplies the photos?",
+        "a": [
+          "Either way works. Plenty of clients write their own and we edit for structure and length. When a client would rather not, writing it is something we do.",
+          "Photography is the piece that most often holds a launch up. If you don't have photos you're proud of, say so early and we'll plan around it, whether that means a shoot, licensed images, or a design that doesn't lean on photography at all."
+        ]
+      },
+      {
+        "q": "Can you work with the site we already have?",
+        "a": [
+          "Often, yes. If the platform isn't fighting you and the structure is sound, the fastest path is to fix what's broken and leave the rest alone.",
+          "The audit is what tells us which it is. We'd rather charge you for a week and tell you the site is fine than sell you a rebuild you don't need."
+        ]
+      },
+      {
+        "q": "What happens after launch?",
+        "a": [
+          "Nothing breaks the day we leave. The site is built so your team can update the pages they'll actually want to update, and we walk them through it before handover.",
+          "If you'd rather not touch it, we can stay on. What that costs depends on how much you want us doing, so it gets scoped on its own rather than bundled into the build."
+        ]
+      },
+      {
+        "q": "Why not use a website builder, or a freelancer?",
+        "a": [
+          "Website builders are genuinely good now. If you need five pages and a contact form, use one. We'll tell you so.",
+          "What you're paying us for is judgment about the whole thing. What the site needs to say, in what order, on what structure, so it still holds up when the business changes and so a machine can read it.",
+          "A freelancer can build you a good page. Getting the site, the content and the search side to agree with each other is the part that's hard to buy piecemeal."
+        ]
+      },
+      {
+        "q": "How do we get started?",
+        "a": [
+          "Hit Get Started and answer five short questions. If it looks like a fit, you'll book a call with a founder, not a sales rep, and we'll talk through what your site actually needs."
+        ]
+      }
+    ]
+  },
+  "cta": {
+    "heading": "Ready for a website that brings you customers instead of just sitting there?",
+    "buttonLabel": "Talk with a founder",
+    "buttonUrl": "/contact#inquire",
+    "background": "paper-red"
+  },
+  "inquiry": {
+    "title": "Let's look at your website",
+    "prompt": "Answer five quick questions and book a call.",
+    "thanks": "Got it. Pick a time and we'll walk through what we found.",
+    "surveyId": "digital"
+  }
+}
