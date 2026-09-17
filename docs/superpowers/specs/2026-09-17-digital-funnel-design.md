@@ -34,11 +34,16 @@ their own CRM fields, and the $10k budget gate confined to medtech.
 
 - Any change to `/medtech` or `/boise`, their questions, or their CRM fields.
 - New slices or slice variations. `/digital` uses the medtech sequence exactly.
-- GHL workflow edits. The chase automations still cannot be triggered by an API
-  sync (see §8); this design does not close that and does not depend on it.
-- A GHL survey object for the digital questions. Surveys cannot be created
-  through the API, and nothing has submitted to one since the widget path died
-  (2026-08-18). The question set is keyed by a string this code owns.
+- GHL workflow edits. The chase sequences already reach leads this flow creates
+  (§8) and carry the same tags for digital leads, so nothing has to move for
+  this to work. Their copy is a separate question, also §8.
+- A GHL survey object for the digital questions. Not because it is unreachable —
+  the builder can be driven over Chrome's debugging port, which is how the
+  A-102 email bodies were edited on 2026-09-15 — but because nothing would read
+  it: no survey has been submitted since the widget path died (2026-08-18), and
+  the answers land as contact fields either way. The question set is keyed by a
+  string this code owns. If a survey object is ever wanted for reporting, the
+  builder route is how, and it changes nothing here.
 - Ongoing-care or marketing services copy beyond what `/medtech` already
   publishes. Anything new is a content gap for Tim, not invented here.
 
@@ -147,6 +152,12 @@ Budget` are `RADIO`. Q2 writes GHL's **standard** `website` contact field, as
 medtech does — not a custom field. SMS consent keeps using the shared
 `SMS Consent` field and its stored sentence.
 
+If `POST /locations/{loc}/customFields` turns out not to be granted to that
+token, the fallback is the builder over CDP (`scripts/crm/`, PR #187) — the same
+route that edited the A-102 email bodies on 2026-09-15. Creating four fields by
+hand in the GHL UI is also fine; what the code needs is their ids, however they
+come to exist.
+
 Order of operations, per the survey-copy findings of 2026-08-24: **CRM first,
 verified by read-back, then the code**. Read back by **id**, which reflects a
 write immediately; the list endpoint lags 1–2s and a single read of it looks
@@ -205,10 +216,28 @@ fields; a phone that collides with another contact is recorded in the note.
 
 ## 8. Risks and open items
 
-- **The chase workflows still will not fire.** A-102-1/2 trigger on GHL form and
-  survey submissions, which an API upsert cannot raise. Digital leads get the
-  same silence medtech leads get. The fix is a `Contact Tag Added` trigger on
-  each, in the builder. Pre-existing; named here so it is not read as new.
+- **The chase sequences DO reach these leads — corrected 2026-09-17.** An
+  earlier draft of this spec repeated the standing belief that A-102-1/2 cannot
+  fire from an API sync, so leads hear nothing. The message history says
+  otherwise. The one outside submission through `/medtech`
+  (`ju***@6figurecreative.com`, 2026-08-21, contact created 18:44) received a
+  "your questionnaire was successfully submitted" SMS and email at 18:51, then
+  four chases across 08-21, 08-23 and 08-24 ("I saw you submitted your
+  questionnaire but you haven't booked"), ending in the `nurture` tag. A test
+  contact that stopped after the email step got the "your inquiry wasn't
+  completed" chase. Both were API-created.
+  **Unresolved:** whether enrolment was automatic or done by hand during the
+  August walkthroughs. Workflow triggers are readable only in the builder (over
+  CDP), so this is answerable but not answered. It matters here because digital
+  leads carry the **same** `application started` / `application completed`
+  tags — if the trigger is tag-keyed, they inherit the chase for free; if
+  enrolment was manual, both funnels are equally silent and the fix serves both.
+  Worth settling before launch, but it blocks nothing in this design.
+- **The chase copy is medtech's.** It says "questionnaire" and pitches brand
+  work. A web lead reading "still interested in taking your brand to the next
+  level" is a small mismatch. Editable over the builder (the same CDP route used
+  on 2026-09-15), not through the API. Flag to Tim with the copy review; not in
+  scope here.
 - **Pricing and service names are placeholders.** The ranges in Q5 and the FAQ
   are mine. Erik owns pricing language. Publishing before Tim sets them would
   put invented numbers in front of leads.
