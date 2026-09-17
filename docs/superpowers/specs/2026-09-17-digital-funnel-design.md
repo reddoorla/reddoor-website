@@ -231,9 +231,15 @@ fields; a phone that collides with another contact is recorded in the note.
    production build green.
 3. Content folder, asset staging, `fit-logos --check`, `migrate --dry-run`
    (zero model mismatches), then load as an **unpublished draft**.
-4. PR to `staging`; promote to `main` with a merge commit.
+4. PR to `staging`; promote to `main` with a merge commit. **Before the
+   document is published, not after:** a published `digital` doc against a prod
+   build that predates the question set resolves `questionsFor("digital")` to
+   `undefined`, and the modal silently degrades to email capture with no
+   wizard — a live page quietly collecting half a lead.
 5. Tim reviews the draft in Prismic, sets prices and question wording, publishes.
-   Wording changes are a GHL rename first, then the code.
+   The page and its OG card are prerendered, so both exist only after a
+   production build that saw the published document — confirm one ran. Wording
+   changes are a GHL rename first, then the code.
 6. Follow-up PR: the three smoke lists (§6).
 7. Rick Garcia gets `reddoorla.com/inquiry?funnel=digital&email=…`.
 
