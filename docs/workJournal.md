@@ -924,3 +924,30 @@ a row would flatten the hierarchy in the other direction.
 Decisions from Tucker: pin 2 counts as answered by the primer; pin 3 stays at
 one assistant for now, so the scoping in the entry above is reference, not a
 plan, and the singular-copy guard in `report-copy.test.ts` stays.
+
+## 2026-09-17 — `form_replies` pushed to Prismic; the cockpit's model-drift warning was real (chore/form-replies-types)
+
+The maintenance cockpit flagged reddoor-website's Prismic models as out of step.
+`reddoor-maint prismic-models` against this checkout: 24 models matched, one
+`NEW customtype form_replies`. #193 (CMS-authored confirmation copy) added the
+model to `customtypes/` on staging and main but nothing pushed it — this repo has
+no Prismic CI workflow, so a model merge reaches Prismic only when someone pushes
+it by hand, and nobody did. It sat on prod unnoticed because
+`src/lib/server/reply-copy.ts` treats a missing type exactly like an unwritten
+document and the contact form sends the shared package's default reply. So the
+cost was the tailored confirmation, not a submission.
+
+Pushed with `prismic-models --apply` (create-only; `PRISMIC_TOKEN_REDDOOR_LA`
+from reddoor-maintenance's `.env` worked, so the "write token can't push models"
+note is about `PRISMIC_WRITE_TOKEN`, not the per-repo token). The dry run
+re-read afterwards says 25 match. The `form replies` document still has to be
+created and filled in Prismic before any copy changes.
+
+`prismicio-types.d.ts` had not been regenerated either (#193's comment said it
+would be once the model was pushed). Re-emitted via `@slicemachine/manager`
+`updateCustomType` for this one model: +81 lines, additions only, no drift
+elsewhere. The `as never` adapter in `reply-copy.ts` stays — the shared
+resolver's reader takes `type: string`, which the closed union still can't
+satisfy — but its comment no longer claims the type is absent.
+
+Gates: lint clean, check 0 errors over 4633 files, 590 unit tests.
