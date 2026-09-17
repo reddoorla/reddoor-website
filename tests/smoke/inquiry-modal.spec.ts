@@ -846,8 +846,9 @@ test("the digital funnel submits its own fields and never the budget gate", asyn
   await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  // Never routed to the medtech opt-out page — see the header comment.
-  await expect(page).not.toHaveURL(/not-a-fit/);
+  // The scheduler, never the medtech opt-out page — see the header comment.
+  // Asserted as the URL it DOES reach: a `not.toHaveURL(/not-a-fit/)` would
+  // pass instantly against the pre-navigation URL and could never fail.
   await expect(page).toHaveURL(/\/schedule$/);
 
   await expect.poll(() => calls.length).toBe(2);
