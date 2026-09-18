@@ -13,7 +13,7 @@
   import FixList from "./FixList.svelte";
   import SearchResults from "./SearchResults.svelte";
   import WhatPasses from "./WhatPasses.svelte";
-  import { openingSummary, type ReportView } from "./model";
+  import { openingSummary, sourceCheckMeasured, type ReportView } from "./model";
   import {
     allFixes,
     auditedOn,
@@ -305,11 +305,17 @@
 
       <RailRow label="What it says" labelAs="h3" fill labelAbove>
         <div class="flex flex-col gap-10">
-          <p class="type-lede m-0 text-black">
-            We asked an AI assistant about {who} and took its answer apart statement by statement. Each
-            one is sorted by where it came from — not by whether it is true. We cannot know that; you
-            can.
-          </p>
+          <!-- Only when there was an answer to take apart. SourceCheck asks the
+             same predicate to decide it has something to show, and on a report
+             with no assistant answer this lede used to sit directly above its
+             "We could not check this on this audit". -->
+          {#if sourceCheckMeasured(view)}
+            <p class="type-lede m-0 text-black">
+              We asked an AI assistant about {who} and took its answer apart statement by statement. Each
+              one is sorted by where it came from — not by whether it is true. We cannot know that; you
+              can.
+            </p>
+          {/if}
           <SourceCheck {view} />
         </div>
       </RailRow>
