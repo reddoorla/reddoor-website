@@ -2,6 +2,7 @@
   import {
     notSourcedFromSite,
     openingSummary,
+    sourceCheckMeasured,
     toReportView,
     wasNamed,
     type Assertion,
@@ -158,7 +159,10 @@
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
        cannot know whether a claim is right; saying "the AI got this wrong"
        about something a client knows is true would discredit the page. -->
-  {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
+  <!-- `accuracy &&` narrows the type; `sourceCheckMeasured` is what decides
+       whether the check ran, so this sheet and the screen report cannot
+       disagree about it. -->
+  {#if accuracy && sourceCheckMeasured(view) && accuracy.assertions.length > 0}
     <section>
       <h2>What AI is saying about you</h2>
       {#if collision}

@@ -836,6 +836,24 @@ export function wasNamed(a: ProbeAnswer): boolean {
   return a.countedAsVisible ?? (a.domainCited || a.brandMentioned);
 }
 
+/**
+ * Did we have an assistant answer to take apart? THE answer to that question —
+ * every surface asks here rather than deciding for itself.
+ *
+ * `accuracy` is absent on the 53 reports stored before the stage existed, and
+ * `answersRead === 0` means the stage ran and read nothing; both mean the same
+ * thing to a reader, which is that this check did not happen. The lede above
+ * the section used to assert it unconditionally — "We asked an AI assistant
+ * about X and took its answer apart statement by statement" — directly above
+ * the section's own "We could not check this on this audit". Two adjacent
+ * paragraphs, one of them a claim about work we did not do.
+ *
+ * Never read as "nothing was wrong". We had nothing to read.
+ */
+export function sourceCheckMeasured(view: ReportView): boolean {
+  return view.accuracy !== null && view.accuracy.answersRead > 0;
+}
+
 export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {
   const r = applyOverrides(raw, overrides) as Record<string, unknown>;
 

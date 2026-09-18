@@ -1,5 +1,5 @@
 import { healthRows, type HealthRow } from "./health";
-import { GOAL_LABELS, type Fix, type ReportView } from "./model";
+import { GOAL_LABELS, sourceCheckMeasured, type Fix, type ReportView } from "./model";
 import { composed } from "./overrides";
 
 /**
@@ -690,7 +690,7 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   // the category probes are the buyer's questions. A report with none of the
   // three gets no sentence about an assistant, not a sentence about work
   // nobody did.
-  const checked = view.accuracy !== null && view.accuracy.answersRead > 0;
+  const checked = sourceCheckMeasured(view);
   const byName = checked || view.brandedProbes.length > 0;
   const live = view.categoryProbes.length > 0;
   const asked = byName

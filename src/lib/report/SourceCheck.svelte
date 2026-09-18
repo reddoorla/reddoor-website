@@ -1,6 +1,12 @@
 <script lang="ts">
   import { displayQuote, numberWord } from "./narrative";
-  import { notSourcedFromSite, ownSiteCitations, type Assertion, type ReportView } from "./model";
+  import {
+    notSourcedFromSite,
+    ownSiteCitations,
+    sourceCheckMeasured,
+    type Assertion,
+    type ReportView,
+  } from "./model";
 
   // What an AI already says about this business, and where it got it.
   //
@@ -86,7 +92,10 @@
   );
 </script>
 
-{#if !acc || acc.answersRead === 0}
+<!-- `!acc` is there to narrow the type; `sourceCheckMeasured` is what decides.
+     The lede above this component asks the same function, so the two cannot
+     disagree about whether the check ran. -->
+{#if !acc || !sourceCheckMeasured(view)}
   <p class="type-lede m-0 text-muted">
     <!-- Never "we found nothing wrong". We had nothing to read. -->
     We could not check this on this audit — no assistant answer about {who} was captured to check against.
