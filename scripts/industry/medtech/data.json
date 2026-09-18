@@ -4,7 +4,8 @@
     "framework.eyebrow: Figma reads \"How Do it: Brand Credibility Framework\" (ungrammatical) → \"How We Do It: Brand Credibility Framework\".",
     "featuredProject.title: Figma reads \"Medical Solution of texas\" → \"Medical Solutions of Texas\" (matches the client's real name and the testimonial role line).",
     "Trailing spaces trimmed throughout; a U+200B zero-width-space spacer paragraph in the About body was dropped (it was a Figma authoring artifact, not content).",
-    "Service list and framework labels are stored in natural case — the components uppercase them in CSS."
+    "Service list and framework labels are stored in natural case — the components uppercase them in CSS.",
+    "2026-09-17, Tim in Discord (“our website has footprints all over the place but sometimes uses the correct apostrophe”): every straight apostrophe and straight double quote in the copy above was replaced with its typographic form (’ “ ”) by src/lib/typography/smartQuotes.ts — the same transform the Prismic client now runs over every document on read (src/lib/prismicio.ts). It is recorded here so a re-load of this file cannot put the footmarks back. No wording changed."
   ],
   "_contentGaps": [
     "hero.image is an UNLICENSED iStock comp (id 2184775810) exported at the board's 640px comp resolution. Staged as a clearly-named placeholder; a licensed hi-res must replace it before launch.",
@@ -18,9 +19,9 @@
   "_titleNote": "`title` is the browser/tab title (the layout renders it as <title>), not on-page copy — the h1 comes from the hero slice. Site convention is \"<Page> | Reddoor Creative\"; meta_title carries the longer SEO string.",
   "title": "MedTech | Reddoor Creative",
   "meta_title": "MedTech Brand Strategy & Design | Reddoor Creative",
-  "meta_description": "Reddoor's brand-credibility framework takes MedTech brands from screened out to short list — brand identity, digital presence and design systems that buyers and clinicians trust on sight.",
+  "meta_description": "Reddoor’s brand-credibility framework takes MedTech brands from screened out to short list — brand identity, digital presence and design systems that buyers and clinicians trust on sight.",
   "hero": {
-    "headline": "We'll Take Your \nMedTech Brand from Screened Out to Short List",
+    "headline": "We’ll Take Your \nMedTech Brand from Screened Out to Short List",
     "cardLabel": "Brand-Credibility Framework",
     "cardBody": "Our framework means buyers trust you before your rep walks through the door. We diagnose, rebuild, and deploy everything your brand needs to compete on the national stage.",
     "image": "hero-PLACEHOLDER-istock-comp.png",
@@ -35,7 +36,7 @@
   "services": {
     "eyebrow": "What we do for you:",
     "lead": "Closing the Trust Gap for Your Brand",
-    "subBody": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep selling while we build a brand buyers trust before they've met you.",
+    "subBody": "We handle everything, from diagnosing the problem, to rebuilding the brand system, then designing and deploying every deliverable. You keep selling while we build a brand buyers trust before they’ve met you.",
     "columns": [
       {
         "title": "Brand Identity",
@@ -63,14 +64,14 @@
   },
   "framework": {
     "eyebrow": "How We Do It: Brand Credibility Framework",
-    "lead": "Creating instant credibility with buyers and clinicians doesn't happen instantly. In fact, it takes a tried and true process that we've been using for 20 years.",
+    "lead": "Creating instant credibility with buyers and clinicians doesn’t happen instantly. In fact, it takes a tried and true process that we’ve been using for 20 years.",
     "columns": [
       {
         "icon": "icon-diagnosis-audit.svg",
         "iconAlt": "",
         "title": "The Diagnosis:",
         "subtitle": "Friction Audit",
-        "body": "We audit your marketing deliverables and stack them against your competition to pinpoint what's getting you cut in procurement vetting. We deliver a prioritized plan to fix it before it costs another deal."
+        "body": "We audit your marketing deliverables and stack them against your competition to pinpoint what’s getting you cut in procurement vetting. We deliver a prioritized plan to fix it before it costs another deal."
       },
       {
         "icon": "icon-rebuild.svg",
@@ -110,7 +111,7 @@
         "alt": "The Revogen site on a phone"
       }
     ],
-    "beforeImageAlt": "Revogen's pre-rebrand collateral: RevoCen Biologics brochures and sell sheets"
+    "beforeImageAlt": "Revogen’s pre-rebrand collateral: RevoCen Biologics brochures and sell sheets"
   },
   "logoGrid": {
     "label": "Clients: Join these brands in building trust",
@@ -190,7 +191,7 @@
   },
   "testimonial": {
     "label": "What clients are saying:",
-    "quote": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
+    "quote": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That’s where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
     "name": "Albert Turgon",
     "role": "COO of MSOT (Medical Solutions of Texas)",
     "avatar": "testimonial-albert-turgon.png",
@@ -210,10 +211,10 @@
   "about": {
     "displayTitle": "On Your Behalf",
     "eyebrow": "About Us",
-    "lede": "Reddoor's been at this for 20 years. In that time we've helped more than 300 companies stand out, and we've never gotten comfortable with work that's merely \"fine.\" Clarity beats clever, every time.",
+    "lede": "Reddoor’s been at this for 20 years. In that time we’ve helped more than 300 companies stand out, and we’ve never gotten comfortable with work that’s merely “fine.” Clarity beats clever, every time.",
     "body": [
-      "We're a nimble senior team with people in San Antonio, Los Angeles, and Boise, and we've stayed that way on purpose. The people you meet in the first conversation are the people building your brand. Nothing gets handed down. We care about your company and about the people inside it who actually use what we make. The CMO we align with on strategy. The rep carrying your sell sheet into a hospital. Both have to be able to do their job with the work.",
-      "That's why every decision ties back to an outcome you can name. In your category that outcome is trust: clinicians who believe you on sight, procurement that's sold before the meeting starts, and deals you stop losing to the bigger name."
+      "We’re a nimble senior team with people in San Antonio, Los Angeles, and Boise, and we’ve stayed that way on purpose. The people you meet in the first conversation are the people building your brand. Nothing gets handed down. We care about your company and about the people inside it who actually use what we make. The CMO we align with on strategy. The rep carrying your sell sheet into a hospital. Both have to be able to do their job with the work.",
+      "That’s why every decision ties back to an outcome you can name. In your category that outcome is trust: clinicians who believe you on sight, procurement that’s sold before the meeting starts, and deals you stop losing to the bigger name."
     ],
     "readMoreLabel": "Read More +"
   },
@@ -255,7 +256,7 @@
         ]
       },
       {
-        "q": "What's the timeline, and how much of our time does it take?",
+        "q": "What’s the timeline, and how much of our time does it take?",
         "a": [
           "The Friction Audit runs 7 days and needs about 3 hours from you: an hour on a pre-meeting questionnaire, an hour for the kickoff interview, an hour in the diagnosis meeting. The Rebuild takes 30 days. The Rollout takes 60. So roughly 90 days from the start of the Rebuild to a brand deployed across every touchpoint.",
           "Your time lands in a handful of review sessions. We handle everything in between.",

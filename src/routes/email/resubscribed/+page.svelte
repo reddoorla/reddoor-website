@@ -14,7 +14,7 @@
 <div class="w-screen h-[50vh] max-h-96 relative bg-paper">
   <ContentWidth class="h-full flex flex-col justify-evenly items-start">
     <div class="h-32"></div>
-    <h1 class="type-hero text-primary z-10 md:ml-[20%]">You're back on the list.</h1>
+    <h1 class="type-hero text-primary z-10 md:ml-[20%]">You’re back on the list.</h1>
   </ContentWidth>
 </div>
 
@@ -24,8 +24,8 @@
 
     <div class="w-full md:w-4/5 max-w-2xl">
       <p class="lede">
-        Your emails are on again. You'll hear from us the next time we've got something worth
-        sending — and there's an unsubscribe link at the bottom of every one, no hard feelings.
+        Your emails are on again. You’ll hear from us the next time we’ve got something worth
+        sending — and there’s an unsubscribe link at the bottom of every one, no hard feelings.
       </p>
       <p class="body">
         <a class="text-primary underline" href="/">Back to the site</a>

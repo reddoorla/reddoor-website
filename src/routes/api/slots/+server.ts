@@ -69,7 +69,7 @@ export const GET: RequestHandler = async ({ fetch, url, setHeaders }) => {
   if (!result.ok) {
     console.error(`[slots] free-slots failed (${result.status}): ${result.error}`);
     return json(
-      { error: "We couldn't load available times. Please try again or email info@reddoorla.com." },
+      { error: "We couldn’t load available times. Please try again or email info@reddoorla.com." },
       { status: 502 },
     );
   }

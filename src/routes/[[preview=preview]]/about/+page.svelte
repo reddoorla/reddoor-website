@@ -391,7 +391,7 @@
         We work with clients across the US and occasionally around the globe. We have designers
         sprinkled across California, Texas and Idaho, conveniently located near the Los Angeles, San
         Antonio, and Boise metro areas. Regardless of your location, partnering with Reddoor
-        Creative will give you the confidence in your brand that you've been needing.
+        Creative will give you the confidence in your brand that you’ve been needing.
       </p>
     </div>
     <div class="md:w-3/5 flex flex-col items-center gap-6 md:gap-0 md:flex-row mt-16">
@@ -439,16 +439,16 @@
     <div class="flex flex-col md:w-3/5 my-8 gap-8">
       <div use:anim class="md:w-2/3">
         <p>
-          The young designer soon realized that in city where "your wheels" are a part of your
+          The young designer soon realized that in city where “your wheels” are a part of your
           identity he had two choices: be embarrassed or embrace the moment. Choosing the latter he
           quickly told his friend how excited he was to get a red door since he always wanted a red
-          sports car and thought he'd start with the driver's side door and just work his way around
+          sports car and thought he’d start with the driver’s side door and just work his way around
           replacing one piece at a time.
         </p>
       </div>
       <div use:anim class="md:w-2/3">
         <p>
-          The car soon became known as "reddoor" having its own personality because of the one thing
+          The car soon became known as “reddoor” having its own personality because of the one thing
           that most people would see as unfortunate. With a proud owner it had no other reason than
           to be proud, too. What once was headed for the trash heap was now a gem of a story.
         </p>
@@ -456,7 +456,7 @@
 
       <div use:anim class="md:w-2/3 border-t-1 border-t-primary pt-6">
         <h6 class="text-primary" aria-level="3">
-          The original "reddoor" taught us two things at Reddoor Creative:
+          The original “reddoor” taught us two things at Reddoor Creative:
         </h6>
       </div>
 
@@ -485,8 +485,8 @@
     </div>
     <div use:anim class="md:w-3/5 text-white">
       <h5 class=" md:w-2/3" aria-level="3">
-        "Time has taught me that true north is to not just focus on the work itself but also the
-        people I'm working with."
+        “Time has taught me that true north is to not just focus on the work itself but also the
+        people I’m working with.”
       </h5>
       <div class="flex flex-row gap-5 mt-10">
         <Img src={tim} alt="tim holmes" class="w-20" />
@@ -506,7 +506,7 @@
 <section class="relative w-screen bg-paper py-16 md:py-32">
   <ContentWidth class="flex flex-col" animateIn>
     <h2 class="text-primary md:w-3/5" aria-level="2">
-      Isn't it time to arm your brand with a clear story and compelling design?
+      Isn’t it time to arm your brand with a clear story and compelling design?
     </h2>
     <div class="flex flex-row mt-16 gap-8">
       <DefaultButton red href="/contact">Meet with Us</DefaultButton>

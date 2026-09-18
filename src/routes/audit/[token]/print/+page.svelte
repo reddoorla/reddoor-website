@@ -280,7 +280,7 @@
          the receipts are a folded section on the web and a page of URLs in
          print, which is a worse trade in a document nobody can expand. -->
     {#if view.stack?.measured && view.stack.items.length > 0}
-      <h3>What you're running</h3>
+      <h3>What you’re running</h3>
       <p>
         Read off your own pages: {view.stack.items.map((i) => i.name).join(", ")}.
       </p>

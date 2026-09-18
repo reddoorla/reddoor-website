@@ -27,7 +27,7 @@ test("the trailing-slash form the CRM actually sends gets there too", async ({ r
 test("a cancel link with no id explains itself instead of 404ing", async ({ page }) => {
   await page.goto("/cancel", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
-  await expect(page.getByText("We couldn't find that booking.")).toBeVisible();
+  await expect(page.getByText("We couldn’t find that booking.")).toBeVisible();
   // And it must not have gone asking the API about an empty id.
   await expect(page.getByText("Booked for")).toHaveCount(0);
 });

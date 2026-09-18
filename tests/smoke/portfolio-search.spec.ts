@@ -234,7 +234,7 @@ test.describe("portfolio archive search", () => {
     await expect(page.getByRole("option").first()).toBeVisible();
 
     // Clicking outside (on the inert archive heading) closes it.
-    await page.getByRole("heading", { name: "But wait, there's more!" }).click();
+    await page.getByRole("heading", { name: "But wait, there’s more!" }).click();
     await expect(sort).toHaveAttribute("aria-expanded", "false");
 
     // Reopen, then Escape closes it and returns focus to the trigger.
@@ -256,7 +256,7 @@ test.describe("portfolio archive search", () => {
   test("the archive section title is a real heading", async ({ page }) => {
     await openPortfolio(page);
     // Was a styled <div>; now an <h2> so the archive section has a programmatic heading.
-    await expect(page.getByRole("heading", { name: "But wait, there's more!" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "But wait, there’s more!" })).toBeVisible();
   });
 });
 

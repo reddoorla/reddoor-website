@@ -100,6 +100,6 @@ describe("/api/slots response", () => {
     fetchFreeSlots.mockResolvedValue({ ok: false, status: 500, error: "boom" });
     const { status, body } = await call();
     expect(status).toBe(502);
-    expect(body.error).toMatch(/couldn't load/i);
+    expect(body.error).toMatch(/couldn’t load/i);
   });
 });

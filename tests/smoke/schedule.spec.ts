@@ -48,7 +48,7 @@ async function stubApi(
       body: JSON.stringify(
         status === 200
           ? { slots: opts.slots ?? SLOTS }
-          : { error: "We couldn't load available times." },
+          : { error: "We couldn’t load available times." },
       ),
     });
   });
@@ -130,7 +130,7 @@ test.describe("in Los Angeles", () => {
     await page.locator("#book-email").fill("buyer@example.com");
     await page.getByRole("button", { name: "Confirm this time" }).click();
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
     // Echoed back to the visitor in THEIR zone…
     await expect(page.getByText("Wednesday, August 19 at 8:30 AM PDT")).toBeVisible();
 
@@ -228,7 +228,7 @@ test.describe("in Los Angeles", () => {
 
     // And the values still reach the server unretyped.
     await page.getByRole("button", { name: "Confirm this time" }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
     expect(bookCalls).toHaveLength(1);
     expect(bookCalls[0]).toMatchObject({
       email: "buyer@example.com",
@@ -257,7 +257,7 @@ test.describe("in Los Angeles", () => {
     await expect(page.locator("#book-email")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Confirm this time" }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
     expect(bookCalls[0]).toMatchObject({
       email: "buyer@example.com",
       name: "Pat Buyer",
@@ -312,7 +312,7 @@ test.describe("in Los Angeles", () => {
 
     await page.locator("#book-email").fill("someone.else@example.com");
     await page.getByRole("button", { name: "Confirm this time" }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
     expect(bookCalls[0]).toMatchObject({ email: "someone.else@example.com" });
   });
 
@@ -375,7 +375,7 @@ test.describe("in Los Angeles", () => {
   test("a cold visitor gets the cold headline", async ({ page }) => {
     await stubApi(page);
     await gotoHydrated(page);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Let's find a time");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Let’s find a time");
   });
 
   test("an empty calendar offers a way through rather than a dead end", async ({ page }) => {
@@ -396,14 +396,14 @@ test.describe("in Los Angeles", () => {
         status: calls === 1 ? 502 : 200,
         contentType: "application/json",
         body: JSON.stringify(
-          calls === 1 ? { error: "We couldn't load available times." } : { slots: SLOTS },
+          calls === 1 ? { error: "We couldn’t load available times." } : { slots: SLOTS },
         ),
       });
     });
     await page.route("**/api/book", (route) => route.abort());
 
     await gotoHydrated(page);
-    await expect(page.getByRole("alert")).toContainText("couldn't load");
+    await expect(page.getByRole("alert")).toContainText("couldn’t load");
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toBeVisible();
   });
@@ -503,7 +503,7 @@ test.describe("in New York", () => {
     await page.locator("#book-email").fill("buyer@example.com");
     await page.getByRole("button", { name: "Confirm this time" }).click();
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're on the calendar");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
     expect(bookCalls[0].timezone).toBe("America/New_York");
   });
 });
