@@ -569,6 +569,49 @@ export function notSourcedFromSite(view: ReportView): Assertion[] {
   ];
 }
 
+/**
+ * What each row has to say about its own sources.
+ *
+ * - `show` — print this row's citation list.
+ * - `carried` — this row came from the SAME answer as the row above, whose
+ *   list is already on the page; printing it again would repeat it verbatim.
+ * - `none` — this row's own answer cited nothing. It must say so, because
+ *   silence here reads as `carried`.
+ */
+export type CitationRun = { row: Assertion; citations: "show" | "carried" | "none" };
+
+/**
+ * Collapse consecutive rows from one engine answer onto one printed citation
+ * list — keyed on the ANSWER, never on the list itself.
+ *
+ * Every claim pulled out of one answer carries that answer's citations, so
+ * consecutive rows from the same answer would print the identical list over and
+ * over. The first version of this keyed the run on the sorted citation list,
+ * which cannot tell "same as above" from "no citations at all": a row whose
+ * answer cited nothing rendered exactly like a collapsed one, and inherited the
+ * line above it in the reader's eye. That attributes a competitor's domain to
+ * the wrong claim, inside the section whose whole argument is who the engine
+ * read. `query + engine` is the answer's identity and `Assertion` carries both.
+ *
+ * A sourceless row also BREAKS the run: the next row re-prints its list rather
+ * than letting a gap in the middle imply continuity.
+ */
+export function citationRuns(rows: Assertion[]): CitationRun[] {
+  // The answer whose citation list is currently on the page, or null when the
+  // run has been broken.
+  let printedFor: string | null = null;
+  return rows.map((row): CitationRun => {
+    const answer = `${row.query} ${row.engine}`;
+    if (row.sourceDomains.length === 0) {
+      printedFor = null;
+      return { row, citations: "none" };
+    }
+    if (answer === printedFor) return { row, citations: "carried" };
+    printedFor = answer;
+    return { row, citations: "show" };
+  });
+}
+
 export function isListingSite(domain: string): boolean {
   const d = domain.toLowerCase().replace(/^www\./, "");
   return LISTING_SITES.some((p) => d === p || d.endsWith(`.${p}`));
