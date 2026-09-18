@@ -1,10 +1,10 @@
 <script lang="ts">
   import {
+    citationRuns,
     notSourcedFromSite,
     openingSummary,
     toReportView,
     wasNamed,
-    type Assertion,
   } from "$lib/report/model";
   import {
     allFixes,
@@ -55,19 +55,11 @@
   // the site does not make is not (the engine may be right); the statements
   // we could not judge are printed in full because they are what a buyer
   // hears; confirmed statements are one line and live under "What passes".
-  // A row prints its sources only when they differ from the row above.
-  const withCitations = (rows: Assertion[]) => {
-    const key = (d: string[]) => [...d].sort().join("|");
-    let previous = "";
-    return rows.map((row) => {
-      const k = key(row.sourceDomains);
-      const show = row.sourceDomains.length > 0 && k !== previous;
-      previous = k;
-      return { row, showCitations: show };
-    });
-  };
+  // A row prints its sources only when the row above did not already print the
+  // same ANSWER's list — keyed in model.ts so this sheet and the screen report
+  // cannot disagree about whose sources a line belongs to.
   const contradictedRows = $derived(
-    withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
+    citationRuns((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
   );
   // One list, matching the screen report; the heading asserts nothing and the
   // hedge beneath it carries the claim. See `notSourcedFromSite`.
@@ -193,7 +185,7 @@
           <p class="note">The remedy is the first item under Our recommendations.</p>
         </div>
       {/if}
-      {#each contradictedRows as { row, showCitations } (row.claim + row.query)}
+      {#each contradictedRows as { row, citations } (row.claim + row.query)}
         <div class="fix">
           <p class="fix-t">
             {row.claim}
@@ -203,10 +195,14 @@
           {#if row.siteQuote}
             <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
           {/if}
-          {#if showCitations}
+          {#if citations === "show"}
             <p class="fix-w">
               Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
             </p>
+          {:else if citations === "none"}
+            <!-- Said out loud: on paper, silence here looks exactly like the
+                 row above's list continuing. -->
+            <p class="fix-w">The assistant cited no sources for that answer.</p>
           {/if}
         </div>
       {/each}
