@@ -169,9 +169,16 @@
                 </p>
               {:else if citations === "none"}
                 <!-- Said out loud, because saying nothing here is what the row
-                     above's list looks like. -->
+                     above's list looks like. Every word of it is hedged on
+                     purpose: "other" because this list has their own domain
+                     filtered out of it upstream, so an empty one means nothing
+                     OUTSIDE their site — and the paragraph below counts how
+                     often the assistant cited them, which would flatly
+                     contradict "cited no sources"; "we recorded" because an
+                     empty list is also what a quote we could not tie back to an
+                     answer looks like, which is our gap, not the engine's. -->
                 <p class="type-meta m-0 text-muted">
-                  The assistant cited no sources for that answer.
+                  We recorded no other sources for that answer.
                 </p>
               {/if}
             </li>

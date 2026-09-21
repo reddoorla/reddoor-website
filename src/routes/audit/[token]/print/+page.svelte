@@ -208,8 +208,11 @@
             </p>
           {:else if citations === "none"}
             <!-- Said out loud: on paper, silence here looks exactly like the
-                 row above's list continuing. -->
-            <p class="fix-w">The assistant cited no sources for that answer.</p>
+                 row above's list continuing. Not "cited no sources": the list
+                 has their own domain filtered out upstream, so empty means
+                 nothing OUTSIDE their site, and an unattributable quote arrives
+                 empty too. Worded identically to the screen report. -->
+            <p class="fix-w">We recorded no other sources for that answer.</p>
           {/if}
         </div>
       {/each}

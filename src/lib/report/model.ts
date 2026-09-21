@@ -573,10 +573,23 @@ export function notSourcedFromSite(view: ReportView): Assertion[] {
  * What each row has to say about its own sources.
  *
  * - `show` — print this row's citation list.
- * - `carried` — this row came from the SAME answer as the row above, whose
- *   list is already on the page; printing it again would repeat it verbatim.
- * - `none` — this row's own answer cited nothing. It must say so, because
- *   silence here reads as `carried`.
+ * - `carried` — this row came from the SAME answer as the row above AND cites
+ *   the same domains, so its list is already on the page verbatim.
+ * - `none` — we recorded no sources against this row's answer. It must say so,
+ *   because silence here reads as `carried`.
+ *
+ * `none` is NOT "the assistant cited nothing", and no surface may print it that
+ * way. `sourceDomains` has the prospect's own domain filtered out upstream (the
+ * producer drops it before storing; see `ownSiteCitations` — this section lists
+ * what the assistant read INSTEAD), so an empty list means "nothing outside your
+ * own site". An answer grounded entirely on their own pages lands here, in a
+ * section that says forty lines lower how often the assistant cited them: two
+ * contradictory statements about one answer, on a document we send a prospect.
+ * An empty list is also what an unattributable quote looks like — when the
+ * producer cannot tie the quote back to an answer, `query`, `engine` and
+ * `sourceDomains` all arrive empty — and that is our measurement gap, not the
+ * assistant's behaviour. Hence the copy on both surfaces: "We recorded no other
+ * sources for that answer."
  */
 export type CitationRun = { row: Assertion; citations: "show" | "carried" | "none" };
 
