@@ -23,13 +23,18 @@ cd ../reddoor-maintenance
 pnpm tsx scripts/gen-report-shapes.mts ../reddoor-website/src/lib/report/fixtures/producer
 ```
 
-Then `pnpm format` here — prettier owns the formatting of every checked-in file,
-including these, and the generator writes plain `JSON.stringify` output.
+The committed bytes are what that generator emits, formatted once with prettier
+as of this commit. They are **not** re-formatted afterwards: `.prettierignore`
+skips `src/lib/report/fixtures/producer/*.json`, for the same reason it skips
+`src/prismicio-types.d.ts` — a prettier version bump would otherwise red
+`prettier --check` across nine thousand generated lines on dep-update PRs that
+have nothing to do with the report.
 
-Regenerate them that way when the producer changes; do not edit them by hand.
-The business is fictional and the URL is on a reserved TLD, so nothing here can
-be mistaken for a prospect. `generatedAt` is frozen by the script so a
-regeneration diff stays readable.
+Regenerate them that way when the producer changes; do not edit them by hand,
+and keep a regeneration in its own commit so the diff is the producer's change
+and nothing else. The business is fictional and the URL is on a reserved TLD, so
+nothing here can be mistaken for a prospect. `generatedAt` is frozen by the
+script so a regeneration diff stays readable.
 
 ## The five shapes
 
@@ -49,3 +54,28 @@ exist and cannot be re-run, so the script derives them by **deleting exactly the
 keys that era did not carry** — the bit-string is the whole specification. They
 are still the producer's output with named fields removed, never a guess at what
 the producer used to write.
+
+## Known gaps
+
+What no fixture exercises today, exactly as found. Each is a branch that
+`producer-shapes.test.ts` **records rather than covers** — it has a named test
+under "known coverage gaps" that asserts the degeneracy, so the corpus says out
+loud where an assertion is comparing a constant with itself. Every one of them
+needs a sixth, **adverse** fixture from `gen-report-shapes.mts` in
+reddoor-maintenance; closing a gap will red its gap test, which is the signal to
+delete that test and strengthen its counterpart.
+
+- **No stage has `ok: false`.** Every stage of all five payloads succeeded, so
+  `stage()`'s failure branch is never taken. The nulls these fixtures do produce
+  come from a stage KEY being absent, which is a different path.
+- **`checks.data.crawlerAccessMeasured` is `true` and `crawlerAccess.blockedAi`
+  is empty in all five.** Neither an unmeasured robots.txt nor a site that
+  actually blocks an AI crawler is covered, and both sides of the `measured`
+  assertion normalise a missing field the same way.
+- **`crawl.data.sitemap.present` is `false` in all five** (with `urlCount: 0`),
+  so `sitemapUrlCount` is `null` on every fixture and its `present: true` branch
+  has never run.
+- **`probes.data.categoryProbes.attempted` equals `answered` in all five** (both
+  3, and the answered-probe array is 3 long too). The test catches `model.ts`
+  reading a path with a different value, but **cannot** catch `attempted` being
+  swapped for `answered` — which is the defect the field exists to prevent.
