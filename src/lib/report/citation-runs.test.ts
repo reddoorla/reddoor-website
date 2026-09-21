@@ -36,6 +36,8 @@ const claim = (over: Partial<Assertion> = {}): Assertion => ({
 const kinds = (rows: Assertion[]) => citationRuns(rows).map((r) => r.citations);
 
 describe("citationRuns — a run is one answer, not one citation list", () => {
+  // The original defect, and the one a same-list requirement on `carried` must
+  // not quietly reintroduce: two ANSWERS are two runs however alike their lists.
   it("prints the sources of two different answers that happen to cite the same domains", () => {
     const rows = [
       claim({ claim: "first", query: "who is acme", sourceDomains: ["yelp.com", "bbb.org"] }),
@@ -88,13 +90,91 @@ describe("citationRuns — a run is one answer, not one citation list", () => {
     expect(kinds(rows)).toEqual(["show", "carried"]);
   });
 
-  it("carries the row through untouched", () => {
+  // POSITIVE CONTROL — passes before and after: the row object itself is
+  // handed back by reference, never rebuilt.
+  it("CONTROL: carries the row through untouched", () => {
     const row = claim({ sourceDomains: ["yelp.com"] });
     expect(citationRuns([row])[0].row).toBe(row);
   });
 
-  it("has nothing to say about an empty list", () => {
+  // POSITIVE CONTROL — passes before and after: no rows in, no runs out.
+  it("CONTROL: has nothing to say about an empty list", () => {
     expect(citationRuns([])).toEqual([]);
+  });
+
+  /**
+   * An answer we could not identify is not an answer two rows can share.
+   *
+   * When the producer cannot tie a quote back to the answer it came from it
+   * stores `query: ""` and `engine: ""`, so every such row keys identically.
+   * Today they are also sourceless and take the `none` branch before the key is
+   * ever compared — which is luck, not a rule, and luck that no test held. A
+   * row with citations and no answer identity must print its own list.
+   */
+  it("never collapses two rows that have no answer identity at all", () => {
+    const rows = [
+      claim({ claim: "first", query: "", engine: "", sourceDomains: ["yelp.com"] }),
+      claim({ claim: "second", query: "", engine: "", sourceDomains: ["bbb.org"] }),
+    ];
+    expect(kinds(rows)).toEqual(["show", "show"]);
+  });
+
+  it("does not collapse unidentified rows even when they cite the same domains", () => {
+    const rows = [
+      claim({ claim: "first", query: "", engine: "", sourceDomains: ["yelp.com"] }),
+      claim({ claim: "second", query: "", engine: "", sourceDomains: ["yelp.com"] }),
+    ];
+    expect(kinds(rows)).toEqual(["show", "show"]);
+  });
+
+  /**
+   * POSITIVE CONTROL — passes before and after, and it is worth saying why.
+   *
+   * Any separator join has to pick a character neither field can contain, or
+   * `"a b" + "c"` and `"a" + "b c"` collapse to one key and two answers read as
+   * one. The first version satisfied that with a literal NUL byte in the source,
+   * which was correct — and which also made `grep` treat model.ts as binary and
+   * silently report no matches in it. The key is a JSON array now; this test is
+   * what stops anyone "tidying" that into a space.
+   */
+  it("CONTROL: does not let the join between query and engine slide", () => {
+    const rows = [
+      claim({ claim: "first", query: "a b", engine: "c", sourceDomains: ["yelp.com"] }),
+      claim({ claim: "second", query: "a", engine: "b c", sourceDomains: ["yelp.com"] }),
+    ];
+    expect(kinds(rows)).toEqual(["show", "show"]);
+  });
+
+  /**
+   * `carried` says "the list above is this row's list too". That is only true
+   * when the list above IS this row's list. The producer happens not to emit a
+   * same-answer pair with different domains today, but nothing pins that, and
+   * reports are stored and re-rendered long after the run that made them.
+   */
+  it("re-prints the list when the same answer arrives with different domains", () => {
+    const rows = [
+      claim({ claim: "first", sourceDomains: ["yelp.com"] }),
+      claim({ claim: "second", sourceDomains: ["bbb.org"] }),
+    ];
+    expect(kinds(rows)).toEqual(["show", "show"]);
+  });
+
+  it("re-prints when a row adds a domain to the same answer's list", () => {
+    const rows = [
+      claim({ claim: "first", sourceDomains: ["yelp.com"] }),
+      claim({ claim: "second", sourceDomains: ["yelp.com", "bbb.org"] }),
+      claim({ claim: "third", sourceDomains: ["yelp.com", "bbb.org"] }),
+    ];
+    expect(kinds(rows)).toEqual(["show", "show", "carried"]);
+  });
+
+  it("compares against the list last PRINTED, not the row immediately above", () => {
+    const rows = [
+      claim({ claim: "first", sourceDomains: ["yelp.com"] }),
+      claim({ claim: "second", sourceDomains: ["bbb.org"] }),
+      claim({ claim: "third", sourceDomains: ["bbb.org"] }),
+    ];
+    expect(kinds(rows)).toEqual(["show", "show", "carried"]);
   });
 });
 
