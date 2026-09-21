@@ -2,7 +2,7 @@
   import {
     notSourcedFromSite,
     openingSummary,
-    sourceCheckMeasured,
+    sourceCheckHasStatements,
     toReportView,
     wasNamed,
     type Assertion,
@@ -159,10 +159,13 @@
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
        cannot know whether a claim is right; saying "the AI got this wrong"
        about something a client knows is true would discredit the page. -->
-  <!-- `accuracy &&` narrows the type; `sourceCheckMeasured` is what decides
-       whether the check ran, so this sheet and the screen report cannot
-       disagree about it. -->
-  {#if accuracy && sourceCheckMeasured(view) && accuracy.assertions.length > 0}
+  <!-- `accuracy &&` narrows the type; `sourceCheckHasStatements` is what
+       decides whether there is a statement to print, so this sheet and the
+       screen report cannot disagree about it. The "and at least one assertion"
+       half used to be spelled out here and nowhere else, which is how the
+       screen's lede came to promise statements this sheet knew it did not
+       have. -->
+  {#if accuracy && sourceCheckHasStatements(view)}
     <section>
       <h2>What AI is saying about you</h2>
       {#if collision}
