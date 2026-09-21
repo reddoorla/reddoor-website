@@ -836,6 +836,43 @@ export function wasNamed(a: ProbeAnswer): boolean {
   return a.countedAsVisible ?? (a.domainCited || a.brandMentioned);
 }
 
+/**
+ * Did we have an assistant answer to take apart? THE answer to that question —
+ * every surface asks here rather than deciding for itself.
+ *
+ * `accuracy` is absent on the 53 reports stored before the stage existed, and
+ * `answersRead === 0` means the stage ran and read nothing; both mean the same
+ * thing to a reader, which is that this check did not happen. The lede above
+ * the section used to assert it unconditionally — "We asked an AI assistant
+ * about X and took its answer apart statement by statement" — directly above
+ * the section's own "We could not check this on this audit". Two adjacent
+ * paragraphs, one of them a claim about work we did not do.
+ *
+ * Never read as "nothing was wrong". We had nothing to read.
+ */
+export function sourceCheckMeasured(view: ReportView): boolean {
+  return view.accuracy !== null && view.accuracy.answersRead > 0;
+}
+
+/**
+ * Did the check come back holding a statement? The stricter of the two
+ * questions, and the one the lede above the section actually promises.
+ *
+ * `sourceCheckMeasured` says only that there was an answer to read. Between
+ * that and a section full of sorted statements sits a third state: answers were
+ * read and nothing checkable came out of them. There the lede told the reader
+ * we "took its answer apart statement by statement" and sorted "each one" by
+ * where it came from — directly above the section's own "we read 3 answers
+ * about you and could not pull a checkable statement out of them". The same
+ * defect as the one this file already carries a note about, one state over.
+ *
+ * So: a surface that PROMISES statements asks this. A surface that only reports
+ * whether the check happened at all asks `sourceCheckMeasured`.
+ */
+export function sourceCheckHasStatements(view: ReportView): boolean {
+  return sourceCheckMeasured(view) && (view.accuracy?.assertions.length ?? 0) > 0;
+}
+
 export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {
   const r = applyOverrides(raw, overrides) as Record<string, unknown>;
 
