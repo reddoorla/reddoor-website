@@ -43,50 +43,63 @@
     { n: partial, label: "Partly answered", fill: "bg-gray", alert: false },
     { n: no, label: "Not answered at all", fill: "bg-primary", alert: no > 0 },
   ]);
+
+  // "not counted above" is only true when there IS something above. On a
+  // truncated analyze response the whole set comes back unjudged, the bar has
+  // nothing to proportion, and the sentence about our own gap is the only true
+  // thing this section has to say — so it says it, and says it differently.
+  const unknownSentence = $derived(
+    total === 0
+      ? unknown === 1
+        ? "The one question we asked could not be judged on this audit"
+        : `None of the ${unknown} questions we asked could be judged on this audit`
+      : unknown === 1
+        ? "One further question could not be judged on this audit and is not counted above"
+        : `${unknown} further questions could not be judged on this audit and are not counted above`,
+  );
 </script>
 
-{#if total > 0}
+{#if total > 0 || unknown > 0}
   <div class="flex w-full flex-col gap-5">
-    <!-- One track, three segments. Described as a single image because the
+    {#if total > 0}
+      <!-- One track, three segments. Described as a single image because the
          proportion is the datum; the per-segment counts are announced by the
          legend below, so labelling each segment too would read the same numbers
          twice. -->
-    <div
-      class="flex h-5 w-full overflow-hidden bg-band"
-      role="img"
-      aria-label="Of {total} questions buyers ask, {yes} are answered clearly, {partial} partly, and {no} not at all."
-    >
-      {#each segments as seg (seg.label)}
-        {#if seg.n > 0}
-          <div class="h-full {seg.fill}" style="width: {pct(seg.n)}%"></div>
-        {/if}
-      {/each}
-    </div>
+      <div
+        class="flex h-5 w-full overflow-hidden bg-band"
+        role="img"
+        aria-label="Of {total} questions buyers ask, {yes} are answered clearly, {partial} partly, and {no} not at all."
+      >
+        {#each segments as seg (seg.label)}
+          {#if seg.n > 0}
+            <div class="h-full {seg.fill}" style="width: {pct(seg.n)}%"></div>
+          {/if}
+        {/each}
+      </div>
 
-    <ul class="m-0 grid grid-cols-1 gap-5 sm:grid-cols-3 list-none p-0">
-      {#each segments as seg (seg.label)}
-        <li class="flex flex-col gap-1">
-          <div class="flex items-center gap-2.5">
-            <span class="h-2.5 w-2.5 shrink-0 {seg.fill}" aria-hidden="true"></span>
-            <p
-              class="type-display m-0 leading-none tabular-nums {seg.alert
-                ? 'text-primary'
-                : 'text-black'}"
-            >
-              {seg.n}
-            </p>
-          </div>
-          <p class="type-meta m-0 text-muted">{seg.label}</p>
-        </li>
-      {/each}
-    </ul>
+      <ul class="m-0 grid grid-cols-1 gap-5 sm:grid-cols-3 list-none p-0">
+        {#each segments as seg (seg.label)}
+          <li class="flex flex-col gap-1">
+            <div class="flex items-center gap-2.5">
+              <span class="h-2.5 w-2.5 shrink-0 {seg.fill}" aria-hidden="true"></span>
+              <p
+                class="type-display m-0 leading-none tabular-nums {seg.alert
+                  ? 'text-primary'
+                  : 'text-black'}"
+              >
+                {seg.n}
+              </p>
+            </div>
+            <p class="type-meta m-0 text-muted">{seg.label}</p>
+          </li>
+        {/each}
+      </ul>
+    {/if}
 
     {#if unknown > 0}
       <p class="type-meta m-0 text-muted">
-        {unknown === 1
-          ? "One further question could not be judged on this audit and is not counted above"
-          : `${unknown} further questions could not be judged on this audit and are not counted above`}
-        — that is a gap in our measurement, not a finding about your site.
+        {unknownSentence} — that is a gap in our measurement, not a finding about your site.
       </p>
     {/if}
   </div>

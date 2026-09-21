@@ -1,7 +1,8 @@
 {
   "_source": "No design board. Drafted 2026-09-14 by Claude from the positioning in docs/superpowers/specs/2026-09-14-boise-industry-lp-design.md §4.2, mirroring the /medtech slice sequence and voice. Every field is pending Tim's approval; record his edits in _copyEdits, dated.",
   "_copyEdits": [
-    "2026-09-14, copy review before Tim's round: services.lead 'Big-League Branding, Built in Boise' replaced (condescending, and the work is not built in Boise); faq pricing rewritten to mirror the numbers already published on /medtech instead of contradicting them with 'five-figure'; a timeline FAQ added, making nine entries rather than the spec's eight because 'more customers, not a new logo' was kept as the lead objection; the freelancer answer no longer implies local freelancers will not be around next year; the case-study images swapped from an unbranded Bronco shot to the Enzo's brand board, van and Boise signage (the website mockup was dropped: its page reads 'coming soon' and the domain now redirects elsewhere), and 'Boise' added to the heading, because Enzo's is the only Boise client in the published portfolio; em-dashes in body copy replaced with periods to match /medtech's habit; title lengthened so the generated OG card reads more than 'Boise'; meta_description cut to 155 characters so the last word survives the snippet."
+    "2026-09-14, copy review before Tim's round: services.lead 'Big-League Branding, Built in Boise' replaced (condescending, and the work is not built in Boise); faq pricing rewritten to mirror the numbers already published on /medtech instead of contradicting them with 'five-figure'; a timeline FAQ added, making nine entries rather than the spec's eight because 'more customers, not a new logo' was kept as the lead objection; the freelancer answer no longer implies local freelancers will not be around next year; the case-study images swapped from an unbranded Bronco shot to the Enzo's brand board, van and Boise signage (the website mockup was dropped: its page reads 'coming soon' and the domain now redirects elsewhere), and 'Boise' added to the heading, because Enzo's is the only Boise client in the published portfolio; em-dashes in body copy replaced with periods to match /medtech's habit; title lengthened so the generated OG card reads more than 'Boise'; meta_description cut to 155 characters so the last word survives the snippet.",
+    "2026-09-17, Tim in Discord (“our website has footprints all over the place but sometimes uses the correct apostrophe”): every straight apostrophe and straight double quote in the copy above was replaced with its typographic form (’ “ ”) by src/lib/typography/smartQuotes.ts — the same transform the Prismic client now runs over every document on read (src/lib/prismicio.ts). It is recorded here so a re-load of this file cannot put the footmarks back. No wording changed."
   ],
   "_contentGaps": [
     "hero.image is a LABELLED PLACEHOLDER. Tim supplies a licensed, Boise-legible photo (skyline, foothills, a downtown storefront) before publish.",
@@ -22,9 +23,9 @@
   "meta_title": "Boise Brand Strategy & Design Studio | Reddoor Creative",
   "meta_description": "A senior brand and web studio with a founder in Boise. 20 years, 300+ companies, and a process that takes Idaho businesses from overlooked to unmistakable.",
   "hero": {
-    "headline": "We'll Take Your \nBoise Business from Overlooked to Unmistakable",
+    "headline": "We’ll Take Your \nBoise Business from Overlooked to Unmistakable",
     "cardLabel": "Brand-Credibility Framework",
-    "cardBody": "Our framework means customers trust you before they've met you. We diagnose what's holding your brand back, rebuild it, and roll it out everywhere a customer sees you. A senior team does the work, and one of our founders is right here in Boise.",
+    "cardBody": "Our framework means customers trust you before they’ve met you. We diagnose what’s holding your brand back, rebuild it, and roll it out everywhere a customer sees you. A senior team does the work, and one of our founders is right here in Boise.",
     "image": "hero-PLACEHOLDER-licensed-boise-photo-needed.png",
     "imageAlt": "Placeholder image",
     "buttons": [
@@ -65,7 +66,7 @@
   },
   "framework": {
     "eyebrow": "How We Do It: Brand Credibility Framework",
-    "lead": "Instant credibility with customers doesn't happen instantly. It takes a tried and true process, the one we've been running for 20 years.",
+    "lead": "Instant credibility with customers doesn’t happen instantly. It takes a tried and true process, the one we’ve been running for 20 years.",
     "columns": [
       {
         "icon": "icon-diagnosis-audit.svg",
@@ -92,23 +93,23 @@
   },
   "caseStudy": {
     "label": "Case Study",
-    "projectName": "Enzo's Hand Wash & Detail",
+    "projectName": "Enzo’s Hand Wash & Detail",
     "services": "Brand, Print, Environmental",
     "heading": "Giving a Boise hand-wash and detail shop a brand as obsessive as its work.",
     "afterImage": "enzos-after-1-brand-board.png",
-    "afterImageAlt": "The Enzo's brand board: the mark, the wordmark, and the 100% hand wash and quality guaranteed badges",
+    "afterImageAlt": "The Enzo’s brand board: the mark, the wordmark, and the 100% hand wash and quality guaranteed badges",
     "afterSlides": [
       {
         "file": "enzos-after-2-van.png",
-        "alt": "The Enzo's brand applied to the shop's van"
+        "alt": "The Enzo’s brand applied to the shop’s van"
       },
       {
         "file": "enzos-after-3-signage.png",
-        "alt": "Enzo's new exterior sign on a busy Boise street corner"
+        "alt": "Enzo’s new exterior sign on a busy Boise street corner"
       },
       {
         "file": "enzos-after-4-brand-guide.jpg",
-        "alt": "A spread from the Enzo's brand guide"
+        "alt": "A spread from the Enzo’s brand guide"
       }
     ]
   },
@@ -174,7 +175,7 @@
         "rolloverMobile": "rollover-gallery-sonder-mobile.jpg"
       },
       {
-        "name": "St. James' Episcopal School",
+        "name": "St. James’ Episcopal School",
         "file": "logo-st-james-episcopal-school.png",
         "negative": "logo-st-james-episcopal-school-rev.png",
         "project": "st-james-episcopal-school",
@@ -193,7 +194,7 @@
   },
   "testimonial": {
     "label": "What clients are saying:",
-    "quote": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
+    "quote": "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That’s where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
     "name": "Albert Turgon",
     "role": "COO of MSOT (Medical Solutions of Texas)",
     "avatar": "testimonial-albert-turgon.png",
@@ -213,10 +214,10 @@
   "about": {
     "displayTitle": "On Your Behalf",
     "eyebrow": "About Us",
-    "lede": "Reddoor's been at this for 20 years. In that time we've helped more than 300 companies stand out, and we've never gotten comfortable with work that's merely \"fine.\" Clarity beats clever, every time.",
+    "lede": "Reddoor’s been at this for 20 years. In that time we’ve helped more than 300 companies stand out, and we’ve never gotten comfortable with work that’s merely “fine.” Clarity beats clever, every time.",
     "body": [
-      "We're a nimble senior team with people in Boise, Los Angeles, and San Antonio, and we've stayed that way on purpose. The people you meet in the first conversation are the people building your brand. Nothing gets handed down. In Boise, that first conversation happens across a table, not a screen.",
-      "We care about your company and about the people inside it who actually use what we make. That's why every decision ties back to an outcome you can name: more of the right customers, a team that's proud of the sign out front, a website that does the selling when you can't."
+      "We’re a nimble senior team with people in Boise, Los Angeles, and San Antonio, and we’ve stayed that way on purpose. The people you meet in the first conversation are the people building your brand. Nothing gets handed down. In Boise, that first conversation happens across a table, not a screen.",
+      "We care about your company and about the people inside it who actually use what we make. That’s why every decision ties back to an outcome you can name: more of the right customers, a team that’s proud of the sign out front, a website that does the selling when you can’t."
     ],
     "readMoreLabel": "Read More +"
   },
@@ -226,35 +227,35 @@
       {
         "q": "We need more customers, not a new logo. How does branding actually help?",
         "a": [
-          "A logo by itself won't do much. What brings in the right customers is removing every reason they have to hesitate. A site that looks ten years old. Signage that doesn't match the storefront. A pitch that changes depending on who's telling it. Fix those, and the people who were already interested stop drifting to a competitor who simply looked more put-together.",
-          "That's what the Diagnosis is for. We find the specific places trust leaks out, in priority order, so the money goes where it moves the needle."
+          "A logo by itself won’t do much. What brings in the right customers is removing every reason they have to hesitate. A site that looks ten years old. Signage that doesn’t match the storefront. A pitch that changes depending on who’s telling it. Fix those, and the people who were already interested stop drifting to a competitor who simply looked more put-together.",
+          "That’s what the Diagnosis is for. We find the specific places trust leaks out, in priority order, so the money goes where it moves the needle."
         ]
       },
       {
         "q": "How does pricing work?",
         "a": [
-          "Every phase is scoped and priced before it starts, so there's no meter running. The Diagnosis is a fixed $1,500 and seven days, and you can stop there and keep the plan.",
+          "Every phase is scoped and priced before it starts, so there’s no meter running. The Diagnosis is a fixed $1,500 and seven days, and you can stop there and keep the plan.",
           "The Rebuild and the Rollout are scoped during the Diagnosis, because the number depends on how much of the business the brand touches. Full engagements have landed anywhere from around $20,000 to well into six figures."
         ]
       },
       {
-        "q": "What's the timeline, and how much of my time does it take?",
+        "q": "What’s the timeline, and how much of my time does it take?",
         "a": [
           "The Friction Audit runs 7 days and needs about three hours of yours: a questionnaire, a kickoff interview, and the meeting where we walk you through what we found.",
-          "The Rebuild takes 30 days and the Rollout 60, so about 90 days from the start of the Rebuild to a brand that's live everywhere. Your time is a handful of review sessions. We handle everything in between, because you're running a business, not a project."
+          "The Rebuild takes 30 days and the Rollout 60, so about 90 days from the start of the Rebuild to a brand that’s live everywhere. Your time is a handful of review sessions. We handle everything in between, because you’re running a business, not a project."
         ]
       },
       {
-        "q": "We're a small, local business. Are we too small for you?",
+        "q": "We’re a small, local business. Are we too small for you?",
         "a": [
-          "No. Some of the work we're proudest of is for a neighborhood coffee shop, a veterinary hospital, and a hand-wash and detail shop here in Boise. What matters is that you're serious about the brand carrying the business, not the size of the team behind it.",
-          "The same process we run for national companies scales down cleanly. The phases stay the same, and the deliverables get scoped to what you'll actually use. What doesn't scale down is the commitment. The brand has to be a real line in this year's budget, not what's left over, and if it isn't yet, the honest answer is to wait. We'll say so."
+          "No. Some of the work we’re proudest of is for a neighborhood coffee shop, a veterinary hospital, and a hand-wash and detail shop here in Boise. What matters is that you’re serious about the brand carrying the business, not the size of the team behind it.",
+          "The same process we run for national companies scales down cleanly. The phases stay the same, and the deliverables get scoped to what you’ll actually use. What doesn’t scale down is the commitment. The brand has to be a real line in this year’s budget, not what’s left over, and if it isn’t yet, the honest answer is to wait. We’ll say so."
         ]
       },
       {
         "q": "Do you only work with healthcare and tech companies?",
         "a": [
-          "No. Over 20 years we've worked across real estate, hospitality, coffee shops, schools, nonprofits, professional services, consumer products and government. Healthcare and technology are where a lot of our recent work sits. The framework is about how customers decide to trust you, and that doesn't change by industry."
+          "No. Over 20 years we’ve worked across real estate, hospitality, coffee shops, schools, nonprofits, professional services, consumer products and government. Healthcare and technology are where a lot of our recent work sits. The framework is about how customers decide to trust you, and that doesn’t change by industry."
         ]
       },
       {
@@ -266,20 +267,20 @@
       {
         "q": "Will a rebrand confuse the customers we already have?",
         "a": [
-          "Not if it's done in the right order. The Diagnosis tells us which parts of the brand are carrying equity and which are holding you back. The Rebuild keeps what people recognize and fixes what they don't notice until it's gone. The Rollout then changes everything at once, so there's never a months-long stretch where the old brand and the new one fight each other."
+          "Not if it’s done in the right order. The Diagnosis tells us which parts of the brand are carrying equity and which are holding you back. The Rebuild keeps what people recognize and fixes what they don’t notice until it’s gone. The Rollout then changes everything at once, so there’s never a months-long stretch where the old brand and the new one fight each other."
         ]
       },
       {
         "q": "Why not use a freelancer, or do it in-house?",
         "a": [
-          "A freelancer can give you a good logo, and plenty of them are excellent at it. What's hard to get piecemeal is one system, where strategy, identity, website, signage and print all say the same thing. That's what you're paying us for.",
-          "If you have a strong in-house designer, great. We'll build the system and the guidelines so they can run it."
+          "A freelancer can give you a good logo, and plenty of them are excellent at it. What’s hard to get piecemeal is one system, where strategy, identity, website, signage and print all say the same thing. That’s what you’re paying us for.",
+          "If you have a strong in-house designer, great. We’ll build the system and the guidelines so they can run it."
         ]
       },
       {
         "q": "How do we get started?",
         "a": [
-          "Hit Get Started and answer five short questions. If it looks like a fit, you'll book a call with a founder, not a sales rep, and we'll talk through what a Diagnosis would look like for your business."
+          "Hit Get Started and answer five short questions. If it looks like a fit, you’ll book a call with a founder, not a sales rep, and we’ll talk through what a Diagnosis would look like for your business."
         ]
       }
     ]

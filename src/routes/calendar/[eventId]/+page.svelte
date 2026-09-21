@@ -67,7 +67,7 @@
       {#if lookup === "loading"}
         <p class="muted" role="status">Finding your booking…</p>
       {:else if lookup === "missing"}
-        <p class="lede">We couldn't find that booking.</p>
+        <p class="lede">We couldn’t find that booking.</p>
         <p class="muted">
           The link may have expired. You can
           <a class="text-primary underline" href="/schedule">book a time</a>
@@ -75,7 +75,7 @@
           <a class="text-primary underline" href="mailto:info@reddoorla.com">info@reddoorla.com</a>.
         </p>
       {:else if lookup === "error"}
-        <p class="form-error" role="alert">We couldn't load that booking.</p>
+        <p class="form-error" role="alert">We couldn’t load that booking.</p>
         <button type="button" class="ghost mt-4" onclick={load}>Try again</button>
       {:else}
         {#if start}
@@ -88,12 +88,12 @@
         {#if gone}
           <p class="lede">This call is no longer on the calendar.</p>
           <p class="muted">
-            It's been cancelled, or it has already passed.
+            It’s been cancelled, or it has already passed.
             <a class="text-primary underline" href="/schedule">Book a new time</a> whenever suits.
           </p>
         {:else}
           <p class="lede">
-            The Zoom link travels with the invite, so wherever you save it, it's there when you need
+            The Zoom link travels with the invite, so wherever you save it, it’s there when you need
             it.
           </p>
 

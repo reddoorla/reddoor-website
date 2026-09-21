@@ -156,7 +156,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
       {
         error: taken
           ? "That time was just taken. Please choose another."
-          : "We couldn't confirm that booking. Please try again or email info@reddoorla.com.",
+          : "We couldn’t confirm that booking. Please try again or email info@reddoorla.com.",
         refreshSlots: taken,
       },
       { status: taken ? 409 : 502 },

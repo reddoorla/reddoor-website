@@ -4,7 +4,7 @@
   /**
    * Where a "No" at the budget gate lands (see +page.ts). The copy thanks them
    * for the straight answer and leaves the door open — no calendar, no pitch.
-   * Tucker's larger ideas for this page (DIY resources, a process library) are
+   * Tucker’s larger ideas for this page (DIY resources, a process library) are
    * floated in Discord 2026-08-24 and not yet approved; until they are, this
    * stays short and gracious rather than half-building them.
    */
@@ -23,18 +23,18 @@
 
     <div class="w-full md:w-4/5 max-w-2xl">
       <p class="lede">
-        Rebuilding a brand properly — diagnosing what's broken, then designing and rolling out the
-        fix — is a real investment, and it isn't the right spend for every business at every moment.
-        If that's beyond the budget right now, the honest answer is that we're not the right fit
-        today, and we'd rather tell you that here than thirty minutes into a call.
+        Rebuilding a brand properly — diagnosing what’s broken, then designing and rolling out the
+        fix — is a real investment, and it isn’t the right spend for every business at every moment.
+        If that’s beyond the budget right now, the honest answer is that we’re not the right fit
+        today, and we’d rather tell you that here than thirty minutes into a call.
       </p>
       <p class="lede">
         That can change. Budgets grow, projects sharpen, and our door stays open — if the picture
-        shifts, start the application again and we'll pick it up from there.
+        shifts, start the application again and we’ll pick it up from there.
       </p>
       <p class="muted">
-        In the meantime, you're welcome to
-        <a class="text-primary underline" href="/portfolio">look through our work</a> — and if you'd
+        In the meantime, you’re welcome to
+        <a class="text-primary underline" href="/portfolio">look through our work</a> — and if you’d
         like to ask us something anyway,
         <a class="text-primary underline" href="mailto:info@reddoorla.com">info@reddoorla.com</a>
         reaches a human.

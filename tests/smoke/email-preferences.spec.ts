@@ -41,7 +41,7 @@ test("/email/unsubscribed confirms without writing anything", async ({ page }) =
   const { posts, stray } = await stub(page);
   await gotoHydrated(page, "/email/unsubscribed");
 
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("You're unsubscribed");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re unsubscribed");
   expect(posts).toHaveLength(0);
   expect(stray).toEqual([]);
 });

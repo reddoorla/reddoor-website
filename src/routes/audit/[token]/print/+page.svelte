@@ -1,10 +1,11 @@
 <script lang="ts">
   import {
+    citationRuns,
     notSourcedFromSite,
     openingSummary,
+    sourceCheckHasStatements,
     toReportView,
     wasNamed,
-    type Assertion,
   } from "$lib/report/model";
   import {
     allFixes,
@@ -55,19 +56,11 @@
   // the site does not make is not (the engine may be right); the statements
   // we could not judge are printed in full because they are what a buyer
   // hears; confirmed statements are one line and live under "What passes".
-  // A row prints its sources only when they differ from the row above.
-  const withCitations = (rows: Assertion[]) => {
-    const key = (d: string[]) => [...d].sort().join("|");
-    let previous = "";
-    return rows.map((row) => {
-      const k = key(row.sourceDomains);
-      const show = row.sourceDomains.length > 0 && k !== previous;
-      previous = k;
-      return { row, showCitations: show };
-    });
-  };
+  // A row prints its sources only when the row above did not already print the
+  // same ANSWER's list — keyed in model.ts so this sheet and the screen report
+  // cannot disagree about whose sources a line belongs to.
   const contradictedRows = $derived(
-    withCitations((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
+    citationRuns((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
   );
   // One list, matching the screen report; the heading asserts nothing and the
   // hedge beneath it carries the claim. See `notSourcedFromSite`.
@@ -158,7 +151,13 @@
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
        cannot know whether a claim is right; saying "the AI got this wrong"
        about something a client knows is true would discredit the page. -->
-  {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
+  <!-- `accuracy &&` narrows the type; `sourceCheckHasStatements` is what
+       decides whether there is a statement to print, so this sheet and the
+       screen report cannot disagree about it. The "and at least one assertion"
+       half used to be spelled out here and nowhere else, which is how the
+       screen's lede came to promise statements this sheet knew it did not
+       have. -->
+  {#if accuracy && sourceCheckHasStatements(view)}
     <section>
       <h2>What AI is saying about you</h2>
       {#if collision}
@@ -193,7 +192,7 @@
           <p class="note">The remedy is the first item under Our recommendations.</p>
         </div>
       {/if}
-      {#each contradictedRows as { row, showCitations } (row.claim + row.query)}
+      {#each contradictedRows as { row, citations } (row.claim + row.query)}
         <div class="fix">
           <p class="fix-t">
             {row.claim}
@@ -203,10 +202,17 @@
           {#if row.siteQuote}
             <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
           {/if}
-          {#if showCitations}
+          {#if citations === "show"}
             <p class="fix-w">
               Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
             </p>
+          {:else if citations === "none"}
+            <!-- Said out loud: on paper, silence here looks exactly like the
+                 row above's list continuing. Not "cited no sources": the list
+                 has their own domain filtered out upstream, so empty means
+                 nothing OUTSIDE their site, and an unattributable quote arrives
+                 empty too. Worded identically to the screen report. -->
+            <p class="fix-w">We recorded no other sources for that answer.</p>
           {/if}
         </div>
       {/each}
@@ -280,7 +286,7 @@
          the receipts are a folded section on the web and a page of URLs in
          print, which is a worse trade in a document nobody can expand. -->
     {#if view.stack?.measured && view.stack.items.length > 0}
-      <h3>What you're running</h3>
+      <h3>What you’re running</h3>
       <p>
         Read off your own pages: {view.stack.items.map((i) => i.name).join(", ")}.
       </p>

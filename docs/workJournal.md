@@ -1061,3 +1061,111 @@ that predates the question set makes the modal fall back to A-101 — medtech's
 questions, medtech's fields and the $10k gate, shown to web leads. The same
 fallback fires if the Inquiry tab's key is ever blanked, which is why that
 field's label now says so; the model change is in the repo but unpushed.
+
+## 2026-09-17 — Footmarks everywhere: a CMS transform that fixed under half of it (`fix/typographic-marks`)
+
+Tim, in Discord this morning: _"You'll notice that in the OG image it has a
+beautiful apostrophe not a footmark. But our website has footprints all over the
+place but sometimes uses the correct apostrophe. How do we correct it so it only
+uses the beautiful apostrophes?"_ — and, separately, _"but they should be
+hanging punctuation."_ He asked the same thing in March; nothing was done then.
+
+**The design was a choke point.** Rather than curl marks at the authoring end
+and hope every future edit remembers, `smartQuotes()` (new,
+`src/lib/typography/smartQuotes.ts`) runs on every document the Prismic client
+returns. It walks a string once, reading back what it has already written, so
+`"He said 'hello' to me"` nests correctly — the `“` is emitted first, which puts
+the `'` after it in an opening position. Elisions (`'90s`, `'til`, `'em`,
+`rock 'n' roll`) get the right-single mark, not the left.
+
+Two invariants make it safe to run on live content. It refuses any value holding
+`<`, `{` or `}`, and any whitespace-free URL — scheme, protocol-relative, path,
+or bare domain, so `reddoorla.com/o'brien` survives. And **every substitution is
+one character for one character**, because Prismic rich text is `{ text, spans }`
+and every link and bold addresses `text` by character offset: a transform that
+changed the length would slide every link in the document. The function re-checks
+`result.length === input.length` and returns the input untouched if it ever
+fails. Pinned by a test over five samples including an emoji and `6'2"`,
+asserting both `.length` and `[...s].length`.
+
+**The wiring detail worth keeping.** `TypographicClient extends prismic.Client`
+overrides exactly two methods, `get` and `getFirst`. Against
+@prismicio/client 7.21.8 those are the only two that reach the private
+`#internalGet`; everything else routes through one of them (`getByType`,
+`getByTag`, `dangerouslyGetAll` → `get`; `getByID`, `getByUID`, `getSingle` →
+`getFirst`). Overriding `get` alone would have silently missed every
+single-document lookup, which is most of the site. The show-hidden branch of
+`createClient` had to be changed too — it called `prismic.createClient`
+directly — or dev, staging and every preview session, the only places anyone
+reviews copy, would still have shown footmarks that production had corrected.
+
+**The belief that broke on contact: most of this site's prose is not in the
+CMS.** With the client transform live, `/medtech` was clean — 0 straight marks
+against 48 typographic ones. Every other page was not: `/about` 13, `/portfolio`
+5 (its featured-project block is hardcoded, not CMS), `/contact` 4, `/schedule`
+3, `/twenty-for-twenty` 2, `/` 1, and 12 more across `/not-a-fit` and
+`/email/*` including two `<title>`s in `+page.ts`. The choke point is right and
+is still the right shape for future edits; it fixed under half of today's
+problem. Three further passes covered the marketing pages (19 strings), the
+funnel pages (39 apostrophes in markup text, applied with
+`(?<=[A-Za-z])'(?=[A-Za-z])` over files with `<script>`, `<style>` and comments
+masked out so no JS string delimiter could be touched, then 24 visitor-facing
+error strings in those pages and six `/api/*` endpoints), and the audit report
+(4 strings in `narrative.ts`, 1 fixture).
+
+Final state: **0 of 58 prerendered pages carry a straight apostrophe or double
+quote in rendered text; 382 typographic marks render.** Source content files
+went 68 / 26 / 82 straight marks (boise / medtech / digital) to 0 / 0 / 0.
+
+**Deliberately not changed.** `src/lib/ghl/questions.ts` still holds two
+footmarks. Its own header says every string in it is the literal the CRM stores,
+byte-for-byte, and that copy changes start in GoHighLevel and are mirrored here
+afterwards. Curling them in code alone desyncs the modal from the survey. That
+leaves exactly one place a visitor can still see a footmark — inside the inquiry
+modal — and it is why no page-level scan catches it: the questions are not in
+the DOM until the modal opens. **A CRM task for Tim, not a code change.**
+
+**The hanging quote.** Measured on `/medtech` before: the 760px column's left
+edge is 311.19px at 1280 wide, the quote's second line starts there, and its
+first line started at 319.36 — the inline `“` pushing it in by its own 8.17px
+advance. At 390 wide the dent was 7.74px. That dent is what Tim was looking at.
+The mark is now `::before` with `position: absolute; right: 100%`, chosen over a
+negative `text-indent` because `right: 100%` _is_ the glyph's advance by
+construction: no magic number to keep in step with whatever weight or fallback
+face a visitor resolves, and no CSS-columns failure mode. `hanging-punctuation:
+first` says it in one line but is Safari-only (checked today — no Chromium, no
+Firefox), so it would have left the dent for most of the traffic. After: all
+three lines start at 311.19, the box is still 760px wide, and the mark hangs
+into the gutter the grid already leaves — 15.6px of gutter at 390 wide against a
+7.73px mark, verified not clipped. `elementFromPoint` 4px left of the column
+edge returns the paragraph, which is how a painted pseudo-element hit-tests.
+
+**Both guards were proven red before being trusted.** `tests/smoke/typography.spec.ts`
+(13 tests) walks eleven pages with a `TreeWalker` over body text nodes — text
+only, since attributes legitimately carry straight quotes in URLs and JSON — and
+requires each page to yield >200 characters and at least one typographic mark, so
+it cannot pass by scraping nothing. Two geometry tests use
+`Range.getClientRects()`, one rect per line box of the quote's own text, which
+excludes the pseudo-element and so measures the alignment Tim sees. Reverting the
+home-page apostrophe and the three `::before` declarations produced
+`Expected -1 / Received +3` and `Expected <= 0.5 / Received 7.734375`.
+
+**Honest accounting on the net that actually works.** The prerender scan of
+`pnpm build` output is stronger and far cheaper than the smoke spec for this
+defect class: it covers all 58 pages for the cost of a build that runs anyway,
+and it is what found the three pages nobody looks at. Reach for it first next
+time; the smoke spec earns its place mainly for the geometry.
+
+Two smaller things. `\uXXXX` escapes written through a JSON tool payload arrive
+as literal glyphs, which put a literal no-break space into a character set beside
+a plain space — indistinguishable in source; that set is now a regex with real
+escapes and `\s` covers NBSP anyway. And the layout's 600ms scroll-to-top after
+navigate undoes a `scrollIntoViewIfNeeded` issued before it, so the geometry spec
+waits 1200ms first.
+
+Local full-suite runs rotated between 218/7/0, 214/7/4 and 217/7/1; every failing
+spec passed in isolation (`portfolio-sticky-label` 10/10, `twenty-video` +
+`pages` + `typography` 30/30), all on 30s timeouts or frame-timing CSS in specs
+this branch did not touch functionally. That is the cold-compile-storm signature
+already documented in `tests/smoke/global-setup.ts` under local
+`fullyParallel: true, retries: 0`, not a regression.
