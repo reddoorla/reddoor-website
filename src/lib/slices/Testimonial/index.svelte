@@ -91,9 +91,38 @@
      declaration adds the alternative-text form (`"…" / ""`), which marks the
      generated glyph decorative for screen readers; browsers that don't parse
      it keep the first declaration and still draw the mark. */
+
+  /* Tim, Discord 2026-03 and again 2026-09-17: "they should be hanging
+     punctuation" — the opening mark belongs in the margin so the first line of
+     the quote starts on the same vertical as every line under it, and as the
+     rest of the page's 760px column.
+
+     Measured before this change (Chromium, /medtech): the column's left edge is
+     311.19px at 1280 wide, the quote's second line starts there, and its FIRST
+     line started at 319.36 — the inline `“` pushing it 8.17px in. At 390 wide
+     the same indent was 7.74px. Both read as a dent in an otherwise straight
+     left edge.
+
+     The mark is taken out of flow and hung off the left edge rather than paid
+     for with a negative `text-indent`, because `right: 100%` is the mark's
+     width by construction: no number here has to be kept in step with the
+     glyph's advance at whatever weight or fallback face the visitor resolves.
+     `hanging-punctuation: first` would say this in one line but is Safari-only
+     (no Chromium, no Firefox — checked 2026-09-17), so it would leave the
+     dent in place for most of the traffic.
+
+     The paragraph's own box does not move, so the 760px column is untouched;
+     only the glyph sits outside it, in the page gutter the grid already
+     leaves (15.6px at 390 wide against an ~8px mark). */
+  .quote {
+    position: relative;
+  }
   .quote::before {
     content: "\201C";
     content: "\201C" / "";
+    position: absolute;
+    right: 100%;
+    top: 0;
   }
   .quote::after {
     content: "\201D";

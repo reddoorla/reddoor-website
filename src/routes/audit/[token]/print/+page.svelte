@@ -3,6 +3,7 @@
     citationRuns,
     notSourcedFromSite,
     openingSummary,
+    sourceCheckHasStatements,
     toReportView,
     wasNamed,
   } from "$lib/report/model";
@@ -150,7 +151,13 @@
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
        cannot know whether a claim is right; saying "the AI got this wrong"
        about something a client knows is true would discredit the page. -->
-  {#if accuracy && accuracy.answersRead > 0 && accuracy.assertions.length > 0}
+  <!-- `accuracy &&` narrows the type; `sourceCheckHasStatements` is what
+       decides whether there is a statement to print, so this sheet and the
+       screen report cannot disagree about it. The "and at least one assertion"
+       half used to be spelled out here and nowhere else, which is how the
+       screen's lede came to promise statements this sheet knew it did not
+       have. -->
+  {#if accuracy && sourceCheckHasStatements(view)}
     <section>
       <h2>What AI is saying about you</h2>
       {#if collision}
@@ -276,7 +283,7 @@
          the receipts are a folded section on the web and a page of URLs in
          print, which is a worse trade in a document nobody can expand. -->
     {#if view.stack?.measured && view.stack.items.length > 0}
-      <h3>What you're running</h3>
+      <h3>What you’re running</h3>
       <p>
         Read off your own pages: {view.stack.items.map((i) => i.name).join(", ")}.
       </p>

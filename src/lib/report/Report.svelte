@@ -5,6 +5,7 @@
   import ScoreBars from "./ScoreBars.svelte";
   import GoalFit from "./GoalFit.svelte";
   import SourceCheck from "./SourceCheck.svelte";
+  import SourceCheckLede from "./SourceCheckLede.svelte";
   import SiteHealth from "./SiteHealth.svelte";
   import Stack from "./Stack.svelte";
   import Accessibility from "./Accessibility.svelte";
@@ -305,11 +306,14 @@
 
       <RailRow label="What it says" labelAs="h3" fill labelAbove>
         <div class="flex flex-col gap-10">
-          <p class="type-lede m-0 text-black">
-            We asked an AI assistant about {who} and took its answer apart statement by statement. Each
-            one is sorted by where it came from — not by whether it is true. We cannot know that; you
-            can.
-          </p>
+          <!-- The lede prints only when the check came back holding a statement,
+             which is what it promises. It carries its own conditional so that
+             conditional can be rendered in a test; this page cannot be. On a
+             report with no assistant answer it used to sit directly above
+             SourceCheck's "We could not check this on this audit", and on one
+             that read answers but found nothing checkable, directly above
+             "could not pull a checkable statement out of them". -->
+          <SourceCheckLede {view} />
           <SourceCheck {view} />
         </div>
       </RailRow>
@@ -355,7 +359,7 @@
                       A branded search cannot tell you whether someone who has never heard of you
                       would find you. It answers a different question, and for most businesses a
                       more useful one: when the assistant describes you, is it accurate, and is it
-                      reading your site or somebody else's page about you.
+                      reading your site or somebody else’s page about you.
                     </p>
                   </div>
                 </ReportDisclosure>
@@ -391,7 +395,7 @@
          question — do these people know what they are talking about — before
          they are asked to accept anything we found. -->
       {#if view.stack}
-        <RailRow label="What you're running" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
+        <RailRow label="What you’re running" labelAs="h3" fill labelAbove class="mt-16 md:mt-24">
           <Stack {view} />
         </RailRow>
       {/if}

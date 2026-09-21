@@ -100,7 +100,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        formError = data?.error ?? "We couldn't cancel that booking. Please try again.";
+        formError = data?.error ?? "We couldn’t cancel that booking. Please try again.";
         return;
       }
       cancelled = true;
@@ -119,7 +119,7 @@
     <div class="h-32"></div>
     <h1 class="type-hero text-primary z-10 md:ml-[20%]">
       {#if cancelled}
-        That's cancelled.
+        That’s cancelled.
       {:else}
         Cancel your call?
       {/if}
@@ -140,29 +140,29 @@
              added after it exists. Focus is moved here as well. -->
         <div class="done" role="status" tabindex="-1" bind:this={doneEl}>
           <p class="done-body">
-            We've taken it off the calendar and let Tim know. Nothing else to do.
+            We’ve taken it off the calendar and let Tim know. Nothing else to do.
           </p>
           <p class="done-body">
-            If the timing was the only problem, the calendar's still open —
+            If the timing was the only problem, the calendar’s still open —
             <a class="text-primary underline" href="/schedule">pick a new time</a> whenever suits.
           </p>
         </div>
       {:else if lookup === "loading"}
         <p class="muted" role="status">Finding your booking…</p>
       {:else if lookup === "missing"}
-        <p class="lede">We couldn't find that booking.</p>
+        <p class="lede">We couldn’t find that booking.</p>
         <p class="muted">
           The link may have expired, or it may already have been cancelled. Email
           <a class="text-primary underline" href="mailto:info@reddoorla.com">info@reddoorla.com</a>
-          if you'd like a hand.
+          if you’d like a hand.
         </p>
       {:else if lookup === "error"}
-        <p class="form-error" role="alert">We couldn't load that booking.</p>
+        <p class="form-error" role="alert">We couldn’t load that booking.</p>
         <button type="button" class="ghost mt-4" onclick={load}>Try again</button>
       {:else if gone}
         <p class="lede">That call is already off the calendar.</p>
         <p class="muted">
-          It's been cancelled, or it has already passed — either way there's nothing left to cancel.
+          It’s been cancelled, or it has already passed — either way there’s nothing left to cancel.
           <a class="text-primary underline" href="/schedule">Book a new time</a> whenever suits.
         </p>
       {:else}
@@ -173,8 +173,8 @@
           </p>
         {/if}
         <p class="lede">
-          If the time no longer works, moving it takes a few seconds and keeps your place. If you'd
-          rather cancel outright, that's completely fine too.
+          If the time no longer works, moving it takes a few seconds and keeps your place. If you’d
+          rather cancel outright, that’s completely fine too.
         </p>
 
         <!-- Honeypot: off-screen rather than display:none (some bots skip hidden

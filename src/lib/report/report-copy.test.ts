@@ -18,6 +18,9 @@ const PAGE = "src/routes/audit/[token]/+page.svelte";
 const REPORT = "src/lib/report/Report.svelte";
 const PRINT = "src/routes/audit/[token]/print/+page.svelte";
 const SOURCE = "src/lib/report/SourceCheck.svelte";
+// The accuracy lede moved out of Report.svelte into its own component so that
+// the conditional around it could be rendered in a test; the copy is unchanged.
+const LEDE = "src/lib/report/SourceCheckLede.svelte";
 const COMPONENTS = [
   REPORT,
   SOURCE,
@@ -255,10 +258,10 @@ describe("one story, on every surface", () => {
   });
 
   it("does not call the assistant 'live', and sorts by source, not 'never' by truth", () => {
-    for (const p of [REPORT, PRINT, "src/lib/report/Standing.svelte"]) {
+    for (const p of [REPORT, PRINT, LEDE, "src/lib/report/Standing.svelte"]) {
       expect(code(p), p).not.toMatch(/\blive\s+(AI|searches|visibility)\b|of a live/);
     }
-    expect(code(REPORT)).toMatch(/not by whether it is true/);
+    expect(code(LEDE)).toMatch(/not by whether it is true/);
   });
 
   it("the own-site summary under the claims is not styled as a footnote", () => {

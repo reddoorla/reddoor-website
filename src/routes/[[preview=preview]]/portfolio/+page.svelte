@@ -838,19 +838,19 @@
     </section>
   </div>
 </div>
-<!-- St. James' Episcopal School -->
+<!-- St. James’ Episcopal School -->
 <div class="grid grid-cols-[minmax(0,1fr)] mb-24" data-project-group="st-james-episcopal-school">
   {@render stickyLabel({
-    name: "St. James' Episcopal School",
+    name: "St. James’ Episcopal School",
     services: "Brand, Digital, Print, Environmental",
     href: "/portfolio/st-james-episcopal-school",
-    aria: "Go to St. James' Episcopal School project",
+    aria: "Go to St. James’ Episcopal School project",
   })}
   <div class="col-start-1 row-start-1 min-w-0">
     <section class="w-screen aspect-3/2 md:aspect-video relative overflow-hidden">
       <Img
         src={stJamesMural}
-        alt="St. James' Episcopal School — a colorful painted mural wall"
+        alt="St. James’ Episcopal School — a colorful painted mural wall"
         class="absolute inset-0 h-full w-full object-cover"
       />
     </section>
@@ -866,10 +866,10 @@
             </h2>
             <div class="md:hidden">
               {@render featureLabel({
-                name: "St. James' Episcopal School",
+                name: "St. James’ Episcopal School",
                 services: "Brand, Digital, Print, Environmental",
                 href: "/portfolio/st-james-episcopal-school",
-                aria: "Go to St. James' Episcopal School project",
+                aria: "Go to St. James’ Episcopal School project",
               })}
             </div>
           </div>
@@ -877,7 +877,7 @@
             <Img
               class="h-full w-full object-cover"
               src={stJamesPhone}
-              alt="St. James' Episcopal School responsive website on a phone"
+              alt="St. James’ Episcopal School responsive website on a phone"
             />
           </div>
         </div>
@@ -936,7 +936,7 @@
     <ContentWidth class="flex flex-col md:flex-row items-start justify-between">
       <div use:anim>
         <h2 class="type-cta text-white md:w-4/5 xl:w-2/3">
-          It's time to arm your brand with a clear story and compelling design
+          It’s time to arm your brand with a clear story and compelling design
         </h2>
       </div>
       <div use:anim>
@@ -961,7 +961,7 @@
            It holds at every width — the line is short enough that the break is
            the only one on mobile too. -->
       <h2 class="archive-title text-primary w-full text-left mb-12">
-        But wait,<br />there's more!
+        But wait,<br />there’s more!
       </h2>
     </div>
     <!-- The controls sit in the grid's own column, not ContentWidth's. The
