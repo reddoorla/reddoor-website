@@ -22,7 +22,7 @@ import {
 type MeterProps = { yes: number; partial: number; no: number; unknown: number };
 type ViewProps = { view: ReportView };
 
-const meter = await ssr<MeterProps>("QuestionMeter");
+const meter = await ssr<MeterProps>("src/lib/report/QuestionMeter.svelte");
 
 const html = (props: MeterProps): string => render(meter, { props }).body;
 
@@ -183,8 +183,8 @@ describe("sourceCheckHasStatements — whether the check came back holding a sta
  * RENDERED, not grepped. Every source-text assertion in this file passes
  * unchanged if the conditional guarding the lede is inverted; these do not.
  */
-const lede = await ssr<ViewProps>("SourceCheckLede");
-const sourceCheck = await ssr<ViewProps>("SourceCheck");
+const lede = await ssr<ViewProps>("src/lib/report/SourceCheckLede.svelte");
+const sourceCheck = await ssr<ViewProps>("src/lib/report/SourceCheck.svelte");
 
 const text = (component: Component<ViewProps>, view: ReportView): string =>
   renderText(component, { view });

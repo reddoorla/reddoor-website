@@ -5,7 +5,7 @@ import { render } from "svelte/server";
 import type { Component } from "svelte";
 
 /**
- * Render a report component for a test, rather than grepping its source.
+ * Render a component for a test, rather than grepping its source.
  *
  * Used by every test whose subject is TEMPLATE STRUCTURE — which branch of a
  * conditional a reader actually lands in. A source-text assertion cannot see
@@ -16,7 +16,9 @@ import type { Component } from "svelte";
  *
  * `svelte/compiler` compiles a `lang="ts"` component to a server module directly
  * (Svelte 5 strips the type annotations itself), so the property under test is
- * the rendered HTML with no plugin added to the unit-test config.
+ * the rendered HTML with no plugin added to the unit-test config. A route's
+ * `+page.svelte` works too: its `import type { PageData } from "./$types"` is
+ * type-only, so Svelte strips it before the module is ever loaded.
  *
  * The output goes under `.svelte-kit/` rather than `node_modules/`: vitest
  * externalises `node_modules`, so a module written there is loaded by node
@@ -27,16 +29,17 @@ import type { Component } from "svelte";
  * at the directory it came from, which is the rewrite below.
  */
 export const ssr = async <P extends Record<string, unknown>>(
-  name: string,
+  path: string,
 ): Promise<Component<P>> => {
-  const out = compile(readFileSync(`src/lib/report/${name}.svelte`, "utf-8"), {
+  const dir = path.slice(0, path.lastIndexOf("/") + 1);
+  const out = compile(readFileSync(path, "utf-8"), {
     generate: "server",
-    filename: `${name}.svelte`,
+    filename: path.slice(dir.length),
   });
-  const dir = ".svelte-kit/report-ssr";
-  mkdirSync(dir, { recursive: true });
-  const file = `${process.cwd()}/${dir}/${name}.js`;
-  const from = `${process.cwd()}/src/lib/report/`;
+  const outDir = ".svelte-kit/report-ssr";
+  mkdirSync(outDir, { recursive: true });
+  const file = `${process.cwd()}/${outDir}/${path.replace(/[^a-zA-Z0-9]+/g, "-")}.js`;
+  const from = `${process.cwd()}/${dir}`;
   writeFileSync(
     file,
     out.js.code.replace(/(from\s+")\.\//g, (_m, head) => `${head}${from}`),
