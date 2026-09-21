@@ -1,9 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
-import { compile } from "svelte/compiler";
+import { readFileSync } from "node:fs";
 import { render } from "svelte/server";
 import type { Component } from "svelte";
+import { ssr, renderText } from "./ssr-test-harness";
 import {
   sourceCheckHasStatements,
   sourceCheckMeasured,
@@ -15,45 +14,15 @@ import {
  * The empty states that printed OUR measurement gap as THEIR score.
  *
  * All of them are template structure rather than a function, so this file
- * renders the component instead of asserting on its source text. `svelte/compiler`
- * compiles a `lang="ts"` component to a server module directly (Svelte 5 strips
- * the type annotations itself), so the property under test is the rendered HTML
- * — the thing a reader actually saw — with no plugin added to the unit-test
- * config.
+ * renders the component instead of asserting on its source text. The compile
+ * step lives in `ssr-test-harness.ts`, shared with citation-runs.test.ts, so
+ * the property under test here is the rendered HTML — the thing a reader
+ * actually saw.
  */
 type MeterProps = { yes: number; partial: number; no: number; unknown: number };
 type ViewProps = { view: ReportView };
 
-/**
- * Compile one component to a server module and load it.
- *
- * The output goes under `.svelte-kit/` rather than `node_modules/`: vitest
- * externalises `node_modules`, so a module written there is loaded by node
- * itself, and node resolves neither an extensionless `.ts` sibling nor the
- * `$lib` alias — `QuestionMeter` only ever loaded from there because it imports
- * nothing at all. Under `.svelte-kit/` (already gitignored and prettier-ignored)
- * the module goes through vite, which resolves both. A component compiled away
- * from its own directory still needs its `./…` sibling specifiers pointed back
- * at the directory it came from, which is the rewrite below.
- */
-const ssr = async <P extends Record<string, unknown>>(name: string): Promise<Component<P>> => {
-  const out = compile(readFileSync(`src/lib/report/${name}.svelte`, "utf-8"), {
-    generate: "server",
-    filename: `${name}.svelte`,
-  });
-  const dir = ".svelte-kit/report-ssr";
-  mkdirSync(dir, { recursive: true });
-  const file = `${process.cwd()}/${dir}/${name}.js`;
-  const from = `${process.cwd()}/src/lib/report/`;
-  writeFileSync(
-    file,
-    out.js.code.replace(/(from\s+")\.\//g, (_m, head) => `${head}${from}`),
-  );
-  const mod = (await import(pathToFileURL(file).href)) as { default: Component<P> };
-  return mod.default;
-};
-
-const meter = await ssr<MeterProps>("QuestionMeter");
+const meter = await ssr<MeterProps>("src/lib/report/QuestionMeter.svelte");
 
 const html = (props: MeterProps): string => render(meter, { props }).body;
 
@@ -214,16 +183,11 @@ describe("sourceCheckHasStatements — whether the check came back holding a sta
  * RENDERED, not grepped. Every source-text assertion in this file passes
  * unchanged if the conditional guarding the lede is inverted; these do not.
  */
-const lede = await ssr<ViewProps>("SourceCheckLede");
-const sourceCheck = await ssr<ViewProps>("SourceCheck");
+const lede = await ssr<ViewProps>("src/lib/report/SourceCheckLede.svelte");
+const sourceCheck = await ssr<ViewProps>("src/lib/report/SourceCheck.svelte");
 
-/** Comment markers out, whitespace flattened — so an assertion about a sentence
- *  does not depend on where prettier chose to wrap it. */
 const text = (component: Component<ViewProps>, view: ReportView): string =>
-  render(component, { props: { view } })
-    .body.replace(/<!--.*?-->/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  renderText(component, { view });
 
 const LEDE_SENTENCE = "We asked an AI assistant about Acme Co and took its answer apart";
 const NO_CHECK = "We could not check this on this audit";

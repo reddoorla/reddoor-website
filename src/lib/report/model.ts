@@ -569,6 +569,94 @@ export function notSourcedFromSite(view: ReportView): Assertion[] {
   ];
 }
 
+/**
+ * What each row has to say about its own sources.
+ *
+ * - `show` — print this row's citation list.
+ * - `carried` — this row came from the SAME answer as the row above AND cites
+ *   the same domains, so its list is already on the page verbatim.
+ * - `none` — we recorded no sources against this row's answer. It must say so,
+ *   because silence here reads as `carried`.
+ *
+ * `none` is NOT "the assistant cited nothing", and no surface may print it that
+ * way. `sourceDomains` has the prospect's own domain filtered out upstream (the
+ * producer drops it before storing; see `ownSiteCitations` — this section lists
+ * what the assistant read INSTEAD), so an empty list means "nothing outside your
+ * own site". An answer grounded entirely on their own pages lands here, in a
+ * section that says forty lines lower how often the assistant cited them: two
+ * contradictory statements about one answer, on a document we send a prospect.
+ * An empty list is also what an unattributable quote looks like — when the
+ * producer cannot tie the quote back to an answer, `query`, `engine` and
+ * `sourceDomains` all arrive empty — and that is our measurement gap, not the
+ * assistant's behaviour. Hence the copy on both surfaces: "We recorded no other
+ * sources for that answer."
+ */
+export type CitationRun = { row: Assertion; citations: "show" | "carried" | "none" };
+
+/**
+ * Collapse consecutive rows from one engine answer onto one printed citation
+ * list — keyed on the ANSWER, never on the list itself.
+ *
+ * Every claim pulled out of one answer carries that answer's citations, so
+ * consecutive rows from the same answer would print the identical list over and
+ * over. The first version of this keyed the run on the sorted citation list,
+ * which cannot tell "same as above" from "no citations at all": a row whose
+ * answer cited nothing rendered exactly like a collapsed one, and inherited the
+ * line above it in the reader's eye. That attributes a competitor's domain to
+ * the wrong claim, inside the section whose whole argument is who the engine
+ * read. `query + engine` is the answer's identity and `Assertion` carries both.
+ *
+ * A sourceless row also BREAKS the run: the next row re-prints its list rather
+ * than letting a gap in the middle imply continuity.
+ *
+ * Two further conditions on `carried`, because it is a claim about the page
+ * rather than a fact about the data:
+ *
+ * - The answer identity has to exist. When the producer cannot attribute a
+ *   quote to an answer it stores `query: ""` and `engine: ""`, so every
+ *   unattributed row keys identically — and "these came from the same answer"
+ *   is precisely what we do not know about them. Such rows are also sourceless
+ *   today, so they took the `none` branch before the key was ever compared, but
+ *   that is luck rather than a rule and no test held it.
+ * - The list has to match. `carried` says "the list above is this row's list
+ *   too"; for two rows of one answer carrying different domains that is false,
+ *   and it hands the first row's sources to the second inside the one section
+ *   whose whole argument is who the engine read. The producer does not emit that
+ *   pair today, nothing pins that it never will, and stored reports are
+ *   re-rendered long after the run that made them.
+ *
+ * Neither condition may re-key the run on the list: two different ANSWERS that
+ * happen to cite the same domains are still two runs, and both print.
+ */
+export function citationRuns(rows: Assertion[]): CitationRun[] {
+  // The answer whose citation list is currently on the page, and that list.
+  // Both null when the run has been broken.
+  let printedFor: string | null = null;
+  let printedList: string | null = null;
+  return rows.map((row): CitationRun => {
+    if (row.sourceDomains.length === 0) {
+      printedFor = null;
+      printedList = null;
+      return { row, citations: "none" };
+    }
+    // JSON rather than joining on a separator: a separator has to be a
+    // character neither field can contain, and the one that satisfies that is
+    // an invisible control character. This key held a literal NUL, which was
+    // correct and which also made `grep` treat this whole file as binary and
+    // report no matches at all. An array is unambiguous and stays printable.
+    const answer =
+      row.query === "" && row.engine === "" ? null : JSON.stringify([row.query, row.engine]);
+    // Order-insensitive: one answer's list is one list however it arrives.
+    const list = JSON.stringify([...row.sourceDomains].sort());
+    if (answer !== null && answer === printedFor && list === printedList) {
+      return { row, citations: "carried" };
+    }
+    printedFor = answer;
+    printedList = list;
+    return { row, citations: "show" };
+  });
+}
+
 export function isListingSite(domain: string): boolean {
   const d = domain.toLowerCase().replace(/^www\./, "");
   return LISTING_SITES.some((p) => d === p || d.endsWith(`.${p}`));
