@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { industryFromArgs, missingRequiredKeys, uidMismatch } from "./lib.mjs";
+import { industryFromArgs, inquiryFields, missingRequiredKeys, uidMismatch } from "./lib.mjs";
 
 describe("industryFromArgs", () => {
   it("reads the uid that follows the flag", () => {
@@ -53,5 +53,39 @@ describe("missingRequiredKeys", () => {
         logoGrid: { logos: "x" },
       }),
     ).toEqual(["logoGrid.logos"]);
+  });
+});
+
+describe("inquiryFields", () => {
+  it("is empty when the data file has no inquiry block", () => {
+    // medtech's and boise's data files have none — their Inquiry tab was set
+    // by hand in Prismic, and a re-run of their load must not blank it.
+    expect(inquiryFields({ uid: "medtech" })).toEqual({});
+  });
+
+  it("maps only the fields that are present", () => {
+    expect(
+      inquiryFields({ inquiry: { title: "Let's talk", surveyId: "digital", prompt: "" } }),
+    ).toEqual({ inquiry_title: "Let's talk", inquiry_survey_id: "digital" });
+  });
+
+  it("maps the full block", () => {
+    expect(
+      inquiryFields({
+        inquiry: {
+          title: "T",
+          prompt: "P",
+          thanks: "TH",
+          formId: "F",
+          surveyId: "digital",
+        },
+      }),
+    ).toEqual({
+      inquiry_title: "T",
+      inquiry_prompt: "P",
+      inquiry_thanks: "TH",
+      inquiry_form_id: "F",
+      inquiry_survey_id: "digital",
+    });
   });
 });

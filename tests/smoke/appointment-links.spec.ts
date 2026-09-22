@@ -70,7 +70,7 @@ async function stub(
               status: "confirmed",
               actionable: true,
             })
-          : { error: "We couldn't find that booking." },
+          : { error: "We couldn’t find that booking." },
       ),
     });
   });
@@ -107,7 +107,7 @@ test.describe("reschedule", () => {
     await expect(page.getByText(/Moving to/)).toBeVisible();
     await page.getByRole("button", { name: "Move my call" }).click();
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You're all set");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re all set");
     expect(posts).toHaveLength(1);
     // The CRM's own ISO string, not one re-rendered from a local time.
     expect(posts[0].body.startTime).toBe("2026-08-19T09:00:00-06:00");
@@ -152,7 +152,7 @@ test.describe("reschedule", () => {
   test("an unknown id says so instead of failing silently", async ({ page }) => {
     await stub(page, { appointmentStatus: 404 });
     await gotoHydrated(page, `/reschedule/${EVENT}`);
-    await expect(page.getByText(/couldn't find that booking/)).toBeVisible();
+    await expect(page.getByText(/couldn’t find that booking/)).toBeVisible();
   });
 });
 
@@ -166,7 +166,7 @@ test.describe("cancel", () => {
     expect(posts).toHaveLength(0);
 
     await page.getByRole("button", { name: "Cancel my call" }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("That's cancelled");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("That’s cancelled");
     expect(posts).toHaveLength(1);
   });
 

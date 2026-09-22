@@ -51,7 +51,7 @@
         <div use:anim class="w-full md:w-1/3 lg:w-1/5 pr-6 pb-6">
           <h3 class="text-primary heading-sub">Feel Confident</h3>
           <p class="mt-2">
-            When you have a brand that is clear and compelling, you can't help but be confident in
+            When you have a brand that is clear and compelling, you can’t help but be confident in
             any situation. Your clients sense this and are attracted to your offering.
           </p>
         </div>

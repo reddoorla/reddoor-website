@@ -1,6 +1,13 @@
 <script lang="ts">
   import { displayQuote, numberWord } from "./narrative";
-  import { notSourcedFromSite, ownSiteCitations, type Assertion, type ReportView } from "./model";
+  import {
+    citationRuns,
+    notSourcedFromSite,
+    ownSiteCitations,
+    sourceCheckMeasured,
+    type Assertion,
+    type ReportView,
+  } from "./model";
 
   // What an AI already says about this business, and where it got it.
   //
@@ -44,22 +51,9 @@
   const notSourced = $derived(notSourcedFromSite(view));
   const confirmed = $derived(of("confirmed").length);
 
-  /**
-   * Every claim pulled out of one engine answer carries that answer's citations,
-   * so consecutive rows from the same answer would print the identical list
-   * over and over. A row prints its citations only when they differ from the
-   * row above it; the rows beneath are from that same answer.
-   */
-  const withCitations = (rows: Assertion[]) => {
-    const key = (d: string[]) => [...d].sort().join("|");
-    let previous = "";
-    return rows.map((row) => {
-      const k = key(row.sourceDomains);
-      const show = row.sourceDomains.length > 0 && k !== previous;
-      previous = k;
-      return { row, showCitations: show };
-    });
-  };
+  // Which rows print their sources, and which say they have none. The run is
+  // keyed on the ANSWER, in model.ts, so this section and the print sheet
+  // cannot disagree about whose sources a line belongs to — see `citationRuns`.
 
   // Only what the engine read INSTEAD of them. A domain we judged to be their
   // own is not "somewhere else the engine looked".
@@ -86,7 +80,10 @@
   );
 </script>
 
-{#if !acc || acc.answersRead === 0}
+<!-- `!acc` is there to narrow the type; `sourceCheckMeasured` is what decides.
+     The lede above this component asks the same function, so the two cannot
+     disagree about whether the check ran. -->
+{#if !acc || !sourceCheckMeasured(view)}
   <p class="type-lede m-0 text-muted">
     <!-- Never "we found nothing wrong". We had nothing to read. -->
     We could not check this on this audit — no assistant answer about {who} was captured to check against.
@@ -152,7 +149,7 @@
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each withCitations(contradicted) as { row, showCitations } (row.claim + row.query)}
+          {#each citationRuns(contradicted) as { row, citations } (row.claim + row.query)}
             <li class="flex flex-col gap-2 border-t border-light py-6">
               <p class="m-0 font-medium text-black">{row.claim}</p>
               <!-- The engine's words, verified as a real substring of its answer
@@ -166,9 +163,22 @@
                   Your site says: &ldquo;{row.siteQuote}&rdquo;
                 </p>
               {/if}
-              {#if showCitations}
+              {#if citations === "show"}
                 <p class="type-meta m-0 wrap-break-word text-muted">
                   Also read for that answer: {row.sourceDomains.join(" · ")}
+                </p>
+              {:else if citations === "none"}
+                <!-- Said out loud, because saying nothing here is what the row
+                     above's list looks like. Every word of it is hedged on
+                     purpose: "other" because this list has their own domain
+                     filtered out of it upstream, so an empty one means nothing
+                     OUTSIDE their site — and the paragraph below counts how
+                     often the assistant cited them, which would flatly
+                     contradict "cited no sources"; "we recorded" because an
+                     empty list is also what a quote we could not tie back to an
+                     answer looks like, which is our gap, not the engine's. -->
+                <p class="type-meta m-0 text-muted">
+                  We recorded no other sources for that answer.
                 </p>
               {/if}
             </li>
@@ -200,8 +210,10 @@
 
     {#if confirmed > 0}
       <!-- The proof that editing the site changes the answer, in one sentence.
-           The statements themselves are in the passes list. -->
-      <p class="type-meta m-0 border-t border-light pt-6 text-muted">
+           The statements themselves are in the passes list. It is the summary
+           of the lists above, so it takes the h4s' size and colour rather than
+           the grey meta of a footnote (Tim, MarkUp 2026-09-15). -->
+      <p class="type-question m-0 border-t border-light pt-6 text-black">
         {numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())}
         {confirmed === 1 ? "statement" : "statements"} the assistant made
         {confirmed === 1 ? "matches" : "match"} a passage on your own site, and across the answers we

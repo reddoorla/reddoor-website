@@ -24,6 +24,22 @@
      *  as compressed. `fill` wins over `wide`. */
     fill?: boolean;
     animateIn?: boolean;
+    /** Align the rail label's first baseline to the content column's first
+     *  baseline, instead of aligning the two cells' top edges (Tim's MarkUp
+     *  round on /boise, pins 4, 6 and 7 — "the baseline of this text should
+     *  align to the baseline of the headline to the right").
+     *
+     *  Tops line up and baselines do not because the two cells carry different
+     *  type: the kicker is 16px and the headline beside it is 26px/37.7px, so
+     *  at a shared top edge the kicker's baseline sits ~14px above the
+     *  headline's and reads as floating.
+     *
+     *  Opt-in, and it has to stay that way. `items-baseline` makes every cell
+     *  in the row join the baseline group, and a cell whose first line box
+     *  holds an image (LogoGrid, a FeaturedProject card) baselines on that
+     *  image's BOTTOM edge — the label would drop the full height of the art.
+     *  Only rows whose content starts with text pass it. */
+    labelBaseline?: boolean;
     /** Animate the rail's own parts individually and leave the content column
      *  to its children, instead of fading the whole row as one block. The
      *  house style is per-element (see SliceSection's `animate` note); a row
@@ -64,6 +80,7 @@
     wide = false,
     fill = false,
     animateIn = false,
+    labelBaseline = false,
     animateItems = false,
     labelClass = "text-primary",
     labelAbove = false,
@@ -86,7 +103,9 @@
      (LogoGrid absolutely-positions its rail block against this box). -->
 <ContentWidth animateIn={animateIn && !animateItems} class="relative">
   <div
-    class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {fill
+    class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {labelBaseline
+      ? 'lg:items-baseline'
+      : ''} {fill
       ? 'lg:grid-cols-[240px_minmax(0,1fr)]'
       : wide
         ? 'lg:grid-cols-[240px_minmax(0,1004px)]'

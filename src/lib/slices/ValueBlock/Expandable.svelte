@@ -80,7 +80,7 @@
        this section's h2, and "About Us" is a kicker naming the column, not a
        heading over content (the default variation renders its eyebrow as a <p>
        for the same reason). -->
-  <RailRow label={eyebrow} labelAs="p" animateIn={isAnimated}>
+  <RailRow label={eyebrow} labelAs="p" animateIn={isAnimated} labelBaseline>
     {#if isFilled.richText(primary.lede)}
       <!-- `.lede` was an inert hook: nothing anywhere defined it, so this
            rendered as the generic RichTextBody paragraph (pragmatica 18/30

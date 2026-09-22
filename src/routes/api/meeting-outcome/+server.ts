@@ -71,7 +71,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
   const sendRecap = body.sendRecap === true;
 
   if (!email || !EMAIL.test(email) || email.length > MAX.email) {
-    return json({ error: "Please provide the client's email address." }, { status: 400 });
+    return json({ error: "Please provide the client’s email address." }, { status: 400 });
   }
   if (!isOutcome(outcome)) {
     return json({ error: "Please choose an outcome." }, { status: 400 });
@@ -98,7 +98,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
   if (!result.ok) {
     console.error(`[meeting-outcome] failed (${result.status}): ${result.error}`);
-    return json({ error: "We couldn't save that. Please try again." }, { status: 502 });
+    return json({ error: "We couldn’t save that. Please try again." }, { status: 502 });
   }
   if (!result.data) {
     // This IS surfaced, unlike on the resubscribe form. The user is a colleague

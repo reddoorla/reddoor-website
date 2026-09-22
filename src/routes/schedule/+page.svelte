@@ -131,7 +131,7 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         status = "error";
-        slotsError = data?.error ?? "We couldn't load available times.";
+        slotsError = data?.error ?? "We couldn’t load available times.";
         return;
       }
       const raw: unknown = data?.slots;
@@ -145,7 +145,7 @@
       status = "ready";
     } catch {
       status = "error";
-      slotsError = "We couldn't load available times.";
+      slotsError = "We couldn’t load available times.";
     }
   }
 
@@ -209,7 +209,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        formError = data?.error ?? "We couldn't confirm that booking. Please try again.";
+        formError = data?.error ?? "We couldn’t confirm that booking. Please try again.";
         // The CRM rejected the slot because someone took it in the meantime —
         // drop the selection and refetch so they are not offered it again.
         if (data?.refreshSlots) {
@@ -237,11 +237,11 @@
     <div class="h-32"></div>
     <h1 class="type-hero text-primary z-10 md:ml-[20%]">
       {#if booked}
-        You're on the calendar.
+        You’re on the calendar.
       {:else if applied}
         Thanks — your application is in.
       {:else}
-        Let's find a time.
+        Let’s find a time.
       {/if}
     </h1>
   </ContentWidth>
@@ -261,12 +261,12 @@
         <div class="booked" role="status" tabindex="-1" bind:this={bookedEl}>
           <p class="booked-when">{formatFullSlot(booked, timeZone)}</p>
           <p class="booked-body">
-            We've sent a confirmation to <strong>{email}</strong>, and the Zoom link is in the
-            calendar invite. It's thirty minutes with Tim Holmes, our Creative Director.
+            We’ve sent a confirmation to <strong>{email}</strong>, and the Zoom link is in the
+            calendar invite. It’s thirty minutes with Tim Holmes, our Creative Director.
           </p>
           <p class="booked-body">
-            Come with the version of the problem you'd describe to a colleague, not the polished one
-            — that's the conversation worth having. If you need to move it, the invite has a
+            Come with the version of the problem you’d describe to a colleague, not the polished one
+            — that’s the conversation worth having. If you need to move it, the invite has a
             reschedule link, or just reply to it.
           </p>
         </div>
@@ -274,10 +274,10 @@
         <p class="lede">
           {#if applied}
             While we review your answers, pick a time for your intro call. Thirty minutes over Zoom
-            — enough to tell you honestly whether we're a fit.
+            — enough to tell you honestly whether we’re a fit.
           {:else}
             Thirty minutes over Zoom with Tim Holmes, our Creative Director. Enough to hear where
-            you're stuck and tell you honestly whether we're the right studio for it.
+            you’re stuck and tell you honestly whether we’re the right studio for it.
           {/if}
         </p>
 
@@ -288,9 +288,9 @@
           <button type="button" class="ghost mt-4" onclick={loadSlots}>Try again</button>
         {:else if days.length === 0}
           <p class="muted">
-            There's nothing open in the next couple of weeks. Email
+            There’s nothing open in the next couple of weeks. Email
             <a class="text-primary underline" href="mailto:info@reddoorla.com">info@reddoorla.com</a
-            > and we'll find you a time.
+            > and we’ll find you a time.
           </p>
         {:else}
           <SlotPicker

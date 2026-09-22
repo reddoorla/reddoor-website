@@ -49,7 +49,7 @@ test.describe("report table of contents", () => {
     const links = page.locator(`${NAV} a`);
     await expect(links).toHaveText([
       "What this report is",
-      "What an AI says about you",
+      "What AI is saying about you",
       "What you control",
       "What to fix",
       "Talk it through",

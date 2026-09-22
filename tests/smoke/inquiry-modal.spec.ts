@@ -790,3 +790,86 @@ test("a link with no usable address just shows the page", async ({ page }) => {
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect.poll(() => new URL(page.url()).search).toBe("");
 });
+
+// ── The /digital funnel ─────────────────────────────────────────────────────
+//
+// A second InquiryModal instance on the fixtures page, opened by its own
+// trigger (`data-inquire="digital"`, not a bare `#inquire` link) so it never
+// competes with the A-101 triggers exercised above. Proves the wizard posts
+// /digital's own custom field ids and never medtech's budget-gate field
+// (xW6eFrHUFBNQCijp1mOM) — a /digital submission can therefore never be
+// routed to /not-a-fit, which reads that field to decide.
+
+test("the digital funnel submits its own fields and never the budget gate", async ({ page }) => {
+  const { calls, strayCrmCalls } = await stubInquiry(page);
+  await gotoHydrated(page);
+
+  await page.getByRole("button", { name: "Open the digital inquiry" }).click();
+  const dialog = page.getByRole("dialog");
+  await page.locator("#inquiry-email").fill("digital-smoke@example.test");
+  await dialog.getByRole("button", { name: "Inquire Now" }).click();
+
+  // Q1 — needs (checkbox).
+  await expect(dialog.getByRole("heading", { name: /What do you need help with\?/ })).toBeVisible();
+  await dialog.getByRole("checkbox", { name: "A new website" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+
+  // Q2 — website (free text). Deliberately skipped: a startup has no site yet,
+  // and the flow must allow it.
+  await expect(
+    dialog.getByRole("heading", { name: /Where can we see your current website\?/ }),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Next" }).click();
+
+  // Q3 — goal (radio).
+  await expect(
+    dialog.getByRole("heading", { name: /main job your website needs to do/ }),
+  ).toBeVisible();
+  await dialog.getByRole("radio", { name: "Bring in leads and calls" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+
+  // Q4 — stakeholders (radio).
+  await expect(dialog.getByRole("heading", { name: /anyone else involved/ })).toBeVisible();
+  await dialog.getByRole("radio", { name: "Just myself" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+
+  // Q5 — budget (radio). This is /digital's OWN budget question
+  // (2gNEfoXr5XwltWMFhaxS), not medtech's $10k+ gate.
+  await expect(dialog.getByRole("heading", { name: /budget for this project/ })).toBeVisible();
+  await dialog.getByRole("radio", { name: "Under $5,000" }).check();
+  await dialog.getByRole("button", { name: "Next" }).click();
+
+  // Contact frame.
+  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+  await page.locator("#inquiry-name").fill("Digital Smoke");
+  await page.locator("#inquiry-phone").fill("(310) 555-0102");
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+  await dialog.getByRole("button", { name: "Submit Application" }).click();
+
+  // The scheduler, never the medtech opt-out page — see the header comment.
+  // Asserted as the URL it DOES reach: a `not.toHaveURL(/not-a-fit/)` would
+  // pass instantly against the pre-navigation URL and could never fail.
+  await expect(page).toHaveURL(/\/schedule$/);
+
+  await expect.poll(() => calls.length).toBe(2);
+  const application = calls[1];
+  expect(application.surveyId).toBe("digital");
+
+  const fields = application.fields as Record<string, string | string[]>;
+  // Exactly the four custom ids the wizard answered — `website` is a standard
+  // field routed out of this map server-side, and it was skipped besides.
+  expect(Object.keys(fields).sort()).toEqual(
+    [
+      "6ADqYeIoiuoZYjNOVe65", // needs
+      "LF7fDBprx9TnmuuE0r3Z", // goal
+      "hFMs3VYZALF59mloih9F", // stakeholders
+      "2gNEfoXr5XwltWMFhaxS", // budget
+    ].sort(),
+  );
+  // The skipped website question submits nothing rather than an empty string.
+  expect(fields.website).toBeUndefined();
+  // A digital submission never carries medtech's budget-gate field.
+  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBeUndefined();
+
+  expect(strayCrmCalls).toEqual([]);
+});

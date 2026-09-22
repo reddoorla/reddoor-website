@@ -40,7 +40,7 @@
 <p class="type-eyebrow m-0 pb-1 text-dark">Our recommendations</p>
 <p class="type-meta m-0 pb-4 text-muted">
   What we would do next, in order. The rows marked measured come straight from a check above; the
-  rest are judgement. None of them is a promise about what an engine will do.
+  rest are judgment. None of them is a promise about what an engine will do.
 </p>
 <ol class="m-0 flex list-none flex-col border-t border-light p-0">
   {#each fixes as fix, i (fix.title)}

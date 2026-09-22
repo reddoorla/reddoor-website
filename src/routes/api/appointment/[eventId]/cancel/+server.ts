@@ -24,7 +24,7 @@ const EVENT_ID = /^[A-Za-z0-9_-]{10,64}$/;
 export const POST: RequestHandler = async ({ params, request, fetch }) => {
   const eventId = params.eventId ?? "";
   if (!EVENT_ID.test(eventId)) {
-    return json({ error: "We couldn't find that booking." }, { status: 404 });
+    return json({ error: "We couldn’t find that booking." }, { status: 404 });
   }
 
   let body: Record<string, unknown>;
@@ -53,10 +53,10 @@ export const POST: RequestHandler = async ({ params, request, fetch }) => {
   const existing = await fetchAppointment({ token, fetch, eventId });
   if (!existing.ok) {
     if (existing.status === 404) {
-      return json({ error: "We couldn't find that booking." }, { status: 404 });
+      return json({ error: "We couldn’t find that booking." }, { status: 404 });
     }
     console.error(`[cancel] read failed (${existing.status}): ${existing.error}`);
-    return json({ error: "We couldn't load that booking." }, { status: 502 });
+    return json({ error: "We couldn’t load that booking." }, { status: 502 });
   }
 
   // Already cancelled, or already happened. Both are "nothing left to do".
@@ -68,7 +68,7 @@ export const POST: RequestHandler = async ({ params, request, fetch }) => {
   if (!cancelled.ok) {
     console.error(`[cancel] cancel failed (${cancelled.status}): ${cancelled.error}`);
     return json(
-      { error: "We couldn't cancel that booking. Please email info@reddoorla.com." },
+      { error: "We couldn’t cancel that booking. Please email info@reddoorla.com." },
       { status: 502 },
     );
   }

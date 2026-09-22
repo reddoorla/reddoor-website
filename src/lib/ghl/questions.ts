@@ -86,6 +86,85 @@ const A101_QUESTIONS: readonly InquiryQuestion[] = [
 ];
 
 /**
+ * The /digital question set.
+ *
+ * Keyed by a string this repo owns rather than a GHL survey id: no survey
+ * exists for these questions and none is needed — nothing has submitted to a
+ * GHL survey since the widget path died (2026-08-18), and the answers land as
+ * contact custom fields either way.
+ *
+ * Fields created 2026-09-17 by scripts/crm/create-digital-fields.mjs and read
+ * back by id before they were written here. Option strings are the CRM's
+ * stored picklist values; a change starts in GHL, never here.
+ */
+export const DIGITAL_QUESTION_SET_ID = "digital";
+
+const DIGITAL_FIELDS = {
+  needs: "6ADqYeIoiuoZYjNOVe65",
+  goal: "LF7fDBprx9TnmuuE0r3Z",
+  stakeholders: "hFMs3VYZALF59mloih9F",
+  budget: "2gNEfoXr5XwltWMFhaxS",
+} as const;
+
+const DIGITAL_QUESTIONS: readonly InquiryQuestion[] = [
+  {
+    kind: "checkbox",
+    tag: DIGITAL_FIELDS.needs,
+    heading: "What do you need help with?",
+    options: [
+      "A new website",
+      "Redesigning our current website",
+      "Showing up in Google and AI search",
+      "Keeping our site updated",
+      "Not sure yet",
+    ],
+  },
+  {
+    kind: "text",
+    tag: "website",
+    // Every question in the wizard is skippable (nextQuestion advances without
+    // validating), which matters most here: a startup asking for its first
+    // site has nothing to type, and an empty answer is dropped by
+    // partitionAnswers rather than written blank.
+    heading: "Where can we see your current website?",
+    placeholder: "https://yourwebsite.com",
+    inputType: "url",
+  },
+  {
+    kind: "radio",
+    tag: DIGITAL_FIELDS.goal,
+    heading: "What's the main job your website needs to do?",
+    options: [
+      "Bring in leads and calls",
+      "Sell online",
+      "Make us look credible",
+      "Support hiring",
+      "Other",
+    ],
+  },
+  {
+    kind: "radio",
+    tag: DIGITAL_FIELDS.stakeholders,
+    heading: "Is there anyone else involved in this project?",
+    options: [
+      "Just myself",
+      "My business partner",
+      "My department head",
+      "Our board of directors",
+      "Other",
+    ],
+  },
+  {
+    kind: "radio",
+    tag: DIGITAL_FIELDS.budget,
+    // PLACEHOLDER RANGES pending Tim (see the spec's §2). The page's pricing
+    // FAQ carries the same numbers and moves with them.
+    heading: "What's your budget for this project?",
+    options: ["Under $5,000", "$5,000 - $10,000", "$10,000 - $25,000", "$25,000+", "Not sure yet"],
+  },
+];
+
+/**
  * The budget gate: the one answer that reroutes the flow. A visitor answering
  * "No" has self-opted out — per Tim (2026-08-24) they land on the official
  * not-a-fit page rather than the scheduler, and the CRM record is tagged so a
@@ -119,11 +198,19 @@ export const SMS_CONSENT = {
 } as const;
 
 /**
- * Question set for a survey id, or undefined for a survey this code has no
+ * Question set for a key, or undefined for a key this build has no
  * transcription of. The caller treats undefined as "no wizard": step one still
  * captures the email, the visitor gets the thank-you, and nothing submits
- * answers a different survey would misfile.
+ * answers a different set would misfile.
+ *
+ * Keys are whatever an industry document's `inquiry_survey_id` holds — the
+ * A-101 GHL survey id for the brand funnel, `digital` for the web funnel.
  */
+const QUESTION_SETS: Record<string, readonly InquiryQuestion[]> = {
+  [DEFAULT_INQUIRY_SURVEY_ID]: A101_QUESTIONS,
+  [DIGITAL_QUESTION_SET_ID]: DIGITAL_QUESTIONS,
+};
+
 export function questionsFor(surveyId: string): readonly InquiryQuestion[] | undefined {
-  return surveyId === DEFAULT_INQUIRY_SURVEY_ID ? A101_QUESTIONS : undefined;
+  return QUESTION_SETS[surveyId];
 }

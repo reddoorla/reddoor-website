@@ -96,8 +96,8 @@
       "inquiry_survey_id": {
         "type": "Text",
         "config": {
-          "label": "GHL Survey ID (five questions)",
-          "placeholder": "e.g. VfiN5rugWcATPw47P20U — the questions themselves are code, keyed to this ID"
+          "label": "Question Set Key (five questions) — required, never blank",
+          "placeholder": "e.g. digital — picks which coded question set and CRM fields this page uses. Blanking it silently files leads under the medtech set."
         }
       }
     },

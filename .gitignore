@@ -14,6 +14,10 @@ test-results
 playwright-report
 .playwright
 
+# Scratch workspace for the planning/execution skills (briefs, ledgers, reports).
+# Anything worth keeping is promoted to docs/superpowers/ or the work journal.
+.superpowers/
+
 # canonical entries from @reddoorla/maintenance sync-configs
 dist/
 coverage/
