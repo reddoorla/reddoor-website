@@ -81,7 +81,7 @@
          carries its own `use:anim` — one scroll trigger per row, so they arrive
          as the reader reaches them rather than on a stagger played back from
          the top of the list. -->
-    <RailRow {label} wide animateIn={isAnimated} animateItems>
+    <RailRow {label} wide animateIn={isAnimated} animateItems labelBaseline>
       <div>
         {#each slice.primary.items as item, i (i)}
           <!-- No body authored → no panel to reveal, so the question renders as
