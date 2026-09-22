@@ -120,7 +120,7 @@
          ContentWidth itself, so there is no ContentWidth here. -->
     <!-- `animateItems` so the label arrives on its own and each column cascades
          its own rows, rather than the whole block fading as one. -->
-    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} animateItems>
+    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} animateItems labelBaseline>
       <!-- The board's services section leaves hasTopRule off: its rules are the
            per-row light ones below, not one red rule over the whole block. -->
       <div class={slice.primary.hasTopRule ? "border-t border-primary pt-2.5" : ""}>
@@ -158,7 +158,7 @@
          block. That is the house style (see SliceSection's `animate` note), and
          a single fade over the lot cannot express a sequence — it would also
          put the copy on screen before the arrow that introduces it. -->
-    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} animateItems>
+    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} animateItems labelBaseline>
       <div class={slice.primary.hasTopRule ? "border-t border-primary pt-2.5" : ""}>
         <!-- An <ol>, not a div: the numbering IS the content here, and without a
              list the sequence would exist only in the styling. That also lets the

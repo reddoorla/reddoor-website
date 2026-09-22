@@ -46,9 +46,14 @@
     ? 'pb-42'
     : ''}"
 >
+  <!-- `md:items-baseline` sets the button's text on the headline's first
+       baseline instead of on its top edge (Tim's MarkUp round on /boise, pin
+       5). The two sit at the same top today, so a 14px button label rides ~19px
+       above a 60px/84px headline's baseline. Stacked below `md` there is no
+       row to align against, so `items-start` stays. -->
   <ContentWidth
     animateIn={isAnimated}
-    class="flex flex-col items-start justify-between gap-8 md:flex-row"
+    class="flex flex-col items-start justify-between gap-8 md:flex-row md:items-baseline"
   >
     <div class="cta-heading max-w-189.25 {isDarkGround ? 'text-white' : 'text-black'}">
       <!-- The CMS supplies a heading2; RichTextBody normalizes the announced level
@@ -59,15 +64,25 @@
     </div>
 
     {#if hasButton}
-      <DefaultButton
-        {href}
-        text={slice.primary.buttonLabel ?? ""}
-        filled={false}
-        red={!isDarkGround}
-        class="shrink-0 uppercase tracking-[0.08em] {isDarkGround
-          ? 'border-white text-white hover:bg-white hover:text-black'
-          : ''}"
-      />
+      <!-- The button is the last thing above the footer, and the second half of
+           pin 5 is that it should start where the footer's link column starts.
+           Both boxes end at ContentWidth's right edge, but the button is only
+           as wide as its label (193px against the column's 275px at 1512), so
+           its left edge floated 82px inside the footer's. The wrapper borrows
+           the footer's own column width — `w-full md:w-1/3 lg:w-1/5`, the
+           layout's footer column — rather than a literal px, so the two stay
+           together when either changes. -->
+      <div class="w-full shrink-0 md:w-1/3 lg:w-1/5">
+        <DefaultButton
+          {href}
+          text={slice.primary.buttonLabel ?? ""}
+          filled={false}
+          red={!isDarkGround}
+          class="uppercase tracking-[0.08em] {isDarkGround
+            ? 'border-white text-white hover:bg-white hover:text-black'
+            : ''}"
+        />
+      </div>
     {/if}
   </ContentWidth>
 </SliceSection>

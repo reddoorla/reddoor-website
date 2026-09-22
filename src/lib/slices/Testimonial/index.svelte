@@ -34,7 +34,7 @@
   <!-- RailRow puts the (optional) label in the left rail and the content in the
        shared 760px column, so this quote's left edge lines up with every other
        section of the landing page. -->
-  <RailRow label={slice.primary.label} animateIn={isAnimated}>
+  <RailRow label={slice.primary.label} animateIn={isAnimated} labelBaseline>
     {#if slice.primary.quote || hasCredit}
       <!-- figure/blockquote/figcaption is the semantic pattern for an attributed
            quote. Deliberately no heading anywhere: the name is not a section
