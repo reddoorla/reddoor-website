@@ -1169,3 +1169,51 @@ spec passed in isolation (`portfolio-sticky-label` 10/10, `twenty-video` +
 this branch did not touch functionally. That is the cold-compile-storm signature
 already documented in `tests/smoke/global-setup.ts` under local
 `fullyParallel: true, retries: 0`, not a regression.
+
+## 2026-09-22 — Staging gets its own Prismic build hook; /boise goes live (ops only, no code)
+
+Tim reported in Discord (#rd-clients-by-design, 08:31 PT) that staging's `/boise`
+was "not reflecting my changes" to the `serviceList` columns. The published
+document said otherwise: `last_publication_date` 16:39:37 UTC, his three-item
+columns ("Brand + Logo Design", "Social Launch Kit", a new "Sales Tools" column),
+and no `hide` tag. Staging was serving its 09-21 05:34 UTC build of `ac71a5a`
+with the old four-item lists.
+
+**The cause was a missing hook, not a bug.** The `reddoor-staging` Netlify site
+(`0c3051ba-…`) had zero build hooks. Prismic's only webhook hit `reddoorla`'s
+`prismic -> main` hook, created 2024-08-22, so every publish rebuilt production and
+nothing else. Every page prerenders, so staging content was only as fresh as the
+last push to `staging`. Production had rebuilt five times off that hook between
+15:49 and 16:39 UTC while staging sat still.
+
+**Belief corrected.** The hide-tag work (#185) rests on "a hidden document is
+reviewable on staging." That was true of the query filter and false of the
+content: staging showed hidden documents, but as of whichever push last rebuilt
+it. It went unnoticed because pushes to `staging` were frequent while #183 was in
+flight. This was the first time an editor edited and re-reviewed with nothing
+pushed in between.
+
+Tim had also removed `hide` and published, so `/boise` went live on production
+at 16:39. Verified: `/boise` 200 with the new columns, `/bew` 302 with its UTMs,
+`/og/industry/boise.png` 200, `/boise` in the sitemap, `/health` still
+`hiddenContent: "hidden"`.
+
+**Fix.** One manual `createSiteBuild` of staging (16:56:55 → published 16:59:13).
+It was content-only because `origin/staging` was exactly the last deployed
+commit, which was checked first. Then a `prismic -> staging` build hook, which
+Tucker added as a second Prismic webhook by hand. Prismic webhooks cannot be
+managed over the API. The first hook-triggered staging deploy ran at 17:09:02 UTC
+and went `ready`. From now on every publish builds both sites; the staging build
+is about 2m20s.
+
+**Preview, checked while here.** `/api/preview` with no token returns 307 to
+`/preview/` on both sites. `/preview/boise` renders fresh on each request and
+showed Tim's columns on both sites before the manual rebuild. That route was a
+no-build bypass the whole time, and nobody reached for it. The CSP allows
+`static.cdn.prismic.io` and `*.prismic.io`. **Not verified:** a real preview
+session, which needs a token from inside Prismic, and which domain Prismic's
+preview configuration targets. **Found, not proven harmful:** a bogus token to
+`/api/preview` and a fabricated preview cookie both return 500 on both sites.
+The cookie was JSON naming a nonexistent `previews/` URL. A made-up session is
+not an expired one, so whether a real expired cookie 500s every SSR page is still
+open. Test it the next time a real session goes stale in a browser.
