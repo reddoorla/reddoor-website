@@ -1217,3 +1217,84 @@ preview configuration targets. **Found, not proven harmful:** a bogus token to
 The cookie was JSON naming a nonexistent `previews/` URL. A made-up session is
 not an expired one, so whether a real expired cookie 500s every SSR page is still
 open. Test it the next time a real session goes stale in a browser.
+
+## 2026-09-22 — Tim's MarkUp round on /boise: baselines, a fixture route that never existed, and 13px of my own animation (#212, #213)
+
+Second entry today; the first is "Staging gets its own Prismic build hook".
+
+**The a11y gate had a hole where a route should be.** Renovate's #208 went red
+on `route-missing on animate-in demo (/dev/animate-in returned 404)`. The route
+had never existed in this repo. The fleet audit scans `/dev/a11y-fixtures` and
+`/dev/animate-in`, the starter has both, and until the route-status guard
+arrived in @reddoorla/maintenance 0.97 a 404 on the second was scanned as the
+error page and passed — a gate reporting on a page that was not there. Ten
+slices here drive `animateIn`, every one through `RailRow` or `ContentWidth`, so
+the harness was worth having rather than worth suppressing (#212). Verified by
+running `reddoor-maint audit --only a11y --fail-on-violations` at 0.98.1 against
+the branch: 0 violations across 2 routes, where staging reports the missing one.
+
+An oddity found on the way, not chased: that audit failed twice with "a11y: no
+results written (exit 1)" when its stdout was piped to `tail` without
+`--verbose`, and passed with `--verbose` piped, and passed non-verbose when
+redirected to a file. Four runs, that split. CI pipes stdout and gets results
+fine, so this is a local reporting path, not the gate.
+
+**Tim's round: seven pins, four fixed, three are a design decision.** Pins 4, 6
+and 7 all say the same thing — the rail label should sit on the baseline of the
+text beside it. It never did: RailRow shares a TOP edge between the 16px kicker
+and the content column, so the baselines miss by whatever the two ramps differ
+by. Measured on /boise: 14px against the 26px/37.7px lead, 9px at the case
+study, 7px at the 21px/30px pull quote, 40px at the FAQ's first question. The
+fix is `labelBaseline`, an opt-in `lg:items-baseline`, now 0 on all six labelled
+rows across both industry pages.
+
+Opt-in is load-bearing. `items-baseline` enlists every cell in the row, and a
+cell whose first line box holds an image baselines on that image's BOTTOM edge —
+LogoGrid and a FeaturedProject card would drop their label the full height of
+the art. Only text-first rows pass it.
+
+Pin 5 was the CTA button above the footer, and it was two asks in one:
+`md:items-baseline` puts its label on the headline's baseline (39px above
+before), and a wrapper carrying the footer's own `lg:w-1/5` column width puts
+its left edge where the footer's link column starts. It was 82px inside that
+edge at 1512 — the button is sized by its own text and pushed right by
+`justify-between`, so it had only ever lined up by coincidence. Borrowing the
+footer's width class rather than a literal px is the part that keeps them
+together.
+
+Pins 1-3 — the fixed 760px content column, which leaves 391px empty at 1512 —
+are untouched. Tim ended with "thoughts?", and the answer changes the measure of
+every paragraph on both pages.
+
+**The expensive mistake, and it was mine.** A 13px nudge on the FAQ label sat in
+this branch for a while, with a paragraph of comment explaining Chrome's
+baseline synthesis, because the FAQ row measured 13px out while the other five
+measured 0. I had driven the page through the Playwright MCP browser, which does
+NOT set reduced motion, so `animateIn`'s transform was still on the elements I
+was measuring. A pass went into structural experiments — `flow-root`,
+`inline-flex`, `items-baseline` on the button, dropping its padding — all of
+them measuring an animation. The smoke suite runs reduced-motion, measured the
+settled page, and reported 0 for that row from the first run; it failed my nudge
+with "Frequently Asked Questions is 13px off", which is how the nudge was
+caught. Measure geometry in the state the suite measures, or the number is
+fiction.
+
+The other trap on the same afternoon: the first run of the new spec failed at
+13px against code that already had the nudge removed, because Playwright's
+`reuseExistingServer` picked up a stale vite on :5173 left by another worktree
+and served it the wrong build. `reference_smoke_stale_dev_server` says exactly
+this, and it still cost a cycle.
+
+`tests/smoke/rail-baseline.spec.ts` measures both pages at 1200 and 1512 with a
+zero-height inline-block marker, which sits on the line's baseline; the line
+box's own edges would fold in half-leading, the quantity that differs. Proven
+red three ways: without `lg:items-baseline` (nothing measured, which the
+row-count assertion catches), with the 13px nudge, and with the CTA changes
+reverted (-39px).
+
+**Housekeeping.** The 13 worktrees under `.worktrees/` are gone; nine held
+nothing unlanded, and the branches of the other three (`chore/form-replies-types`
+#199, `feat/report-override-apply` 7 commits, `design/report-by-control` 14
+commits) are on origin with no PR for the last two. A journal entry from 09-15
+about the Boise promotion turned out to exist only in a local worktree, never
+pushed — it landed as #211.
