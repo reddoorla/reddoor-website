@@ -165,14 +165,15 @@
     <ContentWidth animateIn={isAnimated} class="relative">
       <!-- Asymmetric container rather than RailRow: the comp's plate starts at
            the landing page's content column (x=342 of 1440) and bleeds all the
-           way to the right page margin, which RailRow cannot express — its
-           content column is capped (760px, 1004px `wide`) and would stop ~120px
-           short of the gutter. `lg:pl-65` = 260px = RailRow's own geometry
-           (240px rail + its gap-5 gutter), so this plate's left edge lands on
-           exactly the same line as every RailRow section's content column —
-           keep the two in sync if RailRow's rail ever changes. Below `lg`
-           RailRow collapses its rail, so the plate goes full content width. -->
-      <div class="w-full lg:pl-65">
+           way to the right page margin. The left padding is one of RailRow's
+           five columns plus its 20px gutter — (container − 4 × 20px) / 5 + 20px
+           — so this plate's left edge lands on exactly the same line as every
+           RailRow section's content column. Keep the two in sync if RailRow's
+           grid ever changes: this was a fixed 260px, and when RailRow's rail
+           first went proportional it drifted off that line unnoticed. Below
+           `lg` RailRow collapses its rail, so the plate goes full content
+           width. -->
+      <div class="w-full lg:pl-[calc((100%-5rem)/5+1.25rem)]">
         {#if hasLink}
           <a
             {href}

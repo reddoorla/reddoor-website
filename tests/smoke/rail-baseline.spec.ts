@@ -57,7 +57,7 @@ const MEASURE = `(() => {
     return Math.round(bottom);
   };
   const rows = [];
-  document.querySelectorAll('div[class*="lg:grid-cols-["]').forEach((grid) => {
+  document.querySelectorAll("[data-rail-row]").forEach((grid) => {
     if (getComputedStyle(grid).alignItems !== "baseline") return;
     const label = grid.querySelector(".type-kicker");
     if (!label) return;
@@ -85,7 +85,7 @@ for (const path of PATHS) {
     test(`rail labels sit on the content baseline — ${path} at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 1000 });
       await page.goto(path);
-      await page.waitForSelector('div[class*="lg:grid-cols-["]');
+      await page.waitForSelector("[data-rail-row]");
 
       const rows = await page.evaluate<RailRowBaseline[]>(MEASURE);
 
