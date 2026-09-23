@@ -21,7 +21,13 @@ import { test, expect } from "@playwright/test";
 // The selector matches any RailRow grid, not one column spec: the columns went
 // from px to proportional when pins 1-3 were fixed, and a selector naming the
 // old `240px` template silently matched nothing and passed the loop below.
-type RailRowBaseline = { label: string; delta: number };
+//
+// Tim's follow-up (2026-09-23): on the baseline is "technically perfect" but
+// reads low, so every label sits 1px above it. That is measured apart from the
+// alignment: the ±1px rounding tolerance below cannot tell a 1px nudge from
+// none, so the grid's baseline alignment is checked with the nudge subtracted,
+// and the nudge itself is checked exactly.
+type RailRowBaseline = { label: string; delta: number; nudge: number };
 type CtaGeometry = { baselineDelta: number; buttonX: number; footerColX: number };
 
 const PATHS = ["/medtech", "/boise"] as const;
@@ -61,7 +67,15 @@ const MEASURE = `(() => {
     const a = baselineOf(label);
     const b = baselineOf(content);
     if (a === null || b === null) return;
-    rows.push({ label: (label.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 40), delta: a - b });
+    // The rect includes \`translate\`, so the optical nudge is read back out of
+    // the measured delta rather than hidden inside its tolerance.
+    const translate = getComputedStyle(label).translate;
+    const nudge = translate === "none" ? 0 : parseFloat(translate.split(" ")[1] ?? "0");
+    rows.push({
+      label: (label.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 40),
+      delta: a - b,
+      nudge,
+    });
   });
   return rows;
 })()`;
@@ -84,9 +98,10 @@ for (const path of PATHS) {
         // 1px for sub-pixel rounding in the marker's rect. The defect this
         // catches is 7px at its smallest.
         expect(
-          Math.abs(row.delta),
-          `${row.label} is ${row.delta}px off its content baseline`,
+          Math.abs(row.delta - row.nudge),
+          `${row.label} is ${row.delta - row.nudge}px off its content baseline before the nudge`,
         ).toBeLessThanOrEqual(1);
+        expect(row.nudge, `${row.label} should sit 1px above the baseline`).toBe(-1);
       }
     });
 

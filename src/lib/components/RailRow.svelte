@@ -47,7 +47,14 @@
      *  in the row join the baseline group, and a cell whose first line box
      *  holds an image (LogoGrid, a FeaturedProject card) baselines on that
      *  image's BOTTOM edge — the label would drop the full height of the art.
-     *  Only rows whose content starts with text pass it. */
+     *  Only rows whose content starts with text pass it.
+     *
+     *  The label then sits 1px ABOVE that baseline, on purpose (Tim,
+     *  2026-09-23: exactly on it is "technically perfect" but reads low). The
+     *  nudge is `translate`, not a margin, so the grid still aligns on the true
+     *  baseline and the offset is a pure optical correction on top of it —
+     *  and `translate` composes with the `transform` animateIn writes rather
+     *  than being overwritten by it. */
     labelBaseline?: boolean;
     /** Animate the rail's own parts individually and leave the content column
      *  to its children, instead of fading the whole row as one block. The
@@ -128,7 +135,7 @@
         <svelte:element
           this={labelAs}
           use:anim={{ enabled: animateIn && animateItems }}
-          class="type-kicker {labelClass}"
+          class="type-kicker {labelBaseline ? 'lg:-translate-y-px' : ''} {labelClass}"
         >
           {railLabel}
         </svelte:element>
