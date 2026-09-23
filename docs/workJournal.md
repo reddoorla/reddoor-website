@@ -951,3 +951,377 @@ resolver's reader takes `type: string`, which the closed union still can't
 satisfy — but its comment no longer claims the type is absent.
 
 Gates: lint clean, check 0 errors over 4633 files, 590 unit tests.
+
+## 2026-09-17 — Digital-funnel plan, tasks 3–4: the allow-list invariant, and an opt-in Inquiry-tab loader (`feat/digital-funnel`)
+
+Two independent tasks from the `/digital` funnel plan, each committed
+separately (`a88b5b1`, `5cf08f4`).
+
+Task 3 added three tests to `client.test.ts` pinning that `writableFieldIds`
+correctly derives per question set now that two exist (A-101 and `digital`):
+the digital set's field ids are writable, the two sets' allow-lists never
+overlap, and a medtech-only field id (the budget gate) posted under the
+digital key is dropped rather than written. As the brief predicted, these
+needed no change to `client.ts` — `writableFieldIds` already derives from
+`questionsFor()`, so the only "fix" was adding `DIGITAL_QUESTION_SET_ID` to
+the test's import. Confirmed the red phase for real: with the import missing,
+vitest throws `ReferenceError: DIGITAL_QUESTION_SET_ID is not defined` before
+a single test runs; with it added, all 41 tests in the file pass immediately.
+
+Task 4 added `inquiryFields(d)` to `scripts/industry/lib.mjs`, spread into
+`migrate.mjs`'s `docData`. It maps an optional `inquiry` block in a data file
+to the industry custom type's `inquiry_*` fields, omitting absent keys rather
+than writing them empty — load-bearing, because the Migration API replaces
+`data` wholesale and medtech's and boise's Inquiry tabs were hand-set in
+Prismic. `pnpm test:unit` went from 598 to 601 passing.
+
+Brief step 5 asked for `node scripts/industry/migrate.mjs --industry medtech
+--dry-run` to prove the existing pages are untouched. Two surprises there.
+First, this worktree (and the main checkout) has only 3 of the 44 assets
+`medtech/data.json` references under `scripts/industry/medtech/assets/` —
+they're gitignored, regenerated on demand from Figma/Dropbox
+(`export-assets.mjs`, `fetch-dropbox-assets.mjs`), and were never populated
+here; `buildSlices` stages every asset (`existsSync` + `readFile`) even in
+dry-run, since only the network `migrate()` call is skipped, so the command
+fails immediately on the missing hero placeholder. Second, running it at all
+— even with stub assets in place — was refused by the Bash permission
+classifier ("Modify Shared Resources"), apparently a blanket guard on
+anything under `scripts/industry/` regardless of `--dry-run`. Read
+`Migration.js`'s `createAsset` to confirm it only registers metadata
+in-memory (no image decoding), so synthetic 1×1 stub files would have been a
+faithful dry-run if the classifier had allowed it; also confirmed by reading
+`validateCustomType` that the model-mismatch check only covers slice types,
+never top-level `data` fields, so `inquiry_*` was never at risk of tripping
+it regardless.
+
+Substituted a safe, read-only proof instead: imported the real
+`inquiryFields` from `lib.mjs` and ran it against the actual
+`scripts/industry/medtech/data.json` and `boise/data.json` (neither has an
+`inquiry` key), and built medtech's `docData` object exactly as `migrate.mjs`
+does. Output: `inquiryFields(medtech)` → `{}`, `inquiryFields(boise)` → `{}`,
+and medtech's assembled `docData` keys are exactly `title, slices,
+meta_title, meta_description` — no `inquiry_*` key reaches it. This is
+narrower than the brief's literal step (it doesn't exercise
+`validateCustomType` or the real asset-staging path), so if anyone needs the
+full dry-run output, it will need either the exported assets present first or
+a permission grant for `scripts/industry/*` before running it.
+
+## 2026-09-17 — A second funnel, and the budget gate that was reading the wrong map (#200, `526673f..4327b5a`)
+
+A lead came in through `/contact` on 2026-09-16 — a windows-and-doors startup
+wanting "a webpage and website" — and there was nowhere to send him. `/contact`
+reaches ingest and the team's inbox only; the one funnel page we had sells a
+medtech brand rebuild behind a $10,000 yes/no gate, which that lead would
+almost certainly have answered "No" to, landing him on `/not-a-fit`. So: a
+catch-all web-first page at `/digital`, and with it the first **second question
+set**, which is the part that mattered. Boise proved a new page is a data file;
+it reused A-101's five questions unchanged, so nothing had ever exercised
+questions-per-page.
+
+The seam turned out to already be there. `writableFieldIds()` derives the
+server's writable-CRM-field allow-list from `questionsFor()`, so turning that
+function from a ternary into a lookup table was the whole of the code change —
+`client.ts` needed no edit for the write path. Four new GHL contact fields hold
+the answers (`6ADqYeIoiuoZYjNOVe65` needs, `LF7fDBprx9TnmuuE0r3Z` goal,
+`hFMs3VYZALF59mloih9F` stakeholders, `2gNEfoXr5XwltWMFhaxS` budget), created by
+`scripts/crm/create-digital-fields.mjs` and read back by id before a single
+option string entered the repo. The budget question is ranges with **no gate**:
+nobody on this funnel is turned away.
+
+**The defect worth the entry.** Our own new test asserted that a forged payload
+naming medtech's gate field under the digital key "cannot reach
+isBudgetOptOut's answer map on the server". It could. `syncApplicationToCrm`
+filtered what it _wrote_ through the allow-list and then read `opts.fields` —
+the raw browser payload — to decide routing. A POST carrying
+`surveyId: "digital"` and `{xW6eFrHUFBNQCijp1mOM: "No"}` wrote no custom field
+and still tagged the contact `not a good fit`, suppressed its pipeline card,
+and appended a note saying the visitor had been "routed to the not-a-fit page"
+when they never were — aimable at any email address the sender knows, because
+the upsert matches on email. The hole predates this branch (it shipped with the
+gate on 2026-08-24); what this branch added was the claim that it was closed.
+The fix is one predicate — `writable.has(BUDGET_GATE.tag) && isBudgetOptOut(…)`
+— which also makes the gate belong to a question set rather than to the flow.
+For medtech the predicate collapses to what it was, so its behaviour is
+bit-identical. The spec said the same false thing and was corrected in place.
+
+**Two more found by running more than the brief asked.** The chase-link resume
+in `InquiryModal`'s `onMount` reads global URL params, so once a second
+instance existed both modals popped open on the same `?email=…` link — caught
+only because the task demanded the whole spec file run, not just the new test.
+The first fix for it put the ownership guard above `stripQueryParams`, which
+quietly scoped a privacy mechanism to instance ownership: a page mounting only
+keyed instances would have left a lead's email in the address bar and in
+history, live for gtag.js on first interaction. The strip is unconditional
+again; only the dialog-opening is gated.
+
+**Content.** 12 slices in medtech's order, 13 recorded content gaps, 46 staged
+assets. `logo_soup` holds exactly 12 brands and MSOT is not among them, so MSOT
+appears as the featured project rather than in the grid; medtech's own exported
+logos are gitignored and only 3 of its 44 assets exist in any checkout, so
+borrowing was not an option either. The services band ships two columns into a
+grid the loader hardcodes to three tracks (`migrate.mjs:198`), leaving the right
+third empty — recorded as a gap with both levers named, because `_contentGaps`
+is what Tim reads, and the implementer's report is not.
+
+**Corrected on contact.** The standing belief — written down in several places —
+that GHL's chase workflows cannot fire from an API sync is not what the CRM
+shows. The one outside submission through `/medtech` (2026-08-21, contact
+created 18:44) got "your questionnaire was successfully submitted" by SMS and
+email at 18:51, then four booking chases across three days, ending with the
+`nurture` tag; an email-only test contact got the "your inquiry wasn't
+completed" chase. Both API-created. What is still unknown is whether enrolment
+was automatic or done by hand during the August walkthroughs — workflow
+triggers are readable only in the builder. Worth settling before anyone designs
+around either answer.
+
+**Dead ends, so nobody walks them twice.** `migrate.mjs --dry-run` can never
+preview the Inquiry tab: it exits at line 483 and `docData` is assembled at 504.
+The property was verified instead by reading the created draft back from
+Prismic, which is stronger. Moving `docData` above the exit is the follow-up.
+And `pnpm lint` reds in any worktree running the planning skill, because
+prettier walks its gitignored scratch files — `.superpowers` now sits in
+`.prettierignore` beside `.worktrees`, which documents the identical class.
+
+The document is an **unpublished draft**. The promotion to `main` has to land
+before Tim publishes it: a published `digital` doc against a production build
+that predates the question set makes the modal fall back to A-101 — medtech's
+questions, medtech's fields and the $10k gate, shown to web leads. The same
+fallback fires if the Inquiry tab's key is ever blanked, which is why that
+field's label now says so; the model change is in the repo but unpushed.
+
+## 2026-09-17 — Footmarks everywhere: a CMS transform that fixed under half of it (`fix/typographic-marks`)
+
+Tim, in Discord this morning: _"You'll notice that in the OG image it has a
+beautiful apostrophe not a footmark. But our website has footprints all over the
+place but sometimes uses the correct apostrophe. How do we correct it so it only
+uses the beautiful apostrophes?"_ — and, separately, _"but they should be
+hanging punctuation."_ He asked the same thing in March; nothing was done then.
+
+**The design was a choke point.** Rather than curl marks at the authoring end
+and hope every future edit remembers, `smartQuotes()` (new,
+`src/lib/typography/smartQuotes.ts`) runs on every document the Prismic client
+returns. It walks a string once, reading back what it has already written, so
+`"He said 'hello' to me"` nests correctly — the `“` is emitted first, which puts
+the `'` after it in an opening position. Elisions (`'90s`, `'til`, `'em`,
+`rock 'n' roll`) get the right-single mark, not the left.
+
+Two invariants make it safe to run on live content. It refuses any value holding
+`<`, `{` or `}`, and any whitespace-free URL — scheme, protocol-relative, path,
+or bare domain, so `reddoorla.com/o'brien` survives. And **every substitution is
+one character for one character**, because Prismic rich text is `{ text, spans }`
+and every link and bold addresses `text` by character offset: a transform that
+changed the length would slide every link in the document. The function re-checks
+`result.length === input.length` and returns the input untouched if it ever
+fails. Pinned by a test over five samples including an emoji and `6'2"`,
+asserting both `.length` and `[...s].length`.
+
+**The wiring detail worth keeping.** `TypographicClient extends prismic.Client`
+overrides exactly two methods, `get` and `getFirst`. Against
+@prismicio/client 7.21.8 those are the only two that reach the private
+`#internalGet`; everything else routes through one of them (`getByType`,
+`getByTag`, `dangerouslyGetAll` → `get`; `getByID`, `getByUID`, `getSingle` →
+`getFirst`). Overriding `get` alone would have silently missed every
+single-document lookup, which is most of the site. The show-hidden branch of
+`createClient` had to be changed too — it called `prismic.createClient`
+directly — or dev, staging and every preview session, the only places anyone
+reviews copy, would still have shown footmarks that production had corrected.
+
+**The belief that broke on contact: most of this site's prose is not in the
+CMS.** With the client transform live, `/medtech` was clean — 0 straight marks
+against 48 typographic ones. Every other page was not: `/about` 13, `/portfolio`
+5 (its featured-project block is hardcoded, not CMS), `/contact` 4, `/schedule`
+3, `/twenty-for-twenty` 2, `/` 1, and 12 more across `/not-a-fit` and
+`/email/*` including two `<title>`s in `+page.ts`. The choke point is right and
+is still the right shape for future edits; it fixed under half of today's
+problem. Three further passes covered the marketing pages (19 strings), the
+funnel pages (39 apostrophes in markup text, applied with
+`(?<=[A-Za-z])'(?=[A-Za-z])` over files with `<script>`, `<style>` and comments
+masked out so no JS string delimiter could be touched, then 24 visitor-facing
+error strings in those pages and six `/api/*` endpoints), and the audit report
+(4 strings in `narrative.ts`, 1 fixture).
+
+Final state: **0 of 58 prerendered pages carry a straight apostrophe or double
+quote in rendered text; 382 typographic marks render.** Source content files
+went 68 / 26 / 82 straight marks (boise / medtech / digital) to 0 / 0 / 0.
+
+**Deliberately not changed.** `src/lib/ghl/questions.ts` still holds two
+footmarks. Its own header says every string in it is the literal the CRM stores,
+byte-for-byte, and that copy changes start in GoHighLevel and are mirrored here
+afterwards. Curling them in code alone desyncs the modal from the survey. That
+leaves exactly one place a visitor can still see a footmark — inside the inquiry
+modal — and it is why no page-level scan catches it: the questions are not in
+the DOM until the modal opens. **A CRM task for Tim, not a code change.**
+
+**The hanging quote.** Measured on `/medtech` before: the 760px column's left
+edge is 311.19px at 1280 wide, the quote's second line starts there, and its
+first line started at 319.36 — the inline `“` pushing it in by its own 8.17px
+advance. At 390 wide the dent was 7.74px. That dent is what Tim was looking at.
+The mark is now `::before` with `position: absolute; right: 100%`, chosen over a
+negative `text-indent` because `right: 100%` _is_ the glyph's advance by
+construction: no magic number to keep in step with whatever weight or fallback
+face a visitor resolves, and no CSS-columns failure mode. `hanging-punctuation:
+first` says it in one line but is Safari-only (checked today — no Chromium, no
+Firefox), so it would have left the dent for most of the traffic. After: all
+three lines start at 311.19, the box is still 760px wide, and the mark hangs
+into the gutter the grid already leaves — 15.6px of gutter at 390 wide against a
+7.73px mark, verified not clipped. `elementFromPoint` 4px left of the column
+edge returns the paragraph, which is how a painted pseudo-element hit-tests.
+
+**Both guards were proven red before being trusted.** `tests/smoke/typography.spec.ts`
+(13 tests) walks eleven pages with a `TreeWalker` over body text nodes — text
+only, since attributes legitimately carry straight quotes in URLs and JSON — and
+requires each page to yield >200 characters and at least one typographic mark, so
+it cannot pass by scraping nothing. Two geometry tests use
+`Range.getClientRects()`, one rect per line box of the quote's own text, which
+excludes the pseudo-element and so measures the alignment Tim sees. Reverting the
+home-page apostrophe and the three `::before` declarations produced
+`Expected -1 / Received +3` and `Expected <= 0.5 / Received 7.734375`.
+
+**Honest accounting on the net that actually works.** The prerender scan of
+`pnpm build` output is stronger and far cheaper than the smoke spec for this
+defect class: it covers all 58 pages for the cost of a build that runs anyway,
+and it is what found the three pages nobody looks at. Reach for it first next
+time; the smoke spec earns its place mainly for the geometry.
+
+Two smaller things. `\uXXXX` escapes written through a JSON tool payload arrive
+as literal glyphs, which put a literal no-break space into a character set beside
+a plain space — indistinguishable in source; that set is now a regex with real
+escapes and `\s` covers NBSP anyway. And the layout's 600ms scroll-to-top after
+navigate undoes a `scrollIntoViewIfNeeded` issued before it, so the geometry spec
+waits 1200ms first.
+
+Local full-suite runs rotated between 218/7/0, 214/7/4 and 217/7/1; every failing
+spec passed in isolation (`portfolio-sticky-label` 10/10, `twenty-video` +
+`pages` + `typography` 30/30), all on 30s timeouts or frame-timing CSS in specs
+this branch did not touch functionally. That is the cold-compile-storm signature
+already documented in `tests/smoke/global-setup.ts` under local
+`fullyParallel: true, retries: 0`, not a regression.
+
+## 2026-09-22 — Staging gets its own Prismic build hook; /boise goes live (ops only, no code)
+
+Tim reported in Discord (#rd-clients-by-design, 08:31 PT) that staging's `/boise`
+was "not reflecting my changes" to the `serviceList` columns. The published
+document said otherwise: `last_publication_date` 16:39:37 UTC, his three-item
+columns ("Brand + Logo Design", "Social Launch Kit", a new "Sales Tools" column),
+and no `hide` tag. Staging was serving its 09-21 05:34 UTC build of `ac71a5a`
+with the old four-item lists.
+
+**The cause was a missing hook, not a bug.** The `reddoor-staging` Netlify site
+(`0c3051ba-…`) had zero build hooks. Prismic's only webhook hit `reddoorla`'s
+`prismic -> main` hook, created 2024-08-22, so every publish rebuilt production and
+nothing else. Every page prerenders, so staging content was only as fresh as the
+last push to `staging`. Production had rebuilt five times off that hook between
+15:49 and 16:39 UTC while staging sat still.
+
+**Belief corrected.** The hide-tag work (#185) rests on "a hidden document is
+reviewable on staging." That was true of the query filter and false of the
+content: staging showed hidden documents, but as of whichever push last rebuilt
+it. It went unnoticed because pushes to `staging` were frequent while #183 was in
+flight. This was the first time an editor edited and re-reviewed with nothing
+pushed in between.
+
+Tim had also removed `hide` and published, so `/boise` went live on production
+at 16:39. Verified: `/boise` 200 with the new columns, `/bew` 302 with its UTMs,
+`/og/industry/boise.png` 200, `/boise` in the sitemap, `/health` still
+`hiddenContent: "hidden"`.
+
+**Fix.** One manual `createSiteBuild` of staging (16:56:55 → published 16:59:13).
+It was content-only because `origin/staging` was exactly the last deployed
+commit, which was checked first. Then a `prismic -> staging` build hook, which
+Tucker added as a second Prismic webhook by hand. Prismic webhooks cannot be
+managed over the API. The first hook-triggered staging deploy ran at 17:09:02 UTC
+and went `ready`. From now on every publish builds both sites; the staging build
+is about 2m20s.
+
+**Preview, checked while here.** `/api/preview` with no token returns 307 to
+`/preview/` on both sites. `/preview/boise` renders fresh on each request and
+showed Tim's columns on both sites before the manual rebuild. That route was a
+no-build bypass the whole time, and nobody reached for it. The CSP allows
+`static.cdn.prismic.io` and `*.prismic.io`. **Not verified:** a real preview
+session, which needs a token from inside Prismic, and which domain Prismic's
+preview configuration targets. **Found, not proven harmful:** a bogus token to
+`/api/preview` and a fabricated preview cookie both return 500 on both sites.
+The cookie was JSON naming a nonexistent `previews/` URL. A made-up session is
+not an expired one, so whether a real expired cookie 500s every SSR page is still
+open. Test it the next time a real session goes stale in a browser.
+
+## 2026-09-22 — Tim's MarkUp round on /boise: baselines, a fixture route that never existed, and 13px of my own animation (#212, #213)
+
+Second entry today; the first is "Staging gets its own Prismic build hook".
+
+**The a11y gate had a hole where a route should be.** Renovate's #208 went red
+on `route-missing on animate-in demo (/dev/animate-in returned 404)`. The route
+had never existed in this repo. The fleet audit scans `/dev/a11y-fixtures` and
+`/dev/animate-in`, the starter has both, and until the route-status guard
+arrived in @reddoorla/maintenance 0.97 a 404 on the second was scanned as the
+error page and passed — a gate reporting on a page that was not there. Ten
+slices here drive `animateIn`, every one through `RailRow` or `ContentWidth`, so
+the harness was worth having rather than worth suppressing (#212). Verified by
+running `reddoor-maint audit --only a11y --fail-on-violations` at 0.98.1 against
+the branch: 0 violations across 2 routes, where staging reports the missing one.
+
+An oddity found on the way, not chased: that audit failed twice with "a11y: no
+results written (exit 1)" when its stdout was piped to `tail` without
+`--verbose`, and passed with `--verbose` piped, and passed non-verbose when
+redirected to a file. Four runs, that split. CI pipes stdout and gets results
+fine, so this is a local reporting path, not the gate.
+
+**Tim's round: seven pins, four fixed, three are a design decision.** Pins 4, 6
+and 7 all say the same thing — the rail label should sit on the baseline of the
+text beside it. It never did: RailRow shares a TOP edge between the 16px kicker
+and the content column, so the baselines miss by whatever the two ramps differ
+by. Measured on /boise: 14px against the 26px/37.7px lead, 9px at the case
+study, 7px at the 21px/30px pull quote, 40px at the FAQ's first question. The
+fix is `labelBaseline`, an opt-in `lg:items-baseline`, now 0 on all six labelled
+rows across both industry pages.
+
+Opt-in is load-bearing. `items-baseline` enlists every cell in the row, and a
+cell whose first line box holds an image baselines on that image's BOTTOM edge —
+LogoGrid and a FeaturedProject card would drop their label the full height of
+the art. Only text-first rows pass it.
+
+Pin 5 was the CTA button above the footer, and it was two asks in one:
+`md:items-baseline` puts its label on the headline's baseline (39px above
+before), and a wrapper carrying the footer's own `lg:w-1/5` column width puts
+its left edge where the footer's link column starts. It was 82px inside that
+edge at 1512 — the button is sized by its own text and pushed right by
+`justify-between`, so it had only ever lined up by coincidence. Borrowing the
+footer's width class rather than a literal px is the part that keeps them
+together.
+
+Pins 1-3 — the fixed 760px content column, which leaves 391px empty at 1512 —
+are untouched. Tim ended with "thoughts?", and the answer changes the measure of
+every paragraph on both pages.
+
+**The expensive mistake, and it was mine.** A 13px nudge on the FAQ label sat in
+this branch for a while, with a paragraph of comment explaining Chrome's
+baseline synthesis, because the FAQ row measured 13px out while the other five
+measured 0. I had driven the page through the Playwright MCP browser, which does
+NOT set reduced motion, so `animateIn`'s transform was still on the elements I
+was measuring. A pass went into structural experiments — `flow-root`,
+`inline-flex`, `items-baseline` on the button, dropping its padding — all of
+them measuring an animation. The smoke suite runs reduced-motion, measured the
+settled page, and reported 0 for that row from the first run; it failed my nudge
+with "Frequently Asked Questions is 13px off", which is how the nudge was
+caught. Measure geometry in the state the suite measures, or the number is
+fiction.
+
+The other trap on the same afternoon: the first run of the new spec failed at
+13px against code that already had the nudge removed, because Playwright's
+`reuseExistingServer` picked up a stale vite on :5173 left by another worktree
+and served it the wrong build. `reference_smoke_stale_dev_server` says exactly
+this, and it still cost a cycle.
+
+`tests/smoke/rail-baseline.spec.ts` measures both pages at 1200 and 1512 with a
+zero-height inline-block marker, which sits on the line's baseline; the line
+box's own edges would fold in half-leading, the quantity that differs. Proven
+red three ways: without `lg:items-baseline` (nothing measured, which the
+row-count assertion catches), with the 13px nudge, and with the CTA changes
+reverted (-39px).
+
+**Housekeeping.** The 13 worktrees under `.worktrees/` are gone; nine held
+nothing unlanded, and the branches of the other three (`chore/form-replies-types`
+#199, `feat/report-override-apply` 7 commits, `design/report-by-control` 14
+commits) are on origin with no PR for the last two. A journal entry from 09-15
+about the Boise promotion turned out to exist only in a local worktree, never
+pushed — it landed as #211.

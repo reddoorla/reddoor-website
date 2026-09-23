@@ -1,0 +1,1826 @@
+{
+  "url": "https://acme.example/",
+  "businessName": "Acme Roofing",
+  "llmAuth": "api",
+  "generatedAt": "2026-09-02T09:00:00.000Z",
+  "scores": {
+    "findability": 90,
+    "readability": 89,
+    "answers": 42,
+    "aiVisibility": 100
+  },
+  "crawl": {
+    "ok": true,
+    "data": {
+      "origin": "https://acme.example",
+      "robotsTxt": "User-agent: *\nAllow: /\n",
+      "agentAccess": [
+        {
+          "agent": "GPTBot",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        },
+        {
+          "agent": "OAI-SearchBot",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        },
+        {
+          "agent": "ClaudeBot",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        },
+        {
+          "agent": "PerplexityBot",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        },
+        {
+          "agent": "Google-Extended",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        },
+        {
+          "agent": "CCBot",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        },
+        {
+          "agent": "Googlebot",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        },
+        {
+          "agent": "Bingbot",
+          "allowed": true,
+          "matchedRule": "User-agent: * → Allow: /"
+        }
+      ],
+      "sitemap": {
+        "present": false,
+        "urlCount": 0,
+        "sample": [],
+        "truncated": false
+      },
+      "llmsTxt": {
+        "present": false,
+        "firstLine": null
+      },
+      "sidecarErrors": {
+        "robots": null,
+        "llms": null,
+        "sitemap": null
+      },
+      "homeHeaders": {
+        "content-type": "text/html"
+      },
+      "pages": [
+        {
+          "url": "https://acme.example/",
+          "status": 200,
+          "raw": {
+            "title": "Acme Roofing — Commercial Roof Repair in Boise, Idaho",
+            "metaDescription": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+            "canonical": "https://acme.example/",
+            "social": {
+              "og:title": "Acme Roofing",
+              "og:image": "https://acme.example/og.jpg",
+              "twitter:card": "summary_large_image"
+            },
+            "headings": [
+              {
+                "level": 1,
+                "text": "Commercial roof repair in Boise"
+              },
+              {
+                "level": 2,
+                "text": "What it costs"
+              }
+            ],
+            "jsonLd": [
+              "\n      {\n        \"@context\": \"https://schema.org\",\n        \"@type\": \"LocalBusiness\",\n        \"name\": \"Acme Roofing\",\n        \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" }\n      }\n    "
+            ],
+            "images": {
+              "total": 2,
+              "withAlt": 1
+            },
+            "hasViewportMeta": true,
+            "text": "Services About Services again Facebook Commercial roof repair in Boise We repair flat commercial roofs across the Treasure Valley, usually within two business days. What it costs Most repairs run between $1,200 and $8,000 depending on membrane type.",
+            "anchors": [
+              {
+                "href": "/services",
+                "text": "Services",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/about",
+                "text": "About",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/services",
+                "text": "Services again",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "https://facebook.example/acme",
+                "text": "Facebook",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              }
+            ],
+            "anchorCount": 4,
+            "imageSrcs": ["/roof.jpg", "/spacer.gif"],
+            "forms": [],
+            "metas": {
+              "charset": "utf-8",
+              "description": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+              "viewport": "width=device-width, initial-scale=1"
+            },
+            "links": [
+              {
+                "rel": "canonical",
+                "href": "https://acme.example/",
+                "hreflang": "",
+                "type": ""
+              }
+            ],
+            "scriptSrcs": [],
+            "inlineScriptUrls": [],
+            "scriptCount": 0,
+            "dataText": "{ \"@context\": \"https://schema.org\", \"@type\": \"LocalBusiness\", \"name\": \"Acme Roofing\", \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" } }"
+          },
+          "rendered": {
+            "title": "Acme Roofing — Commercial Roof Repair in Boise, Idaho",
+            "metaDescription": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+            "canonical": "https://acme.example/",
+            "social": {
+              "og:title": "Acme Roofing",
+              "og:image": "https://acme.example/og.jpg",
+              "twitter:card": "summary_large_image"
+            },
+            "headings": [
+              {
+                "level": 1,
+                "text": "Commercial roof repair in Boise"
+              },
+              {
+                "level": 2,
+                "text": "What it costs"
+              }
+            ],
+            "jsonLd": [
+              "\n      {\n        \"@context\": \"https://schema.org\",\n        \"@type\": \"LocalBusiness\",\n        \"name\": \"Acme Roofing\",\n        \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" }\n      }\n    "
+            ],
+            "images": {
+              "total": 2,
+              "withAlt": 1
+            },
+            "hasViewportMeta": true,
+            "text": "Services About Services again Facebook Commercial roof repair in Boise We repair flat commercial roofs across the Treasure Valley, usually within two business days. What it costs Most repairs run between $1,200 and $8,000 depending on membrane type.",
+            "anchors": [
+              {
+                "href": "/services",
+                "text": "Services",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/about",
+                "text": "About",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/services",
+                "text": "Services again",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "https://facebook.example/acme",
+                "text": "Facebook",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              }
+            ],
+            "anchorCount": 4,
+            "imageSrcs": ["/roof.jpg", "/spacer.gif"],
+            "forms": [],
+            "metas": {
+              "charset": "utf-8",
+              "description": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+              "viewport": "width=device-width, initial-scale=1"
+            },
+            "links": [
+              {
+                "rel": "canonical",
+                "href": "https://acme.example/",
+                "hreflang": "",
+                "type": ""
+              }
+            ],
+            "scriptSrcs": [],
+            "inlineScriptUrls": [],
+            "scriptCount": 0,
+            "dataText": "{ \"@context\": \"https://schema.org\", \"@type\": \"LocalBusiness\", \"name\": \"Acme Roofing\", \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" } }"
+          },
+          "error": null,
+          "axe": null,
+          "vitals": null
+        },
+        {
+          "url": "https://acme.example/services",
+          "status": 200,
+          "raw": {
+            "title": "Acme Roofing — Commercial Roof Repair in Boise, Idaho",
+            "metaDescription": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+            "canonical": "https://acme.example/",
+            "social": {
+              "og:title": "Acme Roofing",
+              "og:image": "https://acme.example/og.jpg",
+              "twitter:card": "summary_large_image"
+            },
+            "headings": [
+              {
+                "level": 1,
+                "text": "Commercial roof repair in Boise"
+              },
+              {
+                "level": 2,
+                "text": "What it costs"
+              }
+            ],
+            "jsonLd": [
+              "\n      {\n        \"@context\": \"https://schema.org\",\n        \"@type\": \"LocalBusiness\",\n        \"name\": \"Acme Roofing\",\n        \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" }\n      }\n    "
+            ],
+            "images": {
+              "total": 2,
+              "withAlt": 1
+            },
+            "hasViewportMeta": true,
+            "text": "Services About Services again Facebook Commercial roof repair in Boise We repair flat commercial roofs across the Treasure Valley, usually within two business days. What it costs Most repairs run between $1,200 and $8,000 depending on membrane type.",
+            "anchors": [
+              {
+                "href": "/services",
+                "text": "Services",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/about",
+                "text": "About",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/services",
+                "text": "Services again",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "https://facebook.example/acme",
+                "text": "Facebook",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              }
+            ],
+            "anchorCount": 4,
+            "imageSrcs": ["/roof.jpg", "/spacer.gif"],
+            "forms": [],
+            "metas": {
+              "charset": "utf-8",
+              "description": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+              "viewport": "width=device-width, initial-scale=1"
+            },
+            "links": [
+              {
+                "rel": "canonical",
+                "href": "https://acme.example/",
+                "hreflang": "",
+                "type": ""
+              }
+            ],
+            "scriptSrcs": [],
+            "inlineScriptUrls": [],
+            "scriptCount": 0,
+            "dataText": "{ \"@context\": \"https://schema.org\", \"@type\": \"LocalBusiness\", \"name\": \"Acme Roofing\", \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" } }"
+          },
+          "rendered": {
+            "title": "Acme Roofing — Commercial Roof Repair in Boise, Idaho",
+            "metaDescription": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+            "canonical": "https://acme.example/",
+            "social": {
+              "og:title": "Acme Roofing",
+              "og:image": "https://acme.example/og.jpg",
+              "twitter:card": "summary_large_image"
+            },
+            "headings": [
+              {
+                "level": 1,
+                "text": "Commercial roof repair in Boise"
+              },
+              {
+                "level": 2,
+                "text": "What it costs"
+              }
+            ],
+            "jsonLd": [
+              "\n      {\n        \"@context\": \"https://schema.org\",\n        \"@type\": \"LocalBusiness\",\n        \"name\": \"Acme Roofing\",\n        \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" }\n      }\n    "
+            ],
+            "images": {
+              "total": 2,
+              "withAlt": 1
+            },
+            "hasViewportMeta": true,
+            "text": "Services About Services again Facebook Commercial roof repair in Boise We repair flat commercial roofs across the Treasure Valley, usually within two business days. What it costs Most repairs run between $1,200 and $8,000 depending on membrane type.",
+            "anchors": [
+              {
+                "href": "/services",
+                "text": "Services",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/about",
+                "text": "About",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/services",
+                "text": "Services again",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "https://facebook.example/acme",
+                "text": "Facebook",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              }
+            ],
+            "anchorCount": 4,
+            "imageSrcs": ["/roof.jpg", "/spacer.gif"],
+            "forms": [],
+            "metas": {
+              "charset": "utf-8",
+              "description": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+              "viewport": "width=device-width, initial-scale=1"
+            },
+            "links": [
+              {
+                "rel": "canonical",
+                "href": "https://acme.example/",
+                "hreflang": "",
+                "type": ""
+              }
+            ],
+            "scriptSrcs": [],
+            "inlineScriptUrls": [],
+            "scriptCount": 0,
+            "dataText": "{ \"@context\": \"https://schema.org\", \"@type\": \"LocalBusiness\", \"name\": \"Acme Roofing\", \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" } }"
+          },
+          "error": null,
+          "axe": null,
+          "vitals": null
+        },
+        {
+          "url": "https://acme.example/about",
+          "status": 200,
+          "raw": {
+            "title": "Acme Roofing — Commercial Roof Repair in Boise, Idaho",
+            "metaDescription": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+            "canonical": "https://acme.example/",
+            "social": {
+              "og:title": "Acme Roofing",
+              "og:image": "https://acme.example/og.jpg",
+              "twitter:card": "summary_large_image"
+            },
+            "headings": [
+              {
+                "level": 1,
+                "text": "Commercial roof repair in Boise"
+              },
+              {
+                "level": 2,
+                "text": "What it costs"
+              }
+            ],
+            "jsonLd": [
+              "\n      {\n        \"@context\": \"https://schema.org\",\n        \"@type\": \"LocalBusiness\",\n        \"name\": \"Acme Roofing\",\n        \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" }\n      }\n    "
+            ],
+            "images": {
+              "total": 2,
+              "withAlt": 1
+            },
+            "hasViewportMeta": true,
+            "text": "Services About Services again Facebook Commercial roof repair in Boise We repair flat commercial roofs across the Treasure Valley, usually within two business days. What it costs Most repairs run between $1,200 and $8,000 depending on membrane type.",
+            "anchors": [
+              {
+                "href": "/services",
+                "text": "Services",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/about",
+                "text": "About",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/services",
+                "text": "Services again",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "https://facebook.example/acme",
+                "text": "Facebook",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              }
+            ],
+            "anchorCount": 4,
+            "imageSrcs": ["/roof.jpg", "/spacer.gif"],
+            "forms": [],
+            "metas": {
+              "charset": "utf-8",
+              "description": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+              "viewport": "width=device-width, initial-scale=1"
+            },
+            "links": [
+              {
+                "rel": "canonical",
+                "href": "https://acme.example/",
+                "hreflang": "",
+                "type": ""
+              }
+            ],
+            "scriptSrcs": [],
+            "inlineScriptUrls": [],
+            "scriptCount": 0,
+            "dataText": "{ \"@context\": \"https://schema.org\", \"@type\": \"LocalBusiness\", \"name\": \"Acme Roofing\", \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" } }"
+          },
+          "rendered": {
+            "title": "Acme Roofing — Commercial Roof Repair in Boise, Idaho",
+            "metaDescription": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+            "canonical": "https://acme.example/",
+            "social": {
+              "og:title": "Acme Roofing",
+              "og:image": "https://acme.example/og.jpg",
+              "twitter:card": "summary_large_image"
+            },
+            "headings": [
+              {
+                "level": 1,
+                "text": "Commercial roof repair in Boise"
+              },
+              {
+                "level": 2,
+                "text": "What it costs"
+              }
+            ],
+            "jsonLd": [
+              "\n      {\n        \"@context\": \"https://schema.org\",\n        \"@type\": \"LocalBusiness\",\n        \"name\": \"Acme Roofing\",\n        \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" }\n      }\n    "
+            ],
+            "images": {
+              "total": 2,
+              "withAlt": 1
+            },
+            "hasViewportMeta": true,
+            "text": "Services About Services again Facebook Commercial roof repair in Boise We repair flat commercial roofs across the Treasure Valley, usually within two business days. What it costs Most repairs run between $1,200 and $8,000 depending on membrane type.",
+            "anchors": [
+              {
+                "href": "/services",
+                "text": "Services",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/about",
+                "text": "About",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "/services",
+                "text": "Services again",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              },
+              {
+                "href": "https://facebook.example/acme",
+                "text": "Facebook",
+                "rel": "",
+                "target": "",
+                "ariaLabel": ""
+              }
+            ],
+            "anchorCount": 4,
+            "imageSrcs": ["/roof.jpg", "/spacer.gif"],
+            "forms": [],
+            "metas": {
+              "charset": "utf-8",
+              "description": "Acme Roofing repairs and replaces commercial roofs across the Treasure Valley.",
+              "viewport": "width=device-width, initial-scale=1"
+            },
+            "links": [
+              {
+                "rel": "canonical",
+                "href": "https://acme.example/",
+                "hreflang": "",
+                "type": ""
+              }
+            ],
+            "scriptSrcs": [],
+            "inlineScriptUrls": [],
+            "scriptCount": 0,
+            "dataText": "{ \"@context\": \"https://schema.org\", \"@type\": \"LocalBusiness\", \"name\": \"Acme Roofing\", \"address\": { \"@type\": \"PostalAddress\", \"addressLocality\": \"Boise\", \"addressRegion\": \"ID\" } }"
+          },
+          "error": null,
+          "axe": null,
+          "vitals": null
+        }
+      ]
+    }
+  },
+  "checks": {
+    "ok": true,
+    "data": {
+      "crawlerAccessMeasured": true,
+      "crawlerAccess": {
+        "blockedAi": [],
+        "allowedAi": [
+          "GPTBot",
+          "OAI-SearchBot",
+          "ClaudeBot",
+          "PerplexityBot",
+          "Google-Extended",
+          "CCBot"
+        ],
+        "blockedClassical": []
+      },
+      "jsDependence": {
+        "avgMissing": 0,
+        "perPage": [
+          {
+            "url": "https://acme.example/",
+            "missing": 0,
+            "renderedWords": 31
+          },
+          {
+            "url": "https://acme.example/services",
+            "missing": 0,
+            "renderedWords": 31
+          },
+          {
+            "url": "https://acme.example/about",
+            "missing": 0,
+            "renderedWords": 31
+          }
+        ]
+      },
+      "schema": {
+        "typesFound": ["LocalBusiness", "PostalAddress"],
+        "missingExpected": ["Service", "FAQPage", "Article"],
+        "invalidBlocks": 0
+      },
+      "meta": {
+        "pageCount": 3,
+        "missingTitle": 0,
+        "missingDescription": 0,
+        "missingCanonical": 0,
+        "missingSocial": 0,
+        "pagesWithoutExtract": 0
+      },
+      "headings": {
+        "pagesWithoutH1": 0,
+        "pagesWithLevelSkips": 0
+      },
+      "securityHeaders": {
+        "present": [],
+        "missing": [
+          "strict-transport-security",
+          "content-security-policy",
+          "x-content-type-options",
+          "x-frame-options",
+          "referrer-policy",
+          "permissions-policy"
+        ]
+      },
+      "sitemapMeasured": true,
+      "sitemapPresent": false,
+      "llmsTxtMeasured": true,
+      "llmsTxtPresent": false,
+      "viewportOk": true,
+      "journey": {
+        "affordances": [],
+        "pages": [
+          {
+            "url": "https://acme.example/",
+            "clicksToContact": null,
+            "internalLinks": 2
+          },
+          {
+            "url": "https://acme.example/services",
+            "clicksToContact": null,
+            "internalLinks": 1
+          },
+          {
+            "url": "https://acme.example/about",
+            "clicksToContact": null,
+            "internalLinks": 1
+          }
+        ],
+        "deadEnds": [
+          "https://acme.example/",
+          "https://acme.example/services",
+          "https://acme.example/about"
+        ],
+        "worstClicksToContact": null,
+        "pagesExamined": 3,
+        "anchorsMeasured": true
+      },
+      "consistency": {
+        "phones": [],
+        "emails": [],
+        "copyrightYears": [],
+        "newestCopyrightYear": null,
+        "pagesOffTemplate": [],
+        "sharedNavLinks": 3,
+        "pagesExamined": 3
+      }
+    }
+  },
+  "lighthouse": {
+    "ok": true,
+    "data": {
+      "performance": 82,
+      "accessibility": 94,
+      "bestPractices": 75,
+      "seo": 100,
+      "summary": "lighthouse: all categories passing",
+      "status": "pass"
+    }
+  },
+  "analyze": {
+    "ok": true,
+    "data": {
+      "businessName": "Acme Roofing",
+      "business": "Acme Roofing repairs and replaces commercial roofs in Boise, Idaho.",
+      "entityClarity": {
+        "score": 70,
+        "missing": []
+      },
+      "primaryGoal": "enquire",
+      "buyerQuestions": [
+        {
+          "question": "What does this cost?",
+          "answered": "yes",
+          "quotable": true,
+          "page": "https://acme.example/",
+          "evidence": "We repair flat commercial roofs across the Treasure Valley"
+        },
+        {
+          "question": "Is this for someone like me?",
+          "answered": "partial",
+          "quotable": false,
+          "page": "https://acme.example/",
+          "evidence": "We repair flat commercial roofs across the Treasure Valley"
+        },
+        {
+          "question": "Why should I believe you can do this?",
+          "answered": "no",
+          "quotable": false,
+          "page": null,
+          "evidence": null
+        },
+        {
+          "question": "Who will I actually be dealing with?",
+          "answered": "no",
+          "quotable": false,
+          "page": null,
+          "evidence": null
+        },
+        {
+          "question": "Where are you, and do you cover me?",
+          "answered": "yes",
+          "quotable": true,
+          "page": "https://acme.example/",
+          "evidence": "We repair flat commercial roofs across the Treasure Valley"
+        },
+        {
+          "question": "What happens after I get in touch?",
+          "answered": "no",
+          "quotable": false,
+          "page": null,
+          "evidence": null
+        },
+        {
+          "question": "How long does a project like mine take?",
+          "answered": "unknown",
+          "quotable": false,
+          "page": null,
+          "evidence": null
+        },
+        {
+          "question": "How do you work — what are the stages?",
+          "answered": "unknown",
+          "quotable": false,
+          "page": null,
+          "evidence": null
+        },
+        {
+          "question": "Is there a minimum size of project you take on?",
+          "answered": "unknown",
+          "quotable": false,
+          "page": null,
+          "evidence": null
+        },
+        {
+          "question": "What will you need from me?",
+          "answered": "unknown",
+          "quotable": false,
+          "page": null,
+          "evidence": null
+        }
+      ],
+      "categoryQueries": [
+        "commercial roofing contractor Boise",
+        "flat roof repair Idaho",
+        "how much does a commercial roof replacement cost"
+      ],
+      "fixes": [
+        {
+          "title": "A form that asks enough to have a real first conversation",
+          "why": "A name-and-email box produces enquiries you have to qualify by hand. Three or four more fields turn a lead into a briefed conversation.",
+          "impact": "high",
+          "effort": "medium",
+          "tier": "content",
+          "origin": "measured"
+        },
+        {
+          "title": "Some signal of what it costs",
+          "why": "Buyers ask this before making contact, and a site that does not answer it sends them to one that does. A range, a starting point or a worked example is enough.",
+          "impact": "high",
+          "effort": "medium",
+          "tier": "content",
+          "origin": "measured"
+        },
+        {
+          "title": "A route to you from wherever they land",
+          "why": "Search engines and AI answers send people to whichever page answers their question, not to your home page.",
+          "impact": "high",
+          "effort": "low",
+          "tier": "technical",
+          "origin": "measured"
+        },
+        {
+          "title": "Say who the work is for, on the page that sells it",
+          "why": "A buyer cannot tell from the services page whether you take jobs their size.",
+          "impact": "high",
+          "effort": "low",
+          "tier": "content",
+          "origin": "recommendation"
+        }
+      ],
+      "narrative": {
+        "findability": "Every page is reachable and indexed.",
+        "readability": "The pages read plainly and say what the work is.",
+        "answers": "Three of the six questions buyers ask are answered outright."
+      },
+      "questionsSource": "generated",
+      "termsSource": "generated"
+    }
+  },
+  "probes": {
+    "ok": true,
+    "data": {
+      "answers": [
+        {
+          "engine": "claude",
+          "query": "who is Acme Roofing",
+          "kind": "branded",
+          "domainCited": true,
+          "brandMentioned": true,
+          "countedAsVisible": true,
+          "citedDomains": ["yelp.com", "acme.example"],
+          "snippet": "Acme Roofing is a commercial roofer that has served Boise since 1994.",
+          "truncated": false,
+          "fullAnswer": "Acme Roofing is a commercial roofer that has served Boise since 1994.",
+          "askedAt": "2026-09-02T08:58:00.000Z"
+        },
+        {
+          "engine": "claude",
+          "query": "Acme Roofing reviews",
+          "kind": "branded",
+          "domainCited": true,
+          "brandMentioned": true,
+          "countedAsVisible": true,
+          "citedDomains": ["yelp.com", "acme.example"],
+          "snippet": "Acme Roofing is a commercial roofer that has served Boise since 1994.",
+          "truncated": false,
+          "fullAnswer": "Acme Roofing is a commercial roofer that has served Boise since 1994.",
+          "askedAt": "2026-09-02T08:58:00.000Z"
+        },
+        {
+          "engine": "claude",
+          "query": "commercial roofing contractor Boise",
+          "kind": "category",
+          "domainCited": true,
+          "brandMentioned": false,
+          "countedAsVisible": true,
+          "citedDomains": ["yelp.com", "acme.example"],
+          "snippet": "Treasure Valley Roofing and Boise Commercial Roofing are the usual names here.",
+          "truncated": false,
+          "askedAt": "2026-09-02T08:58:00.000Z"
+        },
+        {
+          "engine": "claude",
+          "query": "flat roof repair Idaho",
+          "kind": "category",
+          "domainCited": true,
+          "brandMentioned": false,
+          "countedAsVisible": true,
+          "citedDomains": ["yelp.com", "acme.example"],
+          "snippet": "Treasure Valley Roofing and Boise Commercial Roofing are the usual names here.",
+          "truncated": false,
+          "askedAt": "2026-09-02T08:58:00.000Z"
+        },
+        {
+          "engine": "claude",
+          "query": "how much does a commercial roof replacement cost",
+          "kind": "category",
+          "domainCited": true,
+          "brandMentioned": false,
+          "countedAsVisible": true,
+          "citedDomains": ["yelp.com", "acme.example"],
+          "snippet": "Treasure Valley Roofing and Boise Commercial Roofing are the usual names here.",
+          "truncated": false,
+          "askedAt": "2026-09-02T08:58:00.000Z"
+        }
+      ],
+      "visibilityScore": 100,
+      "brandedRecognized": true,
+      "competitorsSeen": [
+        {
+          "domain": "yelp.com",
+          "count": 5
+        }
+      ],
+      "namesakes": [],
+      "categoryProbes": {
+        "attempted": 3,
+        "answered": 3
+      },
+      "answerSpace": {
+        "answersWithCitations": 3,
+        "queriesAsked": 3,
+        "citationsTotal": 6,
+        "distinctDomains": 2,
+        "topSources": [
+          {
+            "domain": "acme.example",
+            "count": 3,
+            "share": 0.5
+          },
+          {
+            "domain": "yelp.com",
+            "count": 3,
+            "share": 0.5
+          }
+        ],
+        "domainsToHalf": 1,
+        "medianWidthPerAnswer": 2,
+        "ownDomainRank": 1,
+        "ownDomainCount": 3,
+        "topRival": {
+          "domain": "yelp.com",
+          "count": 3,
+          "share": 0.5
+        }
+      }
+    }
+  },
+  "assets": {
+    "ok": true,
+    "data": {
+      "brokenLinks": [],
+      "brokenImages": [],
+      "linksUnverified": {
+        "count": 0,
+        "groups": []
+      },
+      "imagesUnverified": {
+        "count": 0,
+        "groups": []
+      },
+      "heaviestImages": [],
+      "imageBytesMeasured": null,
+      "imagesWithKnownSize": 0,
+      "linksFound": 2,
+      "linksChecked": 2,
+      "imagesFound": 2,
+      "imagesChecked": 2
+    }
+  },
+  "basics": {
+    "ok": true,
+    "data": {
+      "insecureEntry": {
+        "measured": true,
+        "url": "http://acme.example/",
+        "ok": false,
+        "landedOn": "http://acme.example/",
+        "error": null
+      },
+      "hostVariant": {
+        "measured": true,
+        "url": "https://www.acme.example/",
+        "host": "www.acme.example",
+        "ok": true,
+        "landedOn": "https://www.acme.example/",
+        "error": null
+      },
+      "notFound": {
+        "measured": true,
+        "url": "https://acme.example/reddoor-audit-page-that-does-not-exist",
+        "ok": false,
+        "landedOn": "https://acme.example/reddoor-audit-page-that-does-not-exist",
+        "error": null,
+        "status": 200,
+        "linksBackToSite": false
+      },
+      "mixedContent": {
+        "measured": true,
+        "imageUrls": [],
+        "imagesSeen": 6
+      },
+      "altText": {
+        "imagesTotal": 6,
+        "imagesWithAlt": 3,
+        "pagesExamined": 3
+      },
+      "duplicateTitles": [
+        {
+          "title": "Acme Roofing — Commercial Roof Repair in Boise, Idaho",
+          "pages": [
+            "https://acme.example/",
+            "https://acme.example/services",
+            "https://acme.example/about"
+          ]
+        }
+      ],
+      "crawlerReachability": {
+        "measured": true,
+        "browserStatus": 200,
+        "agents": [
+          {
+            "agent": "GPTBot",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "OAI-SearchBot",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "ChatGPT-User",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "ClaudeBot",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "Claude-SearchBot",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "Claude-User",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "PerplexityBot",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "Perplexity-User",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          },
+          {
+            "agent": "CCBot",
+            "status": 200,
+            "blocked": false,
+            "measured": true,
+            "unverifiedReason": null,
+            "error": null
+          }
+        ],
+        "blocked": [],
+        "unverified": []
+      }
+    }
+  },
+  "stack": {
+    "ok": true,
+    "data": {
+      "measured": true,
+      "items": [],
+      "pagesExamined": 3,
+      "headersExamined": true
+    }
+  },
+  "siteChecks": {
+    "ok": true,
+    "data": [
+      {
+        "key": "dead-links",
+        "label": "Links that go nowhere",
+        "status": "pass",
+        "evidence": "none among the 12 links we read",
+        "why": "A link that goes nowhere reads as a broken site to the person who clicks it.",
+        "scope": "quick"
+      },
+      {
+        "key": "staging-links",
+        "label": "Links pointing at a development address",
+        "status": "pass",
+        "evidence": "none",
+        "why": "A link to localhost or a staging host takes the visitor to a browser error page with your name on it.",
+        "scope": "quick"
+      },
+      {
+        "key": "insecure-links",
+        "label": "Links back to your own http address",
+        "status": "pass",
+        "evidence": "every link to your own pages stays on https",
+        "why": "A link to the http:// spelling of your own address makes the visitor ask for the page in the clear before your redirect sends them back, and costs them a round trip to do it.",
+        "scope": "quick"
+      },
+      {
+        "key": "link-text",
+        "label": "Links that say where they go",
+        "status": "pass",
+        "evidence": "all 12 links we read name their destination",
+        "why": "“Read more” tells a visitor nothing, and with no aria-label behind it, it is the whole label a screen reader announces when it lists the links on your page.",
+        "scope": "content"
+      },
+      {
+        "key": "tel-dialable",
+        "label": "Phone links a phone can dial",
+        "status": "not-applicable",
+        "evidence": "no tel: links on the pages we read",
+        "why": "A tel: link that is not a number does nothing at all when it is tapped.",
+        "scope": "quick"
+      },
+      {
+        "key": "social-placeholders",
+        "label": "Social links that go to your accounts",
+        "status": "pass",
+        "evidence": "none left unedited",
+        "why": "An unedited theme placeholder sends a visitor to a login page or to somebody else entirely.",
+        "scope": "quick"
+      },
+      {
+        "key": "nav-consistency",
+        "label": "Navigation that agrees with itself",
+        "status": "pass",
+        "evidence": "4 shared menu items go to the same place on every page",
+        "why": "The same menu item leading to two different pages is the kind of confusion visitors blame on you rather than on the menu.",
+        "scope": "quick"
+      },
+      {
+        "key": "lorem",
+        "label": "Placeholder Latin left in the copy",
+        "status": "pass",
+        "evidence": "none across the 3 pages we read",
+        "why": "Lorem ipsum on a live page tells a visitor the site was never finished.",
+        "scope": "quick"
+      },
+      {
+        "key": "placeholder-copy",
+        "label": "Theme placeholder text left in the copy",
+        "status": "pass",
+        "evidence": "none across the 3 pages we read",
+        "why": "“Your text here” on a live page reads as a site nobody has looked at since it was built.",
+        "scope": "quick"
+      },
+      {
+        "key": "template-leakage",
+        "label": "Template code showing as text",
+        "status": "pass",
+        "evidence": "none across the 3 pages we read",
+        "why": "A visitor sees the machinery instead of the sentence, which reads as broken rather than unfinished.",
+        "scope": "quick"
+      },
+      {
+        "key": "mojibake",
+        "label": "Text with broken characters",
+        "status": "pass",
+        "evidence": "none across the 3 pages we read",
+        "why": "Apostrophes and quotes rendering as â€™ is the most visible sign of a migration nobody checked, and it is a one-line fix at the source.",
+        "scope": "quick"
+      },
+      {
+        "key": "under-construction",
+        "label": "Pages that say they are unfinished",
+        "status": "pass",
+        "evidence": "no page announces itself unfinished, across the 3 we read",
+        "why": "A live page announcing it is coming soon is a page better unlinked until it is not.",
+        "scope": "content"
+      },
+      {
+        "key": "name-in-title",
+        "label": "Your name in the page title",
+        "status": "pass",
+        "evidence": "“Acme Roofing — Commercial Roof Repair in Boise, Idaho”",
+        "why": "The title is the line in a search result, a browser tab and a shared link. Without your name in it, all three are anonymous.",
+        "scope": "quick"
+      },
+      {
+        "key": "h1-present",
+        "label": "A headline on every page",
+        "status": "pass",
+        "evidence": "all 1 pages carry one",
+        "why": "The h1 is the page's headline. A page without one gives a reader — and an assistant looking for something to quote — nothing that says what the page is about.",
+        "scope": "content"
+      },
+      {
+        "key": "h1-one-headline",
+        "label": "One headline, not a list of them",
+        "status": "pass",
+        "evidence": "no page marks more than two of its lines as the headline, across the 1 we read",
+        "why": "When everything on the page is marked as the page's headline, none of it is, and whatever gets quoted back is whichever one came first in the markup.",
+        "scope": "content"
+      },
+      {
+        "key": "h1-not-name",
+        "label": "Headlines that say what the page is about",
+        "status": "pass",
+        "evidence": "every headline describes its page",
+        "why": "A headline that is only your company name describes none of the page below it.",
+        "scope": "content"
+      },
+      {
+        "key": "h1-distinct",
+        "label": "A different headline on each page",
+        "status": "not-applicable",
+        "evidence": "only one page was read, so there is nothing to compare it with",
+        "why": "Identical headlines make every page look like the same page, to a reader scanning tabs and to a search engine choosing which one to show.",
+        "scope": "content"
+      },
+      {
+        "key": "schema-org-complete",
+        "label": "Your business details in structured data",
+        "status": "fail",
+        "evidence": "your LocalBusiness block is missing url, logo",
+        "why": "This is the block an assistant reads to learn who you are. Half-filled, it answers half the question and the rest gets taken from a directory you do not control.",
+        "scope": "content"
+      },
+      {
+        "key": "schema-local-complete",
+        "label": "Your address and hours in structured data",
+        "status": "fail",
+        "evidence": "missing telephone, openingHours",
+        "why": "A local business block without an address, a phone or opening hours is the one an assistant will fill in from elsewhere.",
+        "scope": "content"
+      },
+      {
+        "key": "schema-url-matches",
+        "label": "Structured data pointing at this site",
+        "status": "not-applicable",
+        "evidence": "no such block in your structured data",
+        "why": "A structured-data url pointing at a domain you no longer use tells every assistant that reads it to go and look somewhere else.",
+        "scope": "content"
+      },
+      {
+        "key": "schema-phone-matches",
+        "label": "One phone number, everywhere",
+        "status": "not-applicable",
+        "evidence": "no telephone in your structured data",
+        "why": "When the number in your structured data is not the number on your page, an assistant may quote either one.",
+        "scope": "quick"
+      },
+      {
+        "key": "schema-self-review",
+        "label": "Ratings you publish about yourself",
+        "status": "not-applicable",
+        "evidence": "no review or rating markup on this site",
+        "why": "Google does not show star ratings a business publishes about itself, so the markup does nothing but sit there.",
+        "scope": "content"
+      },
+      {
+        "key": "meta-noindex",
+        "label": "Pages search engines are allowed to list",
+        "status": "pass",
+        "evidence": "none of the 3 pages we read asks to be hidden",
+        "why": "This one line tells every search engine and assistant to leave the page out of their results entirely. It is almost always left over from a staging site, and nothing on the page looks wrong.",
+        "scope": "quick"
+      },
+      {
+        "key": "meta-nofollow",
+        "label": "Links search engines are allowed to follow",
+        "status": "pass",
+        "evidence": "no page-wide nofollow",
+        "why": "It tells search engines not to follow any link on the page, so nothing you link to gets credit from it.",
+        "scope": "quick"
+      },
+      {
+        "key": "meta-charset",
+        "label": "A declared character set",
+        "status": "pass",
+        "evidence": "declared on all 3 pages",
+        "why": "Without a declared character set the browser guesses, and a wrong guess is what turns apostrophes into â€™.",
+        "scope": "quick"
+      },
+      {
+        "key": "title-length",
+        "label": "Titles that survive a search result",
+        "status": "pass",
+        "evidence": "all 1 are between 10 and 70 characters",
+        "why": "A title that is too long is cut off mid-word in the result, and one that is too short wastes the most valuable line you get.",
+        "scope": "content"
+      },
+      {
+        "key": "description-length",
+        "label": "Descriptions that survive a search result",
+        "status": "pass",
+        "evidence": "all 1 are between 40 and 200 characters",
+        "why": "The description is the sentence under your link. Too long and it is truncated; too short and the engine writes its own.",
+        "scope": "content"
+      },
+      {
+        "key": "og-image-absolute",
+        "label": "A share image with a full web address",
+        "status": "pass",
+        "evidence": "https://acme.example/og.jpg",
+        "why": "A relative og:image renders no card at all on Slack, LinkedIn or iMessage — the link arrives as bare text.",
+        "scope": "quick"
+      },
+      {
+        "key": "duplicate-descriptions",
+        "label": "A different description on each page",
+        "status": "not-applicable",
+        "evidence": "fewer than two pages carry a description, so there is nothing to compare",
+        "why": "Identical descriptions make every page look like the same page in a search result, and the engine usually replaces them with a sentence of its own choosing.",
+        "scope": "content"
+      },
+      {
+        "key": "favicon-declared",
+        "label": "An icon for the browser tab",
+        "status": "not-applicable",
+        "evidence": "no icon is declared, so we fetched /favicon.ico instead — reported below",
+        "why": "Without one the browser shows a blank page icon in the tab and the bookmark, which is the smallest possible thing to fix and the most often seen.",
+        "scope": "quick"
+      },
+      {
+        "key": "canonical-self",
+        "label": "Pages that point at themselves",
+        "status": "pass",
+        "evidence": "1 of 3 point at their own page; the other 2 name a page they duplicate",
+        "why": "A canonical naming another page tells search engines to index that page instead of this one. That is right for a genuine duplicate, and the fastest way to remove real pages from search results when it is not.",
+        "scope": "structural"
+      },
+      {
+        "key": "canonical-origin",
+        "label": "Canonicals that stay on your domain",
+        "status": "pass",
+        "evidence": "every canonical stays on this domain",
+        "why": "A canonical on another domain hands every page's search ranking to that domain. It is usually a staging host or a site they used to own.",
+        "scope": "structural"
+      },
+      {
+        "key": "hreflang-self",
+        "label": "Language alternates that name themselves",
+        "status": "not-applicable",
+        "evidence": "this site publishes no language alternates",
+        "why": "An hreflang set that does not name itself is ignored, so the translated pages compete with each other instead of being offered to the right reader.",
+        "scope": "content"
+      },
+      {
+        "key": "form-field-types",
+        "label": "Fields typed for a phone keyboard",
+        "status": "not-applicable",
+        "evidence": "no enquiry form on the pages we read, which is reported separately",
+        "why": "An email field typed as plain text gives a phone the ordinary keyboard, so the visitor hunts for the @ at exactly the moment they had decided to write to you.",
+        "scope": "content"
+      },
+      {
+        "key": "form-autocomplete",
+        "label": "Fields a phone can fill in one tap",
+        "status": "not-applicable",
+        "evidence": "no enquiry form on the pages we read, which is reported separately",
+        "why": "With these, a phone offers to fill the whole form in one tap. Without them it does not offer at all.",
+        "scope": "content"
+      },
+      {
+        "key": "form-method",
+        "label": "A form that does not put answers in the URL",
+        "status": "not-applicable",
+        "evidence": "no enquiry form on the pages we read, which is reported separately",
+        "why": "A form that submits with GET puts everything the visitor typed into the address bar, and from there into your server logs and their browser history.",
+        "scope": "quick"
+      },
+      {
+        "key": "form-action",
+        "label": "A form that posts somewhere we recognise",
+        "status": "not-applicable",
+        "evidence": "no enquiry form on the pages we read, which is reported separately",
+        "why": "A form posting to an endpoint nobody owns any more looks like it worked and silently goes nowhere.",
+        "scope": "structural"
+      },
+      {
+        "key": "form-required",
+        "label": "Fields marked as required",
+        "status": "not-applicable",
+        "evidence": "no enquiry form on the pages we read, which is reported separately",
+        "why": "Without it the browser cannot stop a half-filled form being sent, and the visitor finds out something was missing only if somebody tells them.",
+        "scope": "quick"
+      },
+      {
+        "key": "console-errors",
+        "label": "Pages without JavaScript errors",
+        "status": "unmeasured",
+        "evidence": null,
+        "why": "A script that throws stops running, so whatever it was doing — a menu, a form, a gallery — silently stops working for every visitor from that point on.",
+        "scope": "structural"
+      },
+      {
+        "key": "failed-requests",
+        "label": "Files the page asks for and gets",
+        "status": "unmeasured",
+        "evidence": null,
+        "why": "A file the page asks for and does not get is a missing image, an unstyled section or a feature that does nothing.",
+        "scope": "quick"
+      },
+      {
+        "key": "mobile-overflow",
+        "label": "Pages that fit a phone screen",
+        "status": "unmeasured",
+        "evidence": null,
+        "why": "Something on the page is wider than a phone screen, so the whole page scrolls sideways. Most of your visitors are on a phone, and this is the first thing they will notice.",
+        "scope": "structural"
+      },
+      {
+        "key": "tiny-text",
+        "label": "Text big enough to read",
+        "status": "unmeasured",
+        "evidence": null,
+        "why": "Text under twelve pixels is uncomfortable on a desktop and unreadable on a phone without pinching.",
+        "scope": "content"
+      },
+      {
+        "key": "oversized-images",
+        "label": "Images sized for where they are shown",
+        "status": "unmeasured",
+        "evidence": null,
+        "why": "These images are downloaded at several times the size they are shown at, so every visitor pays for pixels they never see.",
+        "scope": "quick"
+      },
+      {
+        "key": "dns-spf",
+        "label": "An SPF record, so your email is trusted",
+        "status": "pass",
+        "evidence": "v=spf1 include:_spf.example -all",
+        "why": "Without it, anyone can send email that appears to come from your address, and your own mail is more likely to be filed as spam.",
+        "scope": "quick"
+      },
+      {
+        "key": "dns-dmarc",
+        "label": "A DMARC record, so SPF is enforced",
+        "status": "fail",
+        "evidence": "no record at _dmarc.acme.example",
+        "why": "SPF says who may send as you. DMARC is what tells the receiving mail server to act on that, and to report attempts to you. Without it the first one is advisory.",
+        "scope": "quick"
+      },
+      {
+        "key": "dns-mx",
+        "label": "A mail server for your domain",
+        "status": "pass",
+        "evidence": "mx.acme.example",
+        "why": "There is no mail server listed for your domain, so email sent to any address at it is rejected.",
+        "scope": "structural"
+      },
+      {
+        "key": "dns-contact-mx",
+        "label": "An email address that can receive mail",
+        "status": "not-applicable",
+        "evidence": "the addresses you publish are on your own domain, which is checked above",
+        "why": "The address you publish is on a domain with no mail server, so anything sent to it bounces.",
+        "scope": "quick"
+      },
+      {
+        "key": "domain-expiry",
+        "label": "A domain registration with room to spare",
+        "status": "unmeasured",
+        "evidence": null,
+        "why": "Registration dates are public; whether it renews automatically is not, so this is one to confirm at your registrar rather than a fault we can see. When a registration does lapse the site and the email stop together, usually on a weekend, and getting them back is neither quick nor certain.",
+        "scope": "quick"
+      },
+      {
+        "key": "favicon-served",
+        "label": "A favicon that actually loads",
+        "status": "fail",
+        "evidence": "no icon at /favicon.ico",
+        "why": "The icon in the browser tab and the bookmark bar. When the file is missing the tab shows a blank sheet, which is the difference between a site that looks maintained and one that does not.",
+        "scope": "quick"
+      },
+      {
+        "key": "https-upgrade",
+        "label": "http:// reaching https:// without a detour",
+        "status": "fail",
+        "evidence": "http:// does not end up on https://",
+        "why": "Somebody typing your address without https, or following an old link, should land on the secure version in one step. Every extra redirect is delay on the first impression, and a chain that ends on http means the page is served in the clear.",
+        "scope": "structural"
+      },
+      {
+        "key": "home-stable",
+        "label": "A homepage that answers the same way twice",
+        "status": "pass",
+        "evidence": "two requests, both 200",
+        "why": "Two requests seconds apart got different answers, which is what an overloaded or half-deployed server looks like from outside. Some visitors are seeing the bad one.",
+        "scope": "structural"
+      },
+      {
+        "key": "trailing-slash",
+        "label": "One address per page, slash or no slash",
+        "status": "fail",
+        "evidence": "/services — both forms answer with no canonical to settle which is the real one",
+        "why": "When /about and /about/ both answer with the same page and neither says which is real, search engines index both and split the credit between them.",
+        "scope": "structural"
+      },
+      {
+        "key": "index-alias",
+        "label": "A homepage that lives at one address",
+        "status": "fail",
+        "evidence": "/index.html — it answers with the homepage's content and does not point back at it",
+        "why": "Your homepage answers at two addresses. Links, shares and search results scatter across both instead of accumulating on one.",
+        "scope": "structural"
+      },
+      {
+        "key": "case-alias",
+        "label": "Paths that do not answer to two spellings",
+        "status": "fail",
+        "evidence": "/Services — it answers as its own page, so the same content has two addresses",
+        "why": "The same page answers at two spellings, so the same content competes with itself in search results.",
+        "scope": "structural"
+      },
+      {
+        "key": "sitemap-urls-live",
+        "label": "A sitemap whose pages still exist",
+        "status": "not-applicable",
+        "evidence": "there is no sitemap to check, which is covered above",
+        "why": "A sitemap is a list you hand to search engines saying 'these pages exist'. Entries that no longer answer waste the crawl budget you were trying to direct.",
+        "scope": "quick"
+      },
+      {
+        "key": "external-links-live",
+        "label": "Outbound links that still work",
+        "status": "pass",
+        "evidence": "the one outbound link answers",
+        "why": "A link on your site that leads nowhere is a dead end for the visitor and a small mark against the page for a search engine.",
+        "scope": "quick"
+      },
+      {
+        "key": "og-image-served",
+        "label": "A share image that loads",
+        "status": "pass",
+        "evidence": "the share image loads",
+        "why": "This is the picture that appears when your page is shared in a message, on LinkedIn, or in a Slack channel. When the file does not load, the share renders as a bare grey box.",
+        "scope": "quick"
+      },
+      {
+        "key": "og-image-size",
+        "label": "A share image big enough to render",
+        "status": "not-applicable",
+        "evidence": "the homepage declares no share image, which is covered above",
+        "why": "A share image under 200 pixels on either edge is either cropped to nothing or dropped entirely by the platform showing it.",
+        "scope": "quick"
+      },
+      {
+        "key": "logo-served",
+        "label": "A logo that loads",
+        "status": "pass",
+        "evidence": "the first image on the homepage loads",
+        "why": "A logo that does not load leaves a broken-image icon at the top of every page, and it is the first thing on the page.",
+        "scope": "quick"
+      },
+      {
+        "key": "redirect-chains",
+        "label": "Internal links that go straight there",
+        "status": "pass",
+        "evidence": "2 internal links, none redirecting twice",
+        "why": "A link that redirects more than once makes every visitor wait through each hop, and search engines pass less credit along a chain than a direct link.",
+        "scope": "quick"
+      },
+      {
+        "key": "form-rejects-empty",
+        "label": "A form that catches an empty submission",
+        "status": "unmeasured",
+        "evidence": "we did not try a form on this run",
+        "why": "Somebody who taps send too early should be told what is missing. A form that submits anyway puts a blank enquiry in your inbox and tells them it worked, so they never follow up and you have nothing to follow up on.",
+        "scope": "quick"
+      },
+      {
+        "key": "form-rejects-bad-email",
+        "label": "A form that catches a mistyped email",
+        "status": "unmeasured",
+        "evidence": "we did not try a form on this run",
+        "why": "A mistyped address is the one mistake that costs you the whole enquiry: the message arrives, and there is no way to answer it. Catching it while the visitor is still on the page is the only chance to fix it.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-strict-transport-security",
+        "label": "Telling browsers to always use https",
+        "status": "fail",
+        "evidence": "no strict-transport-security header",
+        "why": "Without it, the first visit of the day can still be made over plain http before the redirect happens.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-content-security-policy",
+        "label": "A policy for what may run on your pages",
+        "status": "fail",
+        "evidence": "no content-security-policy header",
+        "why": "It is the difference between a compromised script running on your site and being blocked by the browser.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-x-content-type-options",
+        "label": "Stopping browsers guessing file types",
+        "status": "fail",
+        "evidence": "no x-content-type-options header",
+        "why": "One line that prevents a browser treating an uploaded file as something executable.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-x-frame-options",
+        "label": "Stopping other sites framing yours",
+        "status": "fail",
+        "evidence": "no x-frame-options header",
+        "why": "Without it, anyone can put your site inside theirs and collect what visitors type into it.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-permissions-policy",
+        "label": "Declaring what your pages may ask for",
+        "status": "fail",
+        "evidence": "no permissions-policy header",
+        "why": "It limits what code running on your own pages may ask visitors for — including code you did not write, if a dependency is ever compromised.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-referrer-policy",
+        "label": "Not leaking more of your addresses than the browser already does",
+        "status": "not-applicable",
+        "evidence": "no referrer-policy header, so the browser's own default applies — which does not leak the address",
+        "why": "Browsers already trim the page address to your bare domain before handing it to a site a visitor clicks through to. Two values of this header undo that and send the whole address, query string included.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-version-leak",
+        "label": "Not advertising your software versions",
+        "status": "pass",
+        "evidence": "no version numbers in your response headers",
+        "why": "Naming the exact version you run tells anyone looking which published vulnerabilities to try first.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-compression",
+        "label": "Pages sent compressed",
+        "status": "fail",
+        "evidence": "your HTML is served uncompressed",
+        "why": "Uncompressed HTML is roughly four times the bytes for the same page, paid for by every visitor on a phone.",
+        "scope": "quick"
+      },
+      {
+        "key": "header-hsts-age",
+        "label": "An https policy that lasts",
+        "status": "not-applicable",
+        "evidence": "no strict-transport-security header to read a max-age from",
+        "why": "A max-age of a few minutes gives almost none of the protection the header exists for.",
+        "scope": "quick"
+      },
+      {
+        "key": "robots-not-blocking",
+        "label": "robots.txt not blocking your whole site",
+        "status": "pass",
+        "evidence": "nothing site-wide is disallowed",
+        "why": "A blanket Disallow tells every search engine and every assistant to stay off the whole site. It is usually left over from a staging server.",
+        "scope": "quick"
+      },
+      {
+        "key": "robots-names-sitemap",
+        "label": "robots.txt naming your sitemap",
+        "status": "fail",
+        "evidence": "no Sitemap: line in robots.txt",
+        "why": "Naming the sitemap in robots.txt is how a crawler that has never seen your site finds the list of your pages.",
+        "scope": "quick"
+      },
+      {
+        "key": "sitemap-coverage",
+        "label": "A sitemap that lists your pages",
+        "status": "not-applicable",
+        "evidence": "this site has no sitemap.xml",
+        "why": "A sitemap listing fewer pages than your own navigation links to leaves the rest to be found by luck.",
+        "scope": "content"
+      },
+      {
+        "key": "llms-txt",
+        "label": "A file written for AI assistants",
+        "status": "not-applicable",
+        "evidence": "no llms.txt — recorded, not counted against you, because no engine has published that it reads one",
+        "why": "A short llms.txt states, in your own words, what you do and which pages matter. No answer engine has published that it reads one, so this is recorded rather than counted against you.",
+        "scope": "content"
+      },
+      {
+        "key": "analytics",
+        "label": "Something measuring whether any of this works",
+        "status": "fail",
+        "evidence": "no third-party analytics on the pages we read",
+        "why": "Without any analytics you cannot tell whether a change helped, which visit turned into an enquiry, or whether the work was worth doing.",
+        "scope": "quick"
+      }
+    ]
+  },
+  "accessibility": {
+    "ok": true,
+    "data": {
+      "measured": false,
+      "pagesExamined": 0,
+      "rulesPassed": 0,
+      "rulesIncomplete": 0,
+      "incompleteIds": [],
+      "rulesInapplicable": 0,
+      "violations": [],
+      "violationsTotal": 0
+    }
+  },
+  "dns": {
+    "ok": true,
+    "data": {
+      "measured": true,
+      "domain": "acme.example",
+      "spf": "v=spf1 include:_spf.example -all",
+      "dmarc": null,
+      "mx": ["mx.acme.example"],
+      "contactMx": null
+    }
+  },
+  "http": {
+    "ok": true,
+    "data": {
+      "measured": true,
+      "requests": 13,
+      "favicon": {
+        "url": "https://acme.example/favicon.ico",
+        "declared": false,
+        "verdict": "broken"
+      },
+      "httpUpgrade": {
+        "hops": 0,
+        "https": false
+      },
+      "homeSamples": [200, 200],
+      "trailingSlash": {
+        "path": "/services",
+        "settled": false,
+        "detail": "both forms answer with no canonical to settle which is the real one"
+      },
+      "indexAlias": {
+        "duplicate": true,
+        "detail": "it answers with the homepage's content and does not point back at it"
+      },
+      "caseAlias": {
+        "path": "/Services",
+        "duplicate": true,
+        "detail": "it answers as its own page, so the same content has two addresses"
+      },
+      "sitemapUrls": null,
+      "externalLinks": {
+        "checked": 1,
+        "total": 1,
+        "broken": []
+      },
+      "ogImage": {
+        "url": "https://acme.example/og.jpg",
+        "verdict": "ok",
+        "width": null,
+        "height": null
+      },
+      "logo": {
+        "url": "https://acme.example/roof.jpg",
+        "how": "the first image on the homepage",
+        "verdict": "ok"
+      },
+      "redirectChains": {
+        "checked": 2,
+        "chained": []
+      }
+    }
+  },
+  "goalFit": {
+    "ok": true,
+    "data": {
+      "goal": "enquire",
+      "source": "operator",
+      "requirements": [
+        {
+          "key": "qualifying-form",
+          "label": "A form that asks enough to have a real first conversation",
+          "status": "missing",
+          "evidence": null,
+          "why": "A name-and-email box produces enquiries you have to qualify by hand. Three or four more fields turn a lead into a briefed conversation.",
+          "scope": "content"
+        },
+        {
+          "key": "price-signal",
+          "label": "Some signal of what it costs",
+          "status": "missing",
+          "evidence": null,
+          "why": "Buyers ask this before making contact, and a site that does not answer it sends them to one that does. A range, a starting point or a worked example is enough.",
+          "scope": "content"
+        },
+        {
+          "key": "tappable-phone",
+          "label": "A phone number they can tap",
+          "status": "unmeasured",
+          "evidence": null,
+          "why": "Most of your visitors are on a phone. A number written as text has to be memorised and retyped, at the exact moment they had decided to call.",
+          "scope": "quick"
+        },
+        {
+          "key": "reachable",
+          "label": "A route to you from wherever they land",
+          "status": "missing",
+          "evidence": "3 of 3 pages we examined have no route to a way of contacting you: https://acme.example/, https://acme.example/services, https://acme.example/about",
+          "why": "Search engines and AI answers send people to whichever page answers their question, not to your home page.",
+          "scope": "quick"
+        }
+      ],
+      "met": 0,
+      "total": 3
+    }
+  }
+}

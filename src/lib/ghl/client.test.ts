@@ -23,7 +23,7 @@ import {
   TAG_EVENT_BEW,
   TAG_NOT_A_FIT,
 } from "./constants";
-import { BUDGET_GATE, SMS_CONSENT } from "./questions";
+import { BUDGET_GATE, DIGITAL_QUESTION_SET_ID, SMS_CONSENT, questionsFor } from "./questions";
 
 /**
  * Routes by URL rather than replaying a queue: the sync functions call several
@@ -482,6 +482,29 @@ describe("syncApplicationToCrm", () => {
     expect(String(find("/notes")[0].body.body)).not.toContain("budget gate");
   });
 
+  it("ignores medtech's gate id forged into a digital application", async () => {
+    const { fetch, find } = stubCrm();
+    const res = await syncApplicationToCrm({
+      ...base,
+      fetch,
+      surveyId: DIGITAL_QUESTION_SET_ID,
+      // A forged POST: the digital key, carrying medtech's gate field with its
+      // exact stored opt-out value. The gate belongs to the question set that
+      // asks it, so a set that never asks it must not be routed by it — the
+      // routing read is filtered by the same allow-list as the write.
+      fields: { website: "https://acme.test", [BUDGET_GATE.tag]: BUDGET_GATE.optOut },
+    });
+    expect(res.ok).toBe(true);
+    // Not tagged `not a good fit`, and the pipeline card is opened as usual:
+    // a digital lead is never a self-opt-out, however the payload is shaped.
+    expect(find("/tags")[0].body).toEqual({ tags: [TAG_APPLICATION_COMPLETED] });
+    expect(find("/opportunities/").filter((c) => c.method === "POST")).toHaveLength(1);
+    // And the note does not claim a routing that never happened.
+    expect(String(find("/notes")[0].body.body)).not.toContain("budget gate");
+    const cf = find("/contacts/upsert")[0].body.customFields as { id: string }[];
+    expect(cf.some((f) => f.id === BUDGET_GATE.tag)).toBe(false);
+  });
+
   it("names the opportunity by email when no name was given", async () => {
     const { fetch, find } = stubCrm();
     await syncApplicationToCrm({ ...base, fetch, name: "   " });
@@ -559,5 +582,37 @@ describe("syncApplicationToCrm", () => {
     const res = await syncApplicationToCrm({ ...base, fetch });
     expect(res.ok).toBe(false);
     expect(calls).toHaveLength(1);
+  });
+});
+
+describe("writableFieldIds across two question sets", () => {
+  const digital = writableFieldIds(DIGITAL_QUESTION_SET_ID);
+  const a101 = writableFieldIds(DEFAULT_INQUIRY_SURVEY_ID);
+
+  it("covers the digital set's custom fields and excludes `website`", () => {
+    const tags = questionsFor(DIGITAL_QUESTION_SET_ID)!.map((q) => q.tag);
+    for (const tag of tags.filter((t) => t !== "website")) expect(digital.has(tag)).toBe(true);
+    expect(digital.has("website")).toBe(false);
+    expect(digital.has(SMS_CONSENT.tag)).toBe(false);
+  });
+
+  it("does not let one funnel write the other's fields", () => {
+    for (const id of a101) expect(digital.has(id)).toBe(false);
+    for (const id of digital) expect(a101.has(id)).toBe(false);
+  });
+
+  it("drops a medtech field id forged into a digital submission", () => {
+    const { customFields, standard } = partitionAnswers(
+      { [BUDGET_GATE.tag]: "No", website: "https://acme.test" },
+      digital,
+    );
+    // The budget gate's field is medtech's. Posted under the digital key it is
+    // not written at all. The allow-list only covers the WRITE: the raw answer
+    // map still holds whatever was posted, so what keeps a forged gate id from
+    // routing a digital lead to /not-a-fit is syncApplicationToCrm consulting
+    // this same set before it reads the gate (the `writable.has(BUDGET_GATE.tag)`
+    // guard, covered by its own test in syncApplicationToCrm above).
+    expect(customFields).toEqual([]);
+    expect(standard).toEqual({ website: "https://acme.test" });
   });
 });

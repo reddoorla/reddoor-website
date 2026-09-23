@@ -23,7 +23,7 @@ const EVENT_ID = /^[A-Za-z0-9_-]{10,64}$/;
 export const POST: RequestHandler = async ({ params, request, fetch }) => {
   const eventId = params.eventId ?? "";
   if (!EVENT_ID.test(eventId)) {
-    return json({ error: "We couldn't find that booking." }, { status: 404 });
+    return json({ error: "We couldn’t find that booking." }, { status: 404 });
   }
 
   let body: Record<string, unknown>;
@@ -63,10 +63,10 @@ export const POST: RequestHandler = async ({ params, request, fetch }) => {
   const existing = await fetchAppointment({ token, fetch, eventId });
   if (!existing.ok) {
     if (existing.status === 404) {
-      return json({ error: "We couldn't find that booking." }, { status: 404 });
+      return json({ error: "We couldn’t find that booking." }, { status: 404 });
     }
     console.error(`[reschedule] read failed (${existing.status}): ${existing.error}`);
-    return json({ error: "We couldn't load that booking." }, { status: 502 });
+    return json({ error: "We couldn’t load that booking." }, { status: 502 });
   }
   if (!publicView(existing.data).actionable) {
     return json(
@@ -89,7 +89,7 @@ export const POST: RequestHandler = async ({ params, request, fetch }) => {
       {
         error: taken
           ? "That time was just taken. Please choose another."
-          : "We couldn't move that booking. Please try again or email info@reddoorla.com.",
+          : "We couldn’t move that booking. Please try again or email info@reddoorla.com.",
         refreshSlots: taken,
       },
       { status: taken ? 409 : 502 },

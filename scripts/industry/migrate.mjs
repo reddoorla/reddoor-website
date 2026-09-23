@@ -32,7 +32,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { industryFromArgs, missingRequiredKeys, uidMismatch } from "./lib.mjs";
+import { industryFromArgs, inquiryFields, missingRequiredKeys, uidMismatch } from "./lib.mjs";
 
 const ARGS = process.argv.slice(2);
 const DRY_RUN = ARGS.includes("--dry-run");
@@ -506,6 +506,7 @@ const docData = {
   slices,
   meta_title: d.meta_title,
   meta_description: d.meta_description,
+  ...inquiryFields(d),
 };
 
 if (existing) {

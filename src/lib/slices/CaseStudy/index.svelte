@@ -221,7 +221,7 @@
         ? 'lg:pb-7.5'
         : 'lg:absolute lg:inset-x-0 lg:top-0 lg:pt-8.75 lg:pb-0'}"
     >
-      <RailRow label={slice.primary.label} animateIn={isAnimated} rail={railExtra}>
+      <RailRow label={slice.primary.label} animateIn={isAnimated} rail={railExtra} labelBaseline>
         {#if slice.primary.heading}
           <!-- Besley 26/1.45. Every property the global `h2`/`h3` element rules set
              is pinned, font-family included, or Besley 60/300 (h2) or Pragmatica

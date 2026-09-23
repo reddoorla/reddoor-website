@@ -5,9 +5,9 @@ import type { PageLoad } from "./$types";
 export const prerender = true;
 
 export const load: PageLoad = () => ({
-  title: "You're Subscribed | Reddoor Creative",
-  meta_title: "You're Subscribed | Reddoor Creative",
-  meta_description: "You're back on Reddoor Creative's email list.",
+  title: "You’re Subscribed | Reddoor Creative",
+  meta_title: "You’re Subscribed | Reddoor Creative",
+  meta_description: "You’re back on Reddoor Creative’s email list.",
   meta_image: metaImage,
   meta_robots: "noindex, follow",
 });

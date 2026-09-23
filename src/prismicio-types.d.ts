@@ -274,10 +274,10 @@ interface IndustryDocumentData {
   inquiry_form_id: prismic.KeyTextField;
 
   /**
-   * GHL Survey ID (five questions) field in *Industry*
+   * Question Set Key (five questions) — required, never blank field in *Industry*
    *
    * - **Field Type**: Text
-   * - **Placeholder**: e.g. VfiN5rugWcATPw47P20U — the questions themselves are code, keyed to this ID
+   * - **Placeholder**: e.g. digital — picks which coded question set and CRM fields this page uses. Blanking it silently files leads under the medtech set.
    * - **API ID Path**: industry.inquiry_survey_id
    * - **Tab**: Inquiry
    * - **Documentation**: https://prismic.io/docs/fields/text

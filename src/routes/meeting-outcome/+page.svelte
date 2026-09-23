@@ -60,7 +60,7 @@
     formError = "";
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      formError = "Please provide the client's email address.";
+      formError = "Please provide the client’s email address.";
       document.getElementById("mo-email")?.focus();
       return;
     }
@@ -92,7 +92,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        formError = data?.error ?? "We couldn't save that. Please try again.";
+        formError = data?.error ?? "We couldn’t save that. Please try again.";
         return;
       }
       saved = {
@@ -138,7 +138,7 @@
           {#if saved.attendanceSynced === true}
             <p class="body">
               {#if saved.noShow}
-                The appointment is marked as a no-show in the calendar too, so the CRM's own
+                The appointment is marked as a no-show in the calendar too, so the CRM’s own
                 reschedule follow-up takes it from here.
               {:else}
                 The appointment is marked as attended in the calendar too.
@@ -146,7 +146,7 @@
             </p>
           {:else if saved.attendanceSynced === false}
             <p class="body">
-              Heads up — we couldn't update the appointment's status in the calendar. The outcome
+              Heads up — we couldn’t update the appointment’s status in the calendar. The outcome
               above did save. Please set it by hand{saved.noShow
                 ? " so the reschedule follow-up still goes out"
                 : ""}.
@@ -155,7 +155,7 @@
           <p class="body">
             {#if saved.sendRecap}
               You asked for a recap email. Heads up — that send is a CRM workflow keyed to a form
-              submission, which this page can't fire yet. Check it went out, or send it by hand.
+              submission, which this page can’t fire yet. Check it went out, or send it by hand.
             {:else}
               No recap email was requested.
             {/if}
@@ -185,7 +185,7 @@
               bind:value={email}
             />
             <p class="hint">
-              Used to find the contact. Nothing is created if it doesn't match one.
+              Used to find the contact. Nothing is created if it doesn’t match one.
             </p>
           </div>
 
@@ -241,7 +241,7 @@
                 id="mo-recap"
                 class="input textarea"
                 rows="5"
-                placeholder="What you agreed, in the words you'd want them to read."
+                placeholder="What you agreed, in the words you’d want them to read."
                 aria-describedby="mo-recap-hint"
                 bind:value={recapNotes}></textarea>
               <p id="mo-recap-hint" class="hint">

@@ -81,7 +81,7 @@
          carries its own `use:anim` — one scroll trigger per row, so they arrive
          as the reader reaches them rather than on a stagger played back from
          the top of the list. -->
-    <RailRow {label} wide animateIn={isAnimated} animateItems>
+    <RailRow {label} animateIn={isAnimated} animateItems labelBaseline>
       <div>
         {#each slice.primary.items as item, i (i)}
           <!-- No body authored → no panel to reveal, so the question renders as
@@ -148,7 +148,7 @@
                   <div class="overflow-hidden">
                     <!-- Right inset clears the 30px icon + 20px gutter so the
                        answer never runs under the toggle. -->
-                    <div class="acc-body pb-5 md:pr-12.5">
+                    <div class="acc-body measure pb-5 md:pr-12.5">
                       <RichTextBody field={item.body} />
                     </div>
                   </div>

@@ -32,19 +32,19 @@
          it as the section's h2, pinned to the same red kicker treatment the
          default variation uses) beside the content column. RailRow wraps
          ContentWidth itself, so there is no ContentWidth here. -->
-    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated}>
+    <RailRow label={slice.primary.eyebrow} animateIn={isAnimated} labelBaseline>
       <!-- 20px board gap between the Besley lead line and the sans paragraph.
            A `gap` rather than a margin on the second block: `body` is optional
            in Prismic, and a margin would leave an orphan 20px offset (and an
            empty `.lead-body` wrapper) on a subBody-only section. -->
       <div class="flex flex-col gap-5">
         {#if isFilled.richText(slice.primary.body)}
-          <div class="lead-body">
+          <div class="lead-body measure">
             <RichTextBody field={slice.primary.body} />
           </div>
         {/if}
         {#if isFilled.richText(subBody)}
-          <div class="sub-body">
+          <div class="sub-body measure">
             <RichTextBody field={subBody} />
           </div>
         {/if}
@@ -62,7 +62,7 @@
             {slice.primary.eyebrow}
           </h2>
         {/if}
-        <div class="lead-body">
+        <div class="lead-body measure">
           <RichTextBody field={slice.primary.body} />
         </div>
       </div>

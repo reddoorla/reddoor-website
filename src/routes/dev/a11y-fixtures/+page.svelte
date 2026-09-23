@@ -582,6 +582,15 @@
     }))}
   />
 
+  <!-- A second instance on the digital question set, so the smoke suite can
+       drive both without a second fixture route. A button, not a link: a
+       `/contact#…` href would have to match a real id on /contact or
+       SvelteKit's prerender link check fails the build. -->
+  <button type="button" data-inquire="digital" data-inquire-step="The Diagnosis">
+    Open the digital inquiry
+  </button>
+  <InquiryModal surveyId="digital" triggerKey="digital" />
+
   <!-- A RailRow on the red band — the exact combination that shipped invisible
        text. RailRow's rail label defaults to the board's red kicker, so placed
        here without `labelClass` it draws #D71920 on #D71920.

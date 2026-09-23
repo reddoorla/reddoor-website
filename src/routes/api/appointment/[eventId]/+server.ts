@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({ params, fetch, setHeaders }) => {
   // Ids are opaque CRM handles. Bound the length so a long string cannot be
   // used to probe the upstream, and reject anything that is not one.
   if (!/^[A-Za-z0-9_-]{10,64}$/.test(eventId)) {
-    return json({ error: "We couldn't find that booking." }, { status: 404 });
+    return json({ error: "We couldn’t find that booking." }, { status: 404 });
   }
 
   if (!env.CRM_FUNNEL_ACTIVE_TOKEN) {
@@ -40,10 +40,10 @@ export const GET: RequestHandler = async ({ params, fetch, setHeaders }) => {
     // A missing appointment and a broken upstream read the same to a visitor —
     // but not to us, so log the difference and only 404 on a real 404.
     if (appointment.status === 404) {
-      return json({ error: "We couldn't find that booking." }, { status: 404 });
+      return json({ error: "We couldn’t find that booking." }, { status: 404 });
     }
     console.error(`[appointment] read failed (${appointment.status}): ${appointment.error}`);
-    return json({ error: "We couldn't load that booking." }, { status: 502 });
+    return json({ error: "We couldn’t load that booking." }, { status: 502 });
   }
 
   return json(publicView(appointment.data));

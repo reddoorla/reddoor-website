@@ -2,6 +2,7 @@ import * as prismic from "@prismicio/client";
 import { enableAutoPreviews } from "@prismicio/svelte/kit";
 import type { CreateClientConfig } from "@prismicio/svelte/kit";
 import { currentlyShowsHidden, HIDE_FILTER, PREVIEW_COOKIE } from "$lib/server/content-visibility";
+import { smartQuoteDocument } from "$lib/typography/smartQuotes";
 import type { AllDocumentTypes } from "../prismicio-types";
 import { repositoryName } from "./prismic-repo";
 
@@ -46,6 +47,38 @@ const routes: prismic.ClientConfig["routes"] = [
 ];
 
 /**
+ * A client that hands back documents with typographic quote marks.
+ *
+ * Tim's ask (Discord 2026-09-17: "our website has footprints all over the
+ * place") is a property of 54 of the 81 published documents, so the fix is on
+ * the read path rather than in the CMS: correct here and every slice, every
+ * `<meta>` tag and every OG card route is corrected at once — they all read
+ * through this client — and so is anything typed into Prismic tomorrow.
+ *
+ * `get` and `getFirst` are the only two seams needed. Measured against
+ * @prismicio/client 7.21.8: they are the two methods that call the private
+ * `#internalGet`, and every other document-returning method routes through one
+ * of them — `dangerouslyGetAll`, `getByIDs`, `getByType`, `getByTag` and
+ * friends call `this.get`; `getByID`, `getByUID` and `getSingle` call
+ * `this.getFirst`; `getAllBy*` call `dangerouslyGetAll`. The transform is
+ * idempotent, so the paths that pass through both cost nothing.
+ */
+class TypographicClient extends prismic.Client<AllDocumentTypes> {
+  override async get<TDocument extends AllDocumentTypes>(
+    params?: Parameters<prismic.Client<AllDocumentTypes>["get"]>[0],
+  ): Promise<prismic.Query<TDocument>> {
+    const query = await super.get<TDocument>(params);
+    return { ...query, results: query.results.map(smartQuoteDocument) };
+  }
+
+  override async getFirst<TDocument extends AllDocumentTypes>(
+    params?: Parameters<prismic.Client<AllDocumentTypes>["getFirst"]>[0],
+  ): Promise<TDocument> {
+    return smartQuoteDocument(await super.getFirst<TDocument>(params));
+  }
+}
+
+/**
  * A client that appends the hide filter to every query it builds.
  *
  * This is the only seam that catches everything: every typed method
@@ -56,7 +89,7 @@ const routes: prismic.ClientConfig["routes"] = [
  * 2026-09-14: with only `defaultParams.filters` set, `getByUID`,
  * `getAllByType` and `getByID` all returned hidden documents.
  */
-export class HiddenContentFilteredClient extends prismic.Client<AllDocumentTypes> {
+export class HiddenContentFilteredClient extends TypographicClient {
   override async buildQueryURL(
     params: Parameters<prismic.Client["buildQueryURL"]>[0] = {},
   ): Promise<string> {
@@ -75,13 +108,19 @@ export class HiddenContentFilteredClient extends prismic.Client<AllDocumentTypes
  * `hide` is invisible to it unless this process or request shows hidden
  * content (see `$lib/server/content-visibility`): under `vite dev`, on the
  * staging site, or inside a preview session.
+ *
+ * Both branches are `TypographicClient`s. `prismic.createClient` is just
+ * `new Client(...)`, so using it on the show-hidden branch would have left
+ * dev, staging and every preview session rendering the straight marks that
+ * production had already corrected — the one configuration in which anyone
+ * reviews the copy.
  */
 export const createClient = ({ cookies, ...config }: CreateClientConfig = {}) => {
   const options = { routes, ...config };
   const client: prismic.Client<AllDocumentTypes> = currentlyShowsHidden(
     cookies?.get(PREVIEW_COOKIE),
   )
-    ? prismic.createClient(repositoryName, options)
+    ? new TypographicClient(repositoryName, options)
     : new HiddenContentFilteredClient(repositoryName, options);
 
   enableAutoPreviews({ client, cookies });

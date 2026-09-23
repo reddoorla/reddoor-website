@@ -1,11 +1,22 @@
 <script lang="ts">
   // Layout primitive for the industry landing pages. Every section of the
   // Figma board shares one asymmetric grid: a narrow left rail holding the
-  // section label, and a ~760px content column whose left edge is identical
-  // across sections. Stacking slices only reads as one page if they all use
-  // this grid, so it lives here rather than in any single slice.
+  // section label, and a content column whose left edge is identical across
+  // sections. Stacking slices only reads as one page if they all use this grid,
+  // so it lives here rather than in any single slice.
   //
-  // The rail collapses above the content below `lg` — at that width a 240px
+  // The columns are PROPORTIONAL — a 20% rail and everything else — because the
+  // rest of the site is (Tim's MarkUp round on /boise, pins 1-3: "this width is
+  // fixed but doesn't match the structure of the rest of the website"). Every
+  // other page sizes its blocks as fractions of ContentWidth: /portfolio runs
+  // `w-1/5 min-w-40` beside `w-4/5 max-w-5xl`, /twenty-for-twenty a pair of
+  // `md:w-1/2`, /about `w-full md:w-4/5`. The board's own numbers ARE that
+  // fraction: ContentWidth caps at 1220, the row's gap is 20px, and
+  // (1220 - 20) / 5 = 240 — the rail the comp specifies. They were only ever
+  // written as px, which is why a 1391px container left 391px of dead space to
+  // the right of a 1000px row while the rest of the site grew into it.
+  //
+  // The rail collapses above the content below `lg` — at that width a 20%
   // gutter would leave the content column unreadably narrow.
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
@@ -16,14 +27,35 @@
     /** Element for the label. The label names the section, so it is a heading
      *  by default; pass "p" where the page outline already has one. */
     labelAs?: "h2" | "h3" | "p";
-    /** Widen the content column to the logo grid's 1004px. */
-    wide?: boolean;
-    /** Let the content column take the whole ContentWidth beside the rail.
-     *  The 760px column is the industry board's measure; the audit report is
-     *  a document with tables and lists, and at 760px on a 1220px page it read
-     *  as compressed. `fill` wins over `wide`. */
+    /** Keep the audit report's geometry: a 240px rail and a content column that
+     *  takes everything beside it. The report is a document surface with its
+     *  own review history, reviewed at these numbers, so it does not follow the
+     *  landing pages' proportional grid below. */
     fill?: boolean;
     animateIn?: boolean;
+    /** Align the rail label's first baseline to the content column's first
+     *  baseline, instead of aligning the two cells' top edges (Tim's MarkUp
+     *  round on /boise, pins 4, 6 and 7 — "the baseline of this text should
+     *  align to the baseline of the headline to the right").
+     *
+     *  Tops line up and baselines do not because the two cells carry different
+     *  type: the kicker is 16px and the headline beside it is 26px/37.7px, so
+     *  at a shared top edge the kicker's baseline sits ~14px above the
+     *  headline's and reads as floating.
+     *
+     *  Opt-in, and it has to stay that way. `items-baseline` makes every cell
+     *  in the row join the baseline group, and a cell whose first line box
+     *  holds an image (LogoGrid, a FeaturedProject card) baselines on that
+     *  image's BOTTOM edge — the label would drop the full height of the art.
+     *  Only rows whose content starts with text pass it.
+     *
+     *  The label then sits 1px ABOVE that baseline, on purpose (Tim,
+     *  2026-09-23: exactly on it is "technically perfect" but reads low). The
+     *  nudge is `translate`, not a margin, so the grid still aligns on the true
+     *  baseline and the offset is a pure optical correction on top of it —
+     *  and `translate` composes with the `transform` animateIn writes rather
+     *  than being overwritten by it. */
+    labelBaseline?: boolean;
     /** Animate the rail's own parts individually and leave the content column
      *  to its children, instead of fading the whole row as one block. The
      *  house style is per-element (see SliceSection's `animate` note); a row
@@ -61,9 +93,9 @@
   let {
     label = "",
     labelAs = "h2",
-    wide = false,
     fill = false,
     animateIn = false,
+    labelBaseline = false,
     animateItems = false,
     labelClass = "text-primary",
     labelAbove = false,
@@ -86,11 +118,11 @@
      (LogoGrid absolutely-positions its rail block against this box). -->
 <ContentWidth animateIn={animateIn && !animateItems} class="relative">
   <div
-    class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {fill
+    class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {labelBaseline
+      ? 'lg:items-baseline'
+      : ''} {fill
       ? 'lg:grid-cols-[240px_minmax(0,1fr)]'
-      : wide
-        ? 'lg:grid-cols-[240px_minmax(0,1004px)]'
-        : 'lg:grid-cols-[240px_minmax(0,760px)]'} {className}"
+      : 'lg:grid-cols-[20%_minmax(0,1fr)]'} {className}"
   >
     <!-- `contents` below `lg` so the label and any rail extra become siblings of
          the content column in the mobile flex order; a real grid cell from `lg`. -->
@@ -103,7 +135,7 @@
         <svelte:element
           this={labelAs}
           use:anim={{ enabled: animateIn && animateItems }}
-          class="type-kicker {labelClass}"
+          class="type-kicker {labelBaseline ? 'lg:-translate-y-px' : ''} {labelClass}"
         >
           {railLabel}
         </svelte:element>

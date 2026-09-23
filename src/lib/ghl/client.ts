@@ -11,7 +11,7 @@ import {
 } from "./constants";
 import { eventTags } from "./events";
 import { normalizePhone } from "./phone";
-import { isBudgetOptOut, questionsFor, SMS_CONSENT } from "./questions";
+import { BUDGET_GATE, isBudgetOptOut, questionsFor, SMS_CONSENT } from "./questions";
 
 /**
  * Server-side CRM sync over LeadConnector's OFFICIAL API, replacing the
@@ -497,7 +497,8 @@ export async function syncApplicationToCrm(opts: {
     phoneDropped: boolean;
   }>
 > {
-  const { customFields, standard } = partitionAnswers(opts.fields, writableFieldIds(opts.surveyId));
+  const writable = writableFieldIds(opts.surveyId);
+  const { customFields, standard } = partitionAnswers(opts.fields, writable);
   // Consent is written from THIS request's boolean using the CRM's exact stored
   // sentence, in the one-element array shape a real widget submission produces.
   // Deliberately not sourced from the answer map: a browser must not be able to
@@ -530,7 +531,16 @@ export async function syncApplicationToCrm(opts: {
   // opened (not even the existence lookup), because the pipeline is the queue
   // of leads awaiting review and this one reviewed itself out. The extra tag is
   // the exclusion lever for the chase workflows, which cannot be edited here.
-  const optedOut = isBudgetOptOut(opts.fields);
+  //
+  // Read through the SAME allow-list that decides what is writable, not off the
+  // raw request map: the gate belongs to the question set that asks it. Without
+  // the `writable.has` guard a forged POST keyed to a set that never asks about
+  // budget could still carry medtech's gate id and its stored "No" — writing no
+  // field, yet tagging the contact `not a good fit`, suppressing the pipeline
+  // card, and appending a note claiming a routing that never happened. The
+  // upsert matches on email, so that could be aimed at any address the sender
+  // knows.
+  const optedOut = writable.has(BUDGET_GATE.tag) && isBudgetOptOut(opts.fields);
   const tagged = await addCrmTags({
     token,
     fetch: f,
