@@ -1325,3 +1325,146 @@ nothing unlanded, and the branches of the other three (`chore/form-replies-types
 commits) are on origin with no PR for the last two. A journal entry from 09-15
 about the Boise promotion turned out to exist only in a local worktree, never
 pushed — it landed as #211.
+
+## 2026-09-22 — Pins 1-3: the landing-page grid was the only layout on the site written in pixels (#216, `f4c992a`)
+
+> Superseded in part by 2026-09-23 — Tim's follow-ups on /boise: labels 1px up, and the grid was five columns all along.
+
+Third entry today. Tim's remaining three pins all said one thing — "this width
+is fixed but doesn't match the structure of the rest of the website... the three
+columns, the logos are in. Kind of do that." He was right, and the repo is the
+evidence: every other page sizes blocks as fractions of ContentWidth
+(`/portfolio` runs `w-1/5 min-w-40` beside `w-4/5 max-w-5xl`,
+`/twenty-for-twenty` a pair of `md:w-1/2`, `/about` `w-full md:w-4/5`), while
+RailRow and IndustryHero were px. Measured on /boise, the row stopped dead and
+left the gutter empty: 84px at 1200, 371px at 1512, 420px at 1920.
+
+**The board's numbers were always the fraction.** ContentWidth caps at 1220, the
+row gap is 20px, and (1220 - 20) / 5 = 240 — exactly the rail the comp
+specifies. So the grid is `20% / rest`, the hero (fixed 890px headline + 231px
+card, with the gap Tim pinned between them) is `rest / 20%`, and the content
+column now measures 734 / 863 / 1093 / 1132 at 1024 / 1200 / 1512 / 1920 with
+zero dead space. `wide` is deleted: it existed only to say "1004 rather than
+760", which a proportion says once. The audit report keeps `fill` and its 240px
+rail — separate surface, reviewed at those numbers.
+
+**The judgement call, and it is a design decision Tim may want back.** Letting
+prose follow the column took the 21px lead from 79 characters a line to 116. The
+rest of the site never goes near that: measured the same day, /about runs 77-81,
+/twenty-for-twenty 58-66, the home page 41-46. So running text sits on a new
+`.measure` (80ch → 79 characters at 21px, i.e. where it already was) and only
+structure — rules, logos, FAQ, cards, hero — reaches the gutter. If Tim wants
+full-bleed paragraphs, it is one class.
+
+**A test that pinned the old layout, and one that pinned the platform.** The
+typography spec asserted the testimonial column was exactly 760px; that number
+retired with the change, so it now asserts the quote fills its column up to its
+measure, which is what the test was about (the hanging mark's alignment).
+
+CI then failed `step numerals` at 0.56px against a 0.5px bound, and the cause is
+worth writing down because it looks like drift and is not. Both sides were
+measured: the ring's box sits at top 1538.75 before and after, and the 0.75px
+optical constant is untouched. What moved is the numerals' subpixel X — three
+equal columns now divide a fractional width, so they land at .547, .828 and .109
+where all three used to sit at .594, and a glyph rasterised at a new subpixel
+offset rounds its ink one device pixel differently at 4x on CI's headless Linux
+Chromium. macOS passes at under 0.2 either way. The bound is 0.65, which still
+fails if the constant itself were dropped (~0.75); `dx`, the computed
+per-numeral nudge that test was written for, stays at 0.25.
+
+`tests/smoke/industry-width.spec.ts` asserts the relationship rather than a
+number — a row's right edge meets ContentWidth's, the rail stays a fifth — on
+both industry pages at four widths, proven red against the old grid.
+
+## 2026-09-23 — Tim's follow-ups on /boise: labels 1px up, and the grid was five columns all along (#217 `f6f981d`, #218 `a04bb98`, #199 `920f936`)
+
+Three things landed, all from a Discord check: two notes from Tim in
+#rd-clients-by-design and a Prismic chore PR that had sat for six days.
+
+**Labels 1px up (#217).** On the baseline #213 gave them, the rail labels were
+"technically perfect but visually feeling low", so Tim asked for 1px up on all
+of them. They all go through RailRow's `labelBaseline`, so the change is one
+class, `lg:-translate-y-px`, on the label when a row opts in. `translate`
+rather than a margin or `top`: the grid still resolves `items-baseline` on the
+true baseline, and the 1px is an optical offset laid over it. It also sets a
+separate property from the inline `transform` animateIn writes, so the two
+combine instead of one erasing the other. All six rows on both pages now
+measure exactly −1.
+
+The spec needed changing, not just its number. `rail-baseline.spec.ts`
+tolerated ±1px of rounding, so it could not tell a 1px nudge from none: the old
+assertion passes with or without the change. It now reads the label's computed
+`translate`, checks the alignment with that subtracted, and checks the nudge
+itself exactly.
+
+**The five-column grid (#218). The belief corrected is the one in the entry
+above.** #216 reasoned that "the board's numbers were always the fraction":
+ContentWidth caps at 1220, (1220 − 20) / 5 = 240, the comp's rail, so the grid
+is `20% / rest`. That arithmetic is a coincidence. The board says what it is:
+"Sales Funnel v2" in RD Sales Funnel LP carries a layout grid of **5 stretch
+columns, 20px gutter, 80px margins**. That gives 240px columns at 1440 and 336
+at 1920. The 760px content column the first build used is 3 × 240 + 2 × 20, and
+the 1004px `wide` column was columns 2–5. So the first build had the right
+geometry at one width, and #216, fixing the "doesn't scale" half, ran every row
+to the page gutter, which the board never does. Tim saw it by looking at the
+design again ("I believe Nicole intended them to be on a five column grid"). I
+confirmed it by reading `layoutGrids` from the Figma REST API
+(`/v1/files/{key}?depth=2` returns them on every top-level frame), which took
+one call. #216 would have been settled the same way if anyone had read the
+grid rather than inferring it from two numbers.
+
+Where each section sits on the board: rail labels in column 1; lead, services,
+case study, testimonial and About Us in columns 2–4; the logo grid, FAQ list and
+featured-project plate in 2–5; the hero's intro in column 5. RailRow is now
+`grid-cols-5`, content spanning 3 columns or 4 with `wide`, which #216 deleted
+and this restores for Accordion and LogoGrid. The hero shares the grid. The
+board's headline box stops 154px short of the intro (x=967 against 1121), and
+that is where `xl:gap-x-38.5` came from, so it stays as right padding on the
+headline cell. The headline still wraps to 3 lines at all four widths.
+Measured prose column: 557 / 654 / 827 / 856px at 1024 / 1200 / 1512 / 1920.
+
+**A drift nobody saw.** FeaturedProject padded its plate by a fixed 260px, with a
+comment saying to keep it in sync with RailRow. #216 changed RailRow and not the
+plate, so on staging for a day the project image started at 260 while every
+other section's content started at column 2: 225 / 282 / 292 at 1200 / 1512 / 1920. The comment was the only thing linking the two, and it failed exactly the
+way comments do. The plate now pads by one grid column plus the gutter, and the
+width spec measures it.
+
+**The cost, measured, for Tim or Nicole to rule on.** Three columns of prose are
+narrower than #216's everything-to-the-gutter, and the service labels feel it. At
+1024 six of the fifteen wrap to two lines (a service column is ~169px), and at
+1200 two do ("Social Media Launch Kits", "Social Media Management"). None wrap at
+1512 or 1920, and none wrapped on staging before. FAQ wrapping is unchanged (1 of
+8 at 1024, before and after). If it matters, the services row going `wide` below
+`xl` is one prop, and it is their call, not mine.
+
+`industry-width.spec.ts` now asserts the grid itself on both pages at four
+widths. Tested one plant at a time, it fails on each of three reintroduced
+regressions: the plate back at 260px, the FAQ without `wide`, and prose across
+four columns. The first attempt planted all three at once, and each test
+stopped at its first failing row (prose), which would have hidden the other two.
+Both geometry specs were keyed to the class name `lg:grid-cols-[`, which this
+change would have made match nothing. RailRow's grid now carries
+`data-rail-row`, and the specs select on that.
+
+**#199, stranded since 09-17.** It regenerated types for the `form_replies`
+model after that model was pushed to Prismic. It conflicted only on this
+journal. A subagent brought it up to date with a merge rather than a rebase.
+It kept both sides' entries whole and placed #199's entry first among the 09-17
+entries, which is where this file's date order puts it. The useful finding came
+from regenerating the types rather than trusting git's clean merge. Staging's
+`src/prismicio-types.d.ts` was stale: `f3dbd4a` renamed `industry.inquiry_survey_id`'s
+label to "Question Set Key" and rewrote its placeholder in the model JSON, and
+never regenerated. Git merged cleanly because only #199 touched the types file,
+so it would have carried the stale doc comment forward. The generated file has
+to be regenerated, never merged.
+
+**Honest accounting.** #216's own journal entry, the one directly above, was
+written into `.worktrees/journal-width` and never committed. That is the second
+stranded entry in a week; #211 was the first. It lands here word for word,
+with the one-line forward pointer the rules allow, because the record of what
+was believed is the point of it. The worktree still holds the uncommitted copy,
+so don't land it twice. Separately, Claude Code's permission check flagged
+#217's merge into `staging` as "Merge Without Review", although the standing
+rule for this repo is that `staging` is fine and `main` is not. Tucker
+confirmed merging #199 and #218 to staging.
