@@ -112,20 +112,23 @@
       <!-- Below lg the 231px sidebar would leave the headline column
            unreadably narrow (the same reason RailRow collapses its rail at lg),
            so the intro column stacks under the headline. From lg the two
-           columns share one row and `items-end` puts them on the board's shared
-           bottom edge. -->
-      <div
-        class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(0,1fr)_20%] lg:items-end lg:justify-between lg:gap-x-16 xl:gap-x-38.5"
-      >
+           share one row of RailRow's five-column grid — headline in columns
+           1–4, intro in column 5, where the board puts it (x=1121 of 1440) —
+           and `items-end` puts them on the board's shared bottom edge. The
+           board's headline box stops well short of column 5 (x=967, a 154px
+           clearance to the intro), so the headline cell keeps that clearance
+           as right padding on top of the 20px gutter: 44px + 20 at lg, 134px
+           + 20 = 154 from xl. -->
+      <div class="flex flex-col gap-10 lg:grid lg:grid-cols-5 lg:items-end lg:gap-x-5">
         {#if hasHeadline}
-          <div use:anim={{ enabled: isAnimated }}>
+          <div class="lg:col-span-4 lg:pr-11 xl:pr-33.5" use:anim={{ enabled: isAnimated }}>
             <PrismicRichText field={slice.primary.headline} components={headlineComponents} />
           </div>
         {/if}
 
         {#if hasIntro}
           <div
-            class="flex max-w-120 flex-col gap-3.75 lg:max-w-none"
+            class="flex max-w-120 flex-col gap-3.75 lg:col-start-5 lg:max-w-none"
             use:anim={{ enabled: isAnimated }}
           >
             {#if slice.primary.card_label}

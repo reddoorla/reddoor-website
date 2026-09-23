@@ -309,16 +309,18 @@
   <div class="relative z-10">
     <!-- `animateItems`: the label/CTA block arrives on its own and the logos
          cascade one at a time, rather than the whole band fading as one. -->
-    <RailRow animateIn={isAnimated} animateItems>
+    <RailRow wide animateIn={isAnimated} animateItems>
       <!-- Label + CTA belong together in the left rail, and RailRow renders only
          a bare label there — so the pair lives here and is lifted into the (then
          empty) rail column on lg. RailRow's ContentWidth is `relative`, and its
          content-box left edge IS the rail's left edge, so `left-0` lands exactly
-         on the 240px rail track. Below lg it stays in flow above the grid, which
-         is RailRow's own stacking order. -->
+         on the rail track, and the width is one of RailRow's five columns: the
+         container less four 20px gutters, over five. Below lg it stays in flow
+         above the grid, which is RailRow's own stacking order. `wide` because
+         the board's logos run grid columns 2–5. -->
       <div
         use:anim={{ enabled: isAnimated }}
-        class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-1/5"
+        class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-[calc((100%-5rem)/5)]"
       >
         {#if slice.primary.label}
           <!-- Section heading. `font-sans` + every size property is pinned: the

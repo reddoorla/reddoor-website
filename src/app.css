@@ -339,14 +339,14 @@ body::-webkit-scrollbar {
 @layer components {
   /* Running prose sits on a measure, not on whatever column it lives in.
 
-     The industry grid became proportional when Tim's MarkUp pins 1-3 were
-     fixed (RailRow's comment has the reasoning), which is right for the row —
-     rules, cards, logos and the FAQ now reach the page gutter like every other
-     page — but a body paragraph is not a structural column. Measured on /boise
-     at 1512: the 21px lead ran 79 characters a line at the old fixed 760px and
-     116 at the new 1093px. The rest of the site never goes near that; measured
-     the same day, /about runs 77-81 characters, /twenty-for-twenty 58-66 and
-     the home page 41-46. 80ch keeps the industry pages inside that band.
+     The industry grid scales with the page (RailRow's comment has the
+     reasoning), and a column that scales can outgrow a readable line: when
+     prose briefly ran to the page gutter, the 21px lead on /boise at 1512 went
+     from 79 characters a line to 116. The rest of the site never goes near
+     that; measured the same day, /about runs 77-81 characters,
+     /twenty-for-twenty 58-66 and the home page 41-46. On the five-column grid
+     prose spans three columns and the cap rarely binds, but the `wide` rows
+     (the FAQ's answers) span four, and 80ch keeps them inside that band.
 
      `ch` rather than px so each type ramp keeps the same measure: the cap lands
      at ~840px on the 21px lead and ~1040px on the 26px one, which is why it

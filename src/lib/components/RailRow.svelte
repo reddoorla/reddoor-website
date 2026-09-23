@@ -5,19 +5,17 @@
   // sections. Stacking slices only reads as one page if they all use this grid,
   // so it lives here rather than in any single slice.
   //
-  // The columns are PROPORTIONAL — a 20% rail and everything else — because the
-  // rest of the site is (Tim's MarkUp round on /boise, pins 1-3: "this width is
-  // fixed but doesn't match the structure of the rest of the website"). Every
-  // other page sizes its blocks as fractions of ContentWidth: /portfolio runs
-  // `w-1/5 min-w-40` beside `w-4/5 max-w-5xl`, /twenty-for-twenty a pair of
-  // `md:w-1/2`, /about `w-full md:w-4/5`. The board's own numbers ARE that
-  // fraction: ContentWidth caps at 1220, the row's gap is 20px, and
-  // (1220 - 20) / 5 = 240 — the rail the comp specifies. They were only ever
-  // written as px, which is why a 1391px container left 391px of dead space to
-  // the right of a 1000px row while the rest of the site grew into it.
+  // The grid is the board's own layout grid: FIVE stretch columns with a 20px
+  // gutter ("Sales Funnel v2" in RD Sales Funnel LP — 5 × 240 + 4 × 20 = 1280
+  // inside 80px margins at 1440, 5 × 336 at 1920). The label takes column 1 and
+  // the content columns 2–4, or 2–5 with `wide`; column 5 is left empty beside
+  // prose on purpose. The comp's old fixed numbers were this grid at one width
+  // — 760 = 3 × 240 + 2 × 20, and the 1004px `wide` column was columns 2–5 —
+  // so it scales with ContentWidth like the rest of the site (Tim's MarkUp pins
+  // 1-3) without the content running on to the page gutter (Tim, 2026-09-23).
   //
-  // The rail collapses above the content below `lg` — at that width a 20%
-  // gutter would leave the content column unreadably narrow.
+  // The rail collapses above the content below `lg` — at that width a fifth of
+  // the container would leave the content column unreadably narrow.
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import type { Snippet } from "svelte";
@@ -30,8 +28,11 @@
     /** Keep the audit report's geometry: a 240px rail and a content column that
      *  takes everything beside it. The report is a document surface with its
      *  own review history, reviewed at these numbers, so it does not follow the
-     *  landing pages' proportional grid below. */
+     *  landing pages' five-column grid below. */
     fill?: boolean;
+    /** Content spans columns 2–5 instead of 2–4. The board runs its logo grid
+     *  and FAQ list to the right margin; prose stops a column short. */
+    wide?: boolean;
     animateIn?: boolean;
     /** Align the rail label's first baseline to the content column's first
      *  baseline, instead of aligning the two cells' top edges (Tim's MarkUp
@@ -94,6 +95,7 @@
     label = "",
     labelAs = "h2",
     fill = false,
+    wide = false,
     animateIn = false,
     labelBaseline = false,
     animateItems = false,
@@ -117,12 +119,13 @@
      alongside `w-[92%]` and be resolved by stylesheet order rather than intent
      (LogoGrid absolutely-positions its rail block against this box). -->
 <ContentWidth animateIn={animateIn && !animateItems} class="relative">
+  <!-- `data-rail-row` is the hook the geometry specs select on, so they do not
+       depend on which grid-template utility this happens to be written in. -->
   <div
+    data-rail-row
     class="flex flex-col gap-4 lg:grid lg:justify-start lg:gap-5 {labelBaseline
       ? 'lg:items-baseline'
-      : ''} {fill
-      ? 'lg:grid-cols-[240px_minmax(0,1fr)]'
-      : 'lg:grid-cols-[20%_minmax(0,1fr)]'} {className}"
+      : ''} {fill ? 'lg:grid-cols-[240px_minmax(0,1fr)]' : 'lg:grid-cols-5'} {className}"
   >
     <!-- `contents` below `lg` so the label and any rail extra become siblings of
          the content column in the mobile flex order; a real grid cell from `lg`. -->
@@ -152,7 +155,7 @@
         </div>
       {/if}
     </div>
-    <div class="min-w-0">
+    <div class="min-w-0 {fill ? '' : wide ? 'lg:col-span-4' : 'lg:col-span-3'}">
       {#if railLabel && labelAbove}
         <svelte:element
           this={labelAs}
