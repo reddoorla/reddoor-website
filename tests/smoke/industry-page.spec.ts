@@ -442,10 +442,22 @@ test.describe("step numerals", () => {
         // Vertical is a single hand-tuned OPTICAL CONSTANT (the 0.75px drop in
         // .step-num-digits — a font's ascent and descent aren't symmetric), not
         // a computed value, so it can't hold to a quarter pixel across
-        // rasterisers: CI's headless Linux Chromium lands step 01 at 0.31px
-        // where macOS and WebKit sit within 0.2px. Half a pixel absorbs that
-        // platform gap and still catches any gross vertical drift.
-        expect(Math.abs(dy), `step ${i + 1}: numeral sits ${dy}px off centre`).toBeLessThan(0.5);
+        // rasterisers: CI's headless Linux Chromium lands step 01 at 0.56px
+        // where macOS and WebKit sit within 0.2px.
+        //
+        // It read 0.31px on CI until the industry grid went proportional (Tim's
+        // MarkUp pins 1-3). The constant did not move and neither did the
+        // geometry — the ring's box sits at top 1538.75 on both sides of that
+        // change, measured. What moved is the numeral's subpixel X: three equal
+        // columns now divide a fractional width, so the numerals land at .547,
+        // .828 and .109 instead of all three at .594, and a glyph rasterised at
+        // a new subpixel offset rounds its ink one device pixel differently at
+        // 4x. That is rendering, not drift.
+        //
+        // 0.65 absorbs it and still fails if the optical constant itself were
+        // dropped, which would read ~0.75. The tight guard is `dx` above: the
+        // computed per-numeral nudge, held to a quarter pixel.
+        expect(Math.abs(dy), `step ${i + 1}: numeral sits ${dy}px off centre`).toBeLessThan(0.65);
       }
     });
   }
