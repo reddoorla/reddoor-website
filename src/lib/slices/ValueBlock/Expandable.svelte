@@ -86,7 +86,7 @@
            rendered as the generic RichTextBody paragraph (pragmatica 18/30
            weight 200) rather than the Besley lede this file's own header
            describes. `.type-lede-block` is the shared role. -->
-      <div class="type-lede-block">
+      <div class="type-lede-block measure">
         <RichTextBody field={primary.lede} />
       </div>
     {/if}
@@ -101,7 +101,7 @@
            Because the copy is now always rendered, the panel is no longer
            `inert` and the toggle follows the text it truncates, matching both
            the board's order and the reading order. -->
-      <div id={panelId} class="more-body pt-3.75 {expanded ? '' : 'more-body--clamped'}">
+      <div id={panelId} class="more-body measure pt-3.75 {expanded ? '' : 'more-body--clamped'}">
         <RichTextBody field={primary.body} />
       </div>
       <!-- Disclosure. The toggle FOLLOWS the copy it truncates, per the board

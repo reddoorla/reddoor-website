@@ -17,6 +17,10 @@ import { test, expect } from "@playwright/test";
 //
 // Both industry pages are checked. They render the same slices, and the whole
 // point of the change is that it is global rather than per page.
+//
+// The selector matches any RailRow grid, not one column spec: the columns went
+// from px to proportional when pins 1-3 were fixed, and a selector naming the
+// old `240px` template silently matched nothing and passed the loop below.
 type RailRowBaseline = { label: string; delta: number };
 type CtaGeometry = { baselineDelta: number; buttonX: number; footerColX: number };
 
@@ -47,7 +51,7 @@ const MEASURE = `(() => {
     return Math.round(bottom);
   };
   const rows = [];
-  document.querySelectorAll('div[class*="lg:grid-cols-[240px"]').forEach((grid) => {
+  document.querySelectorAll('div[class*="lg:grid-cols-["]').forEach((grid) => {
     if (getComputedStyle(grid).alignItems !== "baseline") return;
     const label = grid.querySelector(".type-kicker");
     if (!label) return;
@@ -67,7 +71,7 @@ for (const path of PATHS) {
     test(`rail labels sit on the content baseline — ${path} at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 1000 });
       await page.goto(path);
-      await page.waitForSelector('div[class*="lg:grid-cols-[240px"]');
+      await page.waitForSelector('div[class*="lg:grid-cols-["]');
 
       const rows = await page.evaluate<RailRowBaseline[]>(MEASURE);
 

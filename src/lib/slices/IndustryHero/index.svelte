@@ -115,10 +115,10 @@
            columns share one row and `items-end` puts them on the board's shared
            bottom edge. -->
       <div
-        class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(0,890px)_231px] lg:items-end lg:justify-between lg:gap-x-16 xl:gap-x-38.5"
+        class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(0,1fr)_20%] lg:items-end lg:justify-between lg:gap-x-16 xl:gap-x-38.5"
       >
         {#if hasHeadline}
-          <div class="max-w-222.5" use:anim={{ enabled: isAnimated }}>
+          <div use:anim={{ enabled: isAnimated }}>
             <PrismicRichText field={slice.primary.headline} components={headlineComponents} />
           </div>
         {/if}

@@ -2,7 +2,7 @@
   import { MAX_IMAGE_W } from "$lib/images";
   import { resolvePadding } from "$lib/utils/slicePadding";
   // Static client-logo grid on the paper band: rail label + "Our Work" CTA on
-  // the left, a 3-up logo grid in the wide (1004px) content column.
+  // the left, a 3-up logo grid in the content column beside it.
   //
   // Deliberately NOT $lib/components/LogoSoup.svelte. That component is driven
   // by the `logo_soup` DOCUMENT type (a site-wide singleton, so it cannot carry
@@ -309,7 +309,7 @@
   <div class="relative z-10">
     <!-- `animateItems`: the label/CTA block arrives on its own and the logos
          cascade one at a time, rather than the whole band fading as one. -->
-    <RailRow wide animateIn={isAnimated} animateItems>
+    <RailRow animateIn={isAnimated} animateItems>
       <!-- Label + CTA belong together in the left rail, and RailRow renders only
          a bare label there — so the pair lives here and is lifted into the (then
          empty) rail column on lg. RailRow's ContentWidth is `relative`, and its
@@ -318,7 +318,7 @@
          is RailRow's own stacking order. -->
       <div
         use:anim={{ enabled: isAnimated }}
-        class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-[240px]"
+        class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-1/5"
       >
         {#if slice.primary.label}
           <!-- Section heading. `font-sans` + every size property is pinned: the

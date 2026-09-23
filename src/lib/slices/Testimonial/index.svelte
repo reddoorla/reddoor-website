@@ -46,7 +46,7 @@
             <!-- Pinned LP body type (Pragmatica Light 21/30). The global `p`
                  rule is 18/30 weight 200, so size/weight/leading all need
                  pinning; `font-sans` guards against a serif leak. -->
-            <p class="quote type-quote text-black">
+            <p class="quote type-quote measure text-black">
               {slice.primary.quote}
             </p>
           </blockquote>

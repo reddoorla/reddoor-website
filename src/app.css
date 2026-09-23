@@ -337,6 +337,24 @@ body::-webkit-scrollbar {
    base heading scale already uses (1600 / 1024 / 768) so the two stay in step.
    --------------------------------------------------------------------------- */
 @layer components {
+  /* Running prose sits on a measure, not on whatever column it lives in.
+
+     The industry grid became proportional when Tim's MarkUp pins 1-3 were
+     fixed (RailRow's comment has the reasoning), which is right for the row —
+     rules, cards, logos and the FAQ now reach the page gutter like every other
+     page — but a body paragraph is not a structural column. Measured on /boise
+     at 1512: the 21px lead ran 79 characters a line at the old fixed 760px and
+     116 at the new 1093px. The rest of the site never goes near that; measured
+     the same day, /about runs 77-81 characters, /twenty-for-twenty 58-66 and
+     the home page 41-46. 80ch keeps the industry pages inside that band.
+
+     `ch` rather than px so each type ramp keeps the same measure: the cap lands
+     at ~840px on the 21px lead and ~1040px on the 26px one, which is why it
+     binds on running text and leaves display type alone. */
+  .measure {
+    max-width: 80ch;
+  }
+
   /* Red rail kicker naming a section. The most repeated role on the page —
      RailRow, and the ValueBlock/Accordion eyebrows. Colour is NOT set here:
      the rail is `text-primary`, but the same type is used in black elsewhere. */
