@@ -2450,6 +2450,16 @@ export interface LogoGridSliceDefaultPrimaryLogosItem {
   logo_negative: prismic.ImageField<never>;
 
   /**
+   * logo width (px) field in *LogoGrid → Default → Primary → logos*
+   *
+   * - **Field Type**: Number
+   * - **Placeholder**: optional — how wide this logo draws, 40 to 300. Empty means the default (220 for SVG, the file's own size for PNG)
+   * - **API ID Path**: logo_grid.default.primary.logos[].logo_width
+   * - **Documentation**: https://prismic.io/docs/fields/number
+   */
+  logo_width: prismic.NumberField;
+
+  /**
    * rollover background field in *LogoGrid → Default → Primary → logos*
    *
    * - **Field Type**: Image

@@ -68,6 +68,10 @@
           ? item.active_background_mobile
           : item.active_background?.mobile,
         hasNegative: isFilled.image(item.logo_negative),
+        width:
+          typeof item.logo_width === "number" && item.logo_width > 0
+            ? Math.min(item.logo_width, 300)
+            : null,
       })),
   );
 
@@ -177,9 +181,6 @@
 
   // The board flushes the outer columns with the content column's edges and
   // centres the middle one (equal 220px outer cells, `justify-between`).
-  // Full literal strings — a composed `lg:justify-${x}` is invisible to
-  // Tailwind's scanner.
-  const columnAlign = ["lg:justify-start", "lg:justify-center", "lg:justify-end"];
 </script>
 
 <svelte:window bind:innerWidth={viewportWidth} />
@@ -194,7 +195,8 @@
      their colour mark on hover no matter what the CMS held. One renderer, one
      behaviour. -->
 {#snippet logoPair(item: (typeof logos)[number], i: number, decorative: boolean)}
-  {@const swapClass = `block max-h-full ${isSvg(item.logo) ? "w-55" : "w-auto"} max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
+  {@const widthStyle = item.width ? `width: ${item.width}px` : undefined}
+  {@const swapClass = `block max-h-full ${item.width ? "" : isSvg(item.logo) ? "w-55" : "w-auto"} max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
     item.hasNegative && activeIndex === i ? "opacity-0" : "opacity-100"
   }`}
   <!-- The colour mark stays IN FLOW, so it is what sizes the box. -->
@@ -205,9 +207,10 @@
       field={item.logo}
       alt=""
       class={swapClass}
+      style={widthStyle}
       imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
-      widths={[220, 440, 660]}
-      sizes="220px"
+      widths={[220, 440, 660, 900]}
+      sizes={`${item.width ?? 220}px`}
       loading="lazy"
       decoding="async"
     />
@@ -219,9 +222,10 @@
       field={item.logo}
       fallbackAlt=""
       class={swapClass}
+      style={widthStyle}
       imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
-      widths={[220, 440, 660]}
-      sizes="220px"
+      widths={[220, 440, 660, 900]}
+      sizes={`${item.width ?? 220}px`}
       loading="lazy"
       decoding="async"
     />
@@ -242,8 +246,8 @@
         ? 'opacity-100'
         : 'opacity-0'}"
       imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
-      widths={[220, 440, 660]}
-      sizes="220px"
+      widths={[220, 440, 660, 900]}
+      sizes={`${item.width ?? 220}px`}
       loading="lazy"
       decoding="async"
     />
@@ -393,9 +397,7 @@
             <li
               bind:this={rows[i]}
               use:anim={{ enabled: isAnimated, translateY: "0" }}
-              class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-26.25 {columnAlign[
-                i % 3
-              ]}"
+              class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-26.25"
               onmouseenter={() => activate(i)}
               onmouseleave={clear}
               onfocusin={() => activate(i)}
