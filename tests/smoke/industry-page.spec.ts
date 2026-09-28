@@ -269,7 +269,8 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
       const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
       // Scale, not devicePixelRatio: the element is measured in CSS px but
       // rendered at whatever the context's scale factor is.
-      const s = canvas.width / size.w;
+      const sx = canvas.width / size.w;
+      const sy = canvas.height / size.h;
       // Red dominance rather than an exact match — a 1.5px stroke lands on the
       // device grid partially covered, so its pixels are blends toward paper.
       const ink = (x: number, y: number) => {
@@ -294,7 +295,7 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
             h: size.chevH,
           };
       // The rule, the chevron's vertex and the arrow all share a centre line.
-      const fixed = Math.round((along ? box.y + box.h / 2 : box.x + box.w / 2) * s);
+      const fixed = Math.round(along ? (box.y + box.h / 2) * sy : (box.x + box.w / 2) * sx);
       // The window IS the join, so walk all of it.
       const from = 0;
       const to = along ? canvas.width : canvas.height;
@@ -310,7 +311,7 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
         if (hit) {
           if (!run) {
             segments++;
-            if (lastInk >= 0) gap = Math.max(gap, (t - lastInk - 1) / s);
+            if (lastInk >= 0) gap = Math.max(gap, (t - lastInk - 1) / (along ? sx : sy));
           }
           lastInk = t;
         }
@@ -318,8 +319,8 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
       }
 
       let headInk = 0;
-      for (let y = Math.round(box.y * s); y < Math.round((box.y + box.h) * s); y++)
-        for (let x = Math.round(box.x * s); x < Math.round((box.x + box.w) * s); x++)
+      for (let y = Math.round(box.y * sy); y < Math.round((box.y + box.h) * sy); y++)
+        for (let x = Math.round(box.x * sx); x < Math.round((box.x + box.w) * sx); x++)
           if (ink(x, y)) headInk++;
 
       return { segments, gap: +gap.toFixed(2), headInk };
