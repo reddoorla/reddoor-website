@@ -60,13 +60,15 @@
   // code. The `pt-28` below is the room reserved for that nav.
 </script>
 
-<SliceSection {slice} class="relative w-full overflow-hidden bg-black">
+<SliceSection {slice} class="relative w-full overflow-hidden bg-black max-md:bg-[#2D3843]">
   <!-- Media layer. `isolate` confines the multiply blend to this wrapper so it
        darkens the photo and nothing else, and the scrim is a direct sibling of
        the <img>: any ancestor carrying transform/opacity/filter (an entrance
        animation, say) collapses mix-blend-multiply into an opaque box. Nothing
        in here is ever animated for that reason — the reveal is on the type. -->
-  <div class="pointer-events-none absolute inset-0 isolate">
+  <div
+    class="pointer-events-none absolute inset-0 isolate max-md:bottom-auto max-md:h-[min(138vw,44rem)]"
+  >
     {#if isFilled.image(slice.primary.image)}
       <!-- `fallbackAlt=""`: PrismicImage takes its alt from the field, and an
            asset uploaded without alt text would otherwise render an <img> with
@@ -90,7 +92,10 @@
         decoding="async"
       />
     {/if}
-    <div class="hero-scrim absolute inset-0 mix-blend-multiply"></div>
+    <div class="hero-scrim absolute inset-0 mix-blend-multiply max-md:hidden"></div>
+    <div
+      class="absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-b from-transparent to-[#2D3843] md:hidden"
+    ></div>
     <!-- The board's wash is transparent through the top 48%, but the site nav
          renders in white over exactly that strip on an industry page. A bright
          photo would drop the nav links below contrast, so this short top scrim
@@ -119,9 +124,12 @@
            clearance to the intro), so the headline cell keeps that clearance
            as right padding on top of the 20px gutter: 44px + 20 at lg, 134px
            + 20 = 154 from xl. -->
-      <div class="flex flex-col gap-10 lg:grid lg:grid-cols-5 lg:items-end lg:gap-x-5">
+      <div class="flex flex-col gap-16 md:gap-10 lg:grid lg:grid-cols-5 lg:items-end lg:gap-x-5">
         {#if hasHeadline}
-          <div class="lg:col-span-4 lg:pr-11 xl:pr-33.5" use:anim={{ enabled: isAnimated }}>
+          <div
+            class="max-md:flex max-md:min-h-[calc(min(138vw,44rem)-11rem)] max-md:flex-col max-md:justify-end lg:col-span-4 lg:pr-11 xl:pr-33.5"
+            use:anim={{ enabled: isAnimated }}
+          >
             <PrismicRichText field={slice.primary.headline} components={headlineComponents} />
           </div>
         {/if}

@@ -134,7 +134,9 @@
 
 <SliceSection
   {slice}
-  class="relative w-full {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom ? 'pb-7.5' : ''}"
+  class="relative w-full overflow-x-clip {pad.padTop ? 'pt-7.5' : ''} {pad.padBottom
+    ? 'pb-7.5'
+    : ''}"
 >
   {#if hasTextureBleed}
     <!-- The paper texture from the band ABOVE does not stop at that band's
