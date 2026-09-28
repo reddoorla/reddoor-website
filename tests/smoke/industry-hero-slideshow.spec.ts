@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext, type Locator } from "@playwright/test";
 
 const PATH = "/dev/a11y-fixtures";
-const INTERVAL_MS = 7000;
+const INTERVAL_MS = 3000;
 
 const svg = (fill: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000"><rect width="1600" height="1000" fill="${fill}"/></svg>`;
