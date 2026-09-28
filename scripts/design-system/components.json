@@ -1,0 +1,5 @@
+[
+  { "name": "DefaultButton", "source": "$lib/components/Buttons/DefaultButton.svelte" },
+  { "name": "ContentWidth", "source": "$lib/components/ContentWidth/ContentWidth.svelte" },
+  { "name": "LeadText", "source": "$lib/slices/LeadText/index.svelte" }
+]
