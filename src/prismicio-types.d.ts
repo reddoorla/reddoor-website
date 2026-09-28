@@ -2116,6 +2116,21 @@ export type FeaturedProjectSlice = prismic.SharedSlice<
 >;
 
 /**
+ * Item in *IndustryHero → Default → Primary → Extra slideshow images*
+ */
+export interface IndustryHeroSliceDefaultPrimaryImagesItem {
+  /**
+   * image field in *IndustryHero → Default → Primary → Extra slideshow images*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: *None*
+   * - **API ID Path**: industry_hero.default.primary.images[].image
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  image: prismic.ImageField<never>;
+}
+
+/**
  * Item in *IndustryHero → Default → Primary → buttons*
  */
 export interface IndustryHeroSliceDefaultPrimaryButtonsItem {
@@ -2143,6 +2158,16 @@ export interface IndustryHeroSliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
   image: prismic.ImageField<never>;
+
+  /**
+   * Extra slideshow images field in *IndustryHero → Default → Primary*
+   *
+   * - **Field Type**: Group
+   * - **Placeholder**: *None*
+   * - **API ID Path**: industry_hero.default.primary.images[]
+   * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+   */
+  images: prismic.GroupField<Simplify<IndustryHeroSliceDefaultPrimaryImagesItem>>;
 
   /**
    * headline field in *IndustryHero → Default → Primary*
@@ -3932,6 +3957,7 @@ declare module "@prismicio/client" {
       FeaturedProjectSliceVariation,
       FeaturedProjectSliceDefault,
       IndustryHeroSlice,
+      IndustryHeroSliceDefaultPrimaryImagesItem,
       IndustryHeroSliceDefaultPrimaryButtonsItem,
       IndustryHeroSliceDefaultPrimary,
       IndustryHeroSliceVariation,
