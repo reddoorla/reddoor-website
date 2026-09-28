@@ -1,5 +1,106 @@
 [
-  { "name": "DefaultButton", "source": "$lib/components/Buttons/DefaultButton.svelte" },
-  { "name": "ContentWidth", "source": "$lib/components/ContentWidth/ContentWidth.svelte" },
-  { "name": "LeadText", "source": "$lib/slices/LeadText/index.svelte" }
+  {
+    "name": "DefaultButton",
+    "source": "$lib/components/Buttons/DefaultButton.svelte",
+    "group": "Actions"
+  },
+  {
+    "name": "ContentWidth",
+    "source": "$lib/components/ContentWidth/ContentWidth.svelte",
+    "group": "Layout"
+  },
+  { "name": "RailRow", "source": "$lib/components/RailRow.svelte", "group": "Layout" },
+  {
+    "name": "RichTextHeading",
+    "source": "$lib/components/RichTextHeading.svelte",
+    "group": "Text"
+  },
+  { "name": "RichTextBody", "source": "$lib/components/RichTextBody.svelte", "group": "Text" },
+  { "name": "Img", "source": "$lib/components/Img.svelte", "group": "Media" },
+  {
+    "name": "ScreenWidthImage",
+    "source": "$lib/components/ScreenWidth/ScreenWidthImage.svelte",
+    "group": "Media"
+  },
+  { "name": "Slideshow", "source": "$lib/components/Slideshow/Slideshow.svelte", "group": "Media" },
+  { "name": "VimeoEmbed", "source": "$lib/components/VimeoEmbed.svelte", "group": "Media" },
+  { "name": "LogoSoup", "source": "$lib/components/LogoSoup.svelte", "group": "Media" },
+  {
+    "name": "OpeningAnimation",
+    "source": "$lib/components/OpeningAnimation.svelte",
+    "group": "Pages"
+  },
+  { "name": "SendingDots", "source": "$lib/components/SendingDots.svelte", "group": "Feedback" },
+  { "name": "InquiryModal", "source": "$lib/components/InquiryModal.svelte", "group": "Funnel" },
+  { "name": "SlotPicker", "source": "$lib/components/SlotPicker.svelte", "group": "Funnel" },
+  { "name": "IndustryHero", "source": "$lib/slices/IndustryHero/index.svelte", "group": "Slices" },
+  { "name": "LeadText", "source": "$lib/slices/LeadText/index.svelte", "group": "Slices" },
+  { "name": "TextColumns", "source": "$lib/slices/TextColumns/index.svelte", "group": "Slices" },
+  { "name": "CaseStudy", "source": "$lib/slices/CaseStudy/index.svelte", "group": "Slices" },
+  { "name": "LogoGrid", "source": "$lib/slices/LogoGrid/index.svelte", "group": "Slices" },
+  { "name": "Testimonial", "source": "$lib/slices/Testimonial/index.svelte", "group": "Slices" },
+  { "name": "ValueBlock", "source": "$lib/slices/ValueBlock/index.svelte", "group": "Slices" },
+  {
+    "name": "FeaturedProject",
+    "source": "$lib/slices/FeaturedProject/index.svelte",
+    "group": "Slices"
+  },
+  { "name": "Accordion", "source": "$lib/slices/Accordion/index.svelte", "group": "Slices" },
+  { "name": "CtaBanner", "source": "$lib/slices/CtaBanner/index.svelte", "group": "Slices" },
+  { "name": "RichText", "source": "$lib/slices/RichText/index.svelte", "group": "Slices" },
+  {
+    "name": "ContentWidthMedia",
+    "source": "$lib/slices/ContentWidthMedia/index.svelte",
+    "group": "Slices"
+  },
+  {
+    "name": "ScreenWidthMedia",
+    "source": "$lib/slices/ScreenWidthMedia/index.svelte",
+    "group": "Slices"
+  },
+  {
+    "name": "ScreenWidthColumns",
+    "source": "$lib/slices/ScreenWidthColumns/index.svelte",
+    "group": "Slices"
+  },
+  { "name": "SlideshowSlice", "source": "$lib/slices/Slideshow/index.svelte", "group": "Slices" },
+  { "name": "Report", "source": "$lib/report/Report.svelte", "group": "Audit report" },
+  { "name": "ScoreBars", "source": "$lib/report/ScoreBars.svelte", "group": "Audit report" },
+  {
+    "name": "QuestionMeter",
+    "source": "$lib/report/QuestionMeter.svelte",
+    "group": "Audit report"
+  },
+  {
+    "name": "CitationChart",
+    "source": "$lib/report/CitationChart.svelte",
+    "group": "Audit report"
+  },
+  { "name": "FixList", "source": "$lib/report/FixList.svelte", "group": "Audit report" },
+  { "name": "GoalFit", "source": "$lib/report/GoalFit.svelte", "group": "Audit report" },
+  { "name": "SiteHealth", "source": "$lib/report/SiteHealth.svelte", "group": "Audit report" },
+  { "name": "SourceCheck", "source": "$lib/report/SourceCheck.svelte", "group": "Audit report" },
+  {
+    "name": "SourceCheckLede",
+    "source": "$lib/report/SourceCheckLede.svelte",
+    "group": "Audit report"
+  },
+  { "name": "Standing", "source": "$lib/report/Standing.svelte", "group": "Audit report" },
+  { "name": "Stack", "source": "$lib/report/Stack.svelte", "group": "Audit report" },
+  { "name": "WhatPasses", "source": "$lib/report/WhatPasses.svelte", "group": "Audit report" },
+  {
+    "name": "SearchResults",
+    "source": "$lib/report/SearchResults.svelte",
+    "group": "Audit report"
+  },
+  {
+    "name": "Accessibility",
+    "source": "$lib/report/Accessibility.svelte",
+    "group": "Audit report"
+  },
+  {
+    "name": "ReportDisclosure",
+    "source": "$lib/report/ReportDisclosure.svelte",
+    "group": "Audit report"
+  }
 ]

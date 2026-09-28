@@ -20,12 +20,13 @@ const entry = [
   `import "./styles.css";`,
   `import { expose } from "./react.js";`,
   ...components.map((c) => `import ${c.name} from ${JSON.stringify(c.source)};`),
-  `expose(${JSON.stringify(values.namespace)}, { ${components.map((c) => c.name).join(", ")} });`,
+  `import { report } from "./extras.js";`,
+  `expose(${JSON.stringify(values.namespace)}, { ${components.map((c) => c.name).join(", ")} }).report = report;`,
   "",
 ].join("\n");
 await writeFile(join(here, "entry.js"), entry);
 
-const tmp = join(here, "dist");
+const tmp = join(here, "dist", "bundle");
 process.env.DS_OUT = tmp;
 await build({ configFile: join(here, "vite.config.mjs"), logLevel: "warn" });
 
@@ -44,6 +45,10 @@ for (const bad of ["<!--", "</script", "eval(", "new Function("]) {
 let css = await readFile(join(tmp, "bundle.css"), "utf8");
 if (values.textures && existsSync(values.textures)) {
   const map = JSON.parse(await readFile(values.textures, "utf8"));
+  css = css.replace(
+    /(?:url\("?\/waterColorBg(?:Red)?\.avif"?\)|"\/waterColorBg(?:Red)?\.avif")\s*(?:1x\s*)?type\("image\/avif"\),?/g,
+    "",
+  );
   for (const [from, to] of Object.entries(map)) css = css.replaceAll(from, to);
 }
 if (/<\/style/i.test(css)) throw new Error("bundle.css contains </style");
