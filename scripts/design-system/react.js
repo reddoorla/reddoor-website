@@ -1,4 +1,4 @@
-import { mount, unmount, createRawSnippet } from "svelte";
+import { mount, unmount, createRawSnippet, flushSync } from "svelte";
 import { reactiveProps } from "./props.svelte.js";
 
 const SLOT = '<span data-rd-slot style="display:contents"></span>';
@@ -45,6 +45,7 @@ export function wrap(Component, name) {
     const host = React.useRef(null);
     const live = React.useRef(null);
     const [slots, setSlots] = React.useState([]);
+    const [, setTick] = React.useState(0);
     const keys = Object.keys(props).filter((k) => isSnippet(React, k, props[k]));
     const signature = keys.join("|");
 
@@ -80,7 +81,12 @@ export function wrap(Component, name) {
 
     React.useEffect(() => {
       const current = live.current;
-      if (current) sync(current.bag, current.last, toSvelte(current.snippets));
+      if (!current) return;
+      sync(current.bag, current.last, toSvelte(current.snippets));
+      if (slots.length) {
+        flushSync();
+        setTick((t) => t + 1);
+      }
     }, [props]);
 
     const portals = slots
