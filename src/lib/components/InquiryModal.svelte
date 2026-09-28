@@ -596,9 +596,9 @@
       <h2 id="inquiry-title" class="inquiry-title">{title}</h2>
 
       {#if steps.length && frame === "email"}
-        <!-- Not tabs. This is one frame that says "you are at step one" — the
-             other two are there to place it in the framework, not to be picked.
-             So: static markup, nothing focusable, no panel to control. An
+        <!-- Not tabs. This is one frame that says "you are at step one", and
+             only step one is drawn (Tim, 2026-09-28): the other two used to sit
+             beside it in pale pink. Static markup, nothing focusable. An
              earlier pass made these real tabs, which promised movement the
              design never intended to offer.
 
@@ -606,7 +606,7 @@
              the run of numbers and labels would otherwise be read out before
              every visitor reached it. -->
         <div class="inquiry-steps" aria-hidden="true">
-          {#each steps as s, i (i)}
+          {#each steps.slice(0, 1) as s, i (i)}
             <div class="inquiry-step" class:is-active={i === 0}>
               <span class="inquiry-step-num">
                 <span
@@ -953,6 +953,7 @@
   @media (max-width: 640px) {
     .inquiry-title {
       margin-bottom: 24px;
+      padding-right: 40px;
       font-size: 34px;
     }
   }
@@ -969,13 +970,6 @@
     align-items: flex-start;
     gap: 10px;
     text-align: left;
-    /* The board's pale pink for the two steps you are not on. It only reads as
-       "not this one" because the active step sits beside it at full strength —
-       and it is legitimate here ONLY because this row is decorative: it names
-       no destination and controls nothing, the copy below says which step you
-       are on, and the whole block is aria-hidden. If these ever become real
-       controls again, this colour has to go back up — it is ~2.4:1 on white. */
-    color: #eba3a6;
   }
   .inquiry-step.is-active {
     color: #d71920; /* token: primary */

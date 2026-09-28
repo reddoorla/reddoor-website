@@ -84,6 +84,8 @@
   const hasRollover = $derived(logos.some((item) => item.hasBackground));
   const isActive = $derived(activeIndex >= 0 && !!logos[activeIndex]?.hasBackground);
 
+  const isSvg = (field: { url?: string | null }) => /\.svg$/i.test((field.url ?? "").split("?")[0]);
+
   const activate = (i: number) => {
     if (logos[i]?.hasBackground) activeIndex = i;
   };
@@ -192,7 +194,7 @@
      their colour mark on hover no matter what the CMS held. One renderer, one
      behaviour. -->
 {#snippet logoPair(item: (typeof logos)[number], i: number, decorative: boolean)}
-  {@const swapClass = `block max-h-full w-auto max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
+  {@const swapClass = `block max-h-full ${isSvg(item.logo) ? "w-55" : "w-auto"} max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
     item.hasNegative && activeIndex === i ? "opacity-0" : "opacity-100"
   }`}
   <!-- The colour mark stays IN FLOW, so it is what sizes the box. -->
