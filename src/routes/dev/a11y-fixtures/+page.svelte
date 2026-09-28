@@ -194,6 +194,20 @@
     version: "initial",
     primary: {
       image: img("Two surgeons reviewing a tablet in an operating room"),
+      images: [
+        {
+          image: {
+            ...img("A clinic reception desk"),
+            url: "https://images.prismic.io/reddoor-la/fixture-2.png?auto=format,compress",
+          } as ReturnType<typeof img>,
+        },
+        {
+          image: {
+            ...img("A medical device on a lab bench"),
+            url: "https://images.prismic.io/reddoor-la/fixture-3.png?auto=format,compress",
+          } as ReturnType<typeof img>,
+        },
+      ],
       headline: [
         { type: "heading1", text: "From screened out to short list", spans: [] },
       ] as unknown as RichTextField,
