@@ -5,6 +5,7 @@ import {
   BUDGET_GATE,
   isBudgetOptOut,
   DIGITAL_QUESTION_SET_ID,
+  BOISE_QUESTION_SET_ID,
 } from "./questions";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "./constants";
 
@@ -120,5 +121,42 @@ describe("the digital question set", () => {
       questions.map((q) => [q.tag, q.kind === "checkbox" ? ["No"] : "No"]),
     );
     expect(isBudgetOptOut(answered)).toBe(false);
+  });
+});
+
+describe("the Boise question set", () => {
+  const questions = questionsFor(BOISE_QUESTION_SET_ID)!;
+  const a101 = questionsFor(DEFAULT_INQUIRY_SURVEY_ID)!;
+
+  it("is the A-101 set less the budget gate: four questions, same fields, same order", () => {
+    expect(questions).toHaveLength(4);
+    expect(questions.map((q) => q.tag)).toEqual(
+      a101.filter((q) => q.tag !== BUDGET_GATE.tag).map((q) => q.tag),
+    );
+  });
+
+  it("offers no healthcare-only goal and keeps the other goals as the CRM stores them", () => {
+    const goals = questions.find((q) => q.tag === "K0obgvYezsY9MX088GFN") as Extract<
+      (typeof questions)[number],
+      { kind: "checkbox" }
+    >;
+    expect(goals.options).toEqual([
+      "Building brand recognition and trust that converts customers",
+      "Confidence to compete in new markets",
+      "Marketing deliverables that do the selling for you",
+      "Consistency across all marketing and sales presentations",
+    ]);
+  });
+
+  it("cannot trip the budget gate", () => {
+    const answered = Object.fromEntries(
+      questions.map((q) => [q.tag, q.kind === "checkbox" ? ["No"] : "No"]),
+    );
+    expect(isBudgetOptOut(answered)).toBe(false);
+  });
+
+  it("leaves the medtech set untouched", () => {
+    expect(a101).toHaveLength(5);
+    expect(a101.some((q) => q.tag === BUDGET_GATE.tag)).toBe(true);
   });
 });
