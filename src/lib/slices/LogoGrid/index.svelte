@@ -110,6 +110,7 @@
 
   let viewportWidth = $state(0);
   const isMobile = $derived(viewportWidth > 0 && viewportWidth < MOBILE_BREAKPOINT);
+  const onBackdrop = $derived(isMobile && isActive);
 
   // Row elements, in grid order. Written by `bind:this`, so holes are possible
   // mid-render; the observer filters them.
@@ -301,6 +302,11 @@
           </picture>
         {/if}
       {/each}
+      <div
+        class="absolute inset-x-0 top-0 h-100 bg-linear-to-b from-black/80 to-transparent transition-opacity duration-700 ease-fast-slow motion-reduce:transition-none md:hidden {onBackdrop
+          ? 'opacity-100'
+          : 'opacity-0'}"
+      ></div>
     </div>
   {/if}
 
@@ -326,12 +332,22 @@
           <!-- Section heading. `font-sans` + every size property is pinned: the
              global `h2` element rule is Besley 60px and leaks its family in
              even when the size is overridden. -->
-          <h2 class="type-kicker text-primary">
+          <h2
+            class="type-kicker transition-colors duration-500 motion-reduce:transition-none {onBackdrop
+              ? 'text-white'
+              : 'text-primary'}"
+          >
             {slice.primary.label}
           </h2>
         {/if}
         {#if ctaHref}
-          <DefaultButton red filled={false} href={ctaHref} text={ctaText} class="mt-5" />
+          <DefaultButton
+            red={!onBackdrop}
+            filled={false}
+            href={ctaHref}
+            text={ctaText}
+            class="mt-5"
+          />
         {/if}
       </div>
 
