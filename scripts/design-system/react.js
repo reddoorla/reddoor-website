@@ -2,16 +2,26 @@ import { mount, unmount, createRawSnippet } from "svelte";
 import { reactiveProps } from "./props.svelte.js";
 
 const SLOT = '<span data-rd-slot style="display:contents"></span>';
+const SNIPPET = Symbol.for("reddoor.snippet");
+let nextSlot = 0;
+
+export function snippet(render) {
+  return { [SNIPPET]: render };
+}
 
 function isNode(React, value) {
   if (Array.isArray(value)) return value.some((v) => isNode(React, v));
   return React.isValidElement(value);
 }
 
-function nodeKeys(React, props) {
-  return Object.keys(props).filter((k) =>
-    k === "children" ? props[k] != null && props[k] !== false : isNode(React, props[k]),
-  );
+function isSnippet(React, key, value) {
+  if (value && value[SNIPPET]) return true;
+  if (key === "children") return value != null && value !== false;
+  return isNode(React, value);
+}
+
+function renderOf(value) {
+  return value && value[SNIPPET] ? value[SNIPPET] : () => value;
 }
 
 function sync(bag, last, next) {
@@ -34,8 +44,8 @@ export function wrap(Component, name) {
     const React = window.React;
     const host = React.useRef(null);
     const live = React.useRef(null);
-    const [slots, setSlots] = React.useState({});
-    const keys = nodeKeys(React, props);
+    const [slots, setSlots] = React.useState([]);
+    const keys = Object.keys(props).filter((k) => isSnippet(React, k, props[k]));
     const signature = keys.join("|");
 
     const toSvelte = (snippets) => {
@@ -47,10 +57,12 @@ export function wrap(Component, name) {
     React.useEffect(() => {
       const snippets = {};
       for (const k of keys) {
-        snippets[k] = createRawSnippet(() => ({
+        snippets[k] = createRawSnippet((...getters) => ({
           render: () => SLOT,
           setup(node) {
-            setSlots((s) => ({ ...s, [k]: node }));
+            const id = ++nextSlot;
+            setSlots((s) => [...s, { id, key: k, node, getters }]);
+            return () => setSlots((s) => s.filter((x) => x.id !== id));
           },
         }));
       }
@@ -62,7 +74,7 @@ export function wrap(Component, name) {
       return () => {
         unmount(instance);
         live.current = null;
-        setSlots({});
+        setSlots([]);
       };
     }, [signature]);
 
@@ -71,9 +83,15 @@ export function wrap(Component, name) {
       if (current) sync(current.bag, current.last, toSvelte(current.snippets));
     }, [props]);
 
-    const portals = keys
-      .filter((k) => slots[k])
-      .map((k) => window.ReactDOM.createPortal(props[k], slots[k], k));
+    const portals = slots
+      .filter((s) => s.key in props)
+      .map((s) =>
+        window.ReactDOM.createPortal(
+          renderOf(props[s.key])(...s.getters.map((g) => g())),
+          s.node,
+          s.id,
+        ),
+      );
     return React.createElement(
       React.Fragment,
       null,
@@ -92,6 +110,7 @@ export function expose(namespace, components) {
     target[name] = wrap(Component, name);
     svelte[name] = Component;
   }
+  target.snippet = snippet;
   target.svelte = {
     components: svelte,
     mount: (name, element, props = {}) => mount(svelte[name], { target: element, props }),
