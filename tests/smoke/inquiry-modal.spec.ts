@@ -441,7 +441,7 @@ test("the step row is decorative, not a set of controls", async ({ page }) => {
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
 
   const dialog = page.getByRole("dialog");
-  await expect(dialog.locator(".inquiry-step")).toHaveCount(3);
+  await expect(dialog.locator(".inquiry-step")).toHaveCount(1);
   // No tab semantics anywhere, and nothing in the row is reachable by keyboard.
   await expect(page.getByRole("tab")).toHaveCount(0);
   await expect(page.getByRole("tabpanel")).toHaveCount(0);
@@ -538,28 +538,7 @@ test("no frame of the flow has axe violations", async ({ page }) => {
     .toBe(1);
 
   const scan = () =>
-    new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      // KNOWN, ACCEPTED DEVIATION — not a blanket exemption, and not a bug to
-      // "fix" by quietly darkening the pink.
-      //
-      // The board draws the two steps you are NOT on in a pale pink that measures
-      // 2.03:1 on white (axe, 2026-08-16), against the 4.5:1 that WCAG 1.4.3
-      // requires. That was raised twice and the design was confirmed both times,
-      // so the colour stands and the exclusion is written down here rather than
-      // being hidden by nudging the value until the gate went quiet.
-      //
-      // What makes it defensible rather than merely permitted: the row is
-      // decorative. It controls nothing, links nowhere, takes no focus, and is
-      // aria-hidden, and the copy directly beneath it names the step in
-      // full-strength text. What it is NOT is exempt — a sighted visitor with low
-      // contrast sensitivity will not read "02 THE REBUILD".
-      //
-      // Narrow on purpose: only this row is skipped, so any other contrast
-      // regression anywhere in the modal still fails. If these ever become
-      // interactive again, delete this line first — the colour has to go with it.
-      .exclude(".inquiry-steps")
-      .analyze();
+    new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
 
   // Frame one (email).
   expect((await scan()).violations).toEqual([]);
@@ -579,11 +558,7 @@ test("no frame of the flow has axe violations", async ({ page }) => {
   expect((await scan()).violations).toEqual([]);
 });
 
-// The exclusion above must stay honest: if the row somehow starts passing, the
-// colour has drifted off the board and someone should know.
-test("the dimmed steps are the board's pink, and still the known contrast gap", async ({
-  page,
-}) => {
+test("only step one is drawn, at full red", async ({ page }) => {
   await stubInquiry(page);
   await gotoHydrated(page);
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
@@ -597,8 +572,7 @@ test("the dimmed steps are the board's pink, and still the known contrast gap", 
     .locator(".inquiry-step")
     .evaluateAll((els) => els.map((el) => getComputedStyle(el).color));
 
-  // Step one at full red; the other two dimmed to the board's pink.
-  expect(colors).toEqual(["rgb(215, 25, 32)", "rgb(235, 163, 166)", "rgb(235, 163, 166)"]);
+  expect(colors).toEqual(["rgb(215, 25, 32)"]);
 });
 
 // A CTA can name the section it sits in via data-inquire-step, so a captured
