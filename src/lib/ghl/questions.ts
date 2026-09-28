@@ -206,9 +206,28 @@ export const SMS_CONSENT = {
  * Keys are whatever an industry document's `inquiry_survey_id` holds — the
  * A-101 GHL survey id for the brand funnel, `digital` for the web funnel.
  */
+/**
+ * The /boise question set: the A-101 questions and CRM fields, less the
+ * $10,000+ budget gate and the healthcare-only goal (Tim, 2026-09-28). Derived
+ * from A101_QUESTIONS rather than copied, so every tag and option string stays
+ * the CRM's own and a change to the shared questions reaches both pages.
+ */
+export const BOISE_QUESTION_SET_ID = "boise";
+
+const HEALTHCARE_ONLY_GOAL = "Command instant credibility with healthcare workers";
+
+const BOISE_QUESTIONS: readonly InquiryQuestion[] = A101_QUESTIONS.filter(
+  (q) => q.tag !== BUDGET_GATE.tag,
+).map((q) =>
+  q.kind === "checkbox"
+    ? { ...q, options: q.options.filter((o) => o !== HEALTHCARE_ONLY_GOAL) }
+    : q,
+);
+
 const QUESTION_SETS: Record<string, readonly InquiryQuestion[]> = {
   [DEFAULT_INQUIRY_SURVEY_ID]: A101_QUESTIONS,
   [DIGITAL_QUESTION_SET_ID]: DIGITAL_QUESTIONS,
+  [BOISE_QUESTION_SET_ID]: BOISE_QUESTIONS,
 };
 
 export function questionsFor(surveyId: string): readonly InquiryQuestion[] | undefined {
