@@ -7,8 +7,8 @@
     slides,
     playing,
     animate,
-    interval = 7000,
-    fadeMs = 1500,
+    interval = 3000,
+    fadeMs = 1000,
   }: {
     slides: ImageField[];
     playing: boolean;
@@ -24,12 +24,24 @@
 
   const running = $derived(animate && playing && slides.length > 1);
 
+  let settleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const nextLoaded = () => {
+    for (let step = 1; step < slides.length; step++) {
+      const candidate = (active + step) % slides.length;
+      if (loaded[candidate]) return candidate;
+    }
+    return -1;
+  };
+
   const advance = () => {
-    const next = (active + 1) % slides.length;
-    if (!loaded[next]) return;
+    const next = nextLoaded();
+    if (next < 0) return;
+    clearTimeout(settleTimer);
     previous = active;
     active = next;
     cycles[next] = (cycles[next] ?? 0) + 1;
+    settleTimer = setTimeout(() => (previous = -1), fadeMs);
   };
 
   $effect(() => {
@@ -37,6 +49,8 @@
     const timer = setInterval(advance, interval);
     return () => clearInterval(timer);
   });
+
+  $effect(() => () => clearTimeout(settleTimer));
 
   const trackLoad = (node: HTMLElement, i: number) => {
     const img = node.querySelector("img");
@@ -111,7 +125,7 @@
       transform: scale(1) translate(0, 0);
     }
     to {
-      transform: scale(1.12) translate(-2%, -1.5%);
+      transform: scale(1.06) translate(-1%, -0.75%);
     }
   }
   @keyframes kb-in-b {
@@ -119,12 +133,12 @@
       transform: scale(1) translate(0, 0);
     }
     to {
-      transform: scale(1.12) translate(-2%, -1.5%);
+      transform: scale(1.06) translate(-1%, -0.75%);
     }
   }
   @keyframes kb-out-a {
     from {
-      transform: scale(1.12) translate(2%, 1%);
+      transform: scale(1.06) translate(1%, 0.5%);
     }
     to {
       transform: scale(1) translate(0, 0);
@@ -132,7 +146,7 @@
   }
   @keyframes kb-out-b {
     from {
-      transform: scale(1.12) translate(2%, 1%);
+      transform: scale(1.06) translate(1%, 0.5%);
     }
     to {
       transform: scale(1) translate(0, 0);
