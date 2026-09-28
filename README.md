@@ -35,6 +35,7 @@ pnpm dev           # vite dev server (:5173) + Slice Machine (:9999), concurrent
 - Content lives in the Prismic repo configured in `slicemachine.config.json`; slices are in `src/lib/slices/`, models are pushed via Slice Machine (interactive login required — a write token can't push models).
 - `scripts/portfolio-intro/` — the (idempotent, unit-tested) migration that seeded the 16 portfolio-page intros from the Figma project-page designs. See its README before re-running anything.
 - `scripts/crm/` — drives the CRM's workflow builder over Chrome's debugging port, for the message bodies no API reaches. Its README is the runbook and the log of edits made; read `docs/inquiry-funnel.md` §7 before writing anything there.
+- `scripts/design-system/` — builds the component bundle of the Reddoor design system artifact from the real Svelte components, and render-checks its preview cards. Its README says what it produces and how to rebuild.
 - Secrets: `PRISMIC_WRITE_TOKEN` lives in `.env.local` (gitignored). Scripts load it via `node --env-file=.env.local …`. Never commit or print it.
 
 ## Conventions worth knowing

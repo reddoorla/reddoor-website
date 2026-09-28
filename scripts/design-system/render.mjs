@@ -66,7 +66,7 @@ const names = positionals.length
   ? positionals
   : (await readdir(compDir)).filter((d) => existsSync(join(compDir, d, "preview.html")));
 
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const report = [];
 
 for (const name of names) {

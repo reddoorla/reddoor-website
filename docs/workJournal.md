@@ -1298,3 +1298,89 @@ nothing unlanded, and the branches of the other three (`chore/form-replies-types
 commits) are on origin with no PR for the last two. A journal entry from 09-15
 about the Boise promotion turned out to exist only in a local worktree, never
 pushed — it landed as #211.
+
+## 2026-09-28 — The site's design system, extracted into an artifact from the real components (`claude/design-system-extraction-crpqc8`, `dc932be..`)
+
+The ask was to extract the design system from this codebase and make a new one. It
+landed as a private Design System artifact (claude.ai/artifact/LE8CeEy2T5AeuLLfEuYXTC,
+"Reddoor Creative"): 107 tokens (35 colours, 14 spacing steps, 9 radii, 5 shadows,
+layout, breakpoints, durations, easings, z-index, opacity), 42 type styles, a brand book
+of eight sections, 137 uploaded assets, and 45 live component cards. The only code in
+this repo is the producer in `scripts/design-system/`, which builds the cards' bundle.
+
+**The components are the real ones, not re-drawings.** The artifact's page loads a
+classic script and React 18, so `build.mjs` runs Vite in library mode over the actual
+Svelte files (IIFE, 434,670 bytes) and `react.js` wraps each one as a React component
+that `mount()`s it. `bundle.css` is `app.css` compiled over all of `src/` (79,581
+bytes), with the paper textures pointed at uploaded copies. Every preview therefore
+renders the site's own markup, classes and scoped styles; 44 author agents built a card
+each and an independent verifier re-rendered it, screenshotted the same section on the
+dev server at 1440 with reduced motion, and checked every README claim against source.
+None of the 44 failed; every verifier fixed something.
+
+**The first wrapper was wrong in two ways, and it took the cards to show it.** It
+remounted on every React render and turned only `children` into a snippet, so
+ReportDisclosure's `open` reset itself, RailRow's `rail` needed a hand-written function
+in Svelte's compiled calling convention, and Slideshow's `slide` could not be expressed
+at all. v2 passes props through a `$state` proxy (updated in place), turns any React
+element prop into a snippet through a portal, and adds `Reddoor.snippet(fn)` for snippets
+that take arguments. A verifier then caught v2 showing stale slides after a same-length
+`slides` swap: the snippet getters were read during React's render, before the prop sync
+reached Svelte. `flushSync()` plus one React tick after the sync fixed it (A,B → C,D now
+renders C#0…D#5).
+
+**The wrapper's own element broke the band rhythm.** Each React wrapper mounts into a
+`display:contents` div, so `[data-band-rhythm="industry"] > section[data-slice-type]` and
+the `section + section` rules never matched. `SliceZone.svelte` — the one component not
+from `src/` — is the `[uid]` route's composition (`contents` div + prismic SliceZone),
+compiled in. Composing the twelve live /medtech slices through it reproduces every
+section's offset, height and padding at 1440 exactly (hero 0/860 … cta_banner 6107/619,
+115/168).
+
+**Type styles are named `type.hero`, not `type-hero`, on purpose.** The artifact
+compiles each type style into an unlayered class in `tokens.css`. A style named
+`type-hero` would have beaten the `@layer components` role and pinned the masthead at its
+desktop 60px at every width; the dotted name documents the role without shadowing it.
+
+**Measured, and worth keeping.** The Typekit kit serves Pragmatica at 200/300/400/700/900
+only, so the report's eight `font-medium` render 400, the print sheet's 600 renders 700,
+and `h2`'s Besley 300 renders 400. 235 hex literals in `src/` duplicate a theme token
+exactly (221 in scoped styles), because `@config` mode emits no colour variables. There
+are four reds: `primary` #d71920, the door PNG #e51937, the favicon #e31937, and the red
+paper's mean #c01c21 — darker than the token. Paper's median luminance is 0.9216, so every
+ratio on it is about 7.5% lower than on white. `primary`, `mid`, `muted` and the body gray
+share one luminance (1.00–1.03:1), so the slideshow dot and the report's current contents
+entry are hue-only states.
+
+**Beliefs corrected on contact.** The funnel comments' ratios are wrong: "primary alone is
+4.0:1" is 5.19, "primary-dark 5.9:1" is 7.44, the inactive-step pink's "~2.4:1" is 2.03,
+and "muted 4.6:1 on white" is the paper figure (5.02 on white). `band` is "never a fill"
+per the config and is the fill of every report chart track. The v3 compatibility border
+rule falls back to `currentcolor`, because `--color-gray-200` is never defined.
+CaseStudy's comment claims the red label sits at a 4.51:1 median on its frames; on the
+real /medtech frames only two of five have the cream band the art direction relies on —
+slide 3 measures 2.84:1 (switch word 2.12), the before frame 3.97:1, and slide 4 runs the
+label across a laptop edge. The slideshow autoplays the failing frames under the text.
+
+**Defects found by the cards, still in the code.** DefaultButton pressed on a dark ground
+is black on black (`hover:text-black` survives `active:bg-black`, 1.00:1 until release),
+confirmed on the live /medtech CTA. LogoSoup has no desktop scrim: the white heading is
+under 4.5:1 on nine of the twelve live backdrops (St. James' about 1.4:1, Hearts & Minds
+1.3:1); only Zero Labs and Gallery Sonder clear every line. `.bump:active` is declared
+twice and the later rule presses down 5px while DefaultButton lifts 8px. The IndustryHero
+nav scrim gives 3.35:1 against a white sky. None of these was fixed here — they are in
+the cards' Known issues and the brand book's "Known drift" section.
+
+**My own first draft needed 83 corrections.** A fact-check pass over the tokens and the
+brand book found an invented rule ("one filled red CTA per view"), samples attributed to
+the wrong element (an `h2` line filed as `h5`, a CTA that exists only in a plan doc),
+"exclamation marks are legacy only" (the inquiry modal's default title has one), and a
+radius claim that missed four one-offs. Every correction was sourced to a file and line.
+
+**Honest limits.** Pragmatica is Adobe Fonts and cannot be redistributed, so every card
+renders its Helvetica fallback. The sandbox's dev server could not load Besley or imgix,
+so the live comparisons injected the fonts and images the cards use. The /medtech hero is
+an unlicensed iStock comp and was not uploaded; the IndustryHero card uses stand-ins and
+says so. Client logos and photography are in a "Sample imagery" group, labelled as
+portfolio content rather than brand, and the images with identifiable people were left
+out. Rebuild instructions are in `scripts/design-system/README.md`.
