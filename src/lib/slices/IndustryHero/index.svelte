@@ -9,6 +9,9 @@
   import { isFilled, type Content } from "@prismicio/client";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import { deriveHeroButtons } from "./buttons";
+  import { heroSlides } from "./slides";
+  import KenBurns from "./KenBurns.svelte";
+  import { Pause, Play } from "@lucide/svelte";
 
   let { slice }: { slice: Content.IndustryHeroSlice } = $props();
 
@@ -17,6 +20,18 @@
 
   // Unlabelled or unresolvable links are dropped rather than drawn — see buttons.ts.
   const buttons = $derived(deriveHeroButtons(slice.primary.buttons));
+
+  const slides = $derived(heroSlides(slice.primary));
+  const isSlideshow = $derived(slides.length > 1);
+  let playing = $state(true);
+  let reduceMotion = $state(false);
+  $effect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reduceMotion = mq.matches;
+    const on = () => (reduceMotion = mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  });
 
   // Each column is only drawn when it has content: the columns sit in a
   // `gap-10` stack below lg, so an empty one would open a 40px hole rather than
@@ -69,7 +84,9 @@
   <div
     class="pointer-events-none absolute inset-0 isolate max-md:bottom-auto max-md:h-[min(138vw,44rem)]"
   >
-    {#if isFilled.image(slice.primary.image)}
+    {#if isSlideshow}
+      <KenBurns {slides} {playing} animate={!reduceMotion} />
+    {:else if isFilled.image(slice.primary.image)}
       <!-- `fallbackAlt=""`: PrismicImage takes its alt from the field, and an
            asset uploaded without alt text would otherwise render an <img> with
            no alt attribute at all — an axe `image-alt` failure. The background
@@ -173,6 +190,21 @@
       </div>
     </ContentWidth>
   </div>
+
+  {#if isSlideshow && !reduceMotion}
+    <button
+      type="button"
+      onclick={() => (playing = !playing)}
+      aria-label={playing ? "Pause slideshow" : "Play slideshow"}
+      class="absolute right-[4%] bottom-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/70 bg-black/25 text-white transition-colors duration-300 hover:bg-white hover:text-black"
+    >
+      {#if playing}
+        <Pause class="size-3.5" strokeWidth={1.5} />
+      {:else}
+        <Play class="size-3.5" strokeWidth={1.5} />
+      {/if}
+    </button>
+  {/if}
 </SliceSection>
 
 <style>
