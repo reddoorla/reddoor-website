@@ -368,6 +368,7 @@
         {
           logo: img("Revogen"),
           logo_negative: img("Revogen"),
+          logo_width: null,
           // Carries its `mobile` thumbnail, so this row emits the <source> media
           // query; the row below has neither thumbnail nor legacy field and
           // falls through to the landscape <img> alone — both <picture>
@@ -380,6 +381,7 @@
         {
           logo: img("Preveta"),
           logo_negative: emptyImg,
+          logo_width: 150,
           active_background: emptyBg,
           active_background_mobile: emptyImg,
           name: "Preveta",
@@ -388,6 +390,7 @@
         {
           logo: img(""),
           logo_negative: emptyImg,
+          logo_width: null,
           active_background: emptyBg,
           active_background_mobile: emptyImg,
           name: "Caltex Medical",
