@@ -24,12 +24,24 @@
 
   const running = $derived(animate && playing && slides.length > 1);
 
+  let settleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const nextLoaded = () => {
+    for (let step = 1; step < slides.length; step++) {
+      const candidate = (active + step) % slides.length;
+      if (loaded[candidate]) return candidate;
+    }
+    return -1;
+  };
+
   const advance = () => {
-    const next = (active + 1) % slides.length;
-    if (!loaded[next]) return;
+    const next = nextLoaded();
+    if (next < 0) return;
+    clearTimeout(settleTimer);
     previous = active;
     active = next;
     cycles[next] = (cycles[next] ?? 0) + 1;
+    settleTimer = setTimeout(() => (previous = -1), fadeMs);
   };
 
   $effect(() => {
@@ -37,6 +49,8 @@
     const timer = setInterval(advance, interval);
     return () => clearInterval(timer);
   });
+
+  $effect(() => () => clearTimeout(settleTimer));
 
   const trackLoad = (node: HTMLElement, i: number) => {
     const img = node.querySelector("img");

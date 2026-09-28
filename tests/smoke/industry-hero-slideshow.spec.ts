@@ -30,6 +30,40 @@ const activeTransform = (hero: Locator) =>
   });
 
 test.describe("industry hero slideshow", () => {
+  test("every change crossfades with two slides, and a broken image is skipped", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(60_000);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await context.route("**/images.prismic.io/**", (route) =>
+      route.request().url().includes("/fixture-3.png")
+        ? route.fulfill({ status: 404, body: "" })
+        : route.fulfill({ status: 200, contentType: "image/svg+xml", body: svg("#27ae60") }),
+    );
+    await page.goto(PATH);
+    const hero = page.locator('[data-slice-type="industry_hero"]');
+    await expect.poll(() => activeSlide(hero)).toBe("0");
+    const changes = await hero.evaluate(async (el) => {
+      const seen: { to: string; opacity: number }[] = [];
+      let last = el.querySelector("[data-kb-active]")?.getAttribute("data-kb-slide");
+      const start = performance.now();
+      while (seen.length < 3 && performance.now() - start < 15_000) {
+        const now = el.querySelector("[data-kb-active]");
+        const slide = now?.getAttribute("data-kb-slide");
+        if (now && slide && slide !== last) {
+          await new Promise((r) => setTimeout(r, 150));
+          seen.push({ to: slide, opacity: Number(getComputedStyle(now).opacity) });
+          last = slide;
+        }
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      return seen;
+    });
+    expect(changes.map((c) => c.to)).toEqual(["1", "0", "1"]);
+    for (const change of changes) expect(change.opacity).toBeLessThan(0.6);
+  });
+
   test("advances through the extra images with a Ken Burns move", async ({ page, context }) => {
     test.setTimeout(60_000);
     await page.emulateMedia({ reducedMotion: "no-preference" });
