@@ -19,6 +19,7 @@
 
   import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.webp";
   import scriptReddoor from "$lib/assets/icons/logos/staticReddoor.png";
+  import doorLogo from "$lib/assets/icons/logos/reddoor_logo.png";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
 
@@ -81,12 +82,31 @@
     },
   };
 
-  const showNav = $derived(
-    page.status === 404 || scrollY > 300 || page.url.pathname.includes("about"),
-  );
-
   // Set by the [uid] route when it resolved an `industry` document.
   const isIndustryPage = $derived(page.data.docType === "industry");
+
+  const NAV_HEIGHT = 48;
+  let heroBottom = $state<number | null>(Number.POSITIVE_INFINITY);
+
+  const measureHero = () => {
+    const heroes = document.querySelectorAll('[data-slice-type="industry_hero"]');
+    const hero = heroes[heroes.length - 1];
+    heroBottom = hero ? hero.getBoundingClientRect().bottom : null;
+  };
+
+  $effect(() => {
+    void scrollY;
+    void data.pathname;
+    measureHero();
+  });
+
+  const onIndustryHero = $derived(isIndustryPage && heroBottom !== null && heroBottom > NAV_HEIGHT);
+
+  const showNav = $derived(
+    page.status === 404 ||
+      page.url.pathname.includes("about") ||
+      (isIndustryPage && heroBottom !== null ? !onIndustryHero : scrollY > 300),
+  );
   const NAV_LINKS = $derived(isIndustryPage ? INDUSTRY_NAV_LINKS : SITE_NAV_LINKS);
 
   // Every load resolves meta_image to a URL string (Prismic URLs are absolute;
@@ -130,11 +150,12 @@
     if (typeof window !== "undefined" && window.location.hash) return;
     setTimeout(() => {
       scrollTo({ top: 0, behavior: "instant" });
+      measureHero();
     }, 600);
   });
 </script>
 
-<svelte:window bind:scrollY />
+<svelte:window bind:scrollY onresize={measureHero} />
 
 <svelte:head>
   <!-- `||`, not `??`: an empty CMS title field arrives as "" and must still fall back. -->
@@ -270,7 +291,54 @@
          guard polling `main` opacity now returns 1 immediately and waits for
          nothing. -->
     <div data-page-transition out:fade={{ duration: 500 }} in:fade={{ delay: 700, duration: 700 }}>
-      {#if !showNav && !isInHero.value}
+      {#if onIndustryHero && !isInHero.value}
+        <div
+          class="absolute top-0 z-20 w-screen bg-transparent pt-5 text-white"
+          data-door-nav
+          transition:fly={{ y: -64 }}
+        >
+          <ContentWidth class="flex flex-row items-start justify-between">
+            <a href="/" class="block shrink-0 transition-opacity duration-500 hover:opacity-80">
+              <img
+                src={doorLogo}
+                alt="Reddoor Creative"
+                width="63"
+                height="40"
+                class="block h-10 w-auto"
+              />
+            </a>
+
+            <div class="flex flex-row items-center">
+              <div class="hidden lg:flex flex-row items-center gap-10">
+                {#each NAV_LINKS as item (item.href)}
+                  <a
+                    class="label hover:opacity-80 transition-opacity"
+                    href={item.href}
+                    onclick={() => (isOverlayVisible = false)}>{item.label}</a
+                  >
+                {/each}
+                <DefaultButton
+                  href="/contact#inquire"
+                  text="Get Started"
+                  filled={false}
+                  class="border-white text-white hover:bg-white hover:text-black"
+                />
+              </div>
+
+              <button
+                class="lg:hidden flex h-10 items-center opacity-80 hover:opacity-100 transition-all"
+                onclick={toggleOverlayOn}
+                aria-label="Open menu"
+              >
+                {#if !isOverlayVisible}
+                  <Menu class="size-[2em]" strokeWidth={1} />
+                {/if}
+              </button>
+            </div>
+          </ContentWidth>
+        </div>
+      {/if}
+      {#if !showNav && !onIndustryHero && !isInHero.value}
         <div
           class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
             'portfolio/',

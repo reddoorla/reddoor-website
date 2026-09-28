@@ -22,10 +22,10 @@ import type { RequestEvent } from "@sveltejs/kit";
 export async function replyCopyFor(event: RequestEvent, formType: string) {
   const client = createClient({ fetch: event.fetch });
   // The generated client's document type is a CLOSED union built from
-  // `customtypes/`, so it cannot satisfy a `(type: string)` reader — and
-  // `form_replies` is absent from that union until the model is pushed and
-  // `prismicio-types.d.ts` is regenerated. This adapter is the one place that
-  // gap is asserted, rather than loosening the shared type for every caller.
+  // `customtypes/`, so it cannot satisfy the shared resolver's `(type: string)`
+  // reader, even now that `form_replies` is in that union. This adapter is the
+  // one place that gap is asserted, rather than loosening the shared type for
+  // every caller.
   // Safe because the resolver treats a missing document exactly as it treats an
   // unwritten one: nothing authored, fall back.
   const reader = {

@@ -337,6 +337,24 @@ body::-webkit-scrollbar {
    base heading scale already uses (1600 / 1024 / 768) so the two stay in step.
    --------------------------------------------------------------------------- */
 @layer components {
+  /* Running prose sits on a measure, not on whatever column it lives in.
+
+     The industry grid scales with the page (RailRow's comment has the
+     reasoning), and a column that scales can outgrow a readable line: when
+     prose briefly ran to the page gutter, the 21px lead on /boise at 1512 went
+     from 79 characters a line to 116. The rest of the site never goes near
+     that; measured the same day, /about runs 77-81 characters,
+     /twenty-for-twenty 58-66 and the home page 41-46. On the five-column grid
+     prose spans three columns and the cap rarely binds, but the `wide` rows
+     (the FAQ's answers) span four, and 80ch keeps them inside that band.
+
+     `ch` rather than px so each type ramp keeps the same measure: the cap lands
+     at ~840px on the 21px lead and ~1040px on the 26px one, which is why it
+     binds on running text and leaves display type alone. */
+  .measure {
+    max-width: 80ch;
+  }
+
   /* Red rail kicker naming a section. The most repeated role on the page —
      RailRow, and the ValueBlock/Accordion eyebrows. Colour is NOT set here:
      the rail is `text-primary`, but the same type is used in black elsewhere. */

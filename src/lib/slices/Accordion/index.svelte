@@ -71,12 +71,11 @@
     <!-- Landing-page grid: the label sits in the narrow left rail (as this
          section's h2) so the question list's left edge matches every other
          section of the page. RailRow wraps ContentWidth itself — no nesting.
-         `wide` because the board's question list is 1027px of a 1288px content
-         box (79.74%) — wider than the 760px body column the prose sections use,
+         `wide` because the board's question list runs grid columns 2–5 (x=341
+         to the right margin at 1440), a column wider than the prose sections,
          and the extra width is what keeps each question on the single line the
-         comp draws. RailRow's 1004px `wide` column is the closest sanctioned
-         fit; the default 760px would wrap the longer questions to two lines and
-         break the 70px row rhythm. -->
+         comp draws; columns 2–4 would wrap the longer questions to two lines
+         and break the 70px row rhythm. -->
     <!-- `animateItems` so the rail label arrives on its own and each row below
          carries its own `use:anim` — one scroll trigger per row, so they arrive
          as the reader reaches them rather than on a stagger played back from
@@ -148,7 +147,7 @@
                   <div class="overflow-hidden">
                     <!-- Right inset clears the 30px icon + 20px gutter so the
                        answer never runs under the toggle. -->
-                    <div class="acc-body pb-5 md:pr-12.5">
+                    <div class="acc-body measure pb-5 md:pr-12.5">
                       <RichTextBody field={item.body} />
                     </div>
                   </div>

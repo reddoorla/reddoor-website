@@ -59,6 +59,83 @@ type ContentRelationshipFieldWithData<
 }[Exclude<TCustomType[number], string>["id"]];
 
 /**
+ * Item in *form replies → replies*
+ */
+export interface FormRepliesDocumentDataRepliesItem {
+  /**
+   * form field in *form replies → replies*
+   *
+   * - **Field Type**: Select
+   * - **Placeholder**: Pick the form this reply answers — one row per form
+   * - **API ID Path**: form_replies.replies[].form_type
+   * - **Documentation**: https://prismic.io/docs/fields/select
+   */
+  form_type: prismic.SelectField<"contact" | "inquiry" | "newsletter" | "rsvp" | "reserve">;
+
+  /**
+   * subject field in *form replies → replies*
+   *
+   * - **Field Type**: Text
+   * - **Placeholder**: Subject line of the email the visitor receives
+   * - **API ID Path**: form_replies.replies[].subject
+   * - **Documentation**: https://prismic.io/docs/fields/text
+   */
+  subject: prismic.KeyTextField;
+
+  /**
+   * body field in *form replies → replies*
+   *
+   * - **Field Type**: Rich Text
+   * - **Placeholder**: What the visitor reads. Bold, italic, links and lists are sent; other formatting is not.
+   * - **API ID Path**: form_replies.replies[].body
+   * - **Documentation**: https://prismic.io/docs/fields/rich-text
+   */
+  body: prismic.RichTextField;
+}
+
+/**
+ * Content for form replies documents
+ */
+interface FormRepliesDocumentData {
+  /**
+   * replies field in *form replies*
+   *
+   * - **Field Type**: Group
+   * - **Placeholder**: *None*
+   * - **API ID Path**: form_replies.replies[]
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+   */
+  replies: prismic.GroupField<Simplify<FormRepliesDocumentDataRepliesItem>>;
+
+  /**
+   * signature field in *form replies*
+   *
+   * - **Field Type**: Rich Text
+   * - **Placeholder**: Sign-off appended to every reply, whatever the form
+   * - **API ID Path**: form_replies.signature
+   * - **Tab**: Main
+   * - **Documentation**: https://prismic.io/docs/fields/rich-text
+   */
+  signature: prismic.RichTextField;
+}
+
+/**
+ * form replies document from Prismic
+ *
+ * - **API ID**: `form_replies`
+ * - **Repeatable**: `false`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type FormRepliesDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<
+  Simplify<FormRepliesDocumentData>,
+  "form_replies",
+  Lang
+>;
+
+/**
  * Item in *Gallery → images*
  */
 export interface GalleryDocumentDataImagesItem {
@@ -197,10 +274,10 @@ interface IndustryDocumentData {
   inquiry_form_id: prismic.KeyTextField;
 
   /**
-   * GHL Survey ID (five questions) field in *Industry*
+   * Question Set Key (five questions) — required, never blank field in *Industry*
    *
    * - **Field Type**: Text
-   * - **Placeholder**: e.g. VfiN5rugWcATPw47P20U — the questions themselves are code, keyed to this ID
+   * - **Placeholder**: e.g. digital — picks which coded question set and CRM fields this page uses. Blanking it silently files leads under the medtech set.
    * - **API ID Path**: industry.inquiry_survey_id
    * - **Tab**: Inquiry
    * - **Documentation**: https://prismic.io/docs/fields/text
@@ -1152,6 +1229,7 @@ export type TwentyForTwentyDocument<Lang extends string = string> = prismic.Pris
 >;
 
 export type AllDocumentTypes =
+  | FormRepliesDocument
   | GalleryDocument
   | IndustryDocument
   | LogoSoupDocument
@@ -2038,6 +2116,21 @@ export type FeaturedProjectSlice = prismic.SharedSlice<
 >;
 
 /**
+ * Item in *IndustryHero → Default → Primary → Extra slideshow images*
+ */
+export interface IndustryHeroSliceDefaultPrimaryImagesItem {
+  /**
+   * image field in *IndustryHero → Default → Primary → Extra slideshow images*
+   *
+   * - **Field Type**: Image
+   * - **Placeholder**: *None*
+   * - **API ID Path**: industry_hero.default.primary.images[].image
+   * - **Documentation**: https://prismic.io/docs/fields/image
+   */
+  image: prismic.ImageField<never>;
+}
+
+/**
  * Item in *IndustryHero → Default → Primary → buttons*
  */
 export interface IndustryHeroSliceDefaultPrimaryButtonsItem {
@@ -2065,6 +2158,16 @@ export interface IndustryHeroSliceDefaultPrimary {
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
   image: prismic.ImageField<never>;
+
+  /**
+   * Extra slideshow images field in *IndustryHero → Default → Primary*
+   *
+   * - **Field Type**: Group
+   * - **Placeholder**: *None*
+   * - **API ID Path**: industry_hero.default.primary.images[]
+   * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+   */
+  images: prismic.GroupField<Simplify<IndustryHeroSliceDefaultPrimaryImagesItem>>;
 
   /**
    * headline field in *IndustryHero → Default → Primary*
@@ -2345,6 +2448,16 @@ export interface LogoGridSliceDefaultPrimaryLogosItem {
    * - **Documentation**: https://prismic.io/docs/fields/image
    */
   logo_negative: prismic.ImageField<never>;
+
+  /**
+   * logo width (px) field in *LogoGrid → Default → Primary → logos*
+   *
+   * - **Field Type**: Number
+   * - **Placeholder**: optional — how wide this logo draws, 40 to 300. Empty means the default (220 for SVG, the file's own size for PNG)
+   * - **API ID Path**: logo_grid.default.primary.logos[].logo_width
+   * - **Documentation**: https://prismic.io/docs/fields/number
+   */
+  logo_width: prismic.NumberField;
 
   /**
    * rollover background field in *LogoGrid → Default → Primary → logos*
@@ -3796,6 +3909,9 @@ declare module "@prismicio/client" {
 
   namespace Content {
     export type {
+      FormRepliesDocument,
+      FormRepliesDocumentData,
+      FormRepliesDocumentDataRepliesItem,
       GalleryDocument,
       GalleryDocumentData,
       GalleryDocumentDataImagesItem,
@@ -3851,6 +3967,7 @@ declare module "@prismicio/client" {
       FeaturedProjectSliceVariation,
       FeaturedProjectSliceDefault,
       IndustryHeroSlice,
+      IndustryHeroSliceDefaultPrimaryImagesItem,
       IndustryHeroSliceDefaultPrimaryButtonsItem,
       IndustryHeroSliceDefaultPrimary,
       IndustryHeroSliceVariation,

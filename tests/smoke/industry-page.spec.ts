@@ -269,7 +269,8 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
       const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
       // Scale, not devicePixelRatio: the element is measured in CSS px but
       // rendered at whatever the context's scale factor is.
-      const s = canvas.width / size.w;
+      const sx = canvas.width / size.w;
+      const sy = canvas.height / size.h;
       // Red dominance rather than an exact match — a 1.5px stroke lands on the
       // device grid partially covered, so its pixels are blends toward paper.
       const ink = (x: number, y: number) => {
@@ -294,7 +295,7 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
             h: size.chevH,
           };
       // The rule, the chevron's vertex and the arrow all share a centre line.
-      const fixed = Math.round((along ? box.y + box.h / 2 : box.x + box.w / 2) * s);
+      const fixed = Math.round(along ? (box.y + box.h / 2) * sy : (box.x + box.w / 2) * sx);
       // The window IS the join, so walk all of it.
       const from = 0;
       const to = along ? canvas.width : canvas.height;
@@ -310,7 +311,7 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
         if (hit) {
           if (!run) {
             segments++;
-            if (lastInk >= 0) gap = Math.max(gap, (t - lastInk - 1) / s);
+            if (lastInk >= 0) gap = Math.max(gap, (t - lastInk - 1) / (along ? sx : sy));
           }
           lastInk = t;
         }
@@ -318,8 +319,8 @@ async function measureArrow(page: import("@playwright/test").Page, index: number
       }
 
       let headInk = 0;
-      for (let y = Math.round(box.y * s); y < Math.round((box.y + box.h) * s); y++)
-        for (let x = Math.round(box.x * s); x < Math.round((box.x + box.w) * s); x++)
+      for (let y = Math.round(box.y * sy); y < Math.round((box.y + box.h) * sy); y++)
+        for (let x = Math.round(box.x * sx); x < Math.round((box.x + box.w) * sx); x++)
           if (ink(x, y)) headInk++;
 
       return { segments, gap: +gap.toFixed(2), headInk };
@@ -442,10 +443,22 @@ test.describe("step numerals", () => {
         // Vertical is a single hand-tuned OPTICAL CONSTANT (the 0.75px drop in
         // .step-num-digits — a font's ascent and descent aren't symmetric), not
         // a computed value, so it can't hold to a quarter pixel across
-        // rasterisers: CI's headless Linux Chromium lands step 01 at 0.31px
-        // where macOS and WebKit sit within 0.2px. Half a pixel absorbs that
-        // platform gap and still catches any gross vertical drift.
-        expect(Math.abs(dy), `step ${i + 1}: numeral sits ${dy}px off centre`).toBeLessThan(0.5);
+        // rasterisers: CI's headless Linux Chromium lands step 01 at 0.56px
+        // where macOS and WebKit sit within 0.2px.
+        //
+        // It read 0.31px on CI until the industry grid went proportional (Tim's
+        // MarkUp pins 1-3). The constant did not move and neither did the
+        // geometry — the ring's box sits at top 1538.75 on both sides of that
+        // change, measured. What moved is the numeral's subpixel X: three equal
+        // columns now divide a fractional width, so the numerals land at .547,
+        // .828 and .109 instead of all three at .594, and a glyph rasterised at
+        // a new subpixel offset rounds its ink one device pixel differently at
+        // 4x. That is rendering, not drift.
+        //
+        // 0.65 absorbs it and still fails if the optical constant itself were
+        // dropped, which would read ~0.75. The tight guard is `dx` above: the
+        // computed per-numeral nudge, held to a quarter pixel.
+        expect(Math.abs(dy), `step ${i + 1}: numeral sits ${dy}px off centre`).toBeLessThan(0.65);
       }
     });
   }

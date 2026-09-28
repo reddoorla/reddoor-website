@@ -2,7 +2,7 @@
   import { MAX_IMAGE_W } from "$lib/images";
   import { resolvePadding } from "$lib/utils/slicePadding";
   // Static client-logo grid on the paper band: rail label + "Our Work" CTA on
-  // the left, a 3-up logo grid in the wide (1004px) content column.
+  // the left, a 3-up logo grid in the content column beside it.
   //
   // Deliberately NOT $lib/components/LogoSoup.svelte. That component is driven
   // by the `logo_soup` DOCUMENT type (a site-wide singleton, so it cannot carry
@@ -68,6 +68,10 @@
           ? item.active_background_mobile
           : item.active_background?.mobile,
         hasNegative: isFilled.image(item.logo_negative),
+        width:
+          typeof item.logo_width === "number" && item.logo_width > 0
+            ? Math.min(item.logo_width, 300)
+            : null,
       })),
   );
 
@@ -83,6 +87,8 @@
   // half-filled group still behaves consistently.
   const hasRollover = $derived(logos.some((item) => item.hasBackground));
   const isActive = $derived(activeIndex >= 0 && !!logos[activeIndex]?.hasBackground);
+
+  const isSvg = (field: { url?: string | null }) => /\.svg$/i.test((field.url ?? "").split("?")[0]);
 
   const activate = (i: number) => {
     if (logos[i]?.hasBackground) activeIndex = i;
@@ -110,6 +116,7 @@
 
   let viewportWidth = $state(0);
   const isMobile = $derived(viewportWidth > 0 && viewportWidth < MOBILE_BREAKPOINT);
+  const onBackdrop = $derived(isMobile && isActive);
 
   // Row elements, in grid order. Written by `bind:this`, so holes are possible
   // mid-render; the observer filters them.
@@ -174,9 +181,6 @@
 
   // The board flushes the outer columns with the content column's edges and
   // centres the middle one (equal 220px outer cells, `justify-between`).
-  // Full literal strings — a composed `lg:justify-${x}` is invisible to
-  // Tailwind's scanner.
-  const columnAlign = ["lg:justify-start", "lg:justify-center", "lg:justify-end"];
 </script>
 
 <svelte:window bind:innerWidth={viewportWidth} />
@@ -191,7 +195,8 @@
      their colour mark on hover no matter what the CMS held. One renderer, one
      behaviour. -->
 {#snippet logoPair(item: (typeof logos)[number], i: number, decorative: boolean)}
-  {@const swapClass = `block max-h-full w-auto max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
+  {@const widthStyle = item.width ? `width: ${item.width}px` : undefined}
+  {@const swapClass = `block max-h-full ${item.width ? "" : isSvg(item.logo) ? "w-55" : "w-auto"} max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
     item.hasNegative && activeIndex === i ? "opacity-0" : "opacity-100"
   }`}
   <!-- The colour mark stays IN FLOW, so it is what sizes the box. -->
@@ -202,9 +207,10 @@
       field={item.logo}
       alt=""
       class={swapClass}
+      style={widthStyle}
       imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
-      widths={[220, 440, 660]}
-      sizes="220px"
+      widths={[220, 440, 660, 900]}
+      sizes={`${item.width ?? 220}px`}
       loading="lazy"
       decoding="async"
     />
@@ -216,9 +222,10 @@
       field={item.logo}
       fallbackAlt=""
       class={swapClass}
+      style={widthStyle}
       imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
-      widths={[220, 440, 660]}
-      sizes="220px"
+      widths={[220, 440, 660, 900]}
+      sizes={`${item.width ?? 220}px`}
       loading="lazy"
       decoding="async"
     />
@@ -239,8 +246,8 @@
         ? 'opacity-100'
         : 'opacity-0'}"
       imgixParams={{ auto: ["format", "compress"], fit: "max", w: MAX_IMAGE_W }}
-      widths={[220, 440, 660]}
-      sizes="220px"
+      widths={[220, 440, 660, 900]}
+      sizes={`${item.width ?? 220}px`}
       loading="lazy"
       decoding="async"
     />
@@ -301,6 +308,11 @@
           </picture>
         {/if}
       {/each}
+      <div
+        class="absolute inset-x-0 top-0 h-100 bg-linear-to-b from-black/80 to-transparent transition-opacity duration-700 ease-fast-slow motion-reduce:transition-none md:hidden {onBackdrop
+          ? 'opacity-100'
+          : 'opacity-0'}"
+      ></div>
     </div>
   {/if}
 
@@ -314,22 +326,34 @@
          a bare label there — so the pair lives here and is lifted into the (then
          empty) rail column on lg. RailRow's ContentWidth is `relative`, and its
          content-box left edge IS the rail's left edge, so `left-0` lands exactly
-         on the 240px rail track. Below lg it stays in flow above the grid, which
-         is RailRow's own stacking order. -->
+         on the rail track, and the width is one of RailRow's five columns: the
+         container less four 20px gutters, over five. Below lg it stays in flow
+         above the grid, which is RailRow's own stacking order. `wide` because
+         the board's logos run grid columns 2–5. -->
       <div
         use:anim={{ enabled: isAnimated }}
-        class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-[240px]"
+        class="mb-10 lg:absolute lg:top-0 lg:left-0 lg:mb-0 lg:w-[calc((100%-5rem)/5)]"
       >
         {#if slice.primary.label}
           <!-- Section heading. `font-sans` + every size property is pinned: the
              global `h2` element rule is Besley 60px and leaks its family in
              even when the size is overridden. -->
-          <h2 class="type-kicker text-primary">
+          <h2
+            class="type-kicker transition-colors duration-500 motion-reduce:transition-none {onBackdrop
+              ? 'text-white'
+              : 'text-primary'}"
+          >
             {slice.primary.label}
           </h2>
         {/if}
         {#if ctaHref}
-          <DefaultButton red filled={false} href={ctaHref} text={ctaText} class="mt-5" />
+          <DefaultButton
+            red={!onBackdrop}
+            filled={false}
+            href={ctaHref}
+            text={ctaText}
+            class="mt-5"
+          />
         {/if}
       </div>
 
@@ -373,9 +397,7 @@
             <li
               bind:this={rows[i]}
               use:anim={{ enabled: isAnimated, translateY: "0" }}
-              class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-26.25 {columnAlign[
-                i % 3
-              ]}"
+              class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-26.25"
               onmouseenter={() => activate(i)}
               onmouseleave={clear}
               onfocusin={() => activate(i)}

@@ -194,6 +194,20 @@
     version: "initial",
     primary: {
       image: img("Two surgeons reviewing a tablet in an operating room"),
+      images: [
+        {
+          image: {
+            ...img("A clinic reception desk"),
+            url: "https://images.prismic.io/reddoor-la/fixture-2.png?auto=format,compress",
+          } as ReturnType<typeof img>,
+        },
+        {
+          image: {
+            ...img("A medical device on a lab bench"),
+            url: "https://images.prismic.io/reddoor-la/fixture-3.png?auto=format,compress",
+          } as ReturnType<typeof img>,
+        },
+      ],
       headline: [
         { type: "heading1", text: "From screened out to short list", spans: [] },
       ] as unknown as RichTextField,
@@ -354,6 +368,7 @@
         {
           logo: img("Revogen"),
           logo_negative: img("Revogen"),
+          logo_width: null,
           // Carries its `mobile` thumbnail, so this row emits the <source> media
           // query; the row below has neither thumbnail nor legacy field and
           // falls through to the landscape <img> alone — both <picture>
@@ -366,6 +381,7 @@
         {
           logo: img("Preveta"),
           logo_negative: emptyImg,
+          logo_width: 150,
           active_background: emptyBg,
           active_background_mobile: emptyImg,
           name: "Preveta",
@@ -374,6 +390,7 @@
         {
           logo: img(""),
           logo_negative: emptyImg,
+          logo_width: null,
           active_background: emptyBg,
           active_background_mobile: emptyImg,
           name: "Caltex Medical",

@@ -39,12 +39,12 @@
            empty `.lead-body` wrapper) on a subBody-only section. -->
       <div class="flex flex-col gap-5">
         {#if isFilled.richText(slice.primary.body)}
-          <div class="lead-body">
+          <div class="lead-body measure">
             <RichTextBody field={slice.primary.body} />
           </div>
         {/if}
         {#if isFilled.richText(subBody)}
-          <div class="sub-body">
+          <div class="sub-body measure">
             <RichTextBody field={subBody} />
           </div>
         {/if}
@@ -62,7 +62,7 @@
             {slice.primary.eyebrow}
           </h2>
         {/if}
-        <div class="lead-body">
+        <div class="lead-body measure">
           <RichTextBody field={slice.primary.body} />
         </div>
       </div>

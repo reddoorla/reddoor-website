@@ -53,6 +53,15 @@
                   "thumbnails": []
                 }
               },
+              "logo_width": {
+                "type": "Number",
+                "config": {
+                  "label": "logo width (px)",
+                  "placeholder": "optional — how wide this logo draws, 40 to 300. Empty means the default (220 for SVG, the file's own size for PNG)",
+                  "min": 40,
+                  "max": 300
+                }
+              },
               "active_background": {
                 "type": "Image",
                 "config": {

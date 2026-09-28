@@ -98,8 +98,8 @@ test.describe("testimonial quote hangs its opening mark", () => {
   // The mark is CSS chrome on `.quote` (src/lib/slices/Testimonial/index.svelte),
   // so the CMS stores the quote bare and every testimonial is punctuated the
   // same way. Hanging it means the first line of the quote starts on the same
-  // vertical as the lines under it and as the rest of the 760px column, instead
-  // of being pushed in by the width of the glyph.
+  // vertical as the lines under it and as the rest of the content column,
+  // instead of being pushed in by the width of the glyph.
   //
   // `hanging-punctuation: first` is Safari-only, so this is measured rather
   // than declared.
@@ -127,11 +127,14 @@ test.describe("testimonial quote hangs its opening mark", () => {
         const lines = [...range.getClientRects()].map((r) => r.left);
         const mark = getComputedStyle(quote, "::before");
         const column = quote.closest("figure")!.getBoundingClientRect();
+        // RailRow's content cell — `min-w-0` is its only stable handle.
+        const cell = quote.closest("div.min-w-0")?.getBoundingClientRect();
         return {
           lines,
           left: box.left,
           width: box.width,
           columnLeft: column.left,
+          cellWidth: cell ? cell.width : column.width,
           markContent: mark.content,
           markPosition: mark.position,
           markWidth: parseFloat(mark.width),
@@ -158,8 +161,15 @@ test.describe("testimonial quote hangs its opening mark", () => {
       }
 
       // The column did not move to pay for it: the quote's box still starts
-      // exactly where the rest of the section's content column does, and at
-      // desktop that column is still the board's 760px.
+      // exactly where the rest of the section's content column does.
+      //
+      // It used to assert that column was 760px. That number retired when the
+      // industry grid went proportional (Tim's MarkUp pins 1-3): the column is
+      // now a share of ContentWidth, 922px at this 1280 viewport, and the quote
+      // additionally sits on the `.measure` cap. Pinning either number would
+      // pin the layout rather than the alignment this test is about, so the
+      // assertion is now the relationship: the quote fills its column up to its
+      // measure, and is still a real column rather than a collapsed box.
       expect(
         Math.abs(geometry.lines[0] - geometry.left),
         "text starts at the column's left edge",
@@ -168,7 +178,12 @@ test.describe("testimonial quote hangs its opening mark", () => {
         Math.abs(geometry.left - geometry.columnLeft),
         "the quote's box is flush with the figure",
       ).toBeLessThanOrEqual(0.5);
-      if (width === 1280) expect(Math.round(geometry.width)).toBe(760);
+      if (width === 1280) {
+        expect(geometry.width, "the quote fills its column, up to its measure").toBeLessThanOrEqual(
+          geometry.cellWidth + 1,
+        );
+        expect(geometry.width, "the quote is still a real column").toBeGreaterThan(600);
+      }
 
       // The mark is still drawn — outside the column, on the first line.
       expect(geometry.markContent).toContain("\u201C");

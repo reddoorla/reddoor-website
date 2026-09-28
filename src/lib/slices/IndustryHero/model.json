@@ -20,6 +20,22 @@
             "thumbnails": []
           }
         },
+        "images": {
+          "type": "Group",
+          "config": {
+            "label": "Extra slideshow images",
+            "fields": {
+              "image": {
+                "type": "Image",
+                "config": {
+                  "label": "image",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              }
+            }
+          }
+        },
         "headline": {
           "type": "StructuredText",
           "config": {

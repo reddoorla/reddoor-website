@@ -9,6 +9,9 @@
   import { isFilled, type Content } from "@prismicio/client";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import { deriveHeroButtons } from "./buttons";
+  import { heroSlides } from "./slides";
+  import KenBurns from "./KenBurns.svelte";
+  import { Pause, Play } from "@lucide/svelte";
 
   let { slice }: { slice: Content.IndustryHeroSlice } = $props();
 
@@ -17,6 +20,18 @@
 
   // Unlabelled or unresolvable links are dropped rather than drawn — see buttons.ts.
   const buttons = $derived(deriveHeroButtons(slice.primary.buttons));
+
+  const slides = $derived(heroSlides(slice.primary));
+  const isSlideshow = $derived(slides.length > 1);
+  let playing = $state(true);
+  let reduceMotion = $state(false);
+  $effect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reduceMotion = mq.matches;
+    const on = () => (reduceMotion = mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  });
 
   // Each column is only drawn when it has content: the columns sit in a
   // `gap-10` stack below lg, so an empty one would open a 40px hole rather than
@@ -60,14 +75,18 @@
   // code. The `pt-28` below is the room reserved for that nav.
 </script>
 
-<SliceSection {slice} class="relative w-full overflow-hidden bg-black">
+<SliceSection {slice} class="relative w-full overflow-hidden bg-black max-md:bg-[#2D3843]">
   <!-- Media layer. `isolate` confines the multiply blend to this wrapper so it
        darkens the photo and nothing else, and the scrim is a direct sibling of
        the <img>: any ancestor carrying transform/opacity/filter (an entrance
        animation, say) collapses mix-blend-multiply into an opaque box. Nothing
        in here is ever animated for that reason — the reveal is on the type. -->
-  <div class="pointer-events-none absolute inset-0 isolate">
-    {#if isFilled.image(slice.primary.image)}
+  <div
+    class="pointer-events-none absolute inset-0 isolate max-md:bottom-auto max-md:h-[min(138vw,44rem)]"
+  >
+    {#if isSlideshow}
+      <KenBurns {slides} {playing} animate={!reduceMotion} />
+    {:else if isFilled.image(slice.primary.image)}
       <!-- `fallbackAlt=""`: PrismicImage takes its alt from the field, and an
            asset uploaded without alt text would otherwise render an <img> with
            no alt attribute at all — an axe `image-alt` failure. The background
@@ -90,7 +109,10 @@
         decoding="async"
       />
     {/if}
-    <div class="hero-scrim absolute inset-0 mix-blend-multiply"></div>
+    <div class="hero-scrim absolute inset-0 mix-blend-multiply max-md:hidden"></div>
+    <div
+      class="absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-b from-transparent to-[#2D3843] md:hidden"
+    ></div>
     <!-- The board's wash is transparent through the top 48%, but the site nav
          renders in white over exactly that strip on an industry page. A bright
          photo would drop the nav links below contrast, so this short top scrim
@@ -112,20 +134,26 @@
       <!-- Below lg the 231px sidebar would leave the headline column
            unreadably narrow (the same reason RailRow collapses its rail at lg),
            so the intro column stacks under the headline. From lg the two
-           columns share one row and `items-end` puts them on the board's shared
-           bottom edge. -->
-      <div
-        class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(0,890px)_231px] lg:items-end lg:justify-between lg:gap-x-16 xl:gap-x-38.5"
-      >
+           share one row of RailRow's five-column grid — headline in columns
+           1–4, intro in column 5, where the board puts it (x=1121 of 1440) —
+           and `items-end` puts them on the board's shared bottom edge. The
+           board's headline box stops well short of column 5 (x=967, a 154px
+           clearance to the intro), so the headline cell keeps that clearance
+           as right padding on top of the 20px gutter: 44px + 20 at lg, 134px
+           + 20 = 154 from xl. -->
+      <div class="flex flex-col gap-16 md:gap-10 lg:grid lg:grid-cols-5 lg:items-end lg:gap-x-5">
         {#if hasHeadline}
-          <div class="max-w-222.5" use:anim={{ enabled: isAnimated }}>
+          <div
+            class="max-md:flex max-md:min-h-[calc(min(138vw,44rem)-11rem)] max-md:flex-col max-md:justify-end lg:col-span-4 lg:pr-11 xl:pr-33.5"
+            use:anim={{ enabled: isAnimated }}
+          >
             <PrismicRichText field={slice.primary.headline} components={headlineComponents} />
           </div>
         {/if}
 
         {#if hasIntro}
           <div
-            class="flex max-w-120 flex-col gap-3.75 lg:max-w-none"
+            class="flex max-w-120 flex-col gap-3.75 lg:col-start-5 lg:max-w-none"
             use:anim={{ enabled: isAnimated }}
           >
             {#if slice.primary.card_label}
@@ -162,6 +190,21 @@
       </div>
     </ContentWidth>
   </div>
+
+  {#if isSlideshow && !reduceMotion}
+    <button
+      type="button"
+      onclick={() => (playing = !playing)}
+      aria-label={playing ? "Pause slideshow" : "Play slideshow"}
+      class="absolute right-[4%] bottom-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/70 bg-black/25 text-white transition-colors duration-300 hover:bg-white hover:text-black"
+    >
+      {#if playing}
+        <Pause class="size-3.5" strokeWidth={1.5} />
+      {:else}
+        <Play class="size-3.5" strokeWidth={1.5} />
+      {/if}
+    </button>
+  {/if}
 </SliceSection>
 
 <style>
