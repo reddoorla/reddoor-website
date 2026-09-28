@@ -1,34 +1,84 @@
 import { mount, unmount, createRawSnippet } from "svelte";
+import { reactiveProps } from "./props.svelte.js";
 
 const SLOT = '<span data-rd-slot style="display:contents"></span>';
+
+function isNode(React, value) {
+  if (Array.isArray(value)) return value.some((v) => isNode(React, v));
+  return React.isValidElement(value);
+}
+
+function nodeKeys(React, props) {
+  return Object.keys(props).filter((k) =>
+    k === "children" ? props[k] != null && props[k] !== false : isNode(React, props[k]),
+  );
+}
+
+function sync(bag, last, next) {
+  for (const k of Object.keys(last)) {
+    if (!(k in next)) {
+      delete bag[k];
+      delete last[k];
+    }
+  }
+  for (const [k, v] of Object.entries(next)) {
+    if (last[k] !== v) {
+      bag[k] = v;
+      last[k] = v;
+    }
+  }
+}
 
 export function wrap(Component, name) {
   function Wrapped(props) {
     const React = window.React;
     const host = React.useRef(null);
-    const [slot, setSlot] = React.useState(null);
+    const live = React.useRef(null);
+    const [slots, setSlots] = React.useState({});
+    const keys = nodeKeys(React, props);
+    const signature = keys.join("|");
+
+    const toSvelte = (snippets) => {
+      const out = {};
+      for (const [k, v] of Object.entries(props)) out[k] = k in snippets ? snippets[k] : v;
+      return out;
+    };
+
     React.useEffect(() => {
-      const { children, ...rest } = props;
-      const svelteProps = { ...rest };
-      if (children != null) {
-        svelteProps.children = createRawSnippet(() => ({
+      const snippets = {};
+      for (const k of keys) {
+        snippets[k] = createRawSnippet(() => ({
           render: () => SLOT,
           setup(node) {
-            setSlot(node);
+            setSlots((s) => ({ ...s, [k]: node }));
           },
         }));
       }
-      const instance = mount(Component, { target: host.current, props: svelteProps });
+      const initial = toSvelte(snippets);
+      const bag = reactiveProps({ ...initial });
+      const last = { ...initial };
+      const instance = mount(Component, { target: host.current, props: bag });
+      live.current = { snippets, bag, last, instance };
       return () => {
         unmount(instance);
-        setSlot(null);
+        live.current = null;
+        setSlots({});
       };
+    }, [signature]);
+
+    React.useEffect(() => {
+      const current = live.current;
+      if (current) sync(current.bag, current.last, toSvelte(current.snippets));
     }, [props]);
+
+    const portals = keys
+      .filter((k) => slots[k])
+      .map((k) => window.ReactDOM.createPortal(props[k], slots[k], k));
     return React.createElement(
       React.Fragment,
       null,
       React.createElement("div", { ref: host, style: { display: "contents" } }),
-      slot && props.children != null ? window.ReactDOM.createPortal(props.children, slot) : null,
+      ...portals,
     );
   }
   Wrapped.displayName = name;
@@ -46,6 +96,7 @@ export function expose(namespace, components) {
     components: svelte,
     mount: (name, element, props = {}) => mount(svelte[name], { target: element, props }),
     unmount,
+    createRawSnippet,
   };
   return target;
 }
