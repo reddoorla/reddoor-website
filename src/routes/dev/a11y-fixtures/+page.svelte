@@ -390,7 +390,7 @@
         {
           logo: img(""),
           logo_negative: emptyImg,
-          logo_width: null,
+          logo_width: 300,
           active_background: emptyBg,
           active_background_mobile: emptyImg,
           name: "Caltex Medical",

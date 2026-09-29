@@ -195,7 +195,9 @@
      their colour mark on hover no matter what the CMS held. One renderer, one
      behaviour. -->
 {#snippet logoPair(item: (typeof logos)[number], i: number, decorative: boolean)}
-  {@const widthStyle = item.width ? `width: ${item.width}px` : undefined}
+  {@const widthStyle = item.width
+    ? `width: min(${item.width}px, calc(100cqw * ${item.width} / 300), calc(100cqh * ${item.width} / 105))`
+    : undefined}
   {@const swapClass = `block max-h-full ${item.width ? "" : isSvg(item.logo) ? "w-55" : "w-auto"} max-w-full object-contain transition-opacity duration-300 motion-reduce:transition-none ${
     item.hasNegative && activeIndex === i ? "opacity-0" : "opacity-100"
   }`}
@@ -397,7 +399,7 @@
             <li
               bind:this={rows[i]}
               use:anim={{ enabled: isAnimated, translateY: "0" }}
-              class="flex h-16 min-w-0 items-center justify-center md:h-20 lg:h-26.25"
+              class="flex h-16 min-w-0 items-center justify-center [container-type:size] md:h-20 lg:h-26.25"
               onmouseenter={() => activate(i)}
               onmouseleave={clear}
               onfocusin={() => activate(i)}

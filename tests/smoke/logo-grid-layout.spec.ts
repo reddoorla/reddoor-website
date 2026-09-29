@@ -14,6 +14,8 @@ const measure = () => {
       cellCentre: c.x + c.width / 2,
       logoCentre: r ? r.x + r.width / 2 : null,
       logoWidth: r?.width ?? null,
+      cellWidth: c.width,
+      cellHeight: c.height,
     };
   });
 };
@@ -46,6 +48,20 @@ test.describe("logo grid layout", () => {
   test("a logo width set in Prismic is the width it draws at", async ({ page }) => {
     const cells = await page.evaluate(measure);
     expect(cells[1].logoWidth).toBe(150);
+    expect(cells[2].logoWidth).toBe(300);
     expect(cells[0].logoWidth).not.toBe(150);
   });
+
+  for (const width of [390, 768, 1024, 1280]) {
+    test(`logo widths scale together when the row is smaller at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.locator('[data-slice-type="logo_grid"]').scrollIntoViewIfNeeded();
+      const cells = await page.evaluate(measure);
+      const scale = Math.min(1, cells[2].cellWidth / 300, cells[2].cellHeight / 105);
+      expect(scale).toBeLessThan(1);
+      expect(cells[1].logoWidth).toBeCloseTo(150 * scale, 0);
+      expect(cells[2].logoWidth).toBeCloseTo(300 * scale, 0);
+      expect((cells[2].logoWidth ?? 0) / (cells[1].logoWidth ?? 1)).toBeCloseTo(2, 2);
+    });
+  }
 });
