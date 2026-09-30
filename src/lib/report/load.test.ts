@@ -83,7 +83,10 @@ describe("both routes use the shared loader", () => {
       import("../../routes/audit/[token]/print/+page.server"),
     ]);
 
-    for (const route of [page, print]) {
+    for (const [route, own] of [
+      [page, {}],
+      [print, { siteChrome: false }],
+    ] as const) {
       expect(route.prerender).toBe(false);
 
       const { evt, setHeaders } = event(TOKEN, respondWith(200, REPORT));
@@ -95,6 +98,7 @@ describe("both routes use the shared loader", () => {
         meta_referrer: "no-referrer",
         // Every report shares the static audit card.
         meta_image: "/og/site/audit.png",
+        ...own,
       });
       const headers = setHeaders.mock.calls[0]![0] as Record<string, string>;
       expect(headers["x-robots-tag"]).toContain("noindex");

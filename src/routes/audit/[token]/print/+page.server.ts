@@ -15,4 +15,5 @@ export const load: PageServerLoad = async (event) => ({
   // One static card for every report: cards are drawn at build time, so a
   // per-report card is not available (see the /og endpoint).
   meta_image: ogCardPath("site", "audit"),
+  siteChrome: false,
 });

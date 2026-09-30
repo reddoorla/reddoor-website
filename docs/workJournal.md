@@ -1457,3 +1457,31 @@ All eight keyframe ends in `IndustryHero/KenBurns.svelte` now end in `rotate(0.0
 Review caught one timing window in the advance test. It read slide 0 twice, 1s apart, in real time, and slide 0's 4s move can already be ending when the first read lands under load. It now reads the move by pausing slide 0's own animation, seeking it to 1000ms and 2000ms, and restoring it: one synchronous evaluate, independent of where real time has got to. Each of these mutations turns it red: no tilt on `kb-in-a`, a `kb-in-a` that does not grow, and slide 0 starting on `kb-in-b`. A 3.5s stall after hydration reproduced the old window: the previous spec went red and the new one stayed green.
 
 There is no Firefox in the cloud container, so Firefox smoothness rests on Tucker's side-by-side and on this PR's deploy preview. The same fix went into roalson-interests' featured band.
+
+## 2026-09-30 — The audit's print sheet stops printing the site's nav and footer, and gets its title block back
+
+The PDF leave-behind that reddoor-maintenance attaches to every prospect-audit email is printed from `/audit/{token}/print`. Printed for token `xZMVU1EaZLC1ZLAJ81Rzxg` (the audit of reddoorla.com itself), page 1 had the site's "Reddoor Creative" wordmark and hamburger over the verdict, no title, and a mostly blank page after that. The last page carried the whole site footer, with the copyright cut off after "All Rights".
+
+The print sheet already meant to hide the chrome, and the one rule it had for that did the opposite of what it said. `:global(header), :global(nav), :global(body > footer) { display: none }` missed all three pieces of the site's chrome. The navs are `<div>`s, not `<header>` or `<nav>`, and the footer sits inside `main > div`, never directly under `body`. What it did hide was the sheet's own `<header>`, the eyebrow, h1 and meta line, so the title block was the only thing the rule removed. The rule is gone. The print route's load now returns `siteChrome: false`, and the root layout renders none of its three nav variants and no footer when a page says so. A data flag rather than a path match, so nothing else changes by being called `print`.
+
+Taking the footer out changed more than the last page. With only the chrome removed, before the type fixes below, every font size in the PDF grew by the same factor: body paragraphs from 11.74pt to 13.5pt, h3s from 9.99pt to 11.5pt, and the 9pt and 8.5pt notes from 7.82pt and 7.39pt. Chrome had shrunk the whole old document to 0.87 of its size to fit something wider than the page. Printing with only the navs restored left sizes unchanged, and with only the footer restored they dropped to 0.87×, so the footer was the overflow. An `html` scrollWidth check at the A4 content width (673px) under print emulation did not see it, even with every piece of chrome restored. That check was written as a smoke test, stayed green under every mutation, and was deleted.
+
+Two more of the site's styles were reaching a sheet that describes its styles as self-contained, both from `@layer base` in `app.css`. Every plain `<p>` took the site's 18px, weight 200, so body paragraphs printed larger than both the verdict (12pt) and the h3s (11.5pt). Every h3 took a 90px line-height, which is the big gap around each subhead. With text that size each `break-inside: avoid` section was taller than the space left on its page and got pushed to the next page, which is why page 1 was mostly blank. The sheet's `p` now inherits size, weight and line-height, and its headings set `line-height: 1.25`. The PDF went from 11 pages to 6, and page 1 now runs from the title block through the whole "What AI is saying about you" section.
+
+Restoring the header also showed two defects that had been invisible because it never printed. The meta line read `https://reddoorla.com/· audited …`: Svelte trims whitespace at the start of a block, so the newline before `&middot;` inside `{#if auditDate}` never became a space. The caveat under the visibility line had no bottom margin and touched the next h2, so sections now take `margin: 16pt 0`.
+
+Measured with a line-level check on the text layer (PyMuPDF), not by eye alone. The old PDF has 2 overlapping line pairs on page 1 (the verdict under the wordmark), 1 line past the right content edge at 550.4pt (the copyright), and five footer strings. The new PDF has 0, 0 and none. The checker was first run on the old PDF and flagged exactly what its page images show. Its first version worked on text blocks, and it reported overlaps inside the score boxes that were not there.
+
+The test lives on a new dev fixture, `/dev/audit-report/print`, which renders the real print page component over `ALL_PASS_REPORT` under the real root layout. `tests/smoke/report-print.spec.ts` asserts three things at the A4 content width under print media. There is no "Open menu" button, no footer text, and exactly one footer, the sheet's own. `main`'s text starts with the eyebrow. Every unclassed paragraph matches its parent's font size, and every h3's line-height is under twice its size. The shared-loader test in `load.test.ts` now pins `siteChrome: false` on the print route, and its exact match proves the interactive page does not carry it. Each of these mutations turns something red:
+
+- the print load dropping the flag (the unit test);
+- the layout ignoring it;
+- the old `:global(header)` rule restored;
+- the paragraph inheritance removed;
+- the heading line-height removed;
+- only the navs ungated;
+- only the footer ungated.
+
+The heading weights are unchanged and are the site's: h1 and h3 print at weight 200, lighter than the 400 body text. That, like the rest of the visual treatment, belongs to the design pass the sheet's own comment says is pending.
+
+A git worktree nested under the main checkout (`.worktrees/…`) cannot start `vite dev` when the main checkout has never been synced. The SSR dependency optimizer fails on `Could not resolve 'node:module' in \0rolldown/runtime.js` with "Tsconfig not found", because resolution walks up to the parent's `tsconfig.json`, which extends a `.svelte-kit/tsconfig.json` that does not exist. Writing a stub `.svelte-kit/tsconfig.json` in the parent (gitignored) cleared it. The laptop's main checkout has always been synced, so this only shows in a fresh clone.

@@ -85,6 +85,8 @@
   // Set by the [uid] route when it resolved an `industry` document.
   const isIndustryPage = $derived(page.data.docType === "industry");
 
+  const siteChrome = $derived(page.data.siteChrome !== false);
+
   const NAV_HEIGHT = 48;
   let heroBottom = $state<number | null>(Number.POSITIVE_INFINITY);
 
@@ -291,7 +293,7 @@
          guard polling `main` opacity now returns 1 immediately and waits for
          nothing. -->
     <div data-page-transition out:fade={{ duration: 500 }} in:fade={{ delay: 700, duration: 700 }}>
-      {#if onIndustryHero && !isInHero.value}
+      {#if siteChrome && onIndustryHero && !isInHero.value}
         <div
           class="absolute top-0 z-20 w-screen bg-transparent pt-5 text-white"
           data-door-nav
@@ -338,7 +340,7 @@
           </ContentWidth>
         </div>
       {/if}
-      {#if !showNav && !onIndustryHero && !isInHero.value}
+      {#if siteChrome && !showNav && !onIndustryHero && !isInHero.value}
         <div
           class="h-12 w-screen top-0 absolute z-20 bg-transparent {data.pathname.includes(
             'portfolio/',
@@ -389,7 +391,7 @@
         </div>
       {/if}
       <!-- nav #2 -->
-      {#if showNav && !isInHero.value}
+      {#if siteChrome && showNav && !isInHero.value}
         <div
           class="h-12 w-screen top-0 fixed z-20 bg-white/80"
           transition:fly={{ y: -64, delay: 500 }}
@@ -440,49 +442,51 @@
 
       {@render children?.()}
 
-      <footer class="relative bg-paper">
-        <div class="w-full h-full absolute top-0 left-0 bg-paper"></div>
+      {#if siteChrome}
+        <footer class="relative bg-paper">
+          <div class="w-full h-full absolute top-0 left-0 bg-paper"></div>
 
-        <ContentWidth class="pb-4 flex flex-row justify-end items-end z-20 relative">
-          <div class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5">
-            <div class="flex flex-col gap-1">
-              <a href="/" class="translate-x-[-8%] w-3/5 md:w-full"
-                ><img
-                  src={rotatingReddoor}
-                  alt="reddoor drawn in multiple styles"
-                  loading="lazy"
-                  decoding="async"
-                /></a
-              >
-              <a href="/portfolio" class="text-primary underline">Portfolio</a>
-              <a href="/about" class="text-primary underline">About</a>
-              <a href="/contact" class="text-primary underline">Meet with Us</a>
-              <a
-                href="https://www.linkedin.com/company/reddoor-creative"
-                class="text-primary underline">LinkedIn</a
-              >
-              <a href="https://www.instagram.com/reddoorla/" class="text-primary underline"
-                >Instagram</a
-              >
+          <ContentWidth class="pb-4 flex flex-row justify-end items-end z-20 relative">
+            <div class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5">
+              <div class="flex flex-col gap-1">
+                <a href="/" class="translate-x-[-8%] w-3/5 md:w-full"
+                  ><img
+                    src={rotatingReddoor}
+                    alt="reddoor drawn in multiple styles"
+                    loading="lazy"
+                    decoding="async"
+                  /></a
+                >
+                <a href="/portfolio" class="text-primary underline">Portfolio</a>
+                <a href="/about" class="text-primary underline">About</a>
+                <a href="/contact" class="text-primary underline">Meet with Us</a>
+                <a
+                  href="https://www.linkedin.com/company/reddoor-creative"
+                  class="text-primary underline">LinkedIn</a
+                >
+                <a href="https://www.instagram.com/reddoorla/" class="text-primary underline"
+                  >Instagram</a
+                >
+              </div>
+              <div class="flex flex-col">
+                <div>CONTACT</div>
+                <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
+                <a href="mailto:info@reddoorla.com" class="text-primary underline"
+                  >info@reddoorla.com</a
+                >
+              </div>
+              <div class="flex flex-col">
+                <div>HQ MAILING ADDRESS</div>
+                <div>29027 Dapper Dan Dr.</div>
+                <div>Fair Oaks Ranch, TX 78015</div>
+              </div>
+              <div class="label text-nowrap">
+                {"© Reddoor Creative 2006-" + new Date().getFullYear() + ", All Rights Reserved"}
+              </div>
             </div>
-            <div class="flex flex-col">
-              <div>CONTACT</div>
-              <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
-              <a href="mailto:info@reddoorla.com" class="text-primary underline"
-                >info@reddoorla.com</a
-              >
-            </div>
-            <div class="flex flex-col">
-              <div>HQ MAILING ADDRESS</div>
-              <div>29027 Dapper Dan Dr.</div>
-              <div>Fair Oaks Ranch, TX 78015</div>
-            </div>
-            <div class="label text-nowrap">
-              {"© Reddoor Creative 2006-" + new Date().getFullYear() + ", All Rights Reserved"}
-            </div>
-          </div>
-        </ContentWidth>
-      </footer>
+          </ContentWidth>
+        </footer>
+      {/if}
     </div>
   {/key}
 </main>

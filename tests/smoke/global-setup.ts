@@ -51,6 +51,7 @@ const ROUTES = [
   "/cancel/AAAAAAAAAAAA",
   "/calendar/AAAAAAAAAAAA",
   "/dev/audit-report",
+  "/dev/audit-report/print",
 ];
 
 export default async function globalSetup() {
