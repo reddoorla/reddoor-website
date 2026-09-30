@@ -1435,3 +1435,24 @@ Tim's "logos to be the right size in the grid" came down to one fact: every SVG 
 A fixed pixel width only balances at 1440. Grid cells are 223px wide at 1024 and 286px at 1280, and phone rows are 64px tall, so `max-w-full` and `max-h-full` shrank the 300px logos while narrower ones kept their size, and the balance inverted on phones: a 215px Rubrik beside a Revogen squeezed to 183. The width is now `min(W, 100cqw·W/300, 100cqh·W/105)` against the `<li>` as a size container, which scales every set width by the same `min(1, cell width/300, cell height/105)`. Rows without a width keep the old `w-55` behaviour. The first cut rounded W/105 to four places and drew a 300 logo at 299.98px at 1440; passing the division to CSS made it exact. The four new smoke tests (390, 768, 1024, 1280) fail against staging's component by 7–59px and pass with the change.
 
 Boise's rollover backdrops also got real portrait crops. On a phone the band is 390×1232, an aspect of 0.32, so only the middle ~55% of a 9:16 portrait shows and each subject was framed into that strip. Rubrik, Enzo's and Vineyard had no portrait and fell back to Prismic's centred auto-crop; Composition's "portrait" was a 1800×1200 landscape; FYF's was a 3:4 phone photo. The crops were made locally, then uploaded as imgix `rect=` URLs of the original assets so Prismic fetched them from its own CDN. Each URL was compared with the local crop first: mean pixel difference 0.75–1.65 of 255, against 12.5 for the same Rubrik crop shifted 100px. Rubrik, Composition and Enzo's are kept at source resolution (810, 675, 1059 wide) rather than upscaled.
+
+## 2026-09-30 — The hero's Ken Burns tilts 0.02° so Firefox stops ticking the zoom (Tucker)
+
+Tucker, watching a Ken Burns in Firefox (the Roalson featured band, which zooms the same way): "it still feels like it's calculating every tick rather than interpolating like smoother effects". Five variants of the same photo were put side by side on a throwaway page on that site's deploy preview, each looping 1 → 1.06 over 8s:
+- A: plain `scale()` with `will-change`;
+- B: A plus `rotate(0.02deg)` at both ends;
+- C: A as a 3D `translateZ(0)` transform;
+- D: A without `will-change`;
+- E: B at 1.12.
+
+In Firefox, B and E glided and the rest ticked. So the cause is not speed, GPU promotion or the 3D path: it is the transform being a pure axis-aligned scale.
+
+The likely mechanism was read in Firefox's source, not measured. WebRender's `ScaleOffset::from_transform` (gfx/wr/webrender_api/src/fast_transform.rs) treats a matrix whose off-diagonal terms are within 1/4096 of zero as a scale plus offset, and that path snaps to device pixels. sin(0.02°) is 0.000349, about 1.4× the threshold, so the tilted transform is resampled with filtering instead. Any angle under about 0.014° would count as no rotation at all. At 0.02° the corners of a 1440px-wide hero move about 0.25px, which is invisible.
+
+All eight keyframe ends in `IndustryHero/KenBurns.svelte` now end in `rotate(0.02deg)`, in the same place in the function list. The tilt is therefore constant rather than animated. Reduced motion (`animation: none`) and `will-change` are unchanged. The shipped CSS keeps it: the minifier writes `scale(1)translate(0)rotate(.02deg)`.
+
+`tests/smoke/industry-hero-slideshow.spec.ts` now reads scale as `hypot(a, b)` and tilt as `atan2(b, a)` from `DOMMatrixReadOnly`, never a matrix string. It asserts the tilt on all four keyframes while they run, and none on the reduced-motion still.
+
+Review caught one timing window in the advance test. It read slide 0 twice, 1s apart, in real time, and slide 0's 4s move can already be ending when the first read lands under load. It now reads the move by pausing slide 0's own animation, seeking it to 1000ms and 2000ms, and restoring it: one synchronous evaluate, independent of where real time has got to. Each of these mutations turns it red: no tilt on `kb-in-a`, a `kb-in-a` that does not grow, and slide 0 starting on `kb-in-b`. A 3.5s stall after hydration reproduced the old window: the previous spec went red and the new one stayed green.
+
+There is no Firefox in the cloud container, so Firefox smoothness rests on Tucker's side-by-side and on this PR's deploy preview. The same fix went into roalson-interests' featured band.
