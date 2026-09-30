@@ -27,13 +27,13 @@ const activeSlide = (hero: Locator) =>
 // `scale(s) translate(…) rotate(θ)`, which computes to
 // matrix(s·cosθ, s·sinθ, −s·sinθ, s·cosθ, e, f): the scale is √(a² + b²)
 // whatever the rotation, and the rotation is atan2(b, a).
-const motionOf = (hero: Locator, slide = "[data-kb-active]") =>
-  hero.evaluate((el, slide) => {
-    const motion = el.querySelector(`${slide} .kb-motion`);
+const motionOf = (hero: Locator) =>
+  hero.evaluate((el) => {
+    const motion = el.querySelector("[data-kb-active] .kb-motion");
     if (!motion) return null;
     const { a, b } = new DOMMatrixReadOnly(getComputedStyle(motion).transform);
     return { scale: Math.sqrt(a * a + b * b), rotateDeg: (Math.atan2(b, a) * 180) / Math.PI };
-  }, slide);
+  });
 
 // KenBurns.svelte tilts every keyframe by this much so Firefox resamples the
 // image instead of snapping an axis-aligned scale to whole device pixels.
@@ -94,19 +94,40 @@ test.describe("industry hero slideshow", () => {
     const hero = page.locator('[data-slice-type="industry_hero"]');
     await expect(hero.locator("[data-kb-slide]")).toHaveCount(3);
     await expect.poll(() => activeSlide(hero)).toBe("0");
-    // Slide 0 by index, not "the active slide": its move started at first paint,
-    // so under load the advance can land between these reads, and the incoming
-    // slide zooms the other way. Only a move already held at 1.06 at both reads
-    // (4s in) fails this, as the old matrix-string comparison did.
-    const first = await motionOf(hero, '[data-kb-slide="0"]');
-    await page.waitForTimeout(1000);
-    const later = await motionOf(hero, '[data-kb-slide="0"]');
-    // Slide 0's first turn zooms 1 → 1.06 over 4s.
-    expect(later!.scale).toBeGreaterThan(first!.scale);
-    // The tilt is there while it moves, and the same at both reads: every
+    // Slide 0's move read at two fixed points on its own timeline, never twice
+    // in real time: its 4s move starts at first paint, so a read delayed ~3s by
+    // load lands a second read on the move held at its end, or after its
+    // fade-out has taken it away — a red that says nothing about the move. So:
+    // pause it, seek to 1s and 2s, read each, then put it back and let it run.
+    // What is left is a stall of over 4s after hydration before this read: slide
+    // 0 has faded out and has no move to read, and that fails as `null` below.
+    const move = await hero.evaluate((el) => {
+      const motion = el.querySelector('[data-kb-slide="0"] .kb-motion');
+      const animation = motion?.getAnimations()[0];
+      if (!motion || !animation) return null;
+      const at = (ms: number) => {
+        animation.currentTime = ms;
+        const { a, b } = new DOMMatrixReadOnly(getComputedStyle(motion).transform);
+        return { scale: Math.sqrt(a * a + b * b), rotateDeg: (Math.atan2(b, a) * 180) / Math.PI };
+      };
+      const { currentTime, playState } = animation;
+      animation.pause();
+      const reads = [at(1000), at(2000)];
+      animation.currentTime = currentTime;
+      if (playState === "running") animation.play();
+      const name = getComputedStyle(motion).animationName;
+      return { keyframes: name.replace(/^.*(kb-(?:in|out)-[ab])$/, "$1"), reads };
+    });
+    expect(move, "slide 0 still has its first move to read").not.toBeNull();
+    const [early, late] = move!.reads;
+    // Slide 0's first move is kb-in-a — the one keyframe the test above never
+    // starts — and it zooms 1 → 1.06 over 4s.
+    expect(move!.keyframes).toBe("kb-in-a");
+    expect(late.scale).toBeGreaterThan(early.scale);
+    // The tilt is there while it moves, and the same at both points: every
     // keyframe carries it at both ends, so it never interpolates.
-    expect(first!.rotateDeg).toBeCloseTo(TILT_DEG, 4);
-    expect(later!.rotateDeg).toBeCloseTo(TILT_DEG, 4);
+    expect(early.rotateDeg).toBeCloseTo(TILT_DEG, 4);
+    expect(late.rotateDeg).toBeCloseTo(TILT_DEG, 4);
     await expect.poll(() => activeSlide(hero), { timeout: INTERVAL_MS + 3000 }).toBe("1");
   });
 
