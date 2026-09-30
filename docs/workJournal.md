@@ -1439,6 +1439,7 @@ Boise's rollover backdrops also got real portrait crops. On a phone the band is 
 ## 2026-09-30 — The hero's Ken Burns tilts 0.02° so Firefox stops ticking the zoom (Tucker)
 
 Tucker, watching a Ken Burns in Firefox (the Roalson featured band, which zooms the same way): "it still feels like it's calculating every tick rather than interpolating like smoother effects". Five variants of the same photo were put side by side on a throwaway page on that site's deploy preview, each looping 1 → 1.06 over 8s:
+
 - A: plain `scale()` with `will-change`;
 - B: A plus `rotate(0.02deg)` at both ends;
 - C: A as a 3D `translateZ(0)` transform;
