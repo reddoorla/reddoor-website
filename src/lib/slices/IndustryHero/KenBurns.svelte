@@ -120,36 +120,37 @@
   .kb-1-1 {
     animation-name: kb-out-b;
   }
+  /* rotate(0.02deg) at both ends of every keyframe: Firefox pixel-snaps an axis-aligned scale each frame (the zoom ticks); an invisible tilt makes it resample smoothly. */
   @keyframes kb-in-a {
     from {
-      transform: scale(1) translate(0, 0);
+      transform: scale(1) translate(0, 0) rotate(0.02deg);
     }
     to {
-      transform: scale(1.06) translate(-1%, -0.75%);
+      transform: scale(1.06) translate(-1%, -0.75%) rotate(0.02deg);
     }
   }
   @keyframes kb-in-b {
     from {
-      transform: scale(1) translate(0, 0);
+      transform: scale(1) translate(0, 0) rotate(0.02deg);
     }
     to {
-      transform: scale(1.06) translate(-1%, -0.75%);
+      transform: scale(1.06) translate(-1%, -0.75%) rotate(0.02deg);
     }
   }
   @keyframes kb-out-a {
     from {
-      transform: scale(1.06) translate(1%, 0.5%);
+      transform: scale(1.06) translate(1%, 0.5%) rotate(0.02deg);
     }
     to {
-      transform: scale(1) translate(0, 0);
+      transform: scale(1) translate(0, 0) rotate(0.02deg);
     }
   }
   @keyframes kb-out-b {
     from {
-      transform: scale(1.06) translate(1%, 0.5%);
+      transform: scale(1.06) translate(1%, 0.5%) rotate(0.02deg);
     }
     to {
-      transform: scale(1) translate(0, 0);
+      transform: scale(1) translate(0, 0) rotate(0.02deg);
     }
   }
   @media (prefers-reduced-motion: reduce) {
