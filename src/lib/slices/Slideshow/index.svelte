@@ -1,6 +1,6 @@
 <script lang="ts">
   import { MAX_IMAGE_W } from "$lib/images";
-  import type { SlideshowSlice } from "../../../prismicio-types";
+  import type { SlideshowSlice } from "../../../../prismicio-types";
   import { PrismicImage } from "@prismicio/svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";

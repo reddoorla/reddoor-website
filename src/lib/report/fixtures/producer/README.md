@@ -26,7 +26,7 @@ pnpm tsx scripts/gen-report-shapes.mts ../reddoor-website/src/lib/report/fixture
 The committed bytes are what that generator emits, formatted once with prettier
 as of this commit. They are **not** re-formatted afterwards: `.prettierignore`
 skips `src/lib/report/fixtures/producer/*.json`, for the same reason it skips
-`src/prismicio-types.d.ts` — a prettier version bump would otherwise red
+`prismicio-types.d.ts` — a prettier version bump would otherwise red
 `prettier --check` across nine thousand generated lines on dep-update PRs that
 have nothing to do with the report.
 

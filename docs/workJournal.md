@@ -1435,3 +1435,67 @@ Tim's "logos to be the right size in the grid" came down to one fact: every SVG 
 A fixed pixel width only balances at 1440. Grid cells are 223px wide at 1024 and 286px at 1280, and phone rows are 64px tall, so `max-w-full` and `max-h-full` shrank the 300px logos while narrower ones kept their size, and the balance inverted on phones: a 215px Rubrik beside a Revogen squeezed to 183. The width is now `min(W, 100cqw·W/300, 100cqh·W/105)` against the `<li>` as a size container, which scales every set width by the same `min(1, cell width/300, cell height/105)`. Rows without a width keep the old `w-55` behaviour. The first cut rounded W/105 to four places and drew a 300 logo at 299.98px at 1440; passing the division to CSS made it exact. The four new smoke tests (390, 768, 1024, 1280) fail against staging's component by 7–59px and pass with the change.
 
 Boise's rollover backdrops also got real portrait crops. On a phone the band is 390×1232, an aspect of 0.32, so only the middle ~55% of a 9:16 portrait shows and each subject was framed into that strip. Rubrik, Enzo's and Vineyard had no portrait and fell back to Prismic's centred auto-crop; Composition's "portrait" was a 1800×1200 landscape; FYF's was a 3:4 phone photo. The crops were made locally, then uploaded as imgix `rect=` URLs of the original assets so Prismic fetched them from its own CDN. Each URL was compared with the local crop first: mean pixel difference 0.75–1.65 of 255, against 12.5 for the same Rubrik crop shifted 100px. Rubrik, Composition and Enzo's are kept at source resolution (810, 675, 1059 wide) rather than upscaled.
+
+## 2026-09-30 — The hero's Ken Burns tilts 0.02° so Firefox stops ticking the zoom (Tucker)
+
+Tucker, watching a Ken Burns in Firefox (the Roalson featured band, which zooms the same way): "it still feels like it's calculating every tick rather than interpolating like smoother effects". Five variants of the same photo were put side by side on a throwaway page on that site's deploy preview, each looping 1 → 1.06 over 8s:
+
+- A: plain `scale()` with `will-change`;
+- B: A plus `rotate(0.02deg)` at both ends;
+- C: A as a 3D `translateZ(0)` transform;
+- D: A without `will-change`;
+- E: B at 1.12.
+
+In Firefox, B and E glided and the rest ticked. So the cause is not speed, GPU promotion or the 3D path: it is the transform being a pure axis-aligned scale.
+
+The likely mechanism was read in Firefox's source, not measured. WebRender's `ScaleOffset::from_transform` (gfx/wr/webrender_api/src/fast_transform.rs) treats a matrix whose off-diagonal terms are within 1/4096 of zero as a scale plus offset, and that path snaps to device pixels. sin(0.02°) is 0.000349, about 1.4× the threshold, so the tilted transform is resampled with filtering instead. Any angle under about 0.014° would count as no rotation at all. At 0.02° the corners of a 1440px-wide hero move about 0.25px, which is invisible.
+
+All eight keyframe ends in `IndustryHero/KenBurns.svelte` now end in `rotate(0.02deg)`, in the same place in the function list. The tilt is therefore constant rather than animated. Reduced motion (`animation: none`) and `will-change` are unchanged. The shipped CSS keeps it: the minifier writes `scale(1)translate(0)rotate(.02deg)`.
+
+`tests/smoke/industry-hero-slideshow.spec.ts` now reads scale as `hypot(a, b)` and tilt as `atan2(b, a)` from `DOMMatrixReadOnly`, never a matrix string. It asserts the tilt on all four keyframes while they run, and none on the reduced-motion still.
+
+Review caught one timing window in the advance test. It read slide 0 twice, 1s apart, in real time, and slide 0's 4s move can already be ending when the first read lands under load. It now reads the move by pausing slide 0's own animation, seeking it to 1000ms and 2000ms, and restoring it: one synchronous evaluate, independent of where real time has got to. Each of these mutations turns it red: no tilt on `kb-in-a`, a `kb-in-a` that does not grow, and slide 0 starting on `kb-in-b`. A 3.5s stall after hydration reproduced the old window: the previous spec went red and the new one stayed green.
+
+There is no Firefox in the cloud container, so Firefox smoothness rests on Tucker's side-by-side and on this PR's deploy preview. The same fix went into roalson-interests' featured band.
+
+## 2026-09-30 — The audit's print sheet stops printing the site's nav and footer, and gets its title block back
+
+The PDF leave-behind that reddoor-maintenance attaches to every prospect-audit email is printed from `/audit/{token}/print`. Printed for token `xZMVU1EaZLC1ZLAJ81Rzxg` (the audit of reddoorla.com itself), page 1 had the site's "Reddoor Creative" wordmark and hamburger over the verdict, no title, and a mostly blank page after that. The last page carried the whole site footer, with the copyright cut off after "All Rights".
+
+The print sheet already meant to hide the chrome, and the one rule it had for that did the opposite of what it said. `:global(header), :global(nav), :global(body > footer) { display: none }` missed all three pieces of the site's chrome. The navs are `<div>`s, not `<header>` or `<nav>`, and the footer sits inside `main > div`, never directly under `body`. What it did hide was the sheet's own `<header>`, the eyebrow, h1 and meta line, so the title block was the only thing the rule removed. The rule is gone. The print route's load now returns `siteChrome: false`, and the root layout renders none of its three nav variants and no footer when a page says so. A data flag rather than a path match, so nothing else changes by being called `print`.
+
+Taking the footer out changed more than the last page. With only the chrome removed, before the type fixes below, every font size in the PDF grew by the same factor: body paragraphs from 11.74pt to 13.5pt, h3s from 9.99pt to 11.5pt, and the 9pt and 8.5pt notes from 7.82pt and 7.39pt. Chrome had shrunk the whole old document to 0.87 of its size to fit something wider than the page. Printing with only the navs restored left sizes unchanged, and with only the footer restored they dropped to 0.87×, so the footer was the overflow. An `html` scrollWidth check at the A4 content width (673px) under print emulation did not see it, even with every piece of chrome restored. That check was written as a smoke test, stayed green under every mutation, and was deleted.
+
+Two more of the site's styles were reaching a sheet that describes its styles as self-contained, both from `@layer base` in `app.css`. Every plain `<p>` took the site's 18px, weight 200, so body paragraphs printed larger than both the verdict (12pt) and the h3s (11.5pt). Every h3 took a 90px line-height, which is the big gap around each subhead. With text that size each `break-inside: avoid` section was taller than the space left on its page and got pushed to the next page, which is why page 1 was mostly blank. The sheet's `p` now inherits size, weight and line-height, and its headings set `line-height: 1.25`. The PDF went from 11 pages to 6, and page 1 now runs from the title block through the whole "What AI is saying about you" section.
+
+Restoring the header also showed two defects that had been invisible because it never printed. The meta line read `https://reddoorla.com/· audited …`: Svelte trims whitespace at the start of a block, so the newline before `&middot;` inside `{#if auditDate}` never became a space. The caveat under the visibility line had no bottom margin and touched the next h2, so sections now take `margin: 16pt 0`.
+
+Measured with a line-level check on the text layer (PyMuPDF), not by eye alone. The old PDF has 2 overlapping line pairs on page 1 (the verdict under the wordmark), 1 line past the right content edge at 550.4pt (the copyright), and five footer strings. The new PDF has 0, 0 and none. The checker was first run on the old PDF and flagged exactly what its page images show. Its first version worked on text blocks, and it reported overlaps inside the score boxes that were not there.
+
+The test lives on a new dev fixture, `/dev/audit-report/print`, which renders the real print page component over `ALL_PASS_REPORT` under the real root layout. `tests/smoke/report-print.spec.ts` asserts three things at the A4 content width under print media. There is no "Open menu" button, no footer text, and exactly one footer, the sheet's own. `main`'s text starts with the eyebrow. Every unclassed paragraph matches its parent's font size, and every h3's line-height is under twice its size. The shared-loader test in `load.test.ts` now pins `siteChrome: false` on the print route, and its exact match proves the interactive page does not carry it. Each of these mutations turns something red:
+
+- the print load dropping the flag (the unit test);
+- the layout ignoring it;
+- the old `:global(header)` rule restored;
+- the paragraph inheritance removed;
+- the heading line-height removed;
+- only the navs ungated;
+- only the footer ungated.
+
+The heading weights are unchanged and are the site's: h1 and h3 print at weight 200, lighter than the 400 body text. That, like the rest of the visual treatment, belongs to the design pass the sheet's own comment says is pending.
+
+A git worktree nested under the main checkout (`.worktrees/…`) cannot start `vite dev` when the main checkout has never been synced. The SSR dependency optimizer fails on `Could not resolve 'node:module' in \0rolldown/runtime.js` with "Tsconfig not found", because resolution walks up to the parent's `tsconfig.json`, which extends a `.svelte-kit/tsconfig.json` that does not exist. Writing a stub `.svelte-kit/tsconfig.json` in the parent (gitignored) cleared it. The laptop's main checkout has always been synced, so this only shows in a fresh clone.
+
+## 2026-10-01 — Off Slice Machine: the fleet's Prismic CLI pilot (#235, `8994aa3`)
+
+Prismic deprecated Slice Machine on 2026-09-18 and replaced it with the Type Builder and the `prismic` CLI. This site is the pilot for the whole fleet (reddoor-maintenance `docs/prismic-migration-plan-2026-10.md`, #1090 there). The operator chose the repo as the source of truth, model delivery through reddoor-maintenance's `prismic-models` workflow and never `prismic push`, and Prismic's generated-file layout.
+
+What changed and why. `prismic.config.json` replaces `slicemachine.config.json`; `SliceSimulator` comes from `@prismicio/svelte`, which has exported it since 2.2.0; `slice-machine-ui`, its adapter and `concurrently` are gone, and `pnpm dev` is plain Vite. `pnpm prismic:gen` regenerates `prismicio-types.d.ts`, now at the project root, and the slice index. The root move cost one `../` on 15 imports. SvelteKit's generated tsconfig does not include a root `.d.ts`, but every consumer imports it by path, so svelte-check still sees it. The regenerated types carry the same 117 exported names as Slice Machine's file. `scripts/prismic/regen-types.mjs` is deleted: it reached into Slice Machine's store to fire typegen because Slice Machine had no command for it, and `prismic gen types` is that command.
+
+A `prismic-codegen` workflow regenerates both files and fails on any diff, since svelte-check would otherwise read stale types as truth. It was shown green on a clean copy and red on four mutations (a slice field, a hand-edited types file, a new slice, a custom-type field) before it was trusted, then green in CI. Run by an AI agent, the CLI refuses without `--task-id`/`--user-intent`; Actions is not detected as one.
+
+Defect found in review, and how it hid. Seven scripts under `scripts/` still read the deleted `slicemachine.config.json` and died at startup. The first sweep grepped `.js/.ts/.svelte/.json` and not `.mjs`, and no test imports those scripts, so every gate was green. Fixed in `40d5d81`; the second review was clean.
+
+Belief corrected. The fleet plan assumed every site's CSP refuses to be framed by prismic.io, which the Type Builder's live preview needs. This site has allowed it on `/slice-simulator` since 2026-08-19 (`CMS_FRAMED_ROUTES`), and is the only one of 21 that does, so its `headers.ts` is the pattern the rollout ports.
+
+Still owed by the operator: the `PRISMIC_WRITE_TOKEN` Actions secret and `reddoor-maint prismic-ci reddoor-website`, then, once this reaches `main`, the Type Builder switch on `reddoor-la` with the simulator URL `https://reddoorla.com/slice-simulator`. Until the workflow exists there is no code-first way to push models from here, so do not change models on this site.

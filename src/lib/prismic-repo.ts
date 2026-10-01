@@ -1,4 +1,4 @@
-import config from "../../slicemachine.config.json";
+import config from "../../prismic.config.json";
 
 /**
  * The project's Prismic repository name, importable from client code (the

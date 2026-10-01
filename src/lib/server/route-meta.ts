@@ -1,5 +1,5 @@
 import type { Client } from "@prismicio/client";
-import type { AllDocumentTypes } from "../../prismicio-types";
+import type { AllDocumentTypes } from "../../../prismicio-types";
 
 /**
  * Editable meta for the pages that have no Prismic document of their own.

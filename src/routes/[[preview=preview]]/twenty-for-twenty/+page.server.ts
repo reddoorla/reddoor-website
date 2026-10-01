@@ -1,7 +1,7 @@
 import metaImage from "$lib/assets/images/20_4_20_key_art.jpg";
 import { createClient } from "$lib/prismicio.js";
 import { isFilled } from "@prismicio/client";
-import type { ProjectDocument } from "../../../prismicio-types.js";
+import type { ProjectDocument } from "../../../../prismicio-types.js";
 import type { ImageField } from "@prismicio/client";
 import type { PageServerLoad } from "./$types";
 import { mediumString } from "$lib/utils/projectServices";

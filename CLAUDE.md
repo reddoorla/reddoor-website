@@ -4,8 +4,8 @@ This is [reddoorla.com](https://reddoorla.com) — Reddoor Creative's own site.
 It is a portfolio and marketing site, but it also runs the studio's sales
 apparatus: an industry landing page at `/medtech`, a two-step inquiry funnel
 that syncs to the CRM, a booking flow at `/schedule`, and per-prospect audit
-reports at `/audit/[token]`. SvelteKit 2 + Svelte 5 (runes), Prismic via Slice
-Machine, Tailwind v4, Netlify; Node 24 + pnpm 11 through corepack.
+reports at `/audit/[token]`. SvelteKit 2 + Svelte 5 (runes), Prismic (Type Builder
+and the `prismic` CLI; Slice Machine is gone), Tailwind v4, Netlify; Node 24 + pnpm 11 through corepack.
 
 [README.md](README.md) is the orientation and is current: the scripts table,
 the CI gates, and the conventions worth knowing — the Tailwind v4 `@config`

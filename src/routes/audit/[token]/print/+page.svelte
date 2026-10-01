@@ -110,8 +110,7 @@
     <p class="eyebrow">AEO / SEO Audit Report for: {who}</p>
     <h1>When AI answers for {who}</h1>
     <p class="meta">
-      {view.url}{#if auditDate}
-        &middot; audited {auditDate}{/if}
+      {view.url}{#if auditDate}{` · audited ${auditDate}`}{/if}
     </p>
   </header>
 
@@ -425,13 +424,6 @@
     margin: 18mm 16mm;
   }
 
-  /* Paper carries none of the site's chrome. */
-  :global(header),
-  :global(nav),
-  :global(body > footer) {
-    display: none;
-  }
-
   .caveat {
     color: #57544f;
     font-size: 9.5pt;
@@ -459,6 +451,7 @@
   h3 {
     color: #14181d;
     margin: 0;
+    line-height: 1.25;
     /* A heading stranded at the foot of a page reads as a mistake. */
     break-after: avoid;
   }
@@ -484,6 +477,9 @@
 
   p {
     margin: 0 0 7pt;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
   }
 
   ul {
@@ -510,7 +506,7 @@
   }
 
   section {
-    margin-bottom: 16pt;
+    margin: 16pt 0;
     /* Keep a section together where it fits on one page. */
     break-inside: avoid;
   }

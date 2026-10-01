@@ -1,6 +1,6 @@
 <script lang="ts">
   import ContentWidthMedia from "$lib/slices/ContentWidthMedia/index.svelte";
-  import type { ContentWidthImageSlice } from "../../../prismicio-types";
+  import type { ContentWidthImageSlice } from "../../../../prismicio-types";
 
   // Unsplash is imgix-backed (like Prismic media), so PrismicImage's
   // auto=format,compress srcset resolves to real, loadable URLs.

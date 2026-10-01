@@ -1,7 +1,10 @@
 <script lang="ts">
   import { MAX_IMAGE_W } from "$lib/images";
   import { PrismicImage, PrismicLink } from "@prismicio/svelte";
-  import type { LogoSoupDocumentData, LogoSoupDocumentDataBrandsItem } from "../../prismicio-types";
+  import type {
+    LogoSoupDocumentData,
+    LogoSoupDocumentDataBrandsItem,
+  } from "../../../prismicio-types";
   import ContentWidth from "./ContentWidth/ContentWidth.svelte";
   import { fade } from "svelte/transition";
   import { animateIn as anim } from "$lib/actions/animateIn";

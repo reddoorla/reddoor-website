@@ -27,9 +27,7 @@ if (!BRAND || BRAND.startsWith("--")) {
 }
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const config = JSON.parse(
-  await readFile(path.resolve(HERE, "../../slicemachine.config.json"), "utf8"),
-);
+const config = JSON.parse(await readFile(path.resolve(HERE, "../../prismic.config.json"), "utf8"));
 const redact = (m) => String(m).replace(/([?&]access_token=)[^&\s"']+/gi, "$1[redacted]");
 
 const readClient = prismic.createClient(config.repositoryName, { fetch });

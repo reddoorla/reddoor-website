@@ -1,5 +1,9 @@
 import { asText, type RichTextField } from "@prismicio/client";
-import type { ProjectDocument, RichTextSlice, RichTextSliceDefault } from "../../prismicio-types";
+import type {
+  ProjectDocument,
+  RichTextSlice,
+  RichTextSliceDefault,
+} from "../../../prismicio-types";
 
 const SERVICE_LABELS = [
   "Brand",
