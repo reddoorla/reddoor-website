@@ -17,7 +17,7 @@
   import stJamesMural from "$lib/assets/images/stJamesMural.jpg?as=run";
   import stJamesPhone from "$lib/assets/images/stJamesPhone.jpg?as=run";
   import gallerySonder from "$lib/assets/images/gallerySonder.jpg?as=run";
-  import type { ProjectDocument } from "../../../prismicio-types.js";
+  import type { ProjectDocument } from "../../../../prismicio-types.js";
   import { tick } from "svelte";
   import { fade, scale, slide } from "svelte/transition";
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";

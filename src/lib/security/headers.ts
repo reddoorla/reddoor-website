@@ -47,9 +47,10 @@ export const CONTENT_SECURITY_POLICY = [
 ].join("; ");
 
 /**
- * Routes the CMS loads in an iframe from another origin. Slice Machine
- * (http://localhost:9999) and the Prismic Page Builder (https://*.prismic.io)
- * both frame /slice-simulator to render slice previews. SAMEORIGIN plus
+ * Routes the CMS loads in an iframe from another origin. The Prismic Type
+ * Builder and Page Builder (https://*.prismic.io), and a local simulator URL
+ * (http://localhost:*) while developing, frame /slice-simulator to render
+ * slice previews. SAMEORIGIN plus
  * `frame-ancestors 'self'` made every preview in the editor read "Error" from
  * the day hooks.server.ts started applying this policy to dev responses
  * (2026-08-19); the route is also `prerender = false` so the same hook, not

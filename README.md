@@ -2,7 +2,7 @@
 
 The [reddoorla.com](https://reddoorla.com) site — Reddoor Creative's own portfolio/marketing site.
 
-**Stack:** SvelteKit 2 + Svelte 5 (runes) · [Prismic](https://prismic.io) (Slice Machine) · Tailwind CSS v4 (`@config` legacy mode, see `src/app.css`) · Netlify (project name `reddoorla`) · Node 24 + pnpm 11 via corepack.
+**Stack:** SvelteKit 2 + Svelte 5 (runes) · [Prismic](https://prismic.io) (Type Builder + the `prismic` CLI) · Tailwind CSS v4 (`@config` legacy mode, see `src/app.css`) · Netlify (project name `reddoorla`) · Node 24 + pnpm 11 via corepack.
 
 ## Getting started
 
@@ -10,21 +10,22 @@ The [reddoorla.com](https://reddoorla.com) site — Reddoor Creative's own portf
 nvm use            # node 24 (engines enforces >=24)
 corepack enable    # pins pnpm from packageManager
 pnpm install
-pnpm dev           # vite dev server (:5173) + Slice Machine (:9999), concurrently
+pnpm dev           # vite dev server (:5173)
 ```
 
 ## Scripts
 
-| Script            | What it does                                                        |
-| ----------------- | ------------------------------------------------------------------- |
-| `pnpm dev`        | Vite dev server + Slice Machine, concurrently                       |
-| `pnpm build`      | Production build (Netlify adapter; prerender fails on broken links) |
-| `pnpm check`      | `svelte-check` type/diagnostic pass                                 |
-| `pnpm lint`       | Prettier check + ESLint                                             |
-| `pnpm format`     | Prettier write                                                      |
-| `pnpm test`       | `test:unit` then `test:smoke` — this is what CI runs                |
-| `pnpm test:unit`  | Vitest (`src/**/*.test.ts`, `scripts/**/*.test.mjs`)                |
-| `pnpm test:smoke` | Playwright behavior suite (`tests/smoke/`), installs chromium first |
+| Script             | What it does                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`         | Vite dev server                                                                                           |
+| `pnpm prismic:gen` | Regenerate `prismicio-types.d.ts` and the slice index from the models on disk; CI fails if they are stale |
+| `pnpm build`       | Production build (Netlify adapter; prerender fails on broken links)                                       |
+| `pnpm check`       | `svelte-check` type/diagnostic pass                                                                       |
+| `pnpm lint`        | Prettier check + ESLint                                                                                   |
+| `pnpm format`      | Prettier write                                                                                            |
+| `pnpm test`        | `test:unit` then `test:smoke` — this is what CI runs                                                      |
+| `pnpm test:unit`   | Vitest (`src/**/*.test.ts`, `scripts/**/*.test.mjs`)                                                      |
+| `pnpm test:smoke`  | Playwright behavior suite (`tests/smoke/`), installs chromium first                                       |
 
 ## CI / gates
 
@@ -32,7 +33,7 @@ pnpm dev           # vite dev server (:5173) + Slice Machine (:9999), concurrent
 
 ## Content ops
 
-- Content lives in the Prismic repo configured in `slicemachine.config.json`; slices are in `src/lib/slices/`, models are pushed via Slice Machine (interactive login required — a write token can't push models).
+- Content lives in the Prismic repo configured in `prismic.config.json`; slices are in `src/lib/slices/`, custom types in `customtypes/`. Slice Machine is gone (deprecated by Prismic 2026-09-18). Edit a model's JSON (or use `npx prismic type|slice|field …`), run `pnpm prismic:gen`, and commit both. Models reach Prismic through reddoor-maintenance's `prismic-models` workflow on merge, never `prismic push`; see that repo's `docs/runbooks/prismic-model-delivery.md` and `docs/prismic-migration-plan-2026-10.md`.
 - `scripts/portfolio-intro/` — the (idempotent, unit-tested) migration that seeded the 16 portfolio-page intros from the Figma project-page designs. See its README before re-running anything.
 - `scripts/crm/` — drives the CRM's workflow builder over Chrome's debugging port, for the message bodies no API reaches. Its README is the runbook and the log of edits made; read `docs/inquiry-funnel.md` §7 before writing anything there.
 - Secrets: `PRISMIC_WRITE_TOKEN` lives in `.env.local` (gitignored). Scripts load it via `node --env-file=.env.local …`. Never commit or print it.

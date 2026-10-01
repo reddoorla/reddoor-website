@@ -3,7 +3,7 @@ import { enableAutoPreviews } from "@prismicio/svelte/kit";
 import type { CreateClientConfig } from "@prismicio/svelte/kit";
 import { currentlyShowsHidden, HIDE_FILTER, PREVIEW_COOKIE } from "$lib/server/content-visibility";
 import { smartQuoteDocument } from "$lib/typography/smartQuotes";
-import type { AllDocumentTypes } from "../prismicio-types";
+import type { AllDocumentTypes } from "../../prismicio-types";
 import { repositoryName } from "./prismic-repo";
 
 export { repositoryName };

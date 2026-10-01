@@ -6,7 +6,7 @@
   import { page } from "$app/state";
   import { PrismicImage, PrismicLink } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
-  import type { OpeningAnimationDocumentDataSlidesItem } from "../../prismicio-types";
+  import type { OpeningAnimationDocumentDataSlidesItem } from "../../../prismicio-types";
 
   import printedReddoorLogo from "$lib/assets/icons/logos/reddoor_logo.png";
   import { isInHero } from "$lib/stores/isInHero.svelte";

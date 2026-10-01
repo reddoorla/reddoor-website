@@ -1,6 +1,6 @@
 import { createClient } from "$lib/prismicio";
 import { isFilled } from "@prismicio/client";
-import type { ProjectDocument } from "../../../../prismicio-types.js";
+import type { ProjectDocument } from "../../../../../prismicio-types.js";
 import { ogCardPath } from "$lib/og/url";
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
