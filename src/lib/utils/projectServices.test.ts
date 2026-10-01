@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mediumString, toSearchRecord } from "./projectServices";
-import type { ProjectDocument } from "../../prismicio-types";
+import type { ProjectDocument } from "../../../prismicio-types";
 
 type Services = Partial<
   Record<"branding" | "product" | "print" | "environmental" | "packaging" | "digital", boolean>

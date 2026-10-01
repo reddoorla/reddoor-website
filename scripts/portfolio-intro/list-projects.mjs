@@ -5,7 +5,7 @@ import * as prismic from "@prismicio/client";
 import { readFile } from "node:fs/promises";
 
 const config = JSON.parse(
-  await readFile(new URL("../../slicemachine.config.json", import.meta.url), "utf8"),
+  await readFile(new URL("../../prismic.config.json", import.meta.url), "utf8"),
 );
 const token = process.env.PRISMIC_WRITE_TOKEN;
 const client = prismic.createClient(

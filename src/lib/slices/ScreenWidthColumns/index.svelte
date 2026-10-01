@@ -1,6 +1,6 @@
 <script lang="ts">
   import { MAX_IMAGE_W } from "$lib/images";
-  import type { ScreenWidthColumnsSlice } from "../../../prismicio-types";
+  import type { ScreenWidthColumnsSlice } from "../../../../prismicio-types";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
   import { animateIn as anim } from "$lib/actions/animateIn";

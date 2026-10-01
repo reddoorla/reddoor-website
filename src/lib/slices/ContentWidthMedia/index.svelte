@@ -12,7 +12,7 @@
     ContentWidthImageSliceDefaultPrimaryImagesItem,
     GalleryDocumentData,
     GalleryDocumentDataImagesItem,
-  } from "../../../prismicio-types";
+  } from "../../../../prismicio-types";
   import { isFilled } from "@prismicio/client";
   import { animateIn as anim } from "$lib/actions/animateIn";
 

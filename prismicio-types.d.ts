@@ -1,0 +1,3839 @@
+import type * as prismic from "@prismicio/client";
+
+type Simplify<T> = { [KeyType in keyof T]: T[KeyType] };
+
+
+type PickContentRelationshipFieldData<
+	TRelationship extends prismic.CustomTypeModelFetchCustomTypeLevel1 | prismic.CustomTypeModelFetchCustomTypeLevel2 | prismic.CustomTypeModelFetchGroupLevel1 | prismic.CustomTypeModelFetchGroupLevel2,
+	TData extends Record<string, prismic.AnyRegularField | prismic.GroupField | prismic.NestedGroupField | prismic.SliceZone>,
+	TLang extends string
+> = |
+	// Content relationship fields
+	{
+		[TSubRelationship in Extract<
+			TRelationship["fields"][number], prismic.CustomTypeModelFetchContentRelationshipLevel1
+		> as TSubRelationship["id"]]:
+			ContentRelationshipFieldWithData<TSubRelationship["customtypes"], TLang>;
+	} &
+	// Group
+	{
+		[TGroup in Extract<
+			TRelationship["fields"][number], prismic.CustomTypeModelFetchGroupLevel1 | prismic.CustomTypeModelFetchGroupLevel2
+		> as TGroup["id"]]:
+			TData[TGroup["id"]] extends prismic.GroupField<infer TGroupData>
+				? prismic.GroupField<PickContentRelationshipFieldData<TGroup, TGroupData, TLang>>
+				: never
+	} &
+	// Other fields
+	{
+		[TFieldKey in Extract<TRelationship["fields"][number], string>]:
+			TFieldKey extends keyof TData ? TData[TFieldKey] : never;
+	};
+
+type ContentRelationshipFieldWithData<
+	TCustomType extends readonly (prismic.CustomTypeModelFetchCustomTypeLevel1 | string)[] | readonly (prismic.CustomTypeModelFetchCustomTypeLevel2 | string)[],
+	TLang extends string = string
+> = {
+	[ID in Exclude<TCustomType[number], string>["id"]]:
+		prismic.ContentRelationshipField<
+			ID,
+			TLang,
+			PickContentRelationshipFieldData<
+				Extract<TCustomType[number], { id: ID }>,
+				Extract<prismic.Content.AllDocumentTypes, { type: ID }>["data"],
+				TLang
+			>
+		>
+}[Exclude<TCustomType[number], string>["id"]];
+
+/**
+ * Item in *form replies → replies*
+ */
+export interface FormRepliesDocumentDataRepliesItem {
+	/**
+	 * form field in *form replies → replies*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: Pick the form this reply answers — one row per form
+	 * - **API ID Path**: form_replies.replies[].form_type
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	form_type: prismic.SelectField<"contact" | "inquiry" | "newsletter" | "rsvp" | "reserve">;
+	
+	/**
+	 * subject field in *form replies → replies*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Subject line of the email the visitor receives
+	 * - **API ID Path**: form_replies.replies[].subject
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	subject: prismic.KeyTextField;
+	
+	/**
+	 * body field in *form replies → replies*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: What the visitor reads. Bold, italic, links and lists are sent; other formatting is not.
+	 * - **API ID Path**: form_replies.replies[].body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+}
+
+/**
+ * Content for form replies documents
+ */
+interface FormRepliesDocumentData {
+	/**
+	 * replies field in *form replies*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: form_replies.replies[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	replies: prismic.GroupField<Simplify<FormRepliesDocumentDataRepliesItem>>;
+	
+	/**
+	 * signature field in *form replies*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Sign-off appended to every reply, whatever the form
+	 * - **API ID Path**: form_replies.signature
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	signature: prismic.RichTextField;
+}
+
+/**
+ * form replies document from Prismic
+ *
+ * - **API ID**: `form_replies`
+ * - **Repeatable**: `false`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type FormRepliesDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<Simplify<FormRepliesDocumentData>, "form_replies", Lang>;
+
+/**
+ * Item in *Gallery → images*
+ */
+export interface GalleryDocumentDataImagesItem {
+	/**
+	 * image field in *Gallery → images*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: gallery.images[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+}
+
+/**
+ * Content for Gallery documents
+ */
+interface GalleryDocumentData {
+	/**
+	 * title field in *Gallery*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: gallery.title
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * images field in *Gallery*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: gallery.images[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	images: prismic.GroupField<Simplify<GalleryDocumentDataImagesItem>>;
+}
+
+/**
+ * Gallery document from Prismic
+ *
+ * - **API ID**: `gallery`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type GalleryDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<GalleryDocumentData>, "gallery", Lang>;
+
+type IndustryDocumentDataSlicesSlice = IndustryHeroSlice | LeadTextSlice | TextColumnsSlice | CaseStudySlice | LogoGridSlice | TestimonialSlice | FeaturedProjectSlice | ValueBlockSlice | AccordionSlice | CtaBannerSlice | RichTextSlice
+
+/**
+ * Content for Industry documents
+ */
+interface IndustryDocumentData {
+	/**
+	 * Title field in *Industry*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry.title
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	title: prismic.RichTextField;
+	
+	/**
+	 * Slice Zone field in *Industry*
+	 *
+	 * - **Field Type**: Slice Zone
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry.slices[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/slices
+	 */
+	slices: prismic.SliceZone<IndustryDocumentDataSlicesSlice>;/**
+	 * Modal Title field in *Industry*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Let’s Get Started! (default when blank)
+	 * - **API ID Path**: industry.inquiry_title
+	 * - **Tab**: Inquiry
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	inquiry_title: prismic.KeyTextField;
+	
+	/**
+	 * Prompt Above the Email Field field in *Industry*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Enter your email, then answer 5 questions… (default when blank)
+	 * - **API ID Path**: industry.inquiry_prompt
+	 * - **Tab**: Inquiry
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	inquiry_prompt: prismic.KeyTextField;
+	
+	/**
+	 * Thank-You Message field in *Industry*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Shown after the application is submitted (default when blank)
+	 * - **API ID Path**: industry.inquiry_thanks
+	 * - **Tab**: Inquiry
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	inquiry_thanks: prismic.KeyTextField;
+	
+	/**
+	 * GHL Form ID (email capture) field in *Industry*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. MgcBOjbMGpQByfbVnUe7 — from the form's embed URL (default when blank)
+	 * - **API ID Path**: industry.inquiry_form_id
+	 * - **Tab**: Inquiry
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	inquiry_form_id: prismic.KeyTextField;
+	
+	/**
+	 * Question Set Key (five questions) — required, never blank field in *Industry*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. digital — picks which coded question set and CRM fields this page uses. Blanking it silently files leads under the medtech set.
+	 * - **API ID Path**: industry.inquiry_survey_id
+	 * - **Tab**: Inquiry
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	inquiry_survey_id: prismic.KeyTextField;/**
+	 * Meta Title field in *Industry*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A title of the page used for social media and search engines
+	 * - **API ID Path**: industry.meta_title
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_title: prismic.KeyTextField;
+	
+	/**
+	 * Meta Description field in *Industry*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A brief summary of the page
+	 * - **API ID Path**: industry.meta_description
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_description: prismic.KeyTextField;
+	
+	/**
+	 * Meta Image field in *Industry*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry.meta_image
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	meta_image: prismic.ImageField<never>;
+}
+
+/**
+ * Industry document from Prismic
+ *
+ * - **API ID**: `industry`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type IndustryDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<IndustryDocumentData>, "industry", Lang>;
+
+/**
+ * Item in *Logo Soup → brands*
+ */
+export interface LogoSoupDocumentDataBrandsItem {
+	/**
+	 * name field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[].name
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	name: prismic.KeyTextField;
+	
+	/**
+	 * services field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[].services
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	services: prismic.KeyTextField;
+	
+	/**
+	 * logo color field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[].logo_color
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	logo_color: prismic.ImageField<never>;
+	
+	/**
+	 * logo negative field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[].logo_negative
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	logo_negative: prismic.ImageField<never>;
+	
+	/**
+	 * active background field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[].active_background
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	active_background: prismic.ImageField<never>;
+	
+	/**
+	 * active background mobile crop field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[].active_background_mobile_crop
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	active_background_mobile_crop: prismic.ImageField<never>;
+	
+	/**
+	 * project link field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[].project_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	project_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * isFeatured field in *Logo Soup → brands*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: logo_soup.brands[].isFeatured
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isFeatured: prismic.BooleanField;
+}
+
+/**
+ * Content for Logo Soup documents
+ */
+interface LogoSoupDocumentData {
+	/**
+	 * brands field in *Logo Soup*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_soup.brands[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	brands: prismic.GroupField<Simplify<LogoSoupDocumentDataBrandsItem>>;
+}
+
+/**
+ * Logo Soup document from Prismic
+ *
+ * - **API ID**: `logo_soup`
+ * - **Repeatable**: `false`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type LogoSoupDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<Simplify<LogoSoupDocumentData>, "logo_soup", Lang>;
+
+/**
+ * Item in *Opening Animation → slides*
+ */
+export interface OpeningAnimationDocumentDataSlidesItem {
+	/**
+	 * background image field in *Opening Animation → slides*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: opening_animation.slides[].background_image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	background_image: prismic.ImageField<never>;
+	
+	/**
+	 * background image mobile crop field in *Opening Animation → slides*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: opening_animation.slides[].background_image_mobile_crop
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	background_image_mobile_crop: prismic.ImageField<never>;
+	
+	/**
+	 * project title field in *Opening Animation → slides*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: opening_animation.slides[].project_name
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	project_name: prismic.KeyTextField;
+	
+	/**
+	 * services field in *Opening Animation → slides*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: opening_animation.slides[].services
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	services: prismic.KeyTextField;
+	
+	/**
+	 * project link field in *Opening Animation → slides*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: opening_animation.slides[].project_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	project_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Content for Opening Animation documents
+ */
+interface OpeningAnimationDocumentData {
+	/**
+	 * slides field in *Opening Animation*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: opening_animation.slides[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	slides: prismic.GroupField<Simplify<OpeningAnimationDocumentDataSlidesItem>>;
+}
+
+/**
+ * Opening Animation document from Prismic
+ *
+ * - **API ID**: `opening_animation`
+ * - **Repeatable**: `false`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type OpeningAnimationDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<Simplify<OpeningAnimationDocumentData>, "opening_animation", Lang>;
+
+type PageDocumentDataSlicesSlice = RichTextSlice
+
+/**
+ * Content for Page documents
+ */
+interface PageDocumentData {
+	/**
+	 * Title field in *Page*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: page.title
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	title: prismic.RichTextField;
+	
+	/**
+	 * Slice Zone field in *Page*
+	 *
+	 * - **Field Type**: Slice Zone
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: page.slices[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/slices
+	 */
+	slices: prismic.SliceZone<PageDocumentDataSlicesSlice>;/**
+	 * Meta Title field in *Page*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A title of the page used for social media and search engines
+	 * - **API ID Path**: page.meta_title
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_title: prismic.KeyTextField;
+	
+	/**
+	 * Meta Description field in *Page*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A brief summary of the page
+	 * - **API ID Path**: page.meta_description
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_description: prismic.KeyTextField;
+	
+	/**
+	 * Meta Image field in *Page*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: page.meta_image
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	meta_image: prismic.ImageField<never>;
+}
+
+/**
+ * Page document from Prismic
+ *
+ * - **API ID**: `page`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type PageDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<PageDocumentData>, "page", Lang>;
+
+type ProjectDocumentDataSlicesSlice = ScreenWidthColumnsSlice | SlideshowSlice | ValueBlockSlice | ScreenWidthImageSlice | ContentWidthImageSlice | RichTextSlice | LeadTextSlice | TextColumnsSlice | AccordionSlice
+
+/**
+ * Content for project documents
+ */
+interface ProjectDocumentData {
+	/**
+	 * title field in *project*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.title
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * hero field in *project*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.hero
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	hero: prismic.ImageField<never>;
+	
+	/**
+	 * tagline field in *project*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.tagline
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	tagline: prismic.KeyTextField;
+	
+	/**
+	 * branding field in *project*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: project.branding
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	branding: prismic.BooleanField;
+	
+	/**
+	 * product field in *project*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: project.product
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	product: prismic.BooleanField;
+	
+	/**
+	 * print field in *project*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: project.print
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	print: prismic.BooleanField;
+	
+	/**
+	 * environmental field in *project*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: project.environmental
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	environmental: prismic.BooleanField;
+	
+	/**
+	 * packaging field in *project*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: project.packaging
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	packaging: prismic.BooleanField;
+	
+	/**
+	 * digital field in *project*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: project.digital
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	digital: prismic.BooleanField;
+	
+	/**
+	 * manually set related project one field in *project*
+	 *
+	 * - **Field Type**: Content Relationship
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.relatedprojectoverride1
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+	 */
+	relatedprojectoverride1: prismic.ContentRelationshipField<"project">;
+	
+	/**
+	 * manually set related project two field in *project*
+	 *
+	 * - **Field Type**: Content Relationship
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.relatedprojectoverride2
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+	 */
+	relatedprojectoverride2: prismic.ContentRelationshipField<"project">;
+	
+	/**
+	 * Slice Zone field in *project*
+	 *
+	 * - **Field Type**: Slice Zone
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.slices[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/slices
+	 */
+	slices: prismic.SliceZone<ProjectDocumentDataSlicesSlice>;/**
+	 * Meta Title field in *project*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A title of the page used for social media and search engines
+	 * - **API ID Path**: project.meta_title
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_title: prismic.KeyTextField;
+	
+	/**
+	 * Meta Description field in *project*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A brief summary of the page
+	 * - **API ID Path**: project.meta_description
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_description: prismic.KeyTextField;
+	
+	/**
+	 * Meta Image field in *project*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.meta_image
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	meta_image: prismic.ImageField<never>;
+	
+	/**
+	 * featured image field in *project*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: project.featured_image
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	featured_image: prismic.ImageField<never>;
+}
+
+/**
+ * project document from Prismic
+ *
+ * - **API ID**: `project`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type ProjectDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<ProjectDocumentData>, "project", Lang>;
+
+/**
+ * Content for Page meta documents
+ */
+interface RouteMetaDocumentData {
+	/**
+	 * Share card headline field in *Page meta*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: The red line on the generated share card, used when no Meta Image is set
+	 * - **API ID Path**: route_meta.card_headline
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	card_headline: prismic.KeyTextField;/**
+	 * Meta Title field in *Page meta*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A title of the page used for social media and search engines
+	 * - **API ID Path**: route_meta.meta_title
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_title: prismic.KeyTextField;
+	
+	/**
+	 * Meta Description field in *Page meta*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A brief summary of the page
+	 * - **API ID Path**: route_meta.meta_description
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_description: prismic.KeyTextField;
+	
+	/**
+	 * Meta Image field in *Page meta*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: route_meta.meta_image
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	meta_image: prismic.ImageField<never>;
+}
+
+/**
+ * Page meta document from Prismic
+ *
+ * - **API ID**: `route_meta`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type RouteMetaDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<RouteMetaDocumentData>, "route_meta", Lang>;
+
+/**
+ * Item in *showcase → projects*
+ */
+export interface ShowcaseDocumentDataProjectsItem {
+	/**
+	 * project field in *showcase → projects*
+	 *
+	 * - **Field Type**: Content Relationship
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.projects[].project
+	 * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+	 */
+	project: prismic.ContentRelationshipField<"project">;
+	
+	/**
+	 * set image field in *showcase → projects*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.projects[].imageOverride
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	imageOverride: prismic.ImageField<never>;
+	
+	/**
+	 * set title field in *showcase → projects*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: optional
+	 * - **API ID Path**: showcase.projects[].titleOverride
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	titleOverride: prismic.KeyTextField;
+	
+	/**
+	 * set subtitle field in *showcase → projects*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: optional
+	 * - **API ID Path**: showcase.projects[].subtitleOverride
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	subtitleOverride: prismic.KeyTextField;
+	
+	/**
+	 * set link field in *showcase → projects*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.projects[].linkOverride
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	linkOverride: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+type ShowcaseDocumentDataSlicesSlice = ValueBlockSlice | SlideshowSlice | ScreenWidthColumnsSlice | ContentWidthImageSlice | ScreenWidthImageSlice | RichTextSlice
+
+type ShowcaseDocumentDataSlices1Slice = never
+
+/**
+ * Content for showcase documents
+ */
+interface ShowcaseDocumentData {
+	/**
+	 * title field in *showcase*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.title
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * tagline field in *showcase*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.tagline
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	tagline: prismic.KeyTextField;
+	
+	/**
+	 * hero field in *showcase*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.hero
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	hero: prismic.ImageField<never>;
+	
+	/**
+	 * body field in *showcase*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.body
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * featuredProject field in *showcase*
+	 *
+	 * - **Field Type**: Content Relationship
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.featuredproject
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+	 */
+	featuredproject: prismic.ContentRelationshipField<"project">;
+	
+	/**
+	 * set featured image field in *showcase*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.featuredImageOverride
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	featuredImageOverride: prismic.ImageField<never>;
+	
+	/**
+	 * set featured title field in *showcase*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: optional
+	 * - **API ID Path**: showcase.featuredTitleOverride
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	featuredTitleOverride: prismic.KeyTextField;
+	
+	/**
+	 * set featured subtitle title field in *showcase*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: optional
+	 * - **API ID Path**: showcase.featuredSubtitleOverride
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	featuredSubtitleOverride: prismic.KeyTextField;
+	
+	/**
+	 * projects field in *showcase*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.projects[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	projects: prismic.GroupField<Simplify<ShowcaseDocumentDataProjectsItem>>;
+	
+	/**
+	 * Slice Zone field in *showcase*
+	 *
+	 * - **Field Type**: Slice Zone
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.slices[]
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/slices
+	 */
+	slices: prismic.SliceZone<ShowcaseDocumentDataSlicesSlice>;/**
+	 * Meta Title field in *showcase*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A title of the page used for social media and search engines
+	 * - **API ID Path**: showcase.meta_title
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_title: prismic.KeyTextField;
+	
+	/**
+	 * Meta Description field in *showcase*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: A brief summary of the page
+	 * - **API ID Path**: showcase.meta_description
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	meta_description: prismic.KeyTextField;
+	
+	/**
+	 * Meta Image field in *showcase*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.meta_image
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	meta_image: prismic.ImageField<never>;
+	
+	/**
+	 * Slice Zone field in *showcase*
+	 *
+	 * - **Field Type**: Slice Zone
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: showcase.slices1[]
+	 * - **Tab**: SEO & Metadata
+	 * - **Documentation**: https://prismic.io/docs/slices
+	 */
+	slices1: prismic.SliceZone<ShowcaseDocumentDataSlices1Slice>;
+}
+
+/**
+ * showcase document from Prismic
+ *
+ * - **API ID**: `showcase`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type ShowcaseDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<ShowcaseDocumentData>, "showcase", Lang>;
+
+/**
+ * Content for Twenty for Twenty documents
+ */
+interface TwentyForTwentyDocumentData {
+	/**
+	 * number field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Number
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.number
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/number
+	 */
+	number: prismic.NumberField;
+	
+	/**
+	 * project field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Content Relationship
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.project
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+	 */
+	project: prismic.ContentRelationshipField<"project">;
+	
+	/**
+	 * body field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.body
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	body: prismic.KeyTextField;
+	
+	/**
+	 * dates field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.dates
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	dates: prismic.KeyTextField;
+	
+	/**
+	 * name override field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.name_override
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	name_override: prismic.KeyTextField;
+	
+	/**
+	 * image override field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.image_override
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image_override: prismic.ImageField<never>;
+	
+	/**
+	 * mediums override field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.mediums_override
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	mediums_override: prismic.KeyTextField;
+	
+	/**
+	 * link override field in *Twenty for Twenty*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: twenty_for_twenty.link_override
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link_override: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Twenty for Twenty document from Prismic
+ *
+ * - **API ID**: `twenty_for_twenty`
+ * - **Repeatable**: `true`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type TwentyForTwentyDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<TwentyForTwentyDocumentData>, "twenty_for_twenty", Lang>;
+
+export type AllDocumentTypes = FormRepliesDocument | GalleryDocument | IndustryDocument | LogoSoupDocument | OpeningAnimationDocument | PageDocument | ProjectDocument | RouteMetaDocument | ShowcaseDocument | TwentyForTwentyDocument;
+
+/**
+ * Item in *Accordion → Default → Primary → items*
+ */
+export interface AccordionSliceDefaultPrimaryItemsItem {
+	/**
+	 * title field in *Accordion → Default → Primary → items*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. About Canvas Worldwide
+	 * - **API ID Path**: accordion.default.primary.items[].title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * body field in *Accordion → Default → Primary → items*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.default.primary.items[].body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+}
+
+/**
+ * Item in *Accordion → Rail → Primary → items*
+ */
+export interface AccordionSliceRailPrimaryItemsItem {
+	/**
+	 * title field in *Accordion → Rail → Primary → items*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. How does pricing work?
+	 * - **API ID Path**: accordion.rail.primary.items[].title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * body field in *Accordion → Rail → Primary → items*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to render the question as plain text (no toggle)
+	 * - **API ID Path**: accordion.rail.primary.items[].body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+}
+
+/**
+ * Primary content in *Accordion → Default → Primary*
+ */
+export interface AccordionSliceDefaultPrimary {
+	/**
+	 * label field in *Accordion → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Optional section heading, e.g. Frequently Asked Questions
+	 * - **API ID Path**: accordion.default.primary.label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * defaultOpen field in *Accordion → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: accordion.default.primary.defaultOpen
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	defaultOpen: prismic.BooleanField;
+	
+	/**
+	 * items field in *Accordion → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.default.primary.items[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	items: prismic.GroupField<Simplify<AccordionSliceDefaultPrimaryItemsItem>>;
+	
+	/**
+	 * hide field in *Accordion → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: accordion.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for Accordion Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Collapsible disclosure items with a plus/minus toggle
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type AccordionSliceDefault = prismic.SharedSliceVariation<"default", Simplify<AccordionSliceDefaultPrimary>, never>;
+
+/**
+ * Primary content in *Accordion → Rail → Primary*
+ */
+export interface AccordionSliceRailPrimary {
+	/**
+	 * label field in *Accordion → Rail → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Frequently Asked Questions
+	 * - **API ID Path**: accordion.rail.primary.label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * defaultOpen field in *Accordion → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: accordion.rail.primary.defaultOpen
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	defaultOpen: prismic.BooleanField;
+	
+	/**
+	 * items field in *Accordion → Rail → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: accordion.rail.primary.items[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	items: prismic.GroupField<Simplify<AccordionSliceRailPrimaryItemsItem>>;
+	
+	/**
+	 * hasTopPadding field in *Accordion → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: accordion.rail.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *Accordion → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: accordion.rail.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *Accordion → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: accordion.rail.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *Accordion → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: accordion.rail.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Rail variation for Accordion Slice
+ *
+ * - **API ID**: `rail`
+ * - **Description**: Landing-page grid: the label sits in the narrow left rail beside a flat list of question rows (1px rule under each, circled-arrow toggle) instead of the default's cards. Use on the industry landing pages so the FAQ's left edge matches every other section.
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type AccordionSliceRail = prismic.SharedSliceVariation<"rail", Simplify<AccordionSliceRailPrimary>, never>;
+
+/**
+ * Slice variation for *Accordion*
+ */
+type AccordionSliceVariation = AccordionSliceDefault | AccordionSliceRail
+
+/**
+ * Accordion Shared Slice
+ *
+ * - **API ID**: `accordion`
+ * - **Description**: Accordion
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type AccordionSlice = prismic.SharedSlice<"accordion", AccordionSliceVariation>;
+
+/**
+ * Item in *CaseStudy → Default → Primary → after slideshow (extra slides)*
+ */
+export interface CaseStudySliceDefaultPrimaryAfterImagesItem {
+	/**
+	 * slide field in *CaseStudy → Default → Primary → after slideshow (extra slides)*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: optional — added after the main after image; 2+ slides auto-rotate
+	 * - **API ID Path**: case_study.default.primary.after_images[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+}
+
+/**
+ * Primary content in *CaseStudy → Default → Primary*
+ */
+export interface CaseStudySliceDefaultPrimary {
+	/**
+	 * label field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Case Study
+	 * - **API ID Path**: case_study.default.primary.label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * project name field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Revogen — rendered under the label, uppercased in CSS
+	 * - **API ID Path**: case_study.default.primary.project_name
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	project_name: prismic.KeyTextField;
+	
+	/**
+	 * services field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Brand, Packaging, Digital, Print, Environmental
+	 * - **API ID Path**: case_study.default.primary.services
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	services: prismic.KeyTextField;
+	
+	/**
+	 * heading field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Taking a biologics brand from overlooked to standing out.
+	 * - **API ID Path**: case_study.default.primary.heading
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	heading: prismic.KeyTextField;
+	
+	/**
+	 * after_image field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: case_study.default.primary.after_image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	after_image: prismic.ImageField<never>;
+	
+	/**
+	 * after slideshow (extra slides) field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: case_study.default.primary.after_images[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	after_images: prismic.GroupField<Simplify<CaseStudySliceDefaultPrimaryAfterImagesItem>>;
+	
+	/**
+	 * before_image (optional — adds the before/after switch) field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: case_study.default.primary.before_image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	before_image: prismic.ImageField<never>;
+	
+	/**
+	 * vimeo_id (optional — replaces the after image, hides the switch) field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: case_study.default.primary.vimeo_id
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	vimeo_id: prismic.KeyTextField;
+	
+	/**
+	 * link (optional — makes the whole band clickable) field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: case_study.default.primary.link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * hasTopPadding field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: case_study.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: case_study.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: case_study.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: case_study.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for CaseStudy Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Full-bleed case-study photo band with an overlaid rail label, services list, before/after switch and a Besley lead line
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type CaseStudySliceDefault = prismic.SharedSliceVariation<"default", Simplify<CaseStudySliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *CaseStudy*
+ */
+type CaseStudySliceVariation = CaseStudySliceDefault
+
+/**
+ * CaseStudy Shared Slice
+ *
+ * - **API ID**: `case_study`
+ * - **Description**: CaseStudy
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type CaseStudySlice = prismic.SharedSlice<"case_study", CaseStudySliceVariation>;
+
+/**
+ * Item in *ContentWidthMedia → Default → Primary → images*
+ */
+export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
+	/**
+	 * label field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.images[].label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * image field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.images[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * vimeoId field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.images[].vimeoid
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	vimeoid: prismic.KeyTextField;
+	
+	/**
+	 * loopVideo field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: content_width_image.default.primary.images[].loopvideo
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	loopvideo: prismic.BooleanField;
+	
+	/**
+	 * link field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.images[].link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * aspect field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: free
+	 * - **API ID Path**: content_width_image.default.primary.images[].aspect
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	aspect: prismic.SelectField<"free" | "square" | "4/3" | "3/4" | "16/9" | "9/16", "filled">;
+	
+	/**
+	 * gallery (slideshow) field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Content Relationship
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.images[].gallery
+	 * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+	 */
+	gallery: prismic.ContentRelationshipField<"gallery">;
+}
+
+/**
+ * Primary content in *ContentWidthMedia → Default → Primary*
+ */
+export interface ContentWidthImageSliceDefaultPrimary {
+	/**
+	 * label field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * body field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * width field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: content_width_image.default.primary.isFullContentWidth
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isFullContentWidth: prismic.BooleanField;
+	
+	/**
+	 * background field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: white
+	 * - **API ID Path**: content_width_image.default.primary.background
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	background: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
+	
+	/**
+	 * desktopColumns field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: 1
+	 * - **API ID Path**: content_width_image.default.primary.desktopcolumns
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	desktopcolumns: prismic.SelectField<"1" | "2" | "3", "filled">;
+	
+	/**
+	 * animate in field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: content_width_image.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * top padding field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: content_width_image.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * bottom padding field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: content_width_image.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * margin/gaps between images field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: content_width_image.default.primary.hasGap
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasGap: prismic.BooleanField;
+	
+	/**
+	 * images field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: content_width_image.default.primary.images[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	images: prismic.GroupField<Simplify<ContentWidthImageSliceDefaultPrimaryImagesItem>>;
+	
+	/**
+	 * hide field in *ContentWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: content_width_image.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for ContentWidthMedia Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ContentWidthImageSliceDefault = prismic.SharedSliceVariation<"default", Simplify<ContentWidthImageSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *ContentWidthMedia*
+ */
+type ContentWidthImageSliceVariation = ContentWidthImageSliceDefault
+
+/**
+ * ContentWidthMedia Shared Slice
+ *
+ * - **API ID**: `content_width_image`
+ * - **Description**: ContentWidthImage
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ContentWidthImageSlice = prismic.SharedSlice<"content_width_image", ContentWidthImageSliceVariation>;
+
+/**
+ * Primary content in *CtaBanner → Default → Primary*
+ */
+export interface CtaBannerSliceDefaultPrimary {
+	/**
+	 * heading field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: e.g. Are you ready for your brand to go from being overlooked?
+	 * - **API ID Path**: cta_banner.default.primary.heading
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	heading: prismic.RichTextField;
+	
+	/**
+	 * buttonLabel field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Talk with a founder
+	 * - **API ID Path**: cta_banner.default.primary.buttonLabel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	buttonLabel: prismic.KeyTextField;
+	
+	/**
+	 * buttonLink field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: cta_banner.default.primary.buttonLink
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	buttonLink: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * background field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: paper-red
+	 * - **API ID Path**: cta_banner.default.primary.background
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	background: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
+	
+	/**
+	 * hasTopPadding field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: cta_banner.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: cta_banner.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: cta_banner.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *CtaBanner → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: cta_banner.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for CtaBanner Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Full-bleed band with a large question headline and one CTA button
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type CtaBannerSliceDefault = prismic.SharedSliceVariation<"default", Simplify<CtaBannerSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *CtaBanner*
+ */
+type CtaBannerSliceVariation = CtaBannerSliceDefault
+
+/**
+ * CtaBanner Shared Slice
+ *
+ * - **API ID**: `cta_banner`
+ * - **Description**: CtaBanner
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type CtaBannerSlice = prismic.SharedSlice<"cta_banner", CtaBannerSliceVariation>;
+
+/**
+ * Primary content in *FeaturedProject → Default → Primary*
+ */
+export interface FeaturedProjectSliceDefaultPrimary {
+	/**
+	 * image field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: featured_project.default.primary.image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * title field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Medical Solutions of Texas (stored in natural case, shown uppercase)
+	 * - **API ID Path**: featured_project.default.primary.title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * services field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. brand, digital
+	 * - **API ID Path**: featured_project.default.primary.services
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	services: prismic.KeyTextField;
+	
+	/**
+	 * link field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: featured_project.default.primary.link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * hasTextureBleed field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: featured_project.default.primary.hasTextureBleed
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTextureBleed: prismic.BooleanField;
+	
+	/**
+	 * hasTopPadding field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: featured_project.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: featured_project.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: featured_project.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *FeaturedProject → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: featured_project.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for FeaturedProject Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Offset project image with an overlaid caption, linking to the project
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type FeaturedProjectSliceDefault = prismic.SharedSliceVariation<"default", Simplify<FeaturedProjectSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *FeaturedProject*
+ */
+type FeaturedProjectSliceVariation = FeaturedProjectSliceDefault
+
+/**
+ * FeaturedProject Shared Slice
+ *
+ * - **API ID**: `featured_project`
+ * - **Description**: FeaturedProject
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type FeaturedProjectSlice = prismic.SharedSlice<"featured_project", FeaturedProjectSliceVariation>;
+
+/**
+ * Item in *IndustryHero → Default → Primary → Extra slideshow images*
+ */
+export interface IndustryHeroSliceDefaultPrimaryImagesItem {
+	/**
+	 * image field in *IndustryHero → Default → Primary → Extra slideshow images*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry_hero.default.primary.images[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+}
+
+/**
+ * Item in *IndustryHero → Default → Primary → buttons*
+ */
+export interface IndustryHeroSliceDefaultPrimaryButtonsItem {
+	/**
+	 * link field in *IndustryHero → Default → Primary → buttons*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: e.g. Get Started
+	 * - **API ID Path**: industry_hero.default.primary.buttons[].link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Primary content in *IndustryHero → Default → Primary*
+ */
+export interface IndustryHeroSliceDefaultPrimary {
+	/**
+	 * image field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry_hero.default.primary.image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * Extra slideshow images field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry_hero.default.primary.images[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	images: prismic.GroupField<Simplify<IndustryHeroSliceDefaultPrimaryImagesItem>>;
+	
+	/**
+	 * headline field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: e.g. We'll Take Your MedTech Brand from Screened Out to Short List
+	 * - **API ID Path**: industry_hero.default.primary.headline
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	headline: prismic.RichTextField;
+	
+	/**
+	 * card_label field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Brand-Credibility Framework
+	 * - **API ID Path**: industry_hero.default.primary.card_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	card_label: prismic.KeyTextField;
+	
+	/**
+	 * card_body field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry_hero.default.primary.card_body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	card_body: prismic.RichTextField;
+	
+	/**
+	 * buttons field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: industry_hero.default.primary.buttons[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	buttons: prismic.GroupField<Simplify<IndustryHeroSliceDefaultPrimaryButtonsItem>>;
+	
+	/**
+	 * isAnimated field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: industry_hero.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *IndustryHero → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: industry_hero.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for IndustryHero Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Full-bleed photo hero: Besley headline bottom-left, intro column bottom-right
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type IndustryHeroSliceDefault = prismic.SharedSliceVariation<"default", Simplify<IndustryHeroSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *IndustryHero*
+ */
+type IndustryHeroSliceVariation = IndustryHeroSliceDefault
+
+/**
+ * IndustryHero Shared Slice
+ *
+ * - **API ID**: `industry_hero`
+ * - **Description**: IndustryHero
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type IndustryHeroSlice = prismic.SharedSlice<"industry_hero", IndustryHeroSliceVariation>;
+
+/**
+ * Primary content in *LeadText → Default → Primary*
+ */
+export interface LeadTextSliceDefaultPrimary {
+	/**
+	 * eyebrow field in *LeadText → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. The Challenge
+	 * - **API ID Path**: lead_text.default.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * body field in *LeadText → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: lead_text.default.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * isAnimated field in *LeadText → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: lead_text.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *LeadText → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: lead_text.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for LeadText Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Eyebrow label above a serif lead paragraph
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type LeadTextSliceDefault = prismic.SharedSliceVariation<"default", Simplify<LeadTextSliceDefaultPrimary>, never>;
+
+/**
+ * Primary content in *LeadText → Rail → Primary*
+ */
+export interface LeadTextSliceRailPrimary {
+	/**
+	 * eyebrow field in *LeadText → Rail → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. The Challenge
+	 * - **API ID Path**: lead_text.rail.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * body field in *LeadText → Rail → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: lead_text.rail.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * subBody field in *LeadText → Rail → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Optional smaller paragraph below the lead line
+	 * - **API ID Path**: lead_text.rail.primary.subBody
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	subBody: prismic.RichTextField;
+	
+	/**
+	 * hasTopPadding field in *LeadText → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: lead_text.rail.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *LeadText → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: lead_text.rail.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *LeadText → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: lead_text.rail.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *LeadText → Rail → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: lead_text.rail.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Rail variation for LeadText Slice
+ *
+ * - **API ID**: `rail`
+ * - **Description**: Landing-page grid: the eyebrow sits in the narrow left rail beside a serif lead paragraph (not stacked above it), with an optional smaller sans paragraph below the lead. Use on the industry landing pages so every section shares the same rail + content-column left edge.
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type LeadTextSliceRail = prismic.SharedSliceVariation<"rail", Simplify<LeadTextSliceRailPrimary>, never>;
+
+/**
+ * Slice variation for *LeadText*
+ */
+type LeadTextSliceVariation = LeadTextSliceDefault | LeadTextSliceRail
+
+/**
+ * LeadText Shared Slice
+ *
+ * - **API ID**: `lead_text`
+ * - **Description**: LeadText
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type LeadTextSlice = prismic.SharedSlice<"lead_text", LeadTextSliceVariation>;
+
+/**
+ * Item in *LogoGrid → Default → Primary → logos*
+ */
+export interface LogoGridSliceDefaultPrimaryLogosItem {
+	/**
+	 * logo field in *LogoGrid → Default → Primary → logos*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_grid.default.primary.logos[].logo
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	logo: prismic.ImageField<never>;
+	
+	/**
+	 * logo (negative) field in *LogoGrid → Default → Primary → logos*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: optional — white/knockout version, used when this brand's background is dark
+	 * - **API ID Path**: logo_grid.default.primary.logos[].logo_negative
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	logo_negative: prismic.ImageField<never>;
+	
+	/**
+	 * logo width (px) field in *LogoGrid → Default → Primary → logos*
+	 *
+	 * - **Field Type**: Number
+	 * - **Placeholder**: optional — how wide this logo draws, 40 to 300. Empty means the default (220 for SVG, the file's own size for PNG)
+	 * - **API ID Path**: logo_grid.default.primary.logos[].logo_width
+	 * - **Documentation**: https://prismic.io/docs/fields/number
+	 */
+	logo_width: prismic.NumberField;
+	
+	/**
+	 * rollover background field in *LogoGrid → Default → Primary → logos*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: optional — fills the whole band while this logo is hovered; its 'mobile' crop is used on phones only once the portrait field below is cleared
+	 * - **API ID Path**: logo_grid.default.primary.logos[].active_background
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	active_background: prismic.ImageField<"mobile">;
+	
+	/**
+	 * rollover background (portrait) — on the way out field in *LogoGrid → Default → Primary → logos*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: used on phones whenever it is filled. Prismic auto-fills the 'mobile' crop above with a top-left crop that usually loses the subject, so this wins until you clear it — crop 'mobile' first, then empty this field
+	 * - **API ID Path**: logo_grid.default.primary.logos[].active_background_mobile
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	active_background_mobile: prismic.ImageField<never>;
+	
+	/**
+	 * name field in *LogoGrid → Default → Primary → logos*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: brand name — used as the logo's alt text
+	 * - **API ID Path**: logo_grid.default.primary.logos[].name
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	name: prismic.KeyTextField;
+	
+	/**
+	 * link field in *LogoGrid → Default → Primary → logos*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: optional — links this logo to its project
+	 * - **API ID Path**: logo_grid.default.primary.logos[].link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
+ * Primary content in *LogoGrid → Default → Primary*
+ */
+export interface LogoGridSliceDefaultPrimary {
+	/**
+	 * label field in *LogoGrid → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Clients: Join these brands in building trust
+	 * - **API ID Path**: logo_grid.default.primary.label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * link field in *LogoGrid → Default → Primary*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: e.g. Our Work → /portfolio
+	 * - **API ID Path**: logo_grid.default.primary.link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * logos field in *LogoGrid → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: logo_grid.default.primary.logos[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	logos: prismic.GroupField<Simplify<LogoGridSliceDefaultPrimaryLogosItem>>;
+	
+	/**
+	 * hasTopPadding field in *LogoGrid → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: logo_grid.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *LogoGrid → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: logo_grid.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *LogoGrid → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: logo_grid.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *LogoGrid → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: logo_grid.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for LogoGrid Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Rail label + CTA beside a static client-logo grid on the paper band
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type LogoGridSliceDefault = prismic.SharedSliceVariation<"default", Simplify<LogoGridSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *LogoGrid*
+ */
+type LogoGridSliceVariation = LogoGridSliceDefault
+
+/**
+ * LogoGrid Shared Slice
+ *
+ * - **API ID**: `logo_grid`
+ * - **Description**: LogoGrid
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type LogoGridSlice = prismic.SharedSlice<"logo_grid", LogoGridSliceVariation>;
+
+/**
+ * Primary content in *RichText → Default → Primary*
+ */
+export interface RichTextSliceDefaultPrimary {
+	/**
+	 * Content field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Lorem ipsum...
+	 * - **API ID Path**: rich_text.default.primary.content
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	content: prismic.RichTextField;
+	
+	/**
+	 * textColor field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: dark
+	 * - **API ID Path**: rich_text.default.primary.textColor
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	textColor: prismic.SelectField<"dark" | "white" | "red", "filled">;
+	
+	/**
+	 * backgroundColor field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: white
+	 * - **API ID Path**: rich_text.default.primary.backgroundcolor
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	backgroundcolor: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
+	
+	/**
+	 * width field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: full
+	 * - **API ID Path**: rich_text.default.primary.width
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	width: prismic.SelectField<"full" | "4/5" | "3/5", "filled">;
+	
+	/**
+	 * float field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: rich_text.default.primary.float
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	float: prismic.SelectField<"center" | "left" | "right">;
+	
+	/**
+	 * top padding field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: rich_text.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * bottom padding field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: rich_text.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * animate in field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: rich_text.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *RichText → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: rich_text.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for RichText Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: RichText
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type RichTextSliceDefault = prismic.SharedSliceVariation<"default", Simplify<RichTextSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *RichText*
+ */
+type RichTextSliceVariation = RichTextSliceDefault
+
+/**
+ * RichText Shared Slice
+ *
+ * - **API ID**: `rich_text`
+ * - **Description**: RichText
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type RichTextSlice = prismic.SharedSlice<"rich_text", RichTextSliceVariation>;
+
+/**
+ * Item in *ScreenWidthColumns → Default → Primary → media*
+ */
+export interface ScreenWidthColumnsSliceDefaultPrimaryMediaItem {
+	/**
+	 * label field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * image field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * vimeoId field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].vimeoId
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	vimeoId: prismic.KeyTextField;
+	
+	/**
+	 * loopVideo field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].loopvideo
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	loopvideo: prismic.BooleanField;
+	
+	/**
+	 * link field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	
+	/**
+	 * aspect field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: free
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].aspect
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	aspect: prismic.SelectField<"free" | "square" | "4/3" | "3/4" | "16/9" | "9/16", "filled">;
+}
+
+/**
+ * Primary content in *ScreenWidthColumns → Default → Primary*
+ */
+export interface ScreenWidthColumnsSliceDefaultPrimary {
+	/**
+	 * background field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: white
+	 * - **API ID Path**: screen_width_columns.default.primary.background
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	background: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
+	
+	/**
+	 * desktopColumns field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: 1
+	 * - **API ID Path**: screen_width_columns.default.primary.desktopcolumns
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	desktopcolumns: prismic.SelectField<"1" | "2" | "3", "filled">;
+	
+	/**
+	 * top padding field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: screen_width_columns.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * bottom padding field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: screen_width_columns.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * animate in field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: screen_width_columns.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * margin/gaps between images field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: screen_width_columns.default.primary.hasGap
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasGap: prismic.BooleanField;
+	
+	/**
+	 * media field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: screen_width_columns.default.primary.media[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	media: prismic.GroupField<Simplify<ScreenWidthColumnsSliceDefaultPrimaryMediaItem>>;
+	
+	/**
+	 * hide field in *ScreenWidthColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: screen_width_columns.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for ScreenWidthColumns Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ScreenWidthColumnsSliceDefault = prismic.SharedSliceVariation<"default", Simplify<ScreenWidthColumnsSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *ScreenWidthColumns*
+ */
+type ScreenWidthColumnsSliceVariation = ScreenWidthColumnsSliceDefault
+
+/**
+ * ScreenWidthColumns Shared Slice
+ *
+ * - **API ID**: `screen_width_columns`
+ * - **Description**: ScreenWidthColumns
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ScreenWidthColumnsSlice = prismic.SharedSlice<"screen_width_columns", ScreenWidthColumnsSliceVariation>;
+
+/**
+ * Primary content in *ScreenWidthMedia → Default → Primary*
+ */
+export interface ScreenWidthImageSliceDefaultPrimary {
+	/**
+	 * image field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: screen_width_image.default.primary.image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * vimeoId field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: screen_width_image.default.primary.vimeoid
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	vimeoid: prismic.KeyTextField;
+	
+	/**
+	 * loopVideo field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: screen_width_image.default.primary.loopvideo
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	loopvideo: prismic.BooleanField;
+	
+	/**
+	 * top padding field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: screen_width_image.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * bottom padding field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: screen_width_image.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * background field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: white
+	 * - **API ID Path**: screen_width_image.default.primary.background
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	background: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
+	
+	/**
+	 * hide field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: screen_width_image.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+	
+	/**
+	 * aspect field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: free
+	 * - **API ID Path**: screen_width_image.default.primary.aspect
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	aspect: prismic.SelectField<"free" | "square" | "4/3" | "3/4" | "16/9" | "9/16", "filled">;
+}
+
+/**
+ * Default variation for ScreenWidthMedia Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ScreenWidthImageSliceDefault = prismic.SharedSliceVariation<"default", Simplify<ScreenWidthImageSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *ScreenWidthMedia*
+ */
+type ScreenWidthImageSliceVariation = ScreenWidthImageSliceDefault
+
+/**
+ * ScreenWidthMedia Shared Slice
+ *
+ * - **API ID**: `screen_width_image`
+ * - **Description**: ScreenWidthImage
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ScreenWidthImageSlice = prismic.SharedSlice<"screen_width_image", ScreenWidthImageSliceVariation>;
+
+/**
+ * Item in *Slideshow → Default → Primary → images*
+ */
+export interface SlideshowSliceDefaultPrimaryImagesItem {
+	/**
+	 * image field in *Slideshow → Default → Primary → images*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: slideshow.default.primary.images[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+}
+
+/**
+ * Primary content in *Slideshow → Default → Primary*
+ */
+export interface SlideshowSliceDefaultPrimary {
+	/**
+	 * label field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: slideshow.default.primary.label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * body field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: slideshow.default.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * images field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: slideshow.default.primary.images[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	images: prismic.GroupField<Simplify<SlideshowSliceDefaultPrimaryImagesItem>>;
+	
+	/**
+	 * backgroundColor field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: white
+	 * - **API ID Path**: slideshow.default.primary.backgroundcolor
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	backgroundcolor: prismic.SelectField<"white" | "gray" | "red" | "paper" | "paper-red", "filled">;
+	
+	/**
+	 * width field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: slideshow.default.primary.isFullContentWidth
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isFullContentWidth: prismic.BooleanField;
+	
+	/**
+	 * hide field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: slideshow.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+	
+	/**
+	 * animate in field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: slideshow.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hasNavDots field in *Slideshow → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: slideshow.default.primary.hasNavDots
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasNavDots: prismic.BooleanField;
+}
+
+/**
+ * Default variation for Slideshow Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type SlideshowSliceDefault = prismic.SharedSliceVariation<"default", Simplify<SlideshowSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *Slideshow*
+ */
+type SlideshowSliceVariation = SlideshowSliceDefault
+
+/**
+ * Slideshow Shared Slice
+ *
+ * - **API ID**: `slideshow`
+ * - **Description**: Slideshow
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type SlideshowSlice = prismic.SharedSlice<"slideshow", SlideshowSliceVariation>;
+
+/**
+ * Primary content in *Testimonial → Default → Primary*
+ */
+export interface TestimonialSliceDefaultPrimary {
+	/**
+	 * label field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. What clients are saying:
+	 * - **API ID Path**: testimonial.default.primary.label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+	
+	/**
+	 * quote field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Quote text WITHOUT the “ ” marks — the design draws them
+	 * - **API ID Path**: testimonial.default.primary.quote
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	quote: prismic.KeyTextField;
+	
+	/**
+	 * name field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Albert Turgon
+	 * - **API ID Path**: testimonial.default.primary.name
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	name: prismic.KeyTextField;
+	
+	/**
+	 * role field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. COO of MSOT (Medical Solutions of Texas)
+	 * - **API ID Path**: testimonial.default.primary.role
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	role: prismic.KeyTextField;
+	
+	/**
+	 * avatar field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: testimonial.default.primary.avatar
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	avatar: prismic.ImageField<never>;
+	
+	/**
+	 * hasTopPadding field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: testimonial.default.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: testimonial.default.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: testimonial.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *Testimonial → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: testimonial.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for Testimonial Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Pull quote on the paper band + avatar/name/role credit
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TestimonialSliceDefault = prismic.SharedSliceVariation<"default", Simplify<TestimonialSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *Testimonial*
+ */
+type TestimonialSliceVariation = TestimonialSliceDefault
+
+/**
+ * Testimonial Shared Slice
+ *
+ * - **API ID**: `testimonial`
+ * - **Description**: Testimonial
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TestimonialSlice = prismic.SharedSlice<"testimonial", TestimonialSliceVariation>;
+
+/**
+ * Item in *TextColumns → Default → Primary → columns*
+ */
+export interface TextColumnsSliceDefaultPrimaryColumnsItem {
+	/**
+	 * title field in *TextColumns → Default → Primary → columns*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.default.primary.columns[].title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * body field in *TextColumns → Default → Primary → columns*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.default.primary.columns[].body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+}
+
+/**
+ * Item in *TextColumns → Service List → Primary → columns*
+ */
+export interface TextColumnsSliceServiceListPrimaryColumnsItem {
+	/**
+	 * title field in *TextColumns → Service List → Primary → columns*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.serviceList.primary.columns[].title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * body field in *TextColumns → Service List → Primary → columns*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.serviceList.primary.columns[].body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+}
+
+/**
+ * Item in *TextColumns → Icon Columns → Primary → columns*
+ */
+export interface TextColumnsSliceIconColumnsPrimaryColumnsItem {
+	/**
+	 * title field in *TextColumns → Icon Columns → Primary → columns*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: bold first line — e.g. The Diagnosis:
+	 * - **API ID Path**: text_columns.iconColumns.primary.columns[].title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * subtitle field in *TextColumns → Icon Columns → Primary → columns*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: light second line — e.g. Friction Audit
+	 * - **API ID Path**: text_columns.iconColumns.primary.columns[].subtitle
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	subtitle: prismic.KeyTextField;
+	
+	/**
+	 * body field in *TextColumns → Icon Columns → Primary → columns*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.iconColumns.primary.columns[].body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+}
+
+/**
+ * Primary content in *TextColumns → Default → Primary*
+ */
+export interface TextColumnsSliceDefaultPrimary {
+	/**
+	 * eyebrow field in *TextColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Our Solution
+	 * - **API ID Path**: text_columns.default.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * hasTopRule field in *TextColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.default.primary.hasTopRule
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopRule: prismic.BooleanField;
+	
+	/**
+	 * desktopColumns field in *TextColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: 3
+	 * - **API ID Path**: text_columns.default.primary.desktopColumns
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	desktopColumns: prismic.SelectField<"2" | "3" | "4", "filled">;
+	
+	/**
+	 * columns field in *TextColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.default.primary.columns[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	columns: prismic.GroupField<Simplify<TextColumnsSliceDefaultPrimaryColumnsItem>>;
+	
+	/**
+	 * isAnimated field in *TextColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.default.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *TextColumns → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: text_columns.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for TextColumns Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Eyebrow + optional rule + repeatable text columns
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TextColumnsSliceDefault = prismic.SharedSliceVariation<"default", Simplify<TextColumnsSliceDefaultPrimary>, never>;
+
+/**
+ * Primary content in *TextColumns → Service List → Primary*
+ */
+export interface TextColumnsSliceServiceListPrimary {
+	/**
+	 * eyebrow field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Our Solution
+	 * - **API ID Path**: text_columns.serviceList.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * hasTopRule field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.serviceList.primary.hasTopRule
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopRule: prismic.BooleanField;
+	
+	/**
+	 * desktopColumns field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: 3
+	 * - **API ID Path**: text_columns.serviceList.primary.desktopColumns
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	desktopColumns: prismic.SelectField<"2" | "3" | "4", "filled">;
+	
+	/**
+	 * columns field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.serviceList.primary.columns[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	columns: prismic.GroupField<Simplify<TextColumnsSliceServiceListPrimaryColumnsItem>>;
+	
+	/**
+	 * hasTopPadding field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.serviceList.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.serviceList.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.serviceList.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *TextColumns → Service List → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: text_columns.serviceList.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Service List variation for TextColumns Slice
+ *
+ * - **API ID**: `serviceList`
+ * - **Description**: Landing-page grid: ruled category lists. Each column's title is a red category row and every paragraph of its body becomes its own ruled row (14px uppercase). Leave the eyebrow empty when a LeadText above already labels the section.
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TextColumnsSliceServiceList = prismic.SharedSliceVariation<"serviceList", Simplify<TextColumnsSliceServiceListPrimary>, never>;
+
+/**
+ * Primary content in *TextColumns → Icon Columns → Primary*
+ */
+export interface TextColumnsSliceIconColumnsPrimary {
+	/**
+	 * eyebrow field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Our Solution
+	 * - **API ID Path**: text_columns.iconColumns.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * hasTopRule field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.iconColumns.primary.hasTopRule
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopRule: prismic.BooleanField;
+	
+	/**
+	 * desktopColumns field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: 3
+	 * - **API ID Path**: text_columns.iconColumns.primary.desktopColumns
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	desktopColumns: prismic.SelectField<"2" | "3" | "4", "filled">;
+	
+	/**
+	 * columns field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_columns.iconColumns.primary.columns[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	columns: prismic.GroupField<Simplify<TextColumnsSliceIconColumnsPrimaryColumnsItem>>;
+	
+	/**
+	 * hasTopPadding field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.iconColumns.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.iconColumns.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: text_columns.iconColumns.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *TextColumns → Icon Columns → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: text_columns.iconColumns.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Icon Columns variation for TextColumns Slice
+ *
+ * - **API ID**: `iconColumns`
+ * - **Description**: Landing-page process rail: numbered steps (the number comes from the column's position — there is no field for it) with a two-line red label + small body, under an optional red rule. Leave the eyebrow empty when a LeadText above already labels the section.
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TextColumnsSliceIconColumns = prismic.SharedSliceVariation<"iconColumns", Simplify<TextColumnsSliceIconColumnsPrimary>, never>;
+
+/**
+ * Slice variation for *TextColumns*
+ */
+type TextColumnsSliceVariation = TextColumnsSliceDefault | TextColumnsSliceServiceList | TextColumnsSliceIconColumns
+
+/**
+ * TextColumns Shared Slice
+ *
+ * - **API ID**: `text_columns`
+ * - **Description**: TextColumns
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type TextColumnsSlice = prismic.SharedSlice<"text_columns", TextColumnsSliceVariation>;
+
+/**
+ * Primary content in *ValueBlock → Default → Primary*
+ */
+export interface ValueBlockSliceDefaultPrimary {
+	/**
+	 * eyebrow field in *ValueBlock → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: value_block.default.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * title field in *ValueBlock → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: value_block.default.primary.title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * body field in *ValueBlock → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: value_block.default.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * drawn Image field in *ValueBlock → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: value_block.default.primary.drawn_image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	drawn_image: prismic.ImageField<never>;
+	
+	/**
+	 * hide field in *ValueBlock → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: value_block.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for ValueBlock Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Default
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ValueBlockSliceDefault = prismic.SharedSliceVariation<"default", Simplify<ValueBlockSliceDefaultPrimary>, never>;
+
+/**
+ * Primary content in *ValueBlock → Expandable → Primary*
+ */
+export interface ValueBlockSliceExpandablePrimary {
+	/**
+	 * displayTitle field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. On Your Behalf
+	 * - **API ID Path**: value_block.expandable.primary.displayTitle
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	displayTitle: prismic.KeyTextField;
+	
+	/**
+	 * eyebrow field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. About Us
+	 * - **API ID Path**: value_block.expandable.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * lede field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Serif lead paragraph, always visible
+	 * - **API ID Path**: value_block.expandable.primary.lede
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	lede: prismic.RichTextField;
+	
+	/**
+	 * body field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Longer copy, hidden until Read More is pressed
+	 * - **API ID Path**: value_block.expandable.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * readMoreLabel field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Read More +
+	 * - **API ID Path**: value_block.expandable.primary.readMoreLabel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	readMoreLabel: prismic.KeyTextField;
+	
+	/**
+	 * hasTopPadding field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: value_block.expandable.primary.hasTopPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasTopPadding: prismic.BooleanField;
+	
+	/**
+	 * hasBottomPadding field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: value_block.expandable.primary.hasBottomPadding
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hasBottomPadding: prismic.BooleanField;
+	
+	/**
+	 * isAnimated field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: true
+	 * - **API ID Path**: value_block.expandable.primary.isAnimated
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	isAnimated: prismic.BooleanField;
+	
+	/**
+	 * hide field in *ValueBlock → Expandable → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: value_block.expandable.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Expandable variation for ValueBlock Slice
+ *
+ * - **API ID**: `expandable`
+ * - **Description**: Display title over a full-width rule, then the landing-page rail grid: the eyebrow sits in the narrow left rail beside a serif lede and a longer sans body that stays collapsed behind a Read More toggle.
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ValueBlockSliceExpandable = prismic.SharedSliceVariation<"expandable", Simplify<ValueBlockSliceExpandablePrimary>, never>;
+
+/**
+ * Slice variation for *ValueBlock*
+ */
+type ValueBlockSliceVariation = ValueBlockSliceDefault | ValueBlockSliceExpandable
+
+/**
+ * ValueBlock Shared Slice
+ *
+ * - **API ID**: `value_block`
+ * - **Description**: ValueBlock
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type ValueBlockSlice = prismic.SharedSlice<"value_block", ValueBlockSliceVariation>;
+
+declare module "@prismicio/client" {
+	interface CreateClient {
+		(repositoryNameOrEndpoint: string, options?: prismic.ClientConfig): prismic.Client<AllDocumentTypes>;
+	}
+	
+	interface CreateWriteClient {
+		(repositoryNameOrEndpoint: string, options: prismic.WriteClientConfig): prismic.WriteClient<AllDocumentTypes>;
+	}
+	
+	interface CreateMigration {
+		(): prismic.Migration<AllDocumentTypes>;
+	}
+	
+	namespace Content {
+		export type {
+			FormRepliesDocument,
+			FormRepliesDocumentData,
+			FormRepliesDocumentDataRepliesItem,
+			GalleryDocument,
+			GalleryDocumentData,
+			GalleryDocumentDataImagesItem,
+			IndustryDocument,
+			IndustryDocumentData,
+			IndustryDocumentDataSlicesSlice,
+			LogoSoupDocument,
+			LogoSoupDocumentData,
+			LogoSoupDocumentDataBrandsItem,
+			OpeningAnimationDocument,
+			OpeningAnimationDocumentData,
+			OpeningAnimationDocumentDataSlidesItem,
+			PageDocument,
+			PageDocumentData,
+			PageDocumentDataSlicesSlice,
+			ProjectDocument,
+			ProjectDocumentData,
+			ProjectDocumentDataSlicesSlice,
+			RouteMetaDocument,
+			RouteMetaDocumentData,
+			ShowcaseDocument,
+			ShowcaseDocumentData,
+			ShowcaseDocumentDataProjectsItem,
+			ShowcaseDocumentDataSlicesSlice,
+			ShowcaseDocumentDataSlices1Slice,
+			TwentyForTwentyDocument,
+			TwentyForTwentyDocumentData,
+			AllDocumentTypes,
+			AccordionSlice,
+			AccordionSliceDefaultPrimaryItemsItem,
+			AccordionSliceDefaultPrimary,
+			AccordionSliceRailPrimaryItemsItem,
+			AccordionSliceRailPrimary,
+			AccordionSliceVariation,
+			AccordionSliceDefault,
+			AccordionSliceRail,
+			CaseStudySlice,
+			CaseStudySliceDefaultPrimaryAfterImagesItem,
+			CaseStudySliceDefaultPrimary,
+			CaseStudySliceVariation,
+			CaseStudySliceDefault,
+			ContentWidthImageSlice,
+			ContentWidthImageSliceDefaultPrimaryImagesItem,
+			ContentWidthImageSliceDefaultPrimary,
+			ContentWidthImageSliceVariation,
+			ContentWidthImageSliceDefault,
+			CtaBannerSlice,
+			CtaBannerSliceDefaultPrimary,
+			CtaBannerSliceVariation,
+			CtaBannerSliceDefault,
+			FeaturedProjectSlice,
+			FeaturedProjectSliceDefaultPrimary,
+			FeaturedProjectSliceVariation,
+			FeaturedProjectSliceDefault,
+			IndustryHeroSlice,
+			IndustryHeroSliceDefaultPrimaryImagesItem,
+			IndustryHeroSliceDefaultPrimaryButtonsItem,
+			IndustryHeroSliceDefaultPrimary,
+			IndustryHeroSliceVariation,
+			IndustryHeroSliceDefault,
+			LeadTextSlice,
+			LeadTextSliceDefaultPrimary,
+			LeadTextSliceRailPrimary,
+			LeadTextSliceVariation,
+			LeadTextSliceDefault,
+			LeadTextSliceRail,
+			LogoGridSlice,
+			LogoGridSliceDefaultPrimaryLogosItem,
+			LogoGridSliceDefaultPrimary,
+			LogoGridSliceVariation,
+			LogoGridSliceDefault,
+			RichTextSlice,
+			RichTextSliceDefaultPrimary,
+			RichTextSliceVariation,
+			RichTextSliceDefault,
+			ScreenWidthColumnsSlice,
+			ScreenWidthColumnsSliceDefaultPrimaryMediaItem,
+			ScreenWidthColumnsSliceDefaultPrimary,
+			ScreenWidthColumnsSliceVariation,
+			ScreenWidthColumnsSliceDefault,
+			ScreenWidthImageSlice,
+			ScreenWidthImageSliceDefaultPrimary,
+			ScreenWidthImageSliceVariation,
+			ScreenWidthImageSliceDefault,
+			SlideshowSlice,
+			SlideshowSliceDefaultPrimaryImagesItem,
+			SlideshowSliceDefaultPrimary,
+			SlideshowSliceVariation,
+			SlideshowSliceDefault,
+			TestimonialSlice,
+			TestimonialSliceDefaultPrimary,
+			TestimonialSliceVariation,
+			TestimonialSliceDefault,
+			TextColumnsSlice,
+			TextColumnsSliceDefaultPrimaryColumnsItem,
+			TextColumnsSliceDefaultPrimary,
+			TextColumnsSliceServiceListPrimaryColumnsItem,
+			TextColumnsSliceServiceListPrimary,
+			TextColumnsSliceIconColumnsPrimaryColumnsItem,
+			TextColumnsSliceIconColumnsPrimary,
+			TextColumnsSliceVariation,
+			TextColumnsSliceDefault,
+			TextColumnsSliceServiceList,
+			TextColumnsSliceIconColumns,
+			ValueBlockSlice,
+			ValueBlockSliceDefaultPrimary,
+			ValueBlockSliceExpandablePrimary,
+			ValueBlockSliceVariation,
+			ValueBlockSliceDefault,
+			ValueBlockSliceExpandable
+		}
+	}
+}

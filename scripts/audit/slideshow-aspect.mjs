@@ -18,7 +18,7 @@
 //
 // Read-only: queries the published API and writes nothing.
 import * as prismic from "@prismicio/client";
-import config from "../../slicemachine.config.json" with { type: "json" };
+import config from "../../prismic.config.json" with { type: "json" };
 
 const arg = (flag, fallback) => {
   const i = process.argv.indexOf(flag);

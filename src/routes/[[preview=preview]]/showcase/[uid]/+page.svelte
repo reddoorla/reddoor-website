@@ -9,7 +9,7 @@
   import { PrismicImage } from "@prismicio/svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import { isFilled, asLink } from "@prismicio/client";
-  import type { ProjectDocument } from "../../../../prismicio-types";
+  import type { ProjectDocument } from "../../../../../prismicio-types";
   import type { PageData } from "./$types";
   import { mediumString } from "$lib/utils/projectServices";
   import { imgixSrc, imgixSrcset } from "$lib/utils/imgix";

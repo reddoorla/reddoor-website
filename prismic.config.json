@@ -1,0 +1,5 @@
+{
+  "repositoryName": "reddoor-la",
+  "libraries": ["./src/lib/slices"],
+  "routes": []
+}
