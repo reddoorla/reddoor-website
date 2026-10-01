@@ -84,7 +84,7 @@ function buildIntro(intro) {
 }
 
 const config = JSON.parse(
-  await readFile(new URL("../../slicemachine.config.json", import.meta.url), "utf8"),
+  await readFile(new URL("../../prismic.config.json", import.meta.url), "utf8"),
 );
 const { entries } = JSON.parse(await readFile(new URL("./data.json", import.meta.url), "utf8"));
 

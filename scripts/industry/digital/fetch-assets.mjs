@@ -82,7 +82,7 @@ async function stageLogo(field, out) {
 
 try {
   const config = JSON.parse(
-    await readFile(path.resolve(HERE, "../../../slicemachine.config.json"), "utf8"),
+    await readFile(path.resolve(HERE, "../../../prismic.config.json"), "utf8"),
   );
   const client = prismic.createClient(config.repositoryName);
   await mkdir(ASSETS, { recursive: true });

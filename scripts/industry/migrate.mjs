@@ -397,9 +397,7 @@ async function buildSlices(d, stage, projects) {
 
 // ─── run ─────────────────────────────────────────────────────────────────────
 
-const config = JSON.parse(
-  await readFile(path.resolve(HERE, "../../slicemachine.config.json"), "utf8"),
-);
+const config = JSON.parse(await readFile(path.resolve(HERE, "../../prismic.config.json"), "utf8"));
 let d;
 try {
   d = JSON.parse(await readFile(DATA_FILE, "utf8"));
@@ -538,7 +536,9 @@ try {
   // ?access_token=.
   if (e.response) console.error(`  ${redact(JSON.stringify(e.response, null, 2)).slice(0, 4000)}`);
   console.error("  If this mentions unknown slices or fields, the models are not pushed yet:");
-  console.error("  run `pnpm slicemachine`, log in, push the models, then re-run.");
+  console.error(
+    "  models reach Prismic through the prismic-models workflow on merge (or the Type Builder); deliver them, then re-run.",
+  );
   process.exitCode = 1;
   process.exit();
 }
