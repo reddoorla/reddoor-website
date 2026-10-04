@@ -202,7 +202,7 @@ interface IndustryDocumentData {
 	 * Modal Title field in *Industry*
 	 *
 	 * - **Field Type**: Text
-	 * - **Placeholder**: Let’s Get Started! (fallback)
+	 * - **Placeholder**: Let’s Get Started! (fallback when blank)
 	 * - **API ID Path**: industry.inquiry_title
 	 * - **Tab**: Inquiry
 	 * - **Documentation**: https://prismic.io/docs/fields/text
