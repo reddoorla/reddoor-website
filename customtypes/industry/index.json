@@ -69,7 +69,7 @@
         "type": "Text",
         "config": {
           "label": "Modal Title",
-          "placeholder": "Let’s Get Started! (default when blank)"
+          "placeholder": "Let’s Get Started! (fallback)"
         }
       },
       "inquiry_prompt": {
