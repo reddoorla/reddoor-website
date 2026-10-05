@@ -1544,3 +1544,27 @@ A second full run after those fixes went 202 passed, 1 failed. The failure was o
 The third full run went 204 passed and 1 failed. The failure was schedule.spec's "has no accessibility violations, picker open": axe reported every header label as `#818181` on white, 3.89:1. That colour is black blended halfway into white. The test already waited for the `<main>` fade. But clicking a slot scrolls the page, the scroll swaps the absolute header for the fixed one, and both mount with `transition:fly`. Svelte 5 runs that through `element.animate()`, which no reduced-motion setting reaches. I sampled `document.getAnimations()` every 50ms after the click and saw both header elements animating for most of 1.5s. That is the same element axe flagged.
 
 The class here is every axe scan in the gate, not this one test. `tests/smoke/settle-animations.ts` polls until no finite animation is running, and it runs before each of the nine axe call sites in the gate, across eight files and 15 `@smoke` tests. The `@nightly` "axe finds no violations mid-navigation" scan is left alone, because it scans mid-crossfade on purpose. The motion itself is reddoor-website#258: under reduced motion the header fly and the page fade should not play at all.
+
+## 2026-10-05 — Black is written in oklab so `black/<alpha>` stays measurable by axe (#260)
+
+Renovate's #208 had been red since 09-21 on the a11y step: `contrast-unmeasured on a11y fixtures (1 element(s) on a colour axe cannot parse (oklab(0 none none / 0.1)))`. The obvious suspect was the CSS toolchain, and it was wrong. The built CSS carries the same nine `oklab(0% none none/.N)` values on `staging` and on #208's head, with tailwindcss 4.3.3 and lightningcss 1.33.0 on both. What #208 changes is the instrument. It bumps `@reddoorla/maintenance` 0.95.1 → 0.103.0, and the `contrast-unmeasured` rule first shipped in 0.102.0. The colour has been in production all along, and contrast on that element was never measured.
+
+The colours come from Tailwind v4's alpha modifier. It builds `black/10` as `color-mix(in oklab, #000 10%, transparent)`, and lightningcss folds the mix to a literal. For black it writes the a/b channels as `none`. This was probed directly against lightningcss 1.33.0:
+
+- `#000`, `rgb(0 0 0)` and `oklch(0 0 0)` all fold to `oklab(0% none none/.1)`;
+- `oklab(0 0 0)` folds to `oklab(0% 0 0/.1)`;
+- `#fff` folds to `oklab(100% 0 5.96e-8/.1)`, so white was never affected.
+
+Chrome renders `none` as 0, but axe-core 4.13 cannot parse it. The one element the gate saw is IndustryHero's ghost CTA, "Get Started": white 14px text on `bg-black/10` over the hero photo. That is real text, so marking the element decorative was never an option.
+
+The fix is `colors.black: "oklab(0 0 0)"` in `tailwind.config.js`. Every black utility now compiles to `oklab(0% 0 0[/.N])`, and the build has no `none` left in it.
+
+Measured before and after:
+
+- The 0.103.0 gate on #208's own head went from the CI line above, reproduced locally, to `0 violations across 2 routes (+1 hydration smoke)`.
+- axe's verdict on the CTA moved from `colorParse` to `bgGradient`. `bgGradient` is the honest answer for text on a scrim over a photo, and the audit does not report it.
+- The CTA's element screenshot and full-page screenshots of `/dev/a11y-fixtures`, `/dev/animate-in` and `/` are byte-identical by sha256.
+
+The solid utilities (`bg-black`, `text-black`, …) changed notation from `#000` to `oklab(0% 0 0)`. Tailwind 4.3.3 already targets Chrome 111, Safari 16.4 and Firefox 128, all of which support oklab, and the alpha utilities were already oklab-only. So the change sets no new browser floor.
+
+Honest accounting: #260's own CI runs maintenance 0.95.1, which has no `contrast-unmeasured` rule, so its green proves nothing about this fix. The proof is the local 0.103.0 run and #208 going green once it carries this change.
