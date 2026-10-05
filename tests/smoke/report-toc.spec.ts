@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The contents list, against the all-pass fixture. Every check in that fixture
 // passes, but its analyze stage carries two recommendations, so the page
@@ -221,6 +222,7 @@ test.describe("report table of contents", () => {
     async ({ page }) => {
       await ready(page, 1280, 800);
       await expect(page.getByRole("navigation", { name: "In this report" })).toHaveCount(1);
+      await settleAnimations(page);
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"])
         .analyze();

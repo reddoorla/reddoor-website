@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The internal page that records a call's outcome. Replaces
 // go.reddoorla.com/update.
@@ -187,6 +188,7 @@ test("has no accessibility violations", { tag: "@smoke" }, async ({ page }) => {
     )
     .toBe(1);
 
+  await settleAnimations(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();

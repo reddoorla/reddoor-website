@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The booking step. Reached automatically on finishing the questionnaire (that
 // hand-off is covered in inquiry-modal.spec.ts) and reachable cold, which is
@@ -521,6 +522,7 @@ test.describe("in Los Angeles", () => {
       )
       .toBe(1);
 
+    await settleAnimations(page);
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
@@ -557,6 +559,7 @@ test.describe("in Los Angeles", () => {
         )
         .toBe(1);
 
+      await settleAnimations(page);
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();

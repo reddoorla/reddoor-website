@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 import { a11yRoutes } from "@reddoorla/maintenance/configs/playwright-a11y";
+import { settleAnimations } from "../smoke/settle-animations";
 
 // The `/dev/*` routes exist specifically as stable axe-core targets (the
 // /dev/a11y-fixtures page self-describes as one). `@axe-core/playwright` was
@@ -23,6 +24,7 @@ test.describe("axe-core accessibility (dev fixtures)", { tag: "@smoke" }, () => 
         `${route.path} is not present on this site (shared a11yRoutes config)`,
       );
 
+      await settleAnimations(page);
       const { violations } = await new AxeBuilder({ page }).analyze();
 
       expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length} node(s))`)).toEqual([]);

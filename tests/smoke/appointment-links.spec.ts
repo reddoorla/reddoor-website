@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The three pages that replace the CRM's own hosted links: reschedule, cancel,
 // and add-to-calendar. All reached from an email carrying an appointment id.
@@ -256,6 +257,7 @@ test.describe("across all three", { tag: "@smoke" }, () => {
         )
         .toBe(1);
 
+      await settleAnimations(page);
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();

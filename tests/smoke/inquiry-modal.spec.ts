@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The two-form inquiry flow that industry landing-page CTAs open instead of
 // navigating to /contact (MED-16 follow-up): an email-capture frame, then the
@@ -623,8 +624,12 @@ test("no frame of the flow has axe violations", { tag: "@smoke" }, async ({ page
     )
     .toBe(1);
 
-  const scan = () =>
-    new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const scan = async () => {
+    await settleAnimations(page);
+    return new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+  };
 
   // Frame one (email).
   expect((await scan()).violations).toEqual([]);

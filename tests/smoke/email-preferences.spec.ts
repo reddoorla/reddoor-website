@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The two pages that replace go.reddoorla.com/unsubscribe and /resubscribe.
 //
@@ -129,6 +130,7 @@ for (const path of ["/email/unsubscribed", "/email/resubscribed"]) {
       )
       .toBe(1);
 
+    await settleAnimations(page);
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();

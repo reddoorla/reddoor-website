@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 import { createClient } from "@prismicio/client";
 import prismicConfig from "../../prismic.config.json" with { type: "json" };
+import { settleAnimations } from "./settle-animations";
 
 // An `industry` document is a landing page assembled from 12 slices that all
 // render through the shared RailRow grid. /medtech was the first; /boise is
@@ -59,6 +60,7 @@ for (const PATH of PATHS) {
       await stubReducedMotion(page);
       await page.goto(PATH, { waitUntil: "networkidle" });
 
+      await settleAnimations(page);
       const { violations } = await new AxeBuilder({ page }).analyze();
 
       expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length} node(s))`)).toEqual([]);
