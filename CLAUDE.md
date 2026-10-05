@@ -12,12 +12,58 @@ the CI gates, and the conventions worth knowing — the Tailwind v4 `@config`
 and `@source inline()` safelist, heading level being coupled to visual size by
 the global element styles, and the smoke suite's reliance on reduced motion for
 determinism. Read it before touching build or style config. `pnpm test` (unit
-then smoke) is what CI runs; `pnpm lint` and `pnpm check` are the other gates.
+then the `@smoke` Playwright tier) is what CI runs; `pnpm lint` and `pnpm check`
+are the other gates. `pnpm install` also installs a pre-commit hook that runs
+`prettier --write` on the staged files (`simple-git-hooks` and `lint-staged`); a
+checkout with no `node_modules` commits unformatted, with a `pre-commit:` line
+saying so.
 
 Two things about how work moves here. Renovate and feature work open PRs
 against `staging`, which is then promoted into `main`. And several feature
 branches are checked out as worktrees under `.worktrees/`, so `git status` in
 the main checkout is not the whole picture of what is in flight.
+
+## Tests build; they don't freeze
+
+Tests are how an agent builds against a comp without a human watching: a
+geometry spec that measures a band against Tim's MarkUp numbers is exactly the
+instrument that gets the band right. Once the change ships, the same spec
+becomes a fence around a design decision Tim is entitled to change next week,
+and his weekly MarkUp rounds turned each one into a CI round trip. Before
+2026-10-05 every Playwright spec here ran inside `pnpm test`; about 60 of them
+pinned his literal numbers (the 40px pin lead-in, the 48/96 project gaps, the
+40px door and its 20px offset, the five-column grid). The suite is now tiered by
+what a red _means_, on the model of roalson-interests#256:
+
+| Tier                | Command                                     | Runs                                    | Holds                                                                                                                                        |
+| ------------------- | ------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gate** (contract) | `pnpm test` (vitest + Playwright `@smoke`)  | every PR, inside the required `ci / ci` | what a client would call a bug: links and their targets, the form, keyboard and focus, no-JS, accessible names, AA contrast, data, SEO, CSP  |
+| **Nightly**         | `pnpm test:nightly`                         | `nightly.yml`, never blocks a merge     | tests tagged `@nightly`: slideshow crossfades, door-nav reveal, arrow draw-in; real behaviour, but every assertion is a race against a clock |
+| **Scaffold**        | `pnpm test:scaffold` (`pnpm test:e2e`: all) | on demand, while building               | comp geometry, pixel and computed-style pins, the numbers a slice was built to                                                               |
+
+- **A human's design change wins.** When a size, spacing, colour that still
+  passes AA, duration, border, or an added button or link turns a test red,
+  the test is what is wrong: update it or delete it in the same PR. Never revert
+  the change to satisfy the test, and never argue for the pinned value.
+- **Design values never enter the gate.** A gate test asserts what a user or a
+  caller observes, never a Tailwind class list, a px, a ms, an opacity, or a
+  recorded contrast ratio to four places (assert `>= 4.5`). Exact-list equality
+  over things a designer may add to (every link on the page, every button,
+  "exactly nine") is a pin: assert the item that matters is _in_ the list.
+- **Never assert on source as text.** A test that reads a `.svelte` or `.css`
+  file and regexes a class out of it restates the implementation, so every
+  edit is two edits. Parsing `@theme` tokens to compute contrast is fine: that
+  computes a property, it does not restate a string.
+- **Build against the comp freely.** New geometry and timing specs are welcome
+  while a slice is being built; leave them untagged and they land in the
+  scaffold tier, where they are allowed to go stale once a human takes over the
+  design.
+- **`@smoke` is earned.** A test tagged `{ tag: "@smoke" }` has no fixed
+  sleeps, no frame counting, no animation windows, no `boundingBox`/`near()`,
+  no computed-style colour or size, and no element count a new button would
+  change.
+- **A flaky timing test leaves the gate; its window does not widen.** Tag it
+  `@nightly`, or delete it if it guards nothing a client would notice.
 
 ## The work journal
 

@@ -23,24 +23,32 @@ async function locationOf(request: import("@playwright/test").APIRequestContext,
 
 const LEAD = "email=pat%40example.com&full_name=Pat%20Buyer";
 
-test("a chase link lands on the industry page with the lead's details", async ({ request }) => {
-  const to = await locationOf(request, `/inquiry?${LEAD}`);
-  expect(to.pathname).toBe("/medtech");
-  expect(to.searchParams.get("email")).toBe("pat@example.com");
-  expect(to.searchParams.get("full_name")).toBe("Pat Buyer");
-});
+test(
+  "a chase link lands on the industry page with the lead's details",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    const to = await locationOf(request, `/inquiry?${LEAD}`);
+    expect(to.pathname).toBe("/medtech");
+    expect(to.searchParams.get("email")).toBe("pat@example.com");
+    expect(to.searchParams.get("full_name")).toBe("Pat Buyer");
+  },
+);
 
-test("the phone carries through now the CRM sends the right one", async ({ request }) => {
-  // Dropped here until 2026-08-20, because the link shipped as
-  // `phone={{user.phone}}` — the assigned user's number, not the lead's, and
-  // confirmed as such in three delivered chase emails. The workflow now sends
-  // `{{contact.phone}}`, verified by a probe SMS rather than assumed, so the
-  // param is trustworthy and is forwarded. See src/routes/inquiry/+server.ts.
-  const to = await locationOf(request, `/inquiry?${LEAD}&phone=(310)%20555-0101`);
-  expect(to.searchParams.get("phone")).toBe("(310) 555-0101");
-});
+test(
+  "the phone carries through now the CRM sends the right one",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // Dropped here until 2026-08-20, because the link shipped as
+    // `phone={{user.phone}}` — the assigned user's number, not the lead's, and
+    // confirmed as such in three delivered chase emails. The workflow now sends
+    // `{{contact.phone}}`, verified by a probe SMS rather than assumed, so the
+    // param is trustworthy and is forwarded. See src/routes/inquiry/+server.ts.
+    const to = await locationOf(request, `/inquiry?${LEAD}&phone=(310)%20555-0101`);
+    expect(to.searchParams.get("phone")).toBe("(310) 555-0101");
+  },
+);
 
-test("a space in a rendered value survives the hop", async ({ request }) => {
+test("a space in a rendered value survives the hop", { tag: "@smoke" }, async ({ request }) => {
   // The CRM does not URL-encode merge values: a phone arrives as
   // `(603) 531-1812` and a name as `Tucker Lemos`, spaces and all. Re-encoding
   // them correctly on the way out is this route's job, so the landing page
@@ -55,7 +63,7 @@ test("a space in a rendered value survives the hop", async ({ request }) => {
   expect(to.search).not.toMatch(/=[^&]*\s/);
 });
 
-test("utm params survive the hop", async ({ request }) => {
+test("utm params survive the hop", { tag: "@smoke" }, async ({ request }) => {
   // The modal posts `location.href` as `sourceUrl` and the CRM builds its
   // attribution note from the utm_* it finds there, so dropping these here
   // would quietly unattribute every resumed lead.
@@ -64,42 +72,56 @@ test("utm params survive the hop", async ({ request }) => {
   expect(to.searchParams.get("utm_medium")).toBe("email");
 });
 
-test("an explicit funnel is honoured when it names a live industry", async ({ request }) => {
-  // The CRM holds the industry as `contact.funnel`, and A-102-1's reminder
-  // emails have sent `&funnel={{contact.funnel}}` since 2026-09-15, so this
-  // is the path a resumed lead actually takes.
-  const to = await locationOf(request, `/inquiry?${LEAD}&funnel=medtech`);
-  expect(to.pathname).toBe("/medtech");
-});
-
-test("a second industry routes on its own funnel, not medtech's", async ({ request }) => {
-  // The A-102-1 chase message must send `&funnel={{contact.funnel}}` for this
-  // to matter in production; without it every abandoned lead, Boise included,
-  // is chased back to /medtech. This is the code half of that fix.
-  // The allowlist is built from every published industry document, so this is
-  // the case that proves a second one is honoured, not only the first.
-  const to = await locationOf(request, `/inquiry?${LEAD}&funnel=boise`);
-  expect(to.pathname).toBe("/boise");
-  expect(to.searchParams.get("email")).toBe("pat@example.com");
-});
-
-test("an unknown funnel falls back instead of redirecting anywhere it names", async ({
-  request,
-}) => {
-  // The destination of a redirect is the wrong place to trust a query param.
-  // The uid is checked against published industry documents, so these resolve
-  // to the default rather than to themselves.
-  for (const evil of ["//evil.example.com", "../../etc", "https://evil.example.com", "nope"]) {
-    const to = await locationOf(request, `/inquiry?${LEAD}&funnel=${encodeURIComponent(evil)}`);
+test(
+  "an explicit funnel is honoured when it names a live industry",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // The CRM holds the industry as `contact.funnel`, and A-102-1's reminder
+    // emails have sent `&funnel={{contact.funnel}}` since 2026-09-15, so this
+    // is the path a resumed lead actually takes.
+    const to = await locationOf(request, `/inquiry?${LEAD}&funnel=medtech`);
     expect(to.pathname).toBe("/medtech");
-    expect(to.host).toBe("x");
-  }
-});
+  },
+);
 
-test("the response neither caches nor leaks the address onward", async ({ request }) => {
-  // A lead's email is in the URL that got them here, and this response is what
-  // hands it to the next page.
-  const res = await request.get(`/inquiry?${LEAD}`, { maxRedirects: 0 });
-  expect(res.headers()["referrer-policy"]).toBe("no-referrer");
-  expect(res.headers()["cache-control"]).toContain("no-store");
-});
+test(
+  "a second industry routes on its own funnel, not medtech's",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // The A-102-1 chase message must send `&funnel={{contact.funnel}}` for this
+    // to matter in production; without it every abandoned lead, Boise included,
+    // is chased back to /medtech. This is the code half of that fix.
+    // The allowlist is built from every published industry document, so this is
+    // the case that proves a second one is honoured, not only the first.
+    const to = await locationOf(request, `/inquiry?${LEAD}&funnel=boise`);
+    expect(to.pathname).toBe("/boise");
+    expect(to.searchParams.get("email")).toBe("pat@example.com");
+  },
+);
+
+test(
+  "an unknown funnel falls back instead of redirecting anywhere it names",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // The destination of a redirect is the wrong place to trust a query param.
+    // The uid is checked against published industry documents, so these resolve
+    // to the default rather than to themselves.
+    for (const evil of ["//evil.example.com", "../../etc", "https://evil.example.com", "nope"]) {
+      const to = await locationOf(request, `/inquiry?${LEAD}&funnel=${encodeURIComponent(evil)}`);
+      expect(to.pathname).toBe("/medtech");
+      expect(to.host).toBe("x");
+    }
+  },
+);
+
+test(
+  "the response neither caches nor leaks the address onward",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // A lead's email is in the URL that got them here, and this response is what
+    // hands it to the next page.
+    const res = await request.get(`/inquiry?${LEAD}`, { maxRedirects: 0 });
+    expect(res.headers()["referrer-policy"]).toBe("no-referrer");
+    expect(res.headers()["cache-control"]).toContain("no-store");
+  },
+);

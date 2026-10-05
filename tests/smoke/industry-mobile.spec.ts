@@ -8,14 +8,18 @@ for (const width of WIDTHS) {
     test.use({ viewport: { width, height: 800 } });
 
     for (const path of PATHS) {
-      test(`${path} is no wider than the viewport`, async ({ page }) => {
-        await page.goto(path);
-        const { scrollWidth, innerWidth } = await page.evaluate(() => ({
-          scrollWidth: document.documentElement.scrollWidth,
-          innerWidth: window.innerWidth,
-        }));
-        expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
-      });
+      test(
+        `${path} is no wider than the viewport`,
+        { tag: width === 360 ? "@smoke" : [] },
+        async ({ page }) => {
+          await page.goto(path);
+          const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+            scrollWidth: document.documentElement.scrollWidth,
+            innerWidth: window.innerWidth,
+          }));
+          expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
+        },
+      );
 
       test(`${path} hero intro sits on the band below the photo`, async ({ page }) => {
         await page.goto(path);

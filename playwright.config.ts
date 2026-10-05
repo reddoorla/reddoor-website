@@ -15,6 +15,15 @@ import base from "@reddoorla/maintenance/configs/playwright-a11y";
 // probe at it. Unset (local `pnpm test:smoke`) → the shared base's fixed 5173.
 const smokePort = process.env.REDDOOR_SMOKE_PORT;
 
+// The dev server encodes vite-imagetools variants (AVIF included) on every
+// request, with no cache, on libuv's thread pool, and DNS lookups and file
+// reads queue behind them on the same four threads. A GET /portfolio issued
+// during a burst of 16 encodes waited 10.6s and came back a 500 (Prismic
+// ConnectTimeoutError at 10000ms); with 64 threads the same request returned
+// 200 in 1.6s. The webServer inherits this process's environment, so setting it
+// here gives the server the test suite boots its own pool.
+process.env.UV_THREADPOOL_SIZE ??= "64";
+
 export default defineConfig({
   ...base,
   // Compiles every route the suite uses before any worker starts, so the first

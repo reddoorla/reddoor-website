@@ -46,12 +46,16 @@ function parseRgb(color: string): number[] {
 }
 
 for (const path of RED_BAND_PAGES) {
-  test(`no brand-red text on the red band at ${path}`, async ({ page }) => {
+  test(`no brand-red text on the red band at ${path}`, { tag: "@smoke" }, async ({ page }) => {
     const response = await page.goto(path, { waitUntil: "domcontentloaded" });
     test.skip(response?.status() === 404, `${path} is not present on this site`);
 
     const bands = page.locator(".bg-paper-red");
     const count = await bands.count();
+    // The fixture exists to carry the band, so there it is required: a renamed
+    // class would otherwise skip every page and pass on nothing.
+    const required = path === "/dev/a11y-fixtures";
+    if (required) expect(count, "the fixture's red band").toBeGreaterThan(0);
     test.skip(count === 0, `${path} renders no .bg-paper-red band`);
 
     // Read every leaf node's computed colour inside the band. Leaves only:
@@ -74,6 +78,7 @@ for (const path of RED_BAND_PAGES) {
       }
       return out;
     });
+    if (required) expect(offenders.length, "text read on the fixture's band").toBeGreaterThan(0);
 
     const invisible = offenders
       .filter((o) => isBrandRed(parseRgb(o.color)))

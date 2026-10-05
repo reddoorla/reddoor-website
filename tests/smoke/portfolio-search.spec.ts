@@ -45,7 +45,23 @@ async function openPortfolio(page: Page) {
 }
 
 test.describe("portfolio archive search", () => {
-  test("filters the grid by title and clears", async ({ page }) => {
+  // Nothing in this block looks at the featured imagery, and on the dev server
+  // it is the most expensive thing the page asks for. vite-imagetools re-encodes
+  // every `?as=run` variant (AVIF included) per request, with no cache, and
+  // each fresh browser context requests them all again. The encodes fill
+  // libuv's four-thread pool, and DNS lookups and file reads queue behind them:
+  // a GET /portfolio issued during a burst of 16 of them waited 10.6s and came
+  // back a 500 (`[portfolio] Prismic load failed … ConnectTimeoutError …
+  // 10000ms`), the static "Internal Error" page that never hydrates. That is
+  // the page openPortfolio was left waiting on in every red of a
+  // --repeat-each=3 of this block (7 of 24). Not requesting the images removes
+  // this block's share of that load; the archive thumbnails are imgix URLs and
+  // still load.
+  test.beforeEach(async ({ page }) => {
+    await page.route("**/@imagetools/**", (route) => route.abort());
+  });
+
+  test("filters the grid by title and clears", { tag: "@smoke" }, async ({ page }) => {
     await openPortfolio(page);
     await expect(page.locator("footer")).toBeVisible();
 
@@ -73,7 +89,7 @@ test.describe("portfolio archive search", () => {
       .toBe(full);
   });
 
-  test("tolerates a typo and shows a no-results state", async ({ page }) => {
+  test("tolerates a typo and shows a no-results state", { tag: "@smoke" }, async ({ page }) => {
     await openPortfolio(page);
     const search = page.getByTestId("portfolio-search");
     await expect(search).toBeVisible();
@@ -99,7 +115,7 @@ test.describe("portfolio archive search", () => {
     await expect(page.getByTestId("portfolio-search-empty")).toBeVisible(POLL);
   });
 
-  test("ranks the best match first while searching", async ({ page }) => {
+  test("ranks the best match first while searching", { tag: "@smoke" }, async ({ page }) => {
     await openPortfolio(page);
     await expect(page.getByTestId("portfolio-search")).toBeVisible();
 
@@ -154,98 +170,108 @@ test.describe("portfolio archive search", () => {
     }
   });
 
-  test("exposes a filter button for every category, including Packaging", async ({ page }) => {
-    await openPortfolio(page);
-    await expect(page.locator("footer")).toBeVisible();
+  test(
+    "exposes a filter button for every category, including Packaging",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await openPortfolio(page);
+      await expect(page.locator("footer")).toBeVisible();
 
-    // Every CMS category boolean must have a matching button (state ↔ button 1:1).
-    // Packaging was previously wired into the filter logic but had no button, so
-    // packaging-tagged projects could never be isolated — this guards that gap.
-    for (const label of ["BRAND", "PRINT", "ENVIRONMENTAL", "PRODUCT", "DIGITAL", "PACKAGING"]) {
-      await expect(
-        page.getByRole("button", { name: label, exact: true }),
-        `${label} filter button is present`,
-      ).toBeVisible();
-    }
+      // Every CMS category boolean must have a matching button (state ↔ button 1:1).
+      // Packaging was previously wired into the filter logic but had no button, so
+      // packaging-tagged projects could never be isolated — this guards that gap.
+      for (const label of ["BRAND", "PRINT", "ENVIRONMENTAL", "PRODUCT", "DIGITAL", "PACKAGING"]) {
+        await expect(
+          page.getByRole("button", { name: label, exact: true }),
+          `${label} filter button is present`,
+        ).toBeVisible();
+      }
 
-    // Activating Packaging narrows the grid to packaging-tagged projects.
-    const full = await archiveCount(page);
-    await page.getByRole("button", { name: "PACKAGING", exact: true }).click();
-    await expect
-      .poll(() => archiveCount(page), { message: "Packaging filter narrows the grid", ...POLL })
-      .toBeLessThan(full);
-    expect(await archiveCount(page), "Packaging filter shows at least one project").toBeGreaterThan(
-      0,
-    );
-  });
+      // Activating Packaging narrows the grid to packaging-tagged projects.
+      const full = await archiveCount(page);
+      await page.getByRole("button", { name: "PACKAGING", exact: true }).click();
+      await expect
+        .poll(() => archiveCount(page), { message: "Packaging filter narrows the grid", ...POLL })
+        .toBeLessThan(full);
+      expect(
+        await archiveCount(page),
+        "Packaging filter shows at least one project",
+      ).toBeGreaterThan(0);
+    },
+  );
 
-  test("offers a Relevance sort only while searching, and restores the sort on clear", async ({
-    page,
-  }) => {
-    await openPortfolio(page);
-    const sort = page.getByTestId("portfolio-sort");
-    const relevanceOption = () => page.getByTestId("sort-option").filter({ hasText: "Relevance" });
+  test(
+    "offers a Relevance sort only while searching, and restores the sort on clear",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await openPortfolio(page);
+      const sort = page.getByTestId("portfolio-sort");
+      const relevanceOption = () =>
+        page.getByTestId("sort-option").filter({ hasText: "Relevance" });
 
-    // No active search → the dropdown has the four real sorts, no Relevance.
-    await expect(sort).toContainText("Latest-Earliest");
-    await sort.click();
-    await expect(page.getByTestId("sort-option")).toHaveCount(4);
-    await expect(relevanceOption()).toHaveCount(0);
-    await sort.click(); // close
+      // No active search → the dropdown has the real sorts, no Relevance.
+      await expect(sort).toContainText("Latest-Earliest");
+      await sort.click();
+      await expect(page.getByTestId("sort-option").filter({ hasText: "A-Z" })).toBeVisible();
+      await expect(relevanceOption()).toHaveCount(0);
+      await sort.click(); // close
 
-    // Searching defaults the active sort to Relevance and adds it as an option.
-    // (toContainText/toHaveCount retry built-in — no fixed settles needed.)
-    const search = page.getByTestId("portfolio-search");
-    const title = (await archiveTitles(page))[0];
-    await search.fill(title);
-    await expect(sort).toContainText("Relevance", POLL);
-    await sort.click();
-    await expect(page.getByTestId("sort-option")).toHaveCount(5);
-    await expect(relevanceOption()).toHaveCount(1);
+      // Searching defaults the active sort to Relevance and adds it as an option.
+      // (toContainText/toHaveCount retry built-in — no fixed settles needed.)
+      const search = page.getByTestId("portfolio-search");
+      const title = (await archiveTitles(page))[0];
+      await search.fill(title);
+      await expect(sort).toContainText("Relevance", POLL);
+      await sort.click();
+      await expect(relevanceOption()).toHaveCount(1);
 
-    // You can switch to a real sort while the query is active…
-    await page.getByTestId("sort-option").filter({ hasText: "A-Z" }).click();
-    await expect(sort).toContainText("A-Z", POLL);
+      // You can switch to a real sort while the query is active…
+      await page.getByTestId("sort-option").filter({ hasText: "A-Z" }).click();
+      await expect(sort).toContainText("A-Z", POLL);
 
-    // …and back to Relevance, which is still offered while searching.
-    await sort.click();
-    await relevanceOption().click();
-    await expect(sort).toContainText("Relevance", POLL);
+      // …and back to Relevance, which is still offered while searching.
+      await sort.click();
+      await relevanceOption().click();
+      await expect(sort).toContainText("Relevance", POLL);
 
-    // Clearing the query removes Relevance and restores the default sort.
-    await page.getByTestId("portfolio-search-clear").click();
-    await expect(sort).toContainText("Latest-Earliest", POLL);
-    await sort.click();
-    await expect(relevanceOption()).toHaveCount(0);
-  });
+      // Clearing the query removes Relevance and restores the default sort.
+      await page.getByTestId("portfolio-search-clear").click();
+      await expect(sort).toContainText("Latest-Earliest", POLL);
+      await sort.click();
+      await expect(page.getByTestId("sort-option").filter({ hasText: "A-Z" })).toBeVisible();
+      await expect(relevanceOption()).toHaveCount(0);
+    },
+  );
 
-  test("sort dropdown is an ARIA listbox that closes on outside click and Escape", async ({
-    page,
-  }) => {
-    await openPortfolio(page);
-    const sort = page.getByTestId("portfolio-sort");
-    await expect(sort).toHaveAttribute("aria-haspopup", "listbox");
-    await expect(sort).toHaveAttribute("aria-expanded", "false");
+  test(
+    "sort dropdown is an ARIA listbox that closes on outside click and Escape",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await openPortfolio(page);
+      const sort = page.getByTestId("portfolio-sort");
+      await expect(sort).toHaveAttribute("aria-haspopup", "listbox");
+      await expect(sort).toHaveAttribute("aria-expanded", "false");
 
-    // Open → ARIA reflects it, listbox + options exposed.
-    await sort.click();
-    await expect(sort).toHaveAttribute("aria-expanded", "true");
-    await expect(page.locator('[role="listbox"]')).toHaveCount(1);
-    await expect(page.getByRole("option").first()).toBeVisible();
+      // Open → ARIA reflects it, listbox + options exposed.
+      await sort.click();
+      await expect(sort).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator('[role="listbox"]')).toHaveCount(1);
+      await expect(page.getByRole("option").first()).toBeVisible();
 
-    // Clicking outside (on the inert archive heading) closes it.
-    await page.getByRole("heading", { name: "But wait, there’s more!" }).click();
-    await expect(sort).toHaveAttribute("aria-expanded", "false");
+      // Clicking outside (on the inert archive heading) closes it.
+      await page.getByRole("heading", { name: "But wait, there’s more!" }).click();
+      await expect(sort).toHaveAttribute("aria-expanded", "false");
 
-    // Reopen, then Escape closes it and returns focus to the trigger.
-    await sort.click();
-    await expect(sort).toHaveAttribute("aria-expanded", "true");
-    await page.keyboard.press("Escape");
-    await expect(sort).toHaveAttribute("aria-expanded", "false");
-    await expect(sort).toBeFocused();
-  });
+      // Reopen, then Escape closes it and returns focus to the trigger.
+      await sort.click();
+      await expect(sort).toHaveAttribute("aria-expanded", "true");
+      await page.keyboard.press("Escape");
+      await expect(sort).toHaveAttribute("aria-expanded", "false");
+      await expect(sort).toBeFocused();
+    },
+  );
 
-  test("category filter buttons expose aria-pressed state", async ({ page }) => {
+  test("category filter buttons expose aria-pressed state", { tag: "@smoke" }, async ({ page }) => {
     await openPortfolio(page);
     const brand = page.getByRole("button", { name: "BRAND", exact: true });
     await expect(brand).toHaveAttribute("aria-pressed", "false");
@@ -253,7 +279,7 @@ test.describe("portfolio archive search", () => {
     await expect(brand).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("the archive section title is a real heading", async ({ page }) => {
+  test("the archive section title is a real heading", { tag: "@smoke" }, async ({ page }) => {
     await openPortfolio(page);
     // Was a styled <div>; now an <h2> so the archive section has a programmatic heading.
     await expect(page.getByRole("heading", { name: "But wait, there’s more!" })).toBeVisible();

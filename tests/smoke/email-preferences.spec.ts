@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The two pages that replace go.reddoorla.com/unsubscribe and /resubscribe.
 //
@@ -35,41 +36,51 @@ async function gotoHydrated(page: Page, path: string) {
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
 }
 
-test("/email/unsubscribed confirms without writing anything", async ({ page }) => {
-  // A page that acted on load would turn the first link scanner to open the
-  // email into a consent record.
-  const { posts, stray } = await stub(page);
-  await gotoHydrated(page, "/email/unsubscribed");
+test(
+  "/email/unsubscribed confirms without writing anything",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // A page that acted on load would turn the first link scanner to open the
+    // email into a consent record.
+    const { posts, stray } = await stub(page);
+    await gotoHydrated(page, "/email/unsubscribed");
 
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re unsubscribed");
-  expect(posts).toHaveLength(0);
-  expect(stray).toEqual([]);
-});
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re unsubscribed");
+    expect(posts).toHaveLength(0);
+    expect(stray).toEqual([]);
+  },
+);
 
-test("it says what is NOT affected, which is what people actually worry about", async ({
-  page,
-}) => {
-  await stub(page);
-  await gotoHydrated(page, "/email/unsubscribed");
-  await expect(page.getByText(/confirmation and reminders still come through/)).toBeVisible();
-});
+test(
+  "it says what is NOT affected, which is what people actually worry about",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stub(page);
+    await gotoHydrated(page, "/email/unsubscribed");
+    await expect(page.getByText(/confirmation and reminders still come through/)).toBeVisible();
+  },
+);
 
-test("the recovery form opts back in and confirms in place", async ({ page }) => {
-  const { posts } = await stub(page);
-  await gotoHydrated(page, "/email/unsubscribed");
+test(
+  "the recovery form opts back in and confirms in place",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { posts } = await stub(page);
+    await gotoHydrated(page, "/email/unsubscribed");
 
-  await page.locator("#resub-email").fill("buyer@example.com");
-  await page.getByRole("button", { name: "Resubscribe" }).click();
+    await page.locator("#resub-email").fill("buyer@example.com");
+    await page.getByRole("button", { name: "Resubscribe" }).click();
 
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("back on the list");
-  expect(posts).toHaveLength(1);
-  expect(posts[0].email).toBe("buyer@example.com");
-  // Nothing but the address: a resubscribe form is not a profile form.
-  expect(posts[0].name).toBeUndefined();
-  expect(posts[0].phone).toBeUndefined();
-});
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("back on the list");
+    expect(posts).toHaveLength(1);
+    expect(posts[0].email).toBe("buyer@example.com");
+    // Nothing but the address: a resubscribe form is not a profile form.
+    expect(posts[0].name).toBeUndefined();
+    expect(posts[0].phone).toBeUndefined();
+  },
+);
 
-test("a bad address is caught before it reaches the CRM", async ({ page }) => {
+test("a bad address is caught before it reaches the CRM", { tag: "@smoke" }, async ({ page }) => {
   const { posts } = await stub(page);
   await gotoHydrated(page, "/email/unsubscribed");
 
@@ -80,7 +91,7 @@ test("a bad address is caught before it reaches the CRM", async ({ page }) => {
   expect(posts).toHaveLength(0);
 });
 
-test("/email/resubscribed is pure confirmation", async ({ page }) => {
+test("/email/resubscribed is pure confirmation", { tag: "@smoke" }, async ({ page }) => {
   const { posts, stray } = await stub(page);
   await gotoHydrated(page, "/email/resubscribed");
 
@@ -92,7 +103,7 @@ test("/email/resubscribed is pure confirmation", async ({ page }) => {
 });
 
 for (const path of ["/email/unsubscribed", "/email/resubscribed"]) {
-  test(`${path} stays out of search results`, async ({ page }) => {
+  test(`${path} stays out of search results`, { tag: "@smoke" }, async ({ page }) => {
     await stub(page);
     await gotoHydrated(page, path);
     // `follow`, not `nofollow`: there is nothing to index here, but the links
@@ -100,7 +111,7 @@ for (const path of ["/email/unsubscribed", "/email/resubscribed"]) {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, follow");
   });
 
-  test(`${path} has no accessibility violations`, async ({ page }) => {
+  test(`${path} has no accessibility violations`, { tag: "@smoke" }, async ({ page }) => {
     await stub(page);
     // Set per-test: playwright.config.ts's `use: { reducedMotion }` does not
     // reach the page on 1.62.1 — see schedule.spec.ts for the measurement.
@@ -119,6 +130,7 @@ for (const path of ["/email/unsubscribed", "/email/resubscribed"]) {
       )
       .toBe(1);
 
+    await settleAnimations(page);
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();

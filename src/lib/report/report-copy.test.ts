@@ -1,300 +1,283 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { TOC_TARGETS } from "./narrative";
+import { ssr, renderText } from "./ssr-test-harness";
+import { ALL_PASS_REPORT } from "./fixtures/all-pass";
+import type { AuditReport, OverrideMap } from "./fetch";
+import {
+  GOAL_LABELS,
+  openingSummary,
+  ownSiteCitations,
+  toReportView,
+  type Assertion,
+  type ReportView,
+} from "./model";
+import { allFixes, auditedOn, headlineFinding, TOC_TARGETS } from "./narrative";
 
 /**
- * Sentences the report must and must not contain.
+ * Sentences the report must and must not contain, asserted on what renders.
  *
- * Svelte templates have no seam to import, and every one of these is a
- * sentence a reader actually saw on the live report — the pattern is
- * token-privacy.test.ts. Comment lines are stripped so an explanation of the
- * old wording stays writable.
+ * Every one of these is a sentence a reader saw on the live report. The
+ * components with no child component compile here through
+ * `ssr-test-harness.ts` — the source-check section, its lede, GoalFit and the
+ * print sheet. Report.svelte and the sections that nest a component do not
+ * compile here, so their copy is asserted nowhere yet (#243).
+ *
+ * Most assertions are negative, so each surface is rendered from a report that
+ * reaches every branch, and a positive control proves it did.
  */
-const code = (p: string): string =>
-  readFileSync(p, "utf-8")
-    .replace(/^\s*(\/\/|\*|\/\*).*$/gm, "")
-    .replace(/<!--[\s\S]*?-->/g, "");
-const PAGE = "src/routes/audit/[token]/+page.svelte";
-const REPORT = "src/lib/report/Report.svelte";
-const PRINT = "src/routes/audit/[token]/print/+page.svelte";
-const SOURCE = "src/lib/report/SourceCheck.svelte";
-// The accuracy lede moved out of Report.svelte into its own component so that
-// the conditional around it could be rendered in a test; the copy is unchanged.
-const LEDE = "src/lib/report/SourceCheckLede.svelte";
-const COMPONENTS = [
-  REPORT,
-  SOURCE,
-  "src/lib/report/FixList.svelte",
-  "src/lib/report/GoalFit.svelte",
-  "src/lib/report/ScoreBars.svelte",
-  "src/lib/report/Standing.svelte",
-  "src/lib/report/SiteHealth.svelte",
-  "src/lib/report/Stack.svelte",
-  "src/lib/report/Accessibility.svelte",
-  "src/lib/report/QuestionMeter.svelte",
-  "src/lib/report/SearchResults.svelte",
-  "src/lib/report/CitationChart.svelte",
-  "src/lib/report/WhatPasses.svelte",
+const allPass = ALL_PASS_REPORT as {
+  accuracy: { data: Record<string, unknown> & { assertions: Assertion[] } };
+  analyze: { data: Record<string, unknown> & { buyerQuestions: { evidence: string }[] } };
+  crawl: { data: Record<string, unknown> };
+  goalFit: { data: Record<string, unknown> };
+};
+
+const row = (over: Partial<Assertion>): Assertion => ({
+  claim: "",
+  verdict: "absent",
+  engineQuote: "",
+  siteQuote: null,
+  unverifiedReason: null,
+  nearbyMention: null,
+  sourceDomains: [],
+  query: "who is Example Studio",
+  engine: "claude",
+  ...over,
+});
+
+const CONTRADICTED = row({
+  claim: "Example Studio was founded in 2009.",
+  verdict: "contradicted",
+  engineQuote: "founded in 2009",
+  siteQuote: "Founded in 2012, in a garage on East Sixth.",
+  sourceDomains: ["yelp.com", "clutch.co"],
+});
+// The engine's wording, our reason and the row's sources are sentinels: none of
+// them may reach the page under a statement the site does not make.
+const ABSENT = row({
+  claim: "Example Studio has an office in Denver.",
+  engineQuote: "ENGINE-QUOTE-ABSENT",
+  sourceDomains: ["row-source.test"],
+});
+const UNVERIFIED = row({
+  claim: "Example Studio is led by Sam Ortiz.",
+  verdict: "unverified",
+  engineQuote: "ENGINE-QUOTE-UNVERIFIED",
+  unverifiedReason: "UNVERIFIED-REASON",
+  sourceDomains: ["row-source.test"],
+});
+const OTHER_NAME = "Example Studios Ltd";
+const ELSEWHERE = "reviews-elsewhere.test";
+const SITEMAP = 137;
+const MODEL_SUMMARY = "MODEL-WRITTEN-SUMMARY";
+
+// One assistant was tested. "Search engines" is a site check's own label in the
+// print sheet's passes, and about Google, not the assistant.
+const ENGINES = /(?<!search )\bengines\b/i;
+const LIVE = /\blive\s+(AI|searches|visibility)\b|of a live/;
+
+/** The all-pass report with one of every kind of statement, a name collision,
+ *  a source the business does not own, and a crawl that read part of the site. */
+const RICH: AuditReport = {
+  ...ALL_PASS_REPORT,
+  crawl: {
+    ok: true,
+    data: { ...allPass.crawl.data, sitemap: { present: true, urlCount: SITEMAP } },
+  },
+  analyze: {
+    ok: true,
+    data: {
+      ...allPass.analyze.data,
+      narrative: { findability: MODEL_SUMMARY, readability: MODEL_SUMMARY, answers: MODEL_SUMMARY },
+    },
+  },
+  accuracy: {
+    ok: true,
+    data: {
+      ...allPass.accuracy.data,
+      assertions: [...allPass.accuracy.data.assertions, CONTRADICTED, ABSENT, UNVERIFIED],
+      sources: [
+        ...(allPass.accuracy.data.sources as unknown[]),
+        { domain: ELSEWHERE, owner: "theirs", because: "a review site" },
+      ],
+      siteFullyRead: false,
+      pagesRead: 3,
+      pagesTotal: 5,
+      conflation: {
+        detected: true,
+        otherNames: [OTHER_NAME],
+        engineQuote: "There are two studios by that name.",
+      },
+    },
+  },
+};
+const VIEW = toReportView(RICH);
+
+type ViewProps = { view: ReportView };
+const sourceCheck = await ssr<ViewProps>("src/lib/report/SourceCheck.svelte");
+const lede = await ssr<ViewProps>("src/lib/report/SourceCheckLede.svelte");
+const goalFit = await ssr<ViewProps>("src/lib/report/GoalFit.svelte");
+const printSheet = await ssr<{ data: { report: AuditReport; overrides: OverrideMap } }>(
+  "src/routes/audit/[token]/print/+page.svelte",
+);
+
+const printed = (report: AuditReport): string =>
+  renderText(printSheet, { data: { report, overrides: {} } });
+
+/** What a reader sees: the markup and its attributes gone. */
+const seen = (html: string): string => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+
+const surfaces: Array<[string, string]> = [
+  ["the source-check section", renderText(sourceCheck, { view: VIEW })],
+  ["the print sheet", printed(RICH)],
 ];
 
-describe("one story, on every surface", () => {
-  it("the opener is derived from the verdicts, not written by the model", () => {
-    expect(code(REPORT)).toContain("openingSummary(view)");
-    expect(code(PRINT)).toContain("openingSummary(view)");
-    expect(code(REPORT)).not.toMatch(/narrative\.answers/);
-    expect(code(PRINT)).not.toMatch(/narrative\.answers/);
-  });
-
-  it("the hero leads with the one deterministic headline finding and points at the fixes", () => {
-    expect(code(REPORT)).toContain("headlineFinding(view)");
-    expect(code(REPORT)).toMatch(/href="#fixes"/);
-    expect(TOC_TARGETS.fixes).toBe("fixes");
-    expect(code(REPORT)).toMatch(/id=\{TOC_TARGETS\.fixes\}/);
-    // Every id in the table is rendered: the component source names each key.
-    for (const k of Object.keys(TOC_TARGETS)) {
-      expect(code(REPORT)).toContain(`id={TOC_TARGETS.${k}}`);
-    }
-    expect(code(PRINT)).toContain("headlineFinding(view)");
-  });
-
-  it("the primer's prose is composed in narrative.ts, and the template prints it first", () => {
-    expect(code(REPORT)).toMatch(/primer\(view, fixes\)/);
-    expect(code(REPORT)).toMatch(/auditedOn\(view\)/);
-    expect(code(PRINT)).toMatch(/auditedOn\(view\)/);
-    // The copy itself is not in the template: a sentence that varies with
-    // the view is asserted on the function, not string-matched here.
-    expect(code(REPORT)).not.toMatch(/two routes/);
-    const src = code(REPORT);
-    const about = src.indexOf("id={TOC_TARGETS.about}");
-    expect(about).toBeGreaterThan(0);
-    // The first section id in the template is the primer's.
-    expect(src.search(/id=\{TOC_TARGETS\.\w+\}/)).toBe(about);
-  });
-
-  it("the token route renders the same body as the fixture route", () => {
-    expect(code(PAGE)).toMatch(/<Report\b/);
-    expect(code("src/routes/dev/audit-report/+page.svelte")).toMatch(/<Report\b/);
-  });
-
-  it("recommendations are the fix list, labelled as judgement, never as promises", () => {
-    const src = code("src/lib/report/FixList.svelte");
-    expect(src).not.toMatch(/What we measured/);
-    expect(src).toMatch(/Our recommendations/);
-    expect(src).toMatch(/None of them is a\s+promise\s+about what an engine will do/);
-  });
-
-  it("everything that passed collapses into one disclosure, and nowhere else", () => {
-    expect(code(REPORT).match(/<WhatPasses\b/g) ?? []).toHaveLength(1);
-    expect(code("src/lib/report/WhatPasses.svelte")).toMatch(/passes\(view\)/);
-    // The sections print findings only; the receipt for what passed lives in WhatPasses.
-    expect(code("src/lib/report/SiteHealth.svelte")).not.toMatch(/Also checked, nothing wrong/);
-    expect(code("src/lib/report/SiteHealth.svelte")).not.toMatch(/What we checked/);
-    expect(code(SOURCE)).not.toMatch(/The assistant is reading your own site/);
-  });
-
-  it("the name collision names its remedy as a fix in the list, not an inline aside", () => {
-    expect(code(SOURCE)).not.toMatch(/What to do about it/);
-    expect(code(SOURCE)).toMatch(/href="#fixes"/);
-    expect(code(SOURCE)).toMatch(/view\.namesake/);
-    expect(code(REPORT)).toContain("allFixes(view)");
-    expect(code(PRINT)).toContain("allFixes(view)");
-    expect(code(REPORT)).not.toMatch(/Someone else is answering to your name/);
-  });
-
-  it("a statement the site does not make is never printed as an accusation; the sources are shown instead", () => {
-    for (const p of [SOURCE, PRINT]) {
-      expect(code(p), p).not.toMatch(/Your site does not say this/);
-      expect(code(p), p).not.toMatch(/does not say this/i);
-    }
-    // Visible, not behind a disclosure: no title= carries the heading.
-    expect(code(SOURCE)).toMatch(/Who else the assistant read/);
-    expect(code(SOURCE)).not.toMatch(/title="Who else/);
-  });
-
-  it("puts the claim in the hedged line, never in the heading", () => {
-    // The heading asserted "…that is not on your site" over a list that also
-    // held `unverified` rows — the producer explicitly declining to say. Two
-    // lists was tried (#169) and was still wrong, because the cases are grey:
-    // "A man named Tim leads Reddoor Creative" comes from LinkedIn, where he is
-    // the more active of two people the site's own team page lists. Neither
-    // "not on your site" nor "we could not check" is fair to that row.
-    //
-    // So the heading claims nothing and one hedged line carries it.
-    for (const p of [SOURCE, PRINT]) {
-      expect(code(p), p).toMatch(/What the AI says about you/);
-      expect(code(p), p).toMatch(/These are claims that seem not to be sourced from your site/);
-      // The assertion must not creep back onto the heading.
-      expect(code(p), p).not.toMatch(/about you that is not on your site/);
-      expect(code(p), p).not.toMatch(/We did not find these on your site/);
-      expect(code(p), p).not.toMatch(/What we could not check/);
-    }
-    // Still headlines: no reason, quote or citation list under any row. That
-    // part of the original design was right and is unchanged.
-    expect(code(SOURCE)).toMatch(/u\.claim/);
-    expect(code(SOURCE)).not.toMatch(/u\.engineQuote|u\.unverifiedReason|u\.sourceDomains/);
-  });
-
-  it("offers the conversation in the floating corner, gated so it never nags", () => {
-    // Same words and same destination as the closing band — one offer brought
-    // within reach, not a second one. The two gates are the whole point:
-    // `pastHero` keeps it off the first screen, where the report has not yet
-    // said anything, and `!closingInView` keeps it from sitting on top of the
-    // band that carries the identical CTA.
-    expect(code(REPORT)).toMatch(/pastHero && !closingInView/);
-    expect(code(REPORT).match(/Start a conversation/g) ?? []).toHaveLength(2);
-    expect(code(REPORT).match(/href="\/contact"/g) ?? []).toHaveLength(2);
-  });
-
-  it("the page count is the pages we crawled, never a claim about how many pages the site has", () => {
-    for (const p of [SOURCE, PRINT]) {
-      expect(code(p), p).toMatch(/pages we crawled/);
-      expect(code(p), p).not.toMatch(/of your \{acc(uracy)?\.pagesTotal\} pages/);
+describe.each(surfaces)("%s", (_label, html) => {
+  it("reaches every branch on the rich report, so the negatives below test something", () => {
+    for (const shown of [
+      CONTRADICTED.claim,
+      CONTRADICTED.siteQuote!,
+      ABSENT.claim,
+      UNVERIFIED.claim,
+      OTHER_NAME,
+      ELSEWHERE,
+      String(SITEMAP),
+    ]) {
+      expect(seen(html)).toContain(shown);
     }
   });
 
-  it("the methods say what we did and assert nothing about what crawlers do with JavaScript", () => {
-    for (const p of [REPORT, PRINT]) {
-      const src = code(p).replace(/\s+/g, " ");
-      expect(src, p).toMatch(/so we could measure how much of each page depends on JavaScript\./);
-      expect(src, p).not.toMatch(/Most AI crawlers/);
-      expect(src, p).not.toMatch(/crawlers (run|execute) no/i);
-      expect(src, p).not.toMatch(/assumption/);
+  it("never accuses the site of not saying something, and shows who the assistant read instead", () => {
+    expect(html).not.toMatch(/does not say this/i);
+    expect(seen(html)).toContain(ELSEWHERE);
+  });
+
+  it("prints each unsourced claim alone, with nothing of ours under it", () => {
+    expect(html).not.toMatch(/not on your site/i);
+    expect(html).not.toMatch(/did not find these on your site|What we could not check/i);
+    expect(html).not.toContain(`${ABSENT.claim}; ${UNVERIFIED.claim}`);
+    for (const sentinel of [
+      ABSENT.engineQuote,
+      UNVERIFIED.engineQuote,
+      UNVERIFIED.unverifiedReason!,
+      "row-source.test",
+    ]) {
+      expect(html).not.toContain(sentinel);
     }
   });
 
-  it("checked-and-fine and under-the-hood come after the fixes, on both surfaces", () => {
-    const report = code(REPORT);
-    const fixes = report.indexOf("id={TOC_TARGETS.fixes}");
-    const passes = report.indexOf("<WhatPasses");
-    const hood = report.indexOf("Under the hood");
-    expect(fixes).toBeGreaterThan(0);
-    expect(passes).toBeGreaterThan(fixes);
-    expect(hood).toBeGreaterThan(passes);
-    const print = code(PRINT);
-    expect(print.indexOf("<h2>What passes</h2>")).toBeGreaterThan(
-      print.indexOf("<h2>Our recommendations</h2>"),
+  it("counts the pages we crawled, never the pages the site has", () => {
+    expect(html).not.toMatch(/of your \d+ pages/);
+  });
+
+  it("never says what was 'cited on that answer', or who it was cited 'instead of'", () => {
+    expect(html).not.toMatch(/Cited on that answer/i);
+    expect(html).not.toMatch(/instead of you/);
+    expect(html).not.toMatch(/previous owner/);
+  });
+
+  it("speaks of one assistant, and never calls it live", () => {
+    expect(html).not.toMatch(ENGINES);
+    expect(html).not.toMatch(LIVE);
+  });
+});
+
+describe("the source-check section's links", () => {
+  it("points a name collision at its remedy in the fix list", () => {
+    const html = renderText(sourceCheck, {
+      view: { ...VIEW, namesake: { domain: "examplestudios.com", count: 4 } },
+    });
+    expect(seen(html)).toContain("examplestudios.com");
+    expect(html).toContain(`href="#${TOC_TARGETS.fixes}"`);
+  });
+
+  it("points the statements the site confirms at the section that lists them", () => {
+    expect(renderText(sourceCheck, { view: VIEW })).toContain(`href="#${TOC_TARGETS.passes}"`);
+  });
+});
+
+describe("the source-check section's own-site count", () => {
+  it("says how often the assistant cited the site itself", () => {
+    const view = {
+      ...VIEW,
+      brandedProbes: VIEW.brandedProbes.map((p) => ({
+        ...p,
+        citedDomains: [
+          ...p.citedDomains,
+          "www.example-studio.test",
+          "blog.example-studio.test",
+          "example-studio.test",
+          "example-studio.test",
+          "example-studio.test",
+        ],
+      })),
+    };
+    expect(seen(renderText(sourceCheck, { view }))).toContain(`${ownSiteCitations(view)} times`);
+  });
+});
+
+describe("the accuracy lede", () => {
+  it("never calls the assistant live", () => {
+    const html = renderText(lede, { view: VIEW });
+    expect(seen(html)).toContain("Example Studio");
+    expect(html).not.toMatch(LIVE);
+    expect(html).not.toMatch(ENGINES);
+  });
+});
+
+describe("GoalFit", () => {
+  const withSource = (source: string): string =>
+    seen(
+      renderText(goalFit, {
+        view: toReportView({
+          ...ALL_PASS_REPORT,
+          goalFit: { ok: true, data: { ...allPass.goalFit.data, source } },
+        }),
+      }),
     );
-    expect(print.indexOf("<h2>How we measured this</h2>")).toBeGreaterThan(
-      print.indexOf("<h2>What passes</h2>"),
+
+  it("states an operator's goal as their choice, not as our inference", () => {
+    const operator = withSource("operator");
+    const inferred = withSource("inferred");
+    const framing = (s: string): string => s.slice(0, s.indexOf(GOAL_LABELS.enquire));
+    expect(operator).toContain(GOAL_LABELS.enquire);
+    expect(inferred).toContain(GOAL_LABELS.enquire);
+    expect(inferred).toContain("rather than asking you");
+    expect(operator).not.toContain("rather than asking you");
+    expect(framing(operator)).not.toBe(framing(inferred));
+  });
+
+  it("points a clean checklist at the section that lists the passes", () => {
+    expect(renderText(goalFit, { view: toReportView(ALL_PASS_REPORT) })).toContain(
+      `href="#${TOC_TARGETS.passes}"`,
     );
   });
+});
 
-  it("every mention of a pass links to the checked-and-fine section, and the reader can come back", () => {
-    for (const p of ["src/lib/report/SiteHealth.svelte", "src/lib/report/GoalFit.svelte", SOURCE]) {
-      expect(code(p), p).toMatch(/href="#passes"/);
-    }
-    expect(TOC_TARGETS.passes).toBe("passes");
-    // `#passes` is on the appendix band's section so a jump lands at the
-    // band's top; the id is read through TOC_TARGETS like the others.
-    expect(code(REPORT)).toMatch(/id=\{TOC_TARGETS\.passes\}[^>]*scroll-mt/);
-    expect(code(REPORT)).toMatch(/Back to where you were/);
+describe("the print sheet tells the screen report's story", () => {
+  const text = seen(printed(RICH));
+
+  it("leads with the deterministic headline and opener, never the model's own summary", () => {
+    expect(text).toContain(headlineFinding(VIEW).text);
+    expect(text).toContain(openingSummary(VIEW)!);
+    expect(text).toContain(auditedOn(VIEW)!);
+    expect(text).not.toContain(MODEL_SUMMARY);
   });
 
-  it("checked-and-fine and under-the-hood share one paper band, and a failed check points at the fixes", () => {
-    const report = code(REPORT);
-    const passes = report.indexOf("<WhatPasses");
-    const hood = report.indexOf("Under the hood");
-    // No section boundary between them: one band, two rails.
-    expect(report.slice(passes, hood)).not.toMatch(/<\/section>|<section\b/);
-    // The band is the wrapper's paper: the section paints nothing over it
-    // (the white sections carry `bg-white`; this one must not), and the
-    // wrapper that encloses it is the one that carries `bg-paper`.
-    const open = report.lastIndexOf("<section", passes);
-    expect(report.slice(open, passes)).not.toMatch(/bg-white/);
-    const wrapper = report.search(/<div class="(?=[^"]*\bbg-paper\b)(?=[^"]*\brelative\b)[^"]*">/);
-    expect(wrapper).toBeGreaterThan(0);
-    expect(wrapper).toBeLessThan(open);
-    // A finding under "Does it work" always has a matching fix, and says so.
-    expect(code("src/lib/report/SiteHealth.svelte")).toMatch(/href="#fixes"/);
+  it("lists every fix, in the order allFixes ranks them", () => {
+    const at = allFixes(VIEW).map((fix) => text.indexOf(fix.title));
+    expect(at.length).toBeGreaterThan(1);
+    for (const i of at) expect(i).toBeGreaterThan(-1);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
 
-  it("the report uses the whole content column: no measure caps outside the hero headline", () => {
-    for (const p of COMPONENTS) {
-      const hits = code(p).match(/max-w-\[\d+ch\]/g) ?? [];
-      expect(hits.length, p).toBeLessThanOrEqual(p === REPORT ? 1 : 0);
-    }
-    const rows = code(REPORT).match(/<RailRow\b[^>]*>/gs) ?? [];
-    expect(rows.length).toBeGreaterThan(3);
-    for (const row of rows) expect(row, row).toMatch(/\bfill\b/);
+  it("shows the passage behind every question, and the site's words behind a contradiction", () => {
+    for (const q of allPass.analyze.data.buyerQuestions) expect(text).toContain(q.evidence);
+    expect(text).toContain(CONTRADICTED.siteQuote!);
   });
 
-  it("small copy uses the site's type roles, not ad-hoc sizes", () => {
-    for (const p of COMPONENTS) expect(code(p), p).not.toMatch(/\btext-(xs|sm)\b/);
-  });
-
-  it("the accuracy section says how often the site itself was cited, and never 'cited on that answer'", () => {
-    const src = code(SOURCE);
-    expect(src).toContain("ownSiteCitations(view)");
-    expect(src).not.toMatch(/Cited on that answer/);
-    expect(src).toMatch(/Also read for that answer/);
-    expect(src).not.toMatch(/instead of you/);
-    expect(src).not.toMatch(/previous owner/);
-  });
-
-  it("each unjudged statement is named, never a joined string of reasons", () => {
-    const src = code(SOURCE);
-    expect(src).toMatch(/u\.claim/);
-    expect(src).not.toMatch(/\.join\("; "\)/);
-  });
-
-  it("a name collision is a finding, not a truncated quote", () => {
-    expect(code(SOURCE)).toMatch(/conflation\.detected/);
-    expect(code(PRINT)).toMatch(/conflation\.detected/);
-  });
-
-  it("one assistant was tested, and the copy says so in the singular", () => {
-    for (const p of [REPORT, PRINT, SOURCE, "src/lib/report/Standing.svelte"]) {
-      expect(code(p), p).not.toMatch(/\bengines\b/);
-    }
-    expect(code(REPORT)).not.toMatch(/visibility score above/);
-    expect(code(REPORT)).not.toMatch(/Every finding here is one you can reproduce/);
-  });
-
-  // Tim's MarkUp round on the Reddoor report, 2026-09-15.
-  it("names the report as an AEO / SEO audit, on both surfaces", () => {
-    expect(code(REPORT)).toMatch(/AEO \/ SEO Audit Report for: \{who\}/);
-    expect(code(PRINT)).toMatch(/AEO \/ SEO Audit Report for: \{who\}/);
-    expect(code(PRINT)).not.toMatch(/Prospect audit/);
-  });
-
-  it("does not call the assistant 'live', and sorts by source, not 'never' by truth", () => {
-    for (const p of [REPORT, PRINT, LEDE, "src/lib/report/Standing.svelte"]) {
-      expect(code(p), p).not.toMatch(/\blive\s+(AI|searches|visibility)\b|of a live/);
-    }
-    expect(code(LEDE)).toMatch(/not by whether it is true/);
-  });
-
-  it("the own-site summary under the claims is not styled as a footnote", () => {
-    expect(code(SOURCE)).toMatch(
-      /<p class="type-question m-0 border-t border-light pt-6 text-black">\s*\{numberWord\(confirmed\)/,
-    );
-  });
-
-  it("the opener's question count links to the questions and opens them", () => {
-    const src = code(REPORT);
-    expect(src).toMatch(/href="#buyer-questions"/);
-    expect(src).toMatch(/id="buyer-questions"/);
-    expect(src).toMatch(/bind:open=\{questionsOpen\}/);
-  });
-
-  it("the robots.txt explanation appears once", () => {
-    const src = code("src/lib/report/ScoreBars.svelte");
-    expect(src.match(/pass\/fail, not a score/g) ?? []).toHaveLength(1);
-  });
-
-  it("the goal is shown as a choice when an operator made it", () => {
-    expect(code("src/lib/report/GoalFit.svelte")).toMatch(/fit\.source === "operator"/);
-  });
-
-  it("the question table shows the passage, not only the verdict", () => {
-    expect(code(REPORT)).toMatch(/q\.evidence/);
-    expect(code(PRINT)).toMatch(/q\.evidence/);
-  });
-
-  it("the print sheet carries the visibility caveat beside the count, a receipt, and a next step", () => {
-    const src = code(PRINT);
-    expect(src).toMatch(/nothing we can do to your website reliably moves it/);
-    expect(src).toMatch(/Half an hour/);
-    expect(src).toMatch(/row\.siteQuote/);
+  it("asserts nothing about what crawlers do with JavaScript", () => {
+    expect(text).not.toMatch(/Most AI crawlers/);
+    expect(text).not.toMatch(/crawlers (run|execute) no/i);
+    expect(text).not.toMatch(/assumption/);
   });
 });

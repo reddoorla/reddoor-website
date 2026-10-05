@@ -4,22 +4,26 @@ import { test, expect } from "@playwright/test";
 // debossed logo and never nothing. The endpoint and the wiring are asserted
 // separately so a regression names the layer that broke.
 
-test("the endpoint serves a PNG card and 404s an unknown slug", async ({ request }) => {
-  const ok = await request.get("/og/site/about.png");
-  expect(ok.status()).toBe(200);
-  expect(ok.headers()["content-type"]).toContain("image/png");
-  const body = await ok.body();
-  expect(Array.from(body.subarray(0, 4))).toEqual([137, 80, 78, 71]);
+test(
+  "the endpoint serves a PNG card and 404s an unknown slug",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    const ok = await request.get("/og/site/about.png");
+    expect(ok.status()).toBe(200);
+    expect(ok.headers()["content-type"]).toContain("image/png");
+    const body = await ok.body();
+    expect(Array.from(body.subarray(0, 4))).toEqual([137, 80, 78, 71]);
 
-  expect((await request.get("/og/site/nope.png")).status()).toBe(404);
-  expect((await request.get("/og/nope/about.png")).status()).toBe(404);
-});
+    expect((await request.get("/og/site/nope.png")).status()).toBe(404);
+    expect((await request.get("/og/nope/about.png")).status()).toBe(404);
+  },
+);
 
 // An industry document with no meta image advertises its generated card, and
 // satori is where a new document's title first meets a renderer. /boise is
 // red until the document is published, like every /boise check.
 for (const uid of ["medtech", "boise"]) {
-  test(`the industry card renders for ${uid}`, async ({ request }) => {
+  test(`the industry card renders for ${uid}`, { tag: "@smoke" }, async ({ request }) => {
     const res = await request.get(`/og/industry/${uid}.png`);
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toContain("image/png");
@@ -37,8 +41,11 @@ for (const [path, card] of [
   ["/boise", "/og/industry/boise.png"],
   ["/this-page-does-not-exist", "/og/site/default.png"],
 ]) {
-  test(`${path} advertises ${card}`, async ({ page }) => {
-    await page.goto(path);
+  test(`${path} advertises ${card}`, { tag: "@smoke" }, async ({ page }) => {
+    // The tags are server-rendered into <head>. Waiting for `load` would also
+    // wait on every image, which the dev server encodes per request with no
+    // cache; on /portfolio that ran past the 30s budget.
+    await page.goto(path, { waitUntil: "domcontentloaded" });
     const og = page.locator('meta[property="og:image"]');
     await expect(og).toHaveCount(1);
     const content = await og.getAttribute("content");
@@ -49,9 +56,9 @@ for (const [path, card] of [
   });
 }
 
-test("no page falls back to the debossed logo", async ({ page }) => {
+test("no page falls back to the debossed logo", { tag: "@smoke" }, async ({ page }) => {
   for (const path of ["/", "/medtech", "/about"]) {
-    await page.goto(path);
+    await page.goto(path, { waitUntil: "domcontentloaded" });
     const content = await page.locator('meta[property="og:image"]').getAttribute("content");
     expect(content).not.toContain("printedReddoor");
   }
