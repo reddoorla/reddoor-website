@@ -538,10 +538,12 @@ test("opening the modal arrests scroll without shifting the page sideways", asyn
   const after = await probe.evaluate((el) => el.getBoundingClientRect().left);
   expect(after).toBe(before);
 
-  // Scroll really is arrested.
+  // Scroll really is arrested. The layout's hydration afterNavigate can still
+  // scroll to the top on its 600ms timer here, so the wheel must never take the
+  // page further down; it may legitimately land at 0.
   const y0 = await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 600);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(y0);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(y0);
 
   // …and everything is put back on close.
   await page.keyboard.press("Escape");
@@ -568,12 +570,16 @@ test(
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect.poll(bodyOverflow).not.toBe("hidden");
-    // The trigger sits at the foot of a long fixture page, so there is always
-    // room to scroll back up once the lock is released.
-    const y1 = await page.evaluate(() => window.scrollY);
+    // Where the page sits after the click is not something to measure from: the
+    // layout's afterNavigate also fires on hydration and scrolls to the top on a
+    // 600ms timer, which can land between the click scrolling the trigger into
+    // view and any read taken here, leaving scrollY at 0 with nowhere to wheel
+    // up to. Start from the top instead. That timer only ever scrolls TO 0, so a
+    // scrollY above 0 after a downward wheel is the wheel's doing and nothing else.
+    await page.evaluate(() => window.scrollTo(0, 0));
     await expect(async () => {
-      await page.mouse.wheel(0, -600);
-      expect(await page.evaluate(() => window.scrollY)).toBeLessThan(y1);
+      await page.mouse.wheel(0, 600);
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
     }).toPass();
   },
 );

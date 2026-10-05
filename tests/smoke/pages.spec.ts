@@ -165,7 +165,9 @@ test(
     // Inbound: hash by number only should jump into the card stack.
     await page.goto("/twenty-for-twenty#02", { waitUntil: "domcontentloaded" });
     await expect(page.locator("footer")).toBeVisible();
-    // Wait for the page's $effect to fire resolveHashToScroll on mount.
+    // The hash is resolved in a mount effect that lands just before the layout
+    // stamps data-hydrated, which under load is well past 5s from DOMContentLoaded.
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
     await page.waitForFunction(() => window.scrollY > 100, { timeout: 5000 }).catch(() => {});
 
     const viewportHeight = page.viewportSize()?.height ?? 720;
@@ -188,9 +190,9 @@ test(
       .toBeGreaterThan(2);
 
     // Bogus hash should not throw and should not scroll to a card position.
-    // Navigate away first so the next goto is a full inbound navigation, then
-    // come back with the bogus hash.
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    // Leave the document first so the next goto is a full inbound navigation,
+    // then come back with the bogus hash.
+    await page.goto("about:blank");
     await page.goto("/twenty-for-twenty#99-nonexistent", {
       waitUntil: "domcontentloaded",
     });
@@ -208,14 +210,21 @@ test(
     const errors = attachConsoleWatcher(page);
 
     await page.goto("/twenty-for-twenty#02", { waitUntil: "domcontentloaded" });
+    // The page resolves its hash in a mount effect, which runs before the
+    // layout's onMount stamps data-hydrated, so hydration is the signal to wait
+    // on. DOMContentLoaded is not: with the CPU throttled 8x the hash scroll
+    // lands about 9s after it, past the whole of a default 5s poll started there.
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
     await expect
       .poll(() => page.evaluate(() => window.scrollY), {
         message: "card-2 hash should produce non-zero scroll",
       })
       .toBeGreaterThan(100);
 
-    // Navigate away first so the next goto is a full inbound navigation.
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    // Leave the document first: a goto that differs only in the hash would be a
+    // same-document fragment navigation, not a full inbound one. about:blank does
+    // that without loading a second site page (and its images) on the dev server.
+    await page.goto("about:blank");
     await page.goto("/twenty-for-twenty#99-nonexistent", { waitUntil: "domcontentloaded" });
     // The hash is resolved in an effect that has run by the time the layout
     // marks hydration, so a scroll it caused would already show.

@@ -1499,3 +1499,42 @@ Defect found in review, and how it hid. Seven scripts under `scripts/` still rea
 Belief corrected. The fleet plan assumed every site's CSP refuses to be framed by prismic.io, which the Type Builder's live preview needs. This site has allowed it on `/slice-simulator` since 2026-08-19 (`CMS_FRAMED_ROUTES`), and is the only one of 21 that does, so its `headers.ts` is the pattern the rollout ports.
 
 Still owed by the operator: the `PRISMIC_WRITE_TOKEN` Actions secret and `reddoor-maint prismic-ci reddoor-website`, then, once this reaches `main`, the Type Builder switch on `reddoor-la` with the simulator URL `https://reddoorla.com/slice-simulator`. Until the workflow exists there is no code-first way to push models from here, so do not change models on this site.
+
+## 2026-10-05 — Tests build; they don't freeze: a `@smoke` gate, `@nightly` and scaffold tiers, and four smoke races found on the way
+
+Before this change, every Playwright spec here ran inside `pnpm test` and so inside the required check, and about 60 of them pinned Tim's MarkUp numbers: the 40px pin lead-in, the 48/96 project gaps, the 40px door and its 20px offset, and the five-column grid. His weekly rounds therefore turned each design note into a CI round trip, and the operator's complaint was exactly this ("very difficult for me to make manual changes and tweaks"). The model is roalson-interests#256, and the template carries the same tiers since reddoor-starter#180.
+
+The suite went from 265 tests, all in the gate, to 281 in three tiers:
+
+- **203 `@smoke`.** These are contracts: links and their targets, the inquiry funnel, booking links, security headers, the sitemap, OG and SEO, accessible names, and AA contrast.
+- **13 `@nightly`.** These are the slideshow crossfades, the door-nav reveal and the arrow draw-in. `test:nightly` runs `--grep @nightly`, not a file list, so a spec can carry both a contract test and a timing test.
+- **The rest are scaffold.**
+
+The count went up because 16 contracts were split out of tests that mixed a contract with a pin. One example is "closing the modal lets the page scroll", out of "opening the modal arrests scroll".
+
+On the unit side, the source-text tests are gone:
+
+- The report-copy, empty-states, crawler-reach and citation-runs tests read `.svelte` files and regexed strings out of them. They now render through `src/lib/report/ssr-test-harness.ts` and assert on the HTML a reader gets.
+- `token-privacy.test.ts` regexed the GA IIFE out of `app.html`. Its coverage moved into `analytics-hostname.test.ts`, which runs that inline script in `node:vm` against a fake `location`. So "analytics never sees `/audit/`" is now executed, not grepped.
+
+**Four smoke reds, all real and none of them flakes.** The first local smoke run of the new tier failed three tests 3/3 and one intermittently. One extra fact skewed everything measured before 18:29 UTC: an orphaned vitest worker from another checkout had held about 85% of a core since 15:23. All four results were re-taken after it was killed, and each held.
+
+1. **"closing it lets the page scroll"** was new, and its premise was wrong. It assumed scrollY was above 0 after closing because the trigger sits at the foot of the page. But `+layout.svelte`'s `afterNavigate` also fires on hydration and scrolls to the top on a 600ms timer, so scrollY measured 6339 at close and 0 about 200ms later. The test now starts from the top and wheels down. The timer only ever scrolls to 0, so `scrollY > 0` can only be the wheel's doing.
+2. **"/twenty-for-twenty lands on a card from its hash"** had a race that is also on staging. It polled for 5s from DOMContentLoaded, but the hash is applied in a mount effect, which lands about 15ms before `data-hydrated`. At 8× CPU throttle that is about 9s after DOMContentLoaded. The test now waits on `html[data-hydrated]`. It also leaves via `about:blank` rather than `/`, because the home page's images were the expensive part of the round trip.
+3. **"links every featured project to a page that resolves"** was new, and it was slow. Its two `goto("/portfolio")` calls waited on `load`, which meant waiting on every featured image. In dev, vite-imagetools 6.2.9 re-encodes each variant per request with no cache, at 95–98s for all 120 variants, with single AVIF variants up to 9.5s. It now aborts `**/@imagetools/**`, waits on DOMContentLoaded and checks the targets in parallel. Alone it takes 3.3–4.7s, down from 10.7–16.8s.
+4. **portfolio-search** failed intermittently, 7/24 on the branch and 2/24 on staging. Every red was the static 500 page, logged as `[portfolio] Prismic load failed … ConnectTimeoutError … 10000ms`. The network was not the cause; curl to Prismic through the proxy was consistently fast. The cause is that sharp's AVIF encodes fill libuv's four-thread pool, and DNS lookups queue behind them:
+   - a bare-Node `dns.lookup` issued during a sharp burst took 40.6s;
+   - a GET /portfolio issued during 16 encodes returned 500 after 10.5s;
+   - with `UV_THREADPOOL_SIZE=64` the same GET returned 200 in 1.6s.
+
+   The block now aborts the imagetools requests. `playwright.config.ts` also sets `UV_THREADPOOL_SIZE=64` for the dev server the suite boots, because that is the fix for the whole class. The route-aborts only shield two specs, and any other worker loading `/` or `/about` could still starve SSR. I confirmed the variable reaches the server by reading `/proc/<vite pid>/environ`.
+
+The fixes were checked by mutation:
+
+- Leaving the root's overflow hidden after close turns test 1 red.
+- Making `scrollTo` a no-op turns test 2 red.
+- Pointing a featured link at a missing project turns test 3 red.
+
+Belief corrected: I went in expecting the reds to be load flakes worth retrying. Each one had a named mechanism, and two of them, the 600ms scroll-to-top timer and the dev-server encode starvation, are properties of this site that will bite any future test the same way.
+
+The class was closed in the same change. The `@nightly` twenty-for-twenty test had mechanism 2 (a 5s window from DOMContentLoaded), and the scaffold "arrests scroll" test had mechanism 1 (`toBe(y0)` racing the scroll-to-top timer). Both now take the same fixes: wait on hydration, and assert the wheel never moves the page further down. The sticky-label test's title had claimed "each breakpoint links every featured project", but the test collects the union of both widths. It is retitled to say what it checks.

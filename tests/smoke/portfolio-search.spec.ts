@@ -45,6 +45,22 @@ async function openPortfolio(page: Page) {
 }
 
 test.describe("portfolio archive search", () => {
+  // Nothing in this block looks at the featured imagery, and on the dev server
+  // it is the most expensive thing the page asks for. vite-imagetools re-encodes
+  // every `?as=run` variant (AVIF included) per request, with no cache, and
+  // each fresh browser context requests them all again. The encodes fill
+  // libuv's four-thread pool, and DNS lookups and file reads queue behind them:
+  // a GET /portfolio issued during a burst of 16 of them waited 10.6s and came
+  // back a 500 (`[portfolio] Prismic load failed … ConnectTimeoutError …
+  // 10000ms`), the static "Internal Error" page that never hydrates. That is
+  // the page openPortfolio was left waiting on in every red of a
+  // --repeat-each=3 of this block (7 of 24). Not requesting the images removes
+  // this block's share of that load; the archive thumbnails are imgix URLs and
+  // still load.
+  test.beforeEach(async ({ page }) => {
+    await page.route("**/@imagetools/**", (route) => route.abort());
+  });
+
   test("filters the grid by title and clears", { tag: "@smoke" }, async ({ page }) => {
     await openPortfolio(page);
     await expect(page.locator("footer")).toBeVisible();
