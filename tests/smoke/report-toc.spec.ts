@@ -61,6 +61,38 @@ test.describe("report table of contents", () => {
     }
   });
 
+  test(
+    "every named entry points at a live section, in document order",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await ready(page, 1280, 800);
+      const links = page.locator(`${NAV} a`);
+      await expect(links.first()).toBeVisible();
+      for (const link of await links.all()) await expect(link).toHaveAccessibleName(/\S/);
+
+      const hrefs = await links.evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
+      for (const href of hrefs) {
+        expect(href).toMatch(/^#[a-z-]+$/);
+        await expect(page.locator(href)).toHaveCount(1);
+      }
+      const inOrder = await page.evaluate(
+        (ids) =>
+          ids.every(
+            (id, i) =>
+              i === 0 ||
+              !!(
+                document
+                  .querySelector(ids[i - 1])!
+                  .compareDocumentPosition(document.querySelector(id)!) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+              ),
+          ),
+        hrefs,
+      );
+      expect(inOrder, `sections in the order ${hrefs.join(", ")}`).toBe(true);
+    },
+  );
+
   test("sits in the rail, sticks under the nav, and marks the current section", async ({
     page,
   }) => {
@@ -114,6 +146,36 @@ test.describe("report table of contents", () => {
     await expect(page.getByRole("button", { name: /back to where you were/i })).toBeVisible();
   });
 
+  test(
+    "an entry brings its section into view and offers one way back",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 800 });
+      // Arriving on a hash skips the layout's scroll to the top 600ms after load,
+      // which would otherwise undo a jump made inside that window.
+      await page.goto("/dev/audit-report#about");
+      await page.locator("html[data-hydrated]").waitFor();
+
+      await page.locator(`${NAV} a[href="#fixes"]`).click();
+      await expect(page.locator("#fixes")).toBeInViewport();
+      const back = page.getByRole("button", { name: /back to where you were/i });
+      await back.click();
+      await expect(back).toHaveCount(0);
+    },
+  );
+
+  test("the contents mark the section the reader is in", { tag: "@smoke" }, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/dev/audit-report#about");
+    await page.locator("html[data-hydrated]").waitFor();
+
+    // #control rather than a section near the foot, where the closing band
+    // takes over as current.
+    const control = page.locator(`${NAV} a[href="#control"]`);
+    await control.click();
+    await expect(control).toHaveAttribute("aria-current", "location");
+  });
+
   test("below lg it is one block under the hero, with every label above its content", async ({
     page,
   }) => {
@@ -153,12 +215,16 @@ test.describe("report table of contents", () => {
     }
   });
 
-  test("the nav is a named landmark and the page stays clean with it", async ({ page }) => {
-    await ready(page, 1280, 800);
-    await expect(page.getByRole("navigation", { name: "In this report" })).toHaveCount(1);
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"])
-      .analyze();
-    expect(results.violations).toEqual([]);
-  });
+  test(
+    "the nav is a named landmark and the page stays clean with it",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await ready(page, 1280, 800);
+      await expect(page.getByRole("navigation", { name: "In this report" })).toHaveCount(1);
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"])
+        .analyze();
+      expect(results.violations).toEqual([]);
+    },
+  );
 });

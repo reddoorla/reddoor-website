@@ -15,21 +15,24 @@ pnpm dev           # vite dev server (:5173)
 
 ## Scripts
 
-| Script             | What it does                                                                                              |
-| ------------------ | --------------------------------------------------------------------------------------------------------- |
-| `pnpm dev`         | Vite dev server                                                                                           |
-| `pnpm prismic:gen` | Regenerate `prismicio-types.d.ts` and the slice index from the models on disk; CI fails if they are stale |
-| `pnpm build`       | Production build (Netlify adapter; prerender fails on broken links)                                       |
-| `pnpm check`       | `svelte-check` type/diagnostic pass                                                                       |
-| `pnpm lint`        | Prettier check + ESLint                                                                                   |
-| `pnpm format`      | Prettier write                                                                                            |
-| `pnpm test`        | `test:unit` then `test:smoke` — this is what CI runs                                                      |
-| `pnpm test:unit`   | Vitest (`src/**/*.test.ts`, `scripts/**/*.test.mjs`)                                                      |
-| `pnpm test:smoke`  | Playwright behavior suite (`tests/smoke/`), installs chromium first                                       |
+| Script               | What it does                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`           | Vite dev server                                                                                           |
+| `pnpm prismic:gen`   | Regenerate `prismicio-types.d.ts` and the slice index from the models on disk; CI fails if they are stale |
+| `pnpm build`         | Production build (Netlify adapter; prerender fails on broken links)                                       |
+| `pnpm check`         | `svelte-check` type/diagnostic pass                                                                       |
+| `pnpm lint`          | Prettier check + ESLint                                                                                   |
+| `pnpm format`        | Prettier write                                                                                            |
+| `pnpm test`          | `test:unit` then `test:smoke` — this is what CI runs                                                      |
+| `pnpm test:unit`     | Vitest (`src/**/*.test.ts`, `scripts/**/*.test.mjs`)                                                      |
+| `pnpm test:smoke`    | The `@smoke` Playwright tier, the one CI gates on; installs chromium first                                |
+| `pnpm test:nightly`  | Tests tagged `@nightly` (motion and timing), run by `nightly.yml`                                         |
+| `pnpm test:scaffold` | Every Playwright test not tagged `@smoke`                                                                 |
+| `pnpm test:e2e`      | Every Playwright test                                                                                     |
 
 ## CI / gates
 
-`.github/workflows/ci.yml` calls the shared fleet workflow (`reddoorla/.github`): prettier, eslint, svelte-check, build, `pnpm test` (unit + smoke), and an axe a11y audit against `/dev/a11y-fixtures`. `.github/workflows/lighthouse.yml` additionally gates PRs on Lighthouse scores of the **Netlify deploy preview** (real prod-built routes: `/`, `/portfolio`, one detail page); a11y + best-practices are hard gates, performance is warn-only.
+`.github/workflows/ci.yml` calls the shared fleet workflow (`reddoorla/.github`): prettier, eslint, svelte-check, build, `pnpm test` (unit + the `@smoke` Playwright tier), and an axe a11y audit against `/dev/a11y-fixtures`. `.github/workflows/lighthouse.yml` additionally gates PRs on Lighthouse scores of the **Netlify deploy preview** (real prod-built routes: `/`, `/portfolio`, one detail page); a11y + best-practices are hard gates, performance is warn-only.
 
 ## Content ops
 

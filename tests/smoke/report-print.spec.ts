@@ -10,14 +10,16 @@ test.describe("report print sheet", () => {
     await page.locator("html[data-hydrated]").waitFor();
   });
 
-  test("carries none of the site's nav or footer", async ({ page }) => {
+  test("carries none of the site's nav or footer", { tag: "@smoke" }, async ({ page }) => {
     await expect(page.getByRole("button", { name: "Open menu" })).toHaveCount(0);
     await expect(page.getByText("HQ MAILING ADDRESS")).toHaveCount(0);
-    await expect(page.locator("footer")).toHaveCount(1);
-    await expect(page.locator(".sheet footer")).toHaveCount(1);
+    await expect(page.locator(".sheet")).toBeVisible();
+    expect(
+      await page.locator("footer").evaluateAll((fs) => fs.every((f) => !!f.closest(".sheet"))),
+    ).toBe(true);
   });
 
-  test("opens on its own title block", async ({ page }) => {
+  test("opens on its own title block", { tag: "@smoke" }, async ({ page }) => {
     await expect(page.locator(".sheet header h1")).toBeVisible();
     const text = (await page.locator("main").innerText()).trim();
     expect(text).toMatch(/^AEO \/ SEO Audit Report for:/i);

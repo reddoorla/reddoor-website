@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { createClient } from "@prismicio/client";
+import prismicConfig from "../../prismic.config.json" with { type: "json" };
 
 // An `industry` document is a landing page assembled from 12 slices that all
 // render through the shared RailRow grid. /medtech was the first; /boise is
@@ -52,7 +54,7 @@ async function stubReducedMotion(page: import("@playwright/test").Page) {
 
 for (const PATH of PATHS) {
   for (const vp of VIEWPORTS) {
-    test(`${PATH} has no axe violations (${vp.name})`, async ({ page }) => {
+    test(`${PATH} has no axe violations (${vp.name})`, { tag: "@smoke" }, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await stubReducedMotion(page);
       await page.goto(PATH, { waitUntil: "networkidle" });
@@ -97,23 +99,55 @@ for (const PATH of PATHS) {
     ]);
   });
 
-  test(`${PATH} has exactly one h1 and no heading-level jumps`, async ({ page }) => {
-    await page.goto(PATH, { waitUntil: "domcontentloaded" });
+  test(
+    `${PATH} renders every slice its Prismic document holds, in order`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      // The expected list comes from the document itself, so an editor adding,
+      // dropping or reordering a slice changes both sides; a slice that fails
+      // to render changes only one.
+      const doc = await createClient(prismicConfig.repositoryName).getByUID(
+        "industry",
+        PATH.slice(1),
+      );
+      const expected = doc.data.slices.map((s) => `${s.slice_type}/${s.variation}`);
+      expect(expected.length).toBeGreaterThan(0);
 
-    const levels = await page.locator("h1, h2, h3, h4, h5, h6").evaluateAll((els) =>
-      els.map((el) => ({
-        level: Number(el.tagName[1]),
-        text: (el.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 60),
-      })),
-    );
+      await page.goto(PATH, { waitUntil: "domcontentloaded" });
+      const rendered = await page
+        .locator("[data-slice-type]")
+        .evaluateAll((els) =>
+          els.map(
+            (el) =>
+              `${el.getAttribute("data-slice-type")}/${el.getAttribute("data-slice-variation")}`,
+          ),
+        );
 
-    expect(levels.filter((h) => h.level === 1)).toHaveLength(1);
+      expect(rendered).toEqual(expected);
+    },
+  );
 
-    const jumps = levels
-      .filter((h, i) => i > 0 && h.level > levels[i - 1].level + 1)
-      .map((h) => `h${h.level} after h${levels[levels.indexOf(h) - 1].level}: "${h.text}"`);
-    expect(jumps).toEqual([]);
-  });
+  test(
+    `${PATH} has exactly one h1 and no heading-level jumps`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.goto(PATH, { waitUntil: "domcontentloaded" });
+
+      const levels = await page.locator("h1, h2, h3, h4, h5, h6").evaluateAll((els) =>
+        els.map((el) => ({
+          level: Number(el.tagName[1]),
+          text: (el.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 60),
+        })),
+      );
+
+      expect(levels.filter((h) => h.level === 1)).toHaveLength(1);
+
+      const jumps = levels
+        .filter((h, i) => i > 0 && h.level > levels[i - 1].level + 1)
+        .map((h) => `h${h.level} after h${levels[levels.indexOf(h) - 1].level}: "${h.text}"`);
+      expect(jumps).toEqual([]);
+    },
+  );
 
   // A CONTENT guard, not a markup one. Prismic fills a declared thumbnail the
   // instant its asset uploads, using a crop anchored top-left (`rect=0,0,w,h`) —
@@ -126,47 +160,55 @@ for (const PATH of PATHS) {
   // must never be served Prismic's untouched auto-crop. It fails if someone
   // clears `active_background_mobile` before framing the `mobile` thumbnail —
   // which is precisely the order that breaks.
-  test(`${PATH} never serves an untouched auto-crop as the phone backdrop`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(PATH, { waitUntil: "domcontentloaded" });
+  test(
+    `${PATH} never serves an untouched auto-crop as the phone backdrop`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(PATH, { waitUntil: "domcontentloaded" });
 
-    const backdrops = page.locator('[data-slice-type="logo_grid"] picture img');
-    await backdrops.first().scrollIntoViewIfNeeded();
+      const backdrops = page.locator('[data-slice-type="logo_grid"] picture img');
+      await backdrops.first().scrollIntoViewIfNeeded();
 
-    // Every backdrop is `absolute inset-0`, so they all enter the viewport at
-    // once — but they are `loading="lazy"`, and a cold dev server can take a
-    // while to serve them. Poll rather than assume a fixed wait.
-    await expect
-      .poll(
-        () =>
-          backdrops.evaluateAll(
-            (els) => els.filter((el) => !!(el as HTMLImageElement).currentSrc).length,
-          ),
-        { timeout: 30_000 },
-      )
-      .toBeGreaterThan(0);
+      // Every backdrop is `absolute inset-0`, so they all enter the viewport at
+      // once — but they are `loading="lazy"`, and a cold dev server can take a
+      // while to serve them. Poll rather than assume a fixed wait.
+      await expect
+        .poll(
+          () =>
+            backdrops.evaluateAll(
+              (els) => els.filter((el) => !!(el as HTMLImageElement).currentSrc).length,
+            ),
+          { timeout: 30_000 },
+        )
+        .toBeGreaterThan(0);
 
-    const autoCropped = await backdrops.evaluateAll((els) =>
-      els
-        .map((el) => (el as HTMLImageElement).currentSrc)
-        .filter((src) => /[?&]rect=0(?:,|%2C)0(?:,|%2C)/.test(src))
-        .map((src) => src.split("/").pop()?.split("?")[0] ?? src),
-    );
+      const autoCropped = await backdrops.evaluateAll((els) =>
+        els
+          .map((el) => (el as HTMLImageElement).currentSrc)
+          .filter((src) => /[?&]rect=0(?:,|%2C)0(?:,|%2C)/.test(src))
+          .map((src) => src.split("/").pop()?.split("?")[0] ?? src),
+      );
 
-    expect(autoCropped).toEqual([]);
-  });
+      expect(autoCropped).toEqual([]);
+    },
+  );
 
-  test(`${PATH} ends on its own CTA slice, not the marketing footer CTA`, async ({ page }) => {
-    await page.goto(PATH, { waitUntil: "domcontentloaded" });
+  test(
+    `${PATH} ends on its own CTA slice, not the marketing footer CTA`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.goto(PATH, { waitUntil: "domcontentloaded" });
 
-    // Industry pages carry their own cta_banner slice, so the [uid] route's
-    // built-in marketing CTA is suppressed and the page doesn't end on two CTAs.
-    // (The site footer's own "Meet with Us" link is part of the layout and stays.)
-    await expect(
-      page.getByRole("heading", { name: /isn.t it time to arm your brand/i }),
-    ).toHaveCount(0);
-    await expect(page.locator('[data-slice-type="cta_banner"]')).toBeVisible();
-  });
+      // Industry pages carry their own cta_banner slice, so the [uid] route's
+      // built-in marketing CTA is suppressed and the page doesn't end on two CTAs.
+      // (The site footer's own "Meet with Us" link is part of the layout and stays.)
+      await expect(
+        page.getByRole("heading", { name: /isn.t it time to arm your brand/i }),
+      ).toHaveCount(0);
+      await expect(page.locator('[data-slice-type="cta_banner"]')).toBeVisible();
+    },
+  );
 
   test(`${PATH} renders the framework as a numbered list, not icons`, async ({ page }) => {
     await page.goto(PATH, { waitUntil: "domcontentloaded" });
@@ -182,6 +224,24 @@ for (const PATH of PATHS) {
     // Numbers are derived from position, so this also pins that ordering.
     await expect(steps.locator(".step-num")).toHaveText(["01", "02", "03"]);
   });
+
+  test(
+    `${PATH} renders the framework as an ordered list, numbered in sequence`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.goto(PATH, { waitUntil: "domcontentloaded" });
+
+      const steps = page.locator('[data-slice-variation="iconColumns"] ol > li');
+      await expect(steps).not.toHaveCount(0);
+      const count = await steps.count();
+      const nums = await steps
+        .locator(".step-num")
+        .evaluateAll((els) =>
+          els.map((el) => parseInt((el.textContent ?? "").replace(/\D/g, ""), 10)),
+        );
+      expect(nums).toEqual(Array.from({ length: count }, (_, i) => i + 1));
+    },
+  );
 }
 
 // Whether the arrow is joined is a claim about rendered INK, not about the box
@@ -502,95 +562,124 @@ for (const vp of VIEWPORTS) {
 // left to transition, so no transitionend, so the copy fell back to its timer
 // rather than following the arrow. `copyFollowedTheArrow` is what catches that:
 // the release has to coincide with the chevron landing, not arrive late.
-test(`${PINNED_PATH} draws each arrow before its copy fills in`, async ({ page }) => {
-  test.setTimeout(90_000);
-  // The suite runs reduced-motion, under which this sequence correctly does not
-  // exist at all: both the draw and the fill bail out and the step renders
-  // finished. Opt this one test back into motion, or it asserts nothing.
-  //
-  // (Playwright's `reducedMotion` DOES reach window.matchMedia on 1.62 —
-  // verified here. The note above stubReducedMotion says otherwise and is out
-  // of date; that stub is now belt-and-braces rather than load-bearing.)
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
+test(
+  `${PINNED_PATH} draws each arrow before its copy fills in`,
+  { tag: "@nightly" },
+  async ({ page }) => {
+    test.setTimeout(90_000);
+    // The suite runs reduced-motion, under which this sequence correctly does not
+    // exist at all: both the draw and the fill bail out and the step renders
+    // finished. Opt this one test back into motion, or it asserts nothing.
+    //
+    // (Playwright's `reducedMotion` DOES reach window.matchMedia on 1.62 —
+    // verified here. The note above stubReducedMotion says otherwise and is out
+    // of date; that stub is now belt-and-braces rather than load-bearing.)
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
 
-  // Sampling starts before the rail is reached so no transition is missed.
-  await page.evaluate(() => {
-    const w = window as unknown as Record<string, unknown>;
-    w.__rec = {} as Record<number, unknown>;
-    const t0 = performance.now();
-    const tick = () => {
-      const rec = w.__rec as Record<number, Record<string, unknown>>;
-      document.querySelectorAll(".step").forEach((el, i) => {
-        const r = (rec[i] ??= { start: null, armed: null, released: null, copyEarly: false });
-        const now = performance.now() - t0;
-        const body = el.querySelector(".step-body") as HTMLElement | null;
-        const chevron = [...el.querySelectorAll(".step-arrow-head")].find(
-          (n) => getComputedStyle(n).display !== "none",
-        );
-        if (el.getAttribute("data-draw") === "in" && r.start === null) r.start = now;
-        if (r.start !== null && r.armed === null && chevron)
-          if (Number(getComputedStyle(chevron).opacity) === 1) r.armed = now;
-        // `data-copy` flips the moment the copy is released, whatever the fill
-        // then costs — so this measures the handoff, not the fade.
-        if (r.released === null && el.getAttribute("data-copy") === "in") r.released = now;
-        // Was the copy already fully on screen while the arrow was drawing?
-        if (r.start !== null && r.armed === null && body)
-          if (Number(getComputedStyle(body).opacity) === 1) r.copyEarly = true;
-      });
-      w.__raf = requestAnimationFrame(tick);
-    };
-    tick();
-  });
+    // Sampling starts before the rail is reached so no transition is missed.
+    await page.evaluate(() => {
+      const w = window as unknown as Record<string, unknown>;
+      w.__rec = {} as Record<number, unknown>;
+      const t0 = performance.now();
+      const tick = () => {
+        const rec = w.__rec as Record<number, Record<string, unknown>>;
+        document.querySelectorAll(".step").forEach((el, i) => {
+          const r = (rec[i] ??= { start: null, armed: null, released: null, copyEarly: false });
+          const now = performance.now() - t0;
+          const body = el.querySelector(".step-body") as HTMLElement | null;
+          const chevron = [...el.querySelectorAll(".step-arrow-head")].find(
+            (n) => getComputedStyle(n).display !== "none",
+          );
+          if (el.getAttribute("data-draw") === "in" && r.start === null) r.start = now;
+          if (r.start !== null && r.armed === null && chevron)
+            if (Number(getComputedStyle(chevron).opacity) === 1) r.armed = now;
+          // `data-copy` flips the moment the copy is released, whatever the fill
+          // then costs — so this measures the handoff, not the fade.
+          if (r.released === null && el.getAttribute("data-copy") === "in") r.released = now;
+          // Was the copy already fully on screen while the arrow was drawing?
+          if (r.start !== null && r.armed === null && body)
+            if (Number(getComputedStyle(body).opacity) === 1) r.copyEarly = true;
+        });
+        w.__raf = requestAnimationFrame(tick);
+      };
+      tick();
+    });
 
-  const steps = page.locator(".step");
-  const count = await steps.count();
-  for (let i = 0; i < count; i++) {
-    await steps
-      .nth(i)
-      .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
-    // Room for the staggered draw (~1.2s at the last step) and the 1s fill.
-    await page.waitForTimeout(4000);
-  }
+    const steps = page.locator(".step");
+    const count = await steps.count();
+    for (let i = 0; i < count; i++) {
+      await steps
+        .nth(i)
+        .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+      // Room for the staggered draw (~1.2s at the last step) and the 1s fill.
+      await page.waitForTimeout(4000);
+    }
 
-  const rec = (await page.evaluate(() => {
-    const w = window as unknown as Record<string, unknown>;
-    cancelAnimationFrame(w.__raf as number);
-    return w.__rec;
-  })) as Record<
-    number,
-    { start: number | null; armed: number | null; released: number | null; copyEarly: boolean }
-  >;
+    const rec = (await page.evaluate(() => {
+      const w = window as unknown as Record<string, unknown>;
+      cancelAnimationFrame(w.__raf as number);
+      return w.__rec;
+    })) as Record<
+      number,
+      { start: number | null; armed: number | null; released: number | null; copyEarly: boolean }
+    >;
 
-  const verdicts = Array.from({ length: count }, (_, i) => {
-    const r = rec[i];
-    const step = `step ${i + 1}`;
-    if (!r || r.start === null) return `${step}: arrow never drew`;
-    if (r.armed === null) return `${step}: chevron never landed`;
-    if (r.released === null) return `${step}: copy never appeared`;
-    if (r.copyEarly) return `${step}: copy was already visible during the draw`;
-    // One frame of slack: both are observed by sampling, not by the clock.
-    if (r.released < r.armed - 16) return `${step}: copy released before the chevron landed`;
-    // Following the arrow means landing with it, not on the 2500ms fallback.
-    if (r.released > r.armed + 600)
-      return `${step}: copy lagged the chevron by ${Math.round(r.released - r.armed)}ms`;
-    return `${step}: ok`;
-  });
+    const verdicts = Array.from({ length: count }, (_, i) => {
+      const r = rec[i];
+      const step = `step ${i + 1}`;
+      if (!r || r.start === null) return `${step}: arrow never drew`;
+      if (r.armed === null) return `${step}: chevron never landed`;
+      if (r.released === null) return `${step}: copy never appeared`;
+      if (r.copyEarly) return `${step}: copy was already visible during the draw`;
+      // One frame of slack: both are observed by sampling, not by the clock.
+      if (r.released < r.armed - 16) return `${step}: copy released before the chevron landed`;
+      // Following the arrow means landing with it, not on the 2500ms fallback.
+      if (r.released > r.armed + 600)
+        return `${step}: copy lagged the chevron by ${Math.round(r.released - r.armed)}ms`;
+      return `${step}: ok`;
+    });
 
-  expect(verdicts).toEqual(Array.from({ length: count }, (_, i) => `step ${i + 1}: ok`));
-});
+    expect(verdicts).toEqual(Array.from({ length: count }, (_, i) => `step ${i + 1}: ok`));
+  },
+);
 
-test(`${PINNED_PATH} does not announce the decorative step numbers`, async ({ page }) => {
-  await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
+test(
+  `${PINNED_PATH} reveals every step's copy once it is scrolled to`,
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // Under the suite's reduced motion the copy is never hidden, so this opts
+    // back into motion to exercise the hidden state and its release.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    // Arriving on a hash skips the layout's scroll to the top 600ms after
+    // load, which would otherwise undo the scrolls below.
+    await page.goto(`${PINNED_PATH}#main-content`, { waitUntil: "domcontentloaded" });
+    await page.locator("html[data-hydrated]").waitFor();
 
-  // The <ol> already conveys the sequence. If the number + arrow were exposed
-  // too, every step would be read as "01 The Diagnosis" inside an
-  // already-numbered list. Asserted on the head rather than the rendered text
-  // because aria-hidden content still shows up in textContent.
-  const heads = page.locator('[data-slice-variation="iconColumns"] ol > li .step-head');
-  await expect(heads).toHaveCount(3);
-  for (let i = 0; i < 3; i++) {
-    await expect(heads.nth(i)).toHaveAttribute("aria-hidden", "true");
-  }
-});
+    const steps = page.locator('[data-slice-variation="iconColumns"] ol > li');
+    await expect(steps).not.toHaveCount(0);
+    for (const step of await steps.all()) {
+      await step.scrollIntoViewIfNeeded();
+      await expect(step.locator(".step-body")).not.toHaveCSS("opacity", "0", { timeout: 10_000 });
+    }
+  },
+);
+
+test(
+  `${PINNED_PATH} does not announce the decorative step numbers`,
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await page.goto(PINNED_PATH, { waitUntil: "domcontentloaded" });
+
+    // The <ol> already conveys the sequence. If the number + arrow were exposed
+    // too, every step would be read as "01 The Diagnosis" inside an
+    // already-numbered list. Asserted on the head rather than the rendered text
+    // because aria-hidden content still shows up in textContent.
+    const heads = page.locator('[data-slice-variation="iconColumns"] ol > li .step-head');
+    await expect(heads).not.toHaveCount(0);
+    for (const head of await heads.all()) {
+      await expect(head).toHaveAttribute("aria-hidden", "true");
+    }
+  },
+);

@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
 const TOKEN = process.env.E2E_AUDIT_TOKEN ?? "";
 const KEY = process.env.E2E_REPORT_EDIT_KEY ?? "";
 
-test.describe("edit mode", () => {
+test.describe("edit mode", { tag: "@smoke" }, () => {
   test.skip(!TOKEN, "set E2E_AUDIT_TOKEN to run edit-mode tests");
 
   // The control for the two below: if the report route itself were broken,

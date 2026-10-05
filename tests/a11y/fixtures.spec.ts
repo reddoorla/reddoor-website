@@ -10,7 +10,7 @@ import { a11yRoutes } from "@reddoorla/maintenance/configs/playwright-a11y";
 // On failure we assert against a readable summary (rule id + help + node count)
 // rather than the raw violation objects, so the diff names the problem instead
 // of dumping DOM.
-test.describe("axe-core accessibility (dev fixtures)", () => {
+test.describe("axe-core accessibility (dev fixtures)", { tag: "@smoke" }, () => {
   for (const route of a11yRoutes) {
     test(`${route.name} (${route.path}) has no axe violations`, async ({ page }) => {
       const response = await page.goto(route.path, { waitUntil: "networkidle" });

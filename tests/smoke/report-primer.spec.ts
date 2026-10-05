@@ -95,6 +95,37 @@ test.describe("report primer", () => {
     await expect(first).toHaveAttribute("aria-current", "location");
   });
 
+  test(
+    "opens the document with the fixture's own story of the audit, reachable from the contents",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await ready(page, 1280, 800);
+      const about = page.locator("#about");
+      await expect(about.locator("h2")).toHaveText("What this report is");
+      // Before the first finding, in document order.
+      expect(
+        await page.evaluate(
+          () =>
+            !!(
+              document
+                .querySelector("#about")!
+                .compareDocumentPosition(document.querySelector("#ai-says")!) &
+              Node.DOCUMENT_POSITION_FOLLOWING
+            ),
+        ),
+      ).toBe(true);
+
+      const text = (await about.innerText()).replace(/\s+/g, " ");
+      expect(text).toContain("taken on September 3, 2026");
+      expect(text).toContain("ran 70 named checks");
+      expect(text).toContain("read your robots.txt as eight AI crawlers would");
+      expect(text).toContain("ask an assistant about Example Studio");
+
+      const entry = page.locator(NAV).getByRole("link", { name: "What this report is" });
+      await expect(entry).toHaveAttribute("href", "#about");
+    },
+  );
+
   test("below lg it follows the contents list on the same paper, before the first finding", async ({
     page,
   }) => {

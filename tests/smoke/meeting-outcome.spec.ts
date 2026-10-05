@@ -43,7 +43,7 @@ async function gotoHydrated(page: Page, path: string) {
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
 }
 
-test("prefills from the trigger link and carries the key", async ({ page }) => {
+test("prefills from the trigger link and carries the key", { tag: "@smoke" }, async ({ page }) => {
   const { posts, stray } = await stub(page);
   await gotoHydrated(page, PATH);
 
@@ -62,7 +62,7 @@ test("prefills from the trigger link and carries the key", async ({ page }) => {
   expect(stray).toEqual([]);
 });
 
-test("the lead-value field appears only for a sale", async ({ page }) => {
+test("the lead-value field appears only for a sale", { tag: "@smoke" }, async ({ page }) => {
   await stub(page);
   await gotoHydrated(page, PATH);
 
@@ -73,21 +73,25 @@ test("the lead-value field appears only for a sale", async ({ page }) => {
   await expect(page.locator("#mo-value")).toHaveCount(0);
 });
 
-test("a lead value is not sent for an outcome that is not a sale", async ({ page }) => {
-  // The field is hidden, but its value persists in state — sending it would put
-  // a deal size on a no-show.
-  const { posts } = await stub(page);
-  await gotoHydrated(page, PATH);
+test(
+  "a lead value is not sent for an outcome that is not a sale",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // The field is hidden, but its value persists in state — sending it would put
+    // a deal size on a no-show.
+    const { posts } = await stub(page);
+    await gotoHydrated(page, PATH);
 
-  await page.locator("#mo-outcome").selectOption("Sold!");
-  await page.locator("#mo-value").fill("12000");
-  await page.locator("#mo-outcome").selectOption("No Show");
-  await page.getByRole("button", { name: "Save outcome" }).click();
+    await page.locator("#mo-outcome").selectOption("Sold!");
+    await page.locator("#mo-value").fill("12000");
+    await page.locator("#mo-outcome").selectOption("No Show");
+    await page.getByRole("button", { name: "Save outcome" }).click();
 
-  expect(posts[0].leadValue).toBe("");
-});
+    expect(posts[0].leadValue).toBe("");
+  },
+);
 
-test("says plainly which notes the client reads", async ({ page }) => {
+test("says plainly which notes the client reads", { tag: "@smoke" }, async ({ page }) => {
   // The one mistake on this form that cannot be taken back.
   await stub(page);
   await gotoHydrated(page, PATH);
@@ -99,19 +103,23 @@ test("says plainly which notes the client reads", async ({ page }) => {
   await expect(page.getByText(/goes to the client verbatim/)).toBeVisible();
 });
 
-test("a recap email cannot be requested with nothing to send", async ({ page }) => {
-  const { posts } = await stub(page);
-  await gotoHydrated(page, PATH);
+test(
+  "a recap email cannot be requested with nothing to send",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { posts } = await stub(page);
+    await gotoHydrated(page, PATH);
 
-  await page.locator("#mo-outcome").selectOption("Sold!");
-  await page.getByLabel("Send the client a conversation recap").check();
-  await page.getByRole("button", { name: "Save outcome" }).click();
+    await page.locator("#mo-outcome").selectOption("Sold!");
+    await page.getByLabel("Send the client a conversation recap").check();
+    await page.getByRole("button", { name: "Save outcome" }).click();
 
-  await expect(page.getByRole("alert")).toContainText("needs recap notes");
-  expect(posts).toHaveLength(0);
-});
+    await expect(page.getByRole("alert")).toContainText("needs recap notes");
+    expect(posts).toHaveLength(0);
+  },
+);
 
-test("an outcome is required", async ({ page }) => {
+test("an outcome is required", { tag: "@smoke" }, async ({ page }) => {
   const { posts } = await stub(page);
   await gotoHydrated(page, PATH);
   await page.getByRole("button", { name: "Save outcome" }).click();
@@ -119,21 +127,25 @@ test("an outcome is required", async ({ page }) => {
   expect(posts).toHaveLength(0);
 });
 
-test("an unknown contact is reported, not silently swallowed", async ({ page }) => {
-  // Surfaced here, unlike on the public resubscribe form: the user is a
-  // colleague who can fix a typo, not a stranger who could enumerate the CRM.
-  await stub(page, {
-    status: 404,
-    body: { error: "No contact in the CRM has that email address." },
-  });
-  await gotoHydrated(page, PATH);
+test(
+  "an unknown contact is reported, not silently swallowed",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // Surfaced here, unlike on the public resubscribe form: the user is a
+    // colleague who can fix a typo, not a stranger who could enumerate the CRM.
+    await stub(page, {
+      status: 404,
+      body: { error: "No contact in the CRM has that email address." },
+    });
+    await gotoHydrated(page, PATH);
 
-  await page.locator("#mo-outcome").selectOption("No Show");
-  await page.getByRole("button", { name: "Save outcome" }).click();
-  await expect(page.getByRole("alert")).toContainText("No contact in the CRM");
-});
+    await page.locator("#mo-outcome").selectOption("No Show");
+    await page.getByRole("button", { name: "Save outcome" }).click();
+    await expect(page.getByRole("alert")).toContainText("No contact in the CRM");
+  },
+);
 
-test("warns that the recap send is not wired yet", async ({ page }) => {
+test("warns that the recap send is not wired yet", { tag: "@smoke" }, async ({ page }) => {
   // The A-102 trigger gap applies here too: the recap is a workflow keyed to a
   // form submission this page cannot fire. Saying so beats a silent no-op.
   await stub(page, { body: { success: true, name: "Dana Buyer", sendRecap: true } });
@@ -147,7 +159,7 @@ test("warns that the recap send is not wired yet", async ({ page }) => {
   await expect(page.getByText(/can’t fire yet/)).toBeVisible();
 });
 
-test("stays out of search results and out of Referer", async ({ page }) => {
+test("stays out of search results and out of Referer", { tag: "@smoke" }, async ({ page }) => {
   // The key is in the query string.
   await stub(page);
   await gotoHydrated(page, PATH);
@@ -155,7 +167,7 @@ test("stays out of search results and out of Referer", async ({ page }) => {
   await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "no-referrer");
 });
 
-test("has no accessibility violations", async ({ page }) => {
+test("has no accessibility violations", { tag: "@smoke" }, async ({ page }) => {
   await stub(page);
   // Set per-test: playwright.config.ts's `use: { reducedMotion }` does not
   // reach the page on 1.62.1 — see schedule.spec.ts for the measurement.
@@ -181,7 +193,7 @@ test("has no accessibility violations", async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
-test("says when the calendar was updated too", async ({ page }) => {
+test("says when the calendar was updated too", { tag: "@smoke" }, async ({ page }) => {
   // Erik's report, 2026-08-19: the post-call text fires on a timer, so it
   // reaches people the call never happened with. The tag alone did not stop
   // that — the CRM's no-show handling keys off the APPOINTMENT status.
@@ -195,26 +207,28 @@ test("says when the calendar was updated too", async ({ page }) => {
   await expect(page.getByText(/marked as a no-show in the calendar/)).toBeVisible();
 });
 
-test("a failed calendar write asks for a hand fix, without claiming the log failed", async ({
-  page,
-}) => {
-  await stub(page, {
-    body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: false },
-  });
-  await gotoHydrated(page, PATH);
+test(
+  "a failed calendar write asks for a hand fix, without claiming the log failed",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stub(page, {
+      body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: false },
+    });
+    await gotoHydrated(page, PATH);
 
-  await page.locator("#mo-outcome").selectOption("No Show");
-  await page.getByRole("button", { name: "Save outcome" }).click();
+    await page.locator("#mo-outcome").selectOption("No Show");
+    await page.getByRole("button", { name: "Save outcome" }).click();
 
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Logged");
-  // Phrases chosen to sit within one source line: getByText normalises
-  // whitespace for string matches but NOT for regex ones, so a pattern that
-  // spans a line break in the markup never matches.
-  await expect(page.getByText(/above did save/)).toBeVisible();
-  await expect(page.getByText(/set it by hand/)).toBeVisible();
-});
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Logged");
+    // Phrases chosen to sit within one source line: getByText normalises
+    // whitespace for string matches but NOT for regex ones, so a pattern that
+    // spans a line break in the markup never matches.
+    await expect(page.getByText(/above did save/)).toBeVisible();
+    await expect(page.getByText(/set it by hand/)).toBeVisible();
+  },
+);
 
-test("a sale is marked attended, not offered a reschedule", async ({ page }) => {
+test("a sale is marked attended, not offered a reschedule", { tag: "@smoke" }, async ({ page }) => {
   // The status drives Z-002-2. Marking a won call as a no-show would invite
   // someone to reschedule a conversation they just bought from.
   await stub(page, {
@@ -228,13 +242,17 @@ test("a sale is marked attended, not offered a reschedule", async ({ page }) => 
   await expect(page.getByText(/no-show/)).toHaveCount(0);
 });
 
-test("says nothing about the calendar when there was nothing to settle", async ({ page }) => {
-  await stub(page, {
-    body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: null },
-  });
-  await gotoHydrated(page, PATH);
+test(
+  "says nothing about the calendar when there was nothing to settle",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stub(page, {
+      body: { success: true, name: "Dana Buyer", sendRecap: false, attendanceSynced: null },
+    });
+    await gotoHydrated(page, PATH);
 
-  await page.locator("#mo-outcome").selectOption("Sold!");
-  await page.getByRole("button", { name: "Save outcome" }).click();
-  await expect(page.getByText(/calendar/)).toHaveCount(0);
-});
+    await page.locator("#mo-outcome").selectOption("Sold!");
+    await page.getByRole("button", { name: "Save outcome" }).click();
+    await expect(page.getByText(/calendar/)).toHaveCount(0);
+  },
+);

@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { createContext, runInContext } from "node:vm";
 import { SITE_URL } from "./site";
 
 /**
- * Analytics measures production, and nothing else.
+ * Analytics measures production, and nothing else — and never a URL that is
+ * itself a credential.
  *
  * `app.html` is one file shipped to every environment, so the tag it carries
  * runs under `vite dev`, on every Netlify deploy preview and on staging as
@@ -13,40 +15,116 @@ import { SITE_URL } from "./site";
  * `localhost`, and the maintenance report mailed that out as a 510% rise.
  * Real traffic over the same window was 87, and falling.
  *
- * Asserted against the file as text for the reason token-privacy.test.ts
- * gives: the script is a bare inline IIFE with nothing to import.
+ * A report URL *is* its credential, and gtag reads `location.href`, so the tag
+ * must also stay away from `/audit/`. (The other channel that reads the URL
+ * automatically, the Referer header, is covered by load.test.ts and the smoke
+ * suite's `meta[name="referrer"]` checks.)
+ *
+ * The tag is an inline script with nothing to import, so these run app.html's
+ * inline scripts in a vm against a stub of the few browser globals they touch,
+ * and observe what a browser would: whether gtag.js gets requested.
  */
-const APP_HTML = readFileSync("src/app.html", "utf-8");
+const INLINE_SCRIPTS = [
+  ...readFileSync("src/app.html", "utf-8").matchAll(
+    /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g,
+  ),
+]
+  .map((m) => m[1]!)
+  .filter((s) => s.includes("googletagmanager"));
 
-const measuredHosts = (): string[] => {
-  const list = APP_HTML.match(/var MEASURED_HOSTS = \[([^\]]*)\]/)?.[1] ?? "";
-  return [...list.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
-};
+type Listener = { type: string; fn: () => void };
+
+function open(href: string) {
+  const url = new URL(href);
+  const location = { hostname: url.hostname, pathname: url.pathname };
+  const listeners: Listener[] = [];
+  const requested: string[] = [];
+  const window = {
+    location,
+    document: {
+      createElement: () => ({}),
+      head: { appendChild: (el: { src?: string }) => requested.push(el.src ?? "") },
+    },
+    addEventListener: (type: string, fn: () => void) => listeners.push({ type, fn }),
+    removeEventListener: (type: string, fn: () => void) => {
+      const i = listeners.findIndex((l) => l.type === type && l.fn === fn);
+      if (i !== -1) listeners.splice(i, 1);
+    },
+  };
+  // In a browser `window` is the global object, so it is the vm's global too.
+  const context = createContext(Object.assign(window, { window }));
+  for (const script of INLINE_SCRIPTS) runInContext(script, context);
+
+  return {
+    /** A client-side navigation: same document, same listeners, new path. */
+    navigate: (pathname: string) => {
+      location.pathname = pathname;
+    },
+    pointerdown: () => {
+      for (const l of listeners.filter((l) => l.type === "pointerdown")) l.fn();
+    },
+    loadsGA: () =>
+      requested.some((src) => new URL(src, url).hostname.endsWith("googletagmanager.com")),
+  };
+}
 
 describe("the analytics tag only loads on the production host", () => {
-  it("measures the canonical origin, so the tag and $lib/site.ts cannot drift", () => {
-    expect(measuredHosts()).toContain(new URL(SITE_URL).hostname);
+  it("measures the canonical origin ($lib/site.ts) on the first interaction, and not before", () => {
+    // Not before: $lib/url/stripQueryParams.ts relies on that ordering to get a
+    // lead's address out of the URL before gtag can read it.
+    const page = open(SITE_URL);
+    expect(page.loadsGA()).toBe(false);
+    page.pointerdown();
+    expect(page.loadsGA()).toBe(true);
   });
 
-  it("measures nothing else — not a laptop, a preview or staging", () => {
-    for (const host of measuredHosts()) {
-      expect(host).not.toMatch(/localhost|127\.0\.0\.1|netlify\.app|^staging\./);
+  it("measures nothing else — not a laptop, a preview, staging or a lookalike", () => {
+    // `staging.reddoorla.com` and `evilreddoorla.com` both end with the
+    // production domain; a suffix test would measure them.
+    for (const href of [
+      "http://localhost:5173/",
+      "http://127.0.0.1:4173/",
+      "https://deploy-preview-1--reddoorla.netlify.app/",
+      "https://staging--reddoorla.netlify.app/",
+      "https://reddoorla.netlify.app/",
+      "https://staging.reddoorla.com/",
+      "https://evilreddoorla.com/",
+    ]) {
+      const page = open(href);
+      page.pointerdown();
+      expect(page.loadsGA(), href).toBe(false);
+    }
+  });
+});
+
+describe("analytics must not see a credential-bearing URL", () => {
+  it("never loads on a report or its print view", () => {
+    for (const href of [
+      "https://reddoorla.com/audit/tok",
+      "https://reddoorla.com/audit/tok/print",
+    ]) {
+      const page = open(href);
+      page.pointerdown();
+      expect(page.loadsGA(), href).toBe(false);
     }
   });
 
-  it("checks the host before it fetches gtag.js", () => {
-    const loadGA = APP_HTML.slice(APP_HTML.indexOf("function loadGA()"));
-    const body = loadGA.slice(0, loadGA.indexOf("\n        }"));
-    expect(body).toContain("hostIsMeasured()");
-    expect(body.indexOf("hostIsMeasured()")).toBeLessThan(body.indexOf("googletagmanager"));
+  it("checks the path the reader is on when gtag would load, not the one they landed on", () => {
+    const page = open("https://reddoorla.com/");
+    page.navigate("/audit/tok");
+    page.pointerdown();
+    expect(page.loadsGA()).toBe(false);
   });
 
-  it("matches a whole hostname, so a subdomain of production cannot slip in", () => {
-    // `staging.reddoorla.com` ends with the production domain. A suffix test
-    // would measure it; list membership will not.
-    const fn = APP_HTML.slice(APP_HTML.indexOf("function hostIsMeasured()"));
-    const body = fn.slice(0, fn.indexOf("\n        }"));
-    expect(body).toContain("MEASURED_HOSTS.indexOf(location.hostname) !== -1");
-    expect(body).not.toMatch(/endsWith|slice|substring/);
+  // The subtle half. This is a SPA: a reader can navigate from a report to an
+  // ordinary page in the same document. If the bail latched or removed the
+  // listeners, analytics would stay dead for the rest of the session.
+  it("bails WITHOUT latching, so analytics still starts if they navigate onward", () => {
+    const page = open("https://reddoorla.com/audit/tok");
+    page.pointerdown();
+    expect(page.loadsGA()).toBe(false);
+    page.navigate("/");
+    page.pointerdown();
+    expect(page.loadsGA()).toBe(true);
   });
 });

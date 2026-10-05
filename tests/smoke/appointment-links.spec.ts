@@ -93,7 +93,7 @@ async function gotoHydrated(page: Page, path: string) {
 
 test.use({ timezoneId: "America/Los_Angeles" });
 
-test.describe("reschedule", () => {
+test.describe("reschedule", { tag: "@smoke" }, () => {
   test("shows the current time in the visitor's zone and moves it", async ({ page }) => {
     const { posts } = await stub(page);
     await gotoHydrated(page, `/reschedule/${EVENT}`);
@@ -156,7 +156,7 @@ test.describe("reschedule", () => {
   });
 });
 
-test.describe("cancel", () => {
+test.describe("cancel", { tag: "@smoke" }, () => {
   test("does NOT cancel on load — only on an explicit press", async ({ page }) => {
     // The id arrives in an email. A GET that cancelled would be fired by the
     // first link scanner or inbox preview to touch the message.
@@ -194,7 +194,7 @@ test.describe("cancel", () => {
   });
 });
 
-test.describe("add to calendar", () => {
+test.describe("add to calendar", { tag: "@smoke" }, () => {
   test("offers all three hand-offs as server routes", async ({ page }) => {
     await stub(page);
     await gotoHydrated(page, `/calendar/${EVENT}`);
@@ -224,7 +224,7 @@ test.describe("add to calendar", () => {
   });
 });
 
-test.describe("across all three", () => {
+test.describe("across all three", { tag: "@smoke" }, () => {
   for (const path of ["reschedule", "cancel", "calendar"]) {
     test(`/${path} stays out of search indexes and out of Referer`, async ({ page }) => {
       await stub(page);

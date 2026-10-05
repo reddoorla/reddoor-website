@@ -49,7 +49,7 @@ const ROUTES = [
 ];
 
 for (const path of ROUTES) {
-  test(`${path} loads with no console errors`, async ({ page }) => {
+  test(`${path} loads with no console errors`, { tag: "@smoke" }, async ({ page }) => {
     const errors = attachConsoleWatcher(page);
     const response = await page.goto(path, { waitUntil: "domcontentloaded" });
     expect(response?.status(), `HTTP status for ${path}`).toBe(200);
@@ -59,7 +59,7 @@ for (const path of ROUTES) {
   });
 }
 
-test("portfolio detail page loads with no console errors", async ({ page }) => {
+test("portfolio detail page loads with no console errors", { tag: "@smoke" }, async ({ page }) => {
   const errors = attachConsoleWatcher(page);
   await page.goto("/portfolio", { waitUntil: "domcontentloaded" });
   const firstProjectHref = await page
@@ -79,44 +79,48 @@ test("portfolio detail page loads with no console errors", async ({ page }) => {
   expect(errors, `console errors on ${firstProjectHref}`).toEqual([]);
 });
 
-test("layout survives a missing screen.orientation (old iOS Safari)", async ({ browser }) => {
-  // On some iOS Safari versions `screen.orientation` is undefined. The layout's
-  // LandscapeModal read `screen.orientation.type` unguarded, so it threw inside
-  // a Svelte $effect — which kills the effect scheduler for the whole page.
-  // Simulate that environment (landscape phone, orientation API absent) and
-  // assert the page still mounts cleanly with no thrown error.
-  const context = await browser.newContext({
-    viewport: { width: 844, height: 390 }, // a phone held in landscape
-    userAgent:
-      "Mozilla/5.0 (iPhone; CPU iPhone OS 13_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/604.1",
-  });
-  try {
-    const page = await context.newPage();
-    await page.addInitScript(() => {
-      try {
-        Object.defineProperty(window.screen, "orientation", {
-          configurable: true,
-          get: () => undefined,
-        });
-      } catch {
-        /* platform won't let us override it; test still loads the page */
-      }
+test(
+  "layout survives a missing screen.orientation (old iOS Safari)",
+  { tag: "@smoke" },
+  async ({ browser }) => {
+    // On some iOS Safari versions `screen.orientation` is undefined. The layout's
+    // LandscapeModal read `screen.orientation.type` unguarded, so it threw inside
+    // a Svelte $effect — which kills the effect scheduler for the whole page.
+    // Simulate that environment (landscape phone, orientation API absent) and
+    // assert the page still mounts cleanly with no thrown error.
+    const context = await browser.newContext({
+      viewport: { width: 844, height: 390 }, // a phone held in landscape
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 13_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Mobile/15E148 Safari/604.1",
     });
-    const errors = attachConsoleWatcher(page);
-    const response = await page.goto("/", { waitUntil: "domcontentloaded" });
-    expect(response?.status()).toBe(200);
-    // The footer is SSR markup, so its visibility says nothing about hydration.
-    // Wait for the layout's onMount hydration marker — by then the $effect that
-    // reads screen.orientation has run (effects flush before onMount), so any
-    // throw has already been captured.
-    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 10_000 });
-    expect(errors, "no error from unguarded screen.orientation access").toEqual([]);
-  } finally {
-    await context.close();
-  }
-});
+    try {
+      const page = await context.newPage();
+      await page.addInitScript(() => {
+        try {
+          Object.defineProperty(window.screen, "orientation", {
+            configurable: true,
+            get: () => undefined,
+          });
+        } catch {
+          /* platform won't let us override it; test still loads the page */
+        }
+      });
+      const errors = attachConsoleWatcher(page);
+      const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+      expect(response?.status()).toBe(200);
+      // The footer is SSR markup, so its visibility says nothing about hydration.
+      // Wait for the layout's onMount hydration marker — by then the $effect that
+      // reads screen.orientation has run (effects flush before onMount), so any
+      // throw has already been captured.
+      await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 10_000 });
+      expect(errors, "no error from unguarded screen.orientation access").toEqual([]);
+    } finally {
+      await context.close();
+    }
+  },
+);
 
-test("404 page renders the custom error component", async ({ page }) => {
+test("404 page renders the custom error component", { tag: "@smoke" }, async ({ page }) => {
   // The browser logs a top-level "Failed to load resource: 404" for the page
   // itself — that's expected on a 404 route, not a bug. Allow it locally.
   const errors = attachConsoleWatcher(page, [/Failed to load resource.*404/i]);
@@ -131,60 +135,96 @@ test("404 page renders the custom error component", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("a path with two segments gets the same 404 page as a path with one", async ({ page }) => {
-  // No route matches `/a/b` unless it is portfolio, showcase, audit or preview,
-  // so this lands on the ROOT error boundary — which used to be a plain
-  // "Error 404 / Back to home" page while single-segment misses got the
-  // designed one. Assert on the designed page's own copy, not on "404": the
-  // plain page said "Error 404" too, which is how the split went unnoticed.
-  const errors = attachConsoleWatcher(page, [/Failed to load resource.*404/i]);
-  const response = await page.goto("/this/path-does-not-exist", {
-    waitUntil: "domcontentloaded",
-  });
-  expect(response?.status()).toBe(404);
-  await expect(page.getByText("Nothing to see here")).toBeVisible();
-  await expect(page.getByText("Enjoy our most recent work")).toBeVisible();
-  await expect(page).toHaveTitle(/Page not found/i);
-  expect(errors).toEqual([]);
-});
+test(
+  "a path with two segments gets the same 404 page as a path with one",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // No route matches `/a/b` unless it is portfolio, showcase, audit or preview,
+    // so this lands on the ROOT error boundary — which used to be a plain
+    // "Error 404 / Back to home" page while single-segment misses got the
+    // designed one. Assert on the designed page's own copy, not on "404": the
+    // plain page said "Error 404" too, which is how the split went unnoticed.
+    const errors = attachConsoleWatcher(page, [/Failed to load resource.*404/i]);
+    const response = await page.goto("/this/path-does-not-exist", {
+      waitUntil: "domcontentloaded",
+    });
+    expect(response?.status()).toBe(404);
+    await expect(page.getByText("Nothing to see here")).toBeVisible();
+    await expect(page.getByText("Enjoy our most recent work")).toBeVisible();
+    await expect(page).toHaveTitle(/Page not found/i);
+    expect(errors).toEqual([]);
+  },
+);
 
-test("/twenty-for-twenty supports anchor links to specific cards", async ({ page }) => {
-  const errors = attachConsoleWatcher(page);
+test(
+  "/twenty-for-twenty supports anchor links to specific cards",
+  { tag: "@nightly" },
+  async ({ page }) => {
+    const errors = attachConsoleWatcher(page);
 
-  // Inbound: hash by number only should jump into the card stack.
-  await page.goto("/twenty-for-twenty#02", { waitUntil: "domcontentloaded" });
-  await expect(page.locator("footer")).toBeVisible();
-  // Wait for the page's $effect to fire resolveHashToScroll on mount.
-  await page.waitForFunction(() => window.scrollY > 100, { timeout: 5000 }).catch(() => {});
+    // Inbound: hash by number only should jump into the card stack.
+    await page.goto("/twenty-for-twenty#02", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("footer")).toBeVisible();
+    // Wait for the page's $effect to fire resolveHashToScroll on mount.
+    await page.waitForFunction(() => window.scrollY > 100, { timeout: 5000 }).catch(() => {});
 
-  const viewportHeight = page.viewportSize()?.height ?? 720;
-  const scrollY1 = await page.evaluate(() => window.scrollY);
-  expect(scrollY1, "card-2 hash should produce non-zero scroll").toBeGreaterThan(100);
+    const viewportHeight = page.viewportSize()?.height ?? 720;
+    const scrollY1 = await page.evaluate(() => window.scrollY);
+    expect(scrollY1, "card-2 hash should produce non-zero scroll").toBeGreaterThan(100);
 
-  // Outbound: scroll 1 viewport further into the card stack — hash should
-  // advance to a card number higher than 2. The scroll handler writes the hash
-  // via replaceState on frame timing, so poll instead of a fixed settle.
-  await page.evaluate((dy) => window.scrollBy(0, dy), viewportHeight);
-  await expect
-    .poll(
-      async () => {
-        const hash = await page.evaluate(() => location.hash);
-        const m = hash.match(/^#(\d+)/);
-        return m ? Number(m[1]) : -1;
-      },
-      { message: "hash should advance past card 2", timeout: 10_000 },
-    )
-    .toBeGreaterThan(2);
+    // Outbound: scroll 1 viewport further into the card stack — hash should
+    // advance to a card number higher than 2. The scroll handler writes the hash
+    // via replaceState on frame timing, so poll instead of a fixed settle.
+    await page.evaluate((dy) => window.scrollBy(0, dy), viewportHeight);
+    await expect
+      .poll(
+        async () => {
+          const hash = await page.evaluate(() => location.hash);
+          const m = hash.match(/^#(\d+)/);
+          return m ? Number(m[1]) : -1;
+        },
+        { message: "hash should advance past card 2", timeout: 10_000 },
+      )
+      .toBeGreaterThan(2);
 
-  // Bogus hash should not throw and should not scroll to a card position.
-  // Navigate away first so the next goto is a full inbound navigation, then
-  // come back with the bogus hash.
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await page.goto("/twenty-for-twenty#99-nonexistent", {
-    waitUntil: "domcontentloaded",
-  });
-  const scrollY2 = await page.evaluate(() => window.scrollY);
-  expect(scrollY2, "bogus hash should leave page at top").toBeLessThan(50);
+    // Bogus hash should not throw and should not scroll to a card position.
+    // Navigate away first so the next goto is a full inbound navigation, then
+    // come back with the bogus hash.
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/twenty-for-twenty#99-nonexistent", {
+      waitUntil: "domcontentloaded",
+    });
+    const scrollY2 = await page.evaluate(() => window.scrollY);
+    expect(scrollY2, "bogus hash should leave page at top").toBeLessThan(50);
 
-  expect(errors, "console errors on /twenty-for-twenty").toEqual([]);
-});
+    expect(errors, "console errors on /twenty-for-twenty").toEqual([]);
+  },
+);
+
+test(
+  "/twenty-for-twenty lands on a card from its hash and ignores a bogus one",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const errors = attachConsoleWatcher(page);
+
+    await page.goto("/twenty-for-twenty#02", { waitUntil: "domcontentloaded" });
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY), {
+        message: "card-2 hash should produce non-zero scroll",
+      })
+      .toBeGreaterThan(100);
+
+    // Navigate away first so the next goto is a full inbound navigation.
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.goto("/twenty-for-twenty#99-nonexistent", { waitUntil: "domcontentloaded" });
+    // The hash is resolved in an effect that has run by the time the layout
+    // marks hydration, so a scroll it caused would already show.
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+    expect(
+      await page.evaluate(() => window.scrollY),
+      "bogus hash should leave page at top",
+    ).toBeLessThan(50);
+
+    expect(errors, "console errors on /twenty-for-twenty").toEqual([]);
+  },
+);

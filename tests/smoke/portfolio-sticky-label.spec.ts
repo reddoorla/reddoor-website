@@ -393,4 +393,31 @@ test.describe("portfolio featured-project sticky label", () => {
     await expect(page.locator('[data-sticky-label="rubrik-zero-labs"]')).toBeHidden();
     await expect(page.getByRole("link", { name: "Go to Rubrik Zero Labs project" })).toHaveCount(1);
   });
+
+  test(
+    "each breakpoint links every featured project to a page that resolves",
+    { tag: "@smoke" },
+    async ({ page, request }) => {
+      const targets = new Set<string>();
+      for (const viewport of [
+        { width: 1280, height: 800 },
+        { width: 390, height: 844 },
+      ]) {
+        await page.setViewportSize(viewport);
+        await page.goto("/portfolio");
+        const links = page.getByRole("link", { name: /^Go to .+ project$/ });
+        await expect(links.first(), `at ${viewport.width}`).toBeVisible();
+        for (const link of await links.all()) {
+          await expect(link, `at ${viewport.width}`).toHaveAttribute(
+            "href",
+            /^\/portfolio\/[a-z0-9-]+$/,
+          );
+          targets.add((await link.getAttribute("href"))!);
+        }
+      }
+      for (const href of targets) {
+        expect((await request.get(href)).status(), href).toBe(200);
+      }
+    },
+  );
 });

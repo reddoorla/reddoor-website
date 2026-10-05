@@ -15,10 +15,14 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "prettier --check . --plugin prettier-plugin-svelte . && eslint .",
     "format": "prettier --write . --plugin prettier-plugin-svelte .",
+    "prepare": "simple-git-hooks",
     "test": "pnpm test:unit && pnpm test:smoke",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:smoke": "playwright install chromium && playwright test",
+    "test:smoke": "playwright install chromium && playwright test --grep @smoke",
+    "test:nightly": "playwright test --grep @nightly",
+    "test:scaffold": "playwright test --grep-invert @smoke",
+    "test:e2e": "playwright test",
     "vite:devHost": "vite dev --host --port 8888",
     "prismic:gen": "prismic gen types && prismic gen slice-index"
   },
@@ -31,11 +35,13 @@
     "@tailwindcss/vite": "^4.3.1",
     "@zerodevx/svelte-img": "^2.1.2",
     "eslint": "^10.5.0",
+    "lint-staged": "^17.6.0",
     "postcss": "^8.5.15",
     "prettier": "^3.8.4",
     "prettier-plugin-svelte": "^4.1.1",
     "prismic": "^1.21.0",
     "sharp": "^0.35.0",
+    "simple-git-hooks": "^2.14.0",
     "svelte": "^5.56.3",
     "svelte-check": "^4.6.0",
     "tailwindcss": "^4.3.1",
@@ -55,5 +61,11 @@
     "fuse.js": "^7.4.2",
     "satori": "^0.33.4",
     "svelte-gestures": "^5.2.2"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "if [ -x node_modules/.bin/lint-staged ]; then node_modules/.bin/lint-staged; else echo \"pre-commit: node_modules is not installed in this checkout, so prettier did not run\"; fi"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
   }
 }
