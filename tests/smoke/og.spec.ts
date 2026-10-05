@@ -42,7 +42,10 @@ for (const [path, card] of [
   ["/this-page-does-not-exist", "/og/site/default.png"],
 ]) {
   test(`${path} advertises ${card}`, { tag: "@smoke" }, async ({ page }) => {
-    await page.goto(path);
+    // The tags are server-rendered into <head>. Waiting for `load` would also
+    // wait on every image, which the dev server encodes per request with no
+    // cache; on /portfolio that ran past the 30s budget.
+    await page.goto(path, { waitUntil: "domcontentloaded" });
     const og = page.locator('meta[property="og:image"]');
     await expect(og).toHaveCount(1);
     const content = await og.getAttribute("content");
@@ -55,7 +58,7 @@ for (const [path, card] of [
 
 test("no page falls back to the debossed logo", { tag: "@smoke" }, async ({ page }) => {
   for (const path of ["/", "/medtech", "/about"]) {
-    await page.goto(path);
+    await page.goto(path, { waitUntil: "domcontentloaded" });
     const content = await page.locator('meta[property="og:image"]').getAttribute("content");
     expect(content).not.toContain("printedReddoor");
   }

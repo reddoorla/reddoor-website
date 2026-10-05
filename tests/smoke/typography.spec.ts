@@ -75,7 +75,11 @@ test.describe("typographic marks in rendered copy", () => {
       `${path} paints no straight apostrophe or double quote`,
       { tag: "@smoke" },
       async ({ page }) => {
-        await page.goto(path);
+        // Hydration, not `load`: the copy is all rendered by then, and `load`
+        // also waits on every image, which the dev server encodes per request
+        // with no cache (/portfolio ran past the 30s budget on it).
+        await page.goto(path, { waitUntil: "domcontentloaded" });
+        await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
         const chunks = await renderedText(page);
 
         const offenders = chunks
