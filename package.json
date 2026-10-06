@@ -56,10 +56,10 @@
     "@lucide/svelte": "^1.20.0",
     "@prismicio/client": "^7.21.8",
     "@prismicio/svelte": "^2.2.1",
-    "@reddoorla/maintenance": "^0.95.1",
+    "@reddoorla/maintenance": "^0.104.0",
     "@resvg/resvg-wasm": "^2.6.2",
     "fuse.js": "^7.4.2",
-    "satori": "^0.33.4",
+    "satori": "^0.35.0",
     "svelte-gestures": "^5.2.2"
   },
   "simple-git-hooks": {
