@@ -17,7 +17,7 @@
   import LogoSoup from "$lib/components/LogoSoup.svelte";
   import { fade } from "svelte/transition";
   import { ArrowLeft, ArrowRight, X } from "@lucide/svelte";
-  import { browser } from "$app/environment";
+  import { browser } from "$app/env";
   import { untrack } from "svelte";
   import type { PageData } from "./$types";
 

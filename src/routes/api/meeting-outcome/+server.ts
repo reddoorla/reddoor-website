@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { timingSafeEqual } from "node:crypto";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { isOutcome, recordMeetingOutcome } from "$lib/ghl/outcome";
 import type { RequestHandler } from "./$types";
 

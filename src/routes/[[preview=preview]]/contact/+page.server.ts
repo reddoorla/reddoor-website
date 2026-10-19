@@ -1,5 +1,5 @@
 import { fail } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { ogCardPath } from "$lib/og/url";
 import { createClient } from "$lib/prismicio";

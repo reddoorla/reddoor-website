@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { fetchAppointment } from "$lib/ghl/appointment";
 import { buildIcs, toUtcStamp } from "$lib/schedule/ics";
 import type { RequestHandler } from "./$types";

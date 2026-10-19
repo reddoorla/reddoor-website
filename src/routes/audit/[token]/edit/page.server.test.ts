@@ -6,7 +6,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // mutable-env equivalent of the inline literal used by the sibling
 // src/routes/audit/[token]/page.server.test.ts, which needs no mutation.
 const { env } = vi.hoisted(() => ({ env: {} as Record<string, string | undefined> }));
-vi.mock("$env/dynamic/private", () => ({ env }));
+vi.mock("$app/env/private", () => ({
+  get REPORT_EDIT_KEY() {
+    return env.REPORT_EDIT_KEY;
+  },
+}));
 vi.mock("$lib/report/load", () => ({
   loadReport: vi.fn(async () => ({
     report: { url: "https://acme.test/" },

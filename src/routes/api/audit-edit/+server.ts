@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { REPORT_TOKEN_PATTERN } from "$lib/report/fetch";
 import {
   EDIT_COOKIE,

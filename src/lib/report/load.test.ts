@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("$env/dynamic/private", () => ({
-  env: { PROSPECT_REPORT_URL: "https://ops.test" },
-}));
+vi.mock("$app/env/private", () => ({ PROSPECT_REPORT_URL: "https://ops.test" }));
 
 const { loadReport } = await import("./load");
 import { EDIT_COOKIE } from "./edit-auth";

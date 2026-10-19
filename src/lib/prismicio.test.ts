@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const visibility = vi.hoisted(() => ({ show: false }));
 vi.mock("@prismicio/svelte/kit", () => ({ enableAutoPreviews: () => {} }));
-vi.mock("$app/environment", () => ({ dev: false }));
-vi.mock("$env/dynamic/private", () => ({ env: {} }));
+vi.mock("$app/env", () => ({ dev: false }));
+vi.mock("$app/env/private", () => ({ PRISMIC_HIDDEN_CONTENT: undefined }));
 vi.mock("$lib/server/content-visibility", async (importOriginal) => {
   const real = await importOriginal<typeof import("$lib/server/content-visibility")>();
   return { ...real, currentlyShowsHidden: () => visibility.show };

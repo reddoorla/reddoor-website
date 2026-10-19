@@ -14,9 +14,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     // slideshow item can render its gallery's images (one level: gallery.images).
     page = await client.getByUID("project", params.uid, { fetchLinks: ["gallery.images"] });
   } catch {
-    throw error(404, {
-      message: "Project Not Found",
-    });
+    throw error(404, "Project Not Found");
   }
 
   const allProjects = await client.getAllByType("project", {

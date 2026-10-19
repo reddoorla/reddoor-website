@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { unwrap, type AuditReport } from "$lib/report/fetch";
 
 /**

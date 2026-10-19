@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { screenSubmission } from "@reddoorla/maintenance/forms";
 import { resubscribeEmail } from "$lib/ghl/consent";
 import type { RequestHandler } from "./$types";
