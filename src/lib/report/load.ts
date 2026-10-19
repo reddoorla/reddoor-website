@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { fetchReport, REPORT_TOKEN_PATTERN, type AuditReport, type OverrideMap } from "./fetch";
 import { EDIT_COOKIE } from "./edit-auth";
 

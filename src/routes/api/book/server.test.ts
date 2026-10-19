@@ -5,12 +5,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // for the CRM, so the ordering (contact → appointment → tag → ingest) and the
 // phone-conflict handling are exercised for real. screenSubmission stays REAL.
 const submitToIngest = vi.fn();
-vi.mock("$env/dynamic/private", () => ({
-  env: {
-    CRM_FUNNEL_ACTIVE_TOKEN: "crm-token",
-    FORMS_INGEST_URL: "https://ingest.test/api/forms/reddoor",
-    FORMS_INGEST_TOKEN: "test-token",
-  },
+vi.mock("$app/env/private", () => ({
+  CRM_FUNNEL_ACTIVE_TOKEN: "crm-token",
+  FORMS_INGEST_URL: "https://ingest.test/api/forms/reddoor",
+  FORMS_INGEST_TOKEN: "test-token",
 }));
 vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@reddoorla/maintenance/forms")>();

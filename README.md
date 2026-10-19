@@ -2,7 +2,7 @@
 
 The [reddoorla.com](https://reddoorla.com) site — Reddoor Creative's own portfolio/marketing site.
 
-**Stack:** SvelteKit 2 + Svelte 5 (runes) · [Prismic](https://prismic.io) (Type Builder + the `prismic` CLI) · Tailwind CSS v4 (`@config` legacy mode, see `src/app.css`) · Netlify (project name `reddoorla`) · Node 24 + pnpm 11 via corepack.
+**Stack:** SvelteKit 3 + Svelte 5 (runes) · [Prismic](https://prismic.io) (Type Builder + the `prismic` CLI) · Tailwind CSS v4 (`@config` legacy mode, see `src/app.css`) · Netlify (project name `reddoorla`) · Node 24 + pnpm 11 via corepack.
 
 ## Getting started
 

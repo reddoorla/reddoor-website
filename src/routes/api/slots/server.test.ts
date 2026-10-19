@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // therefore only ever offered today's remaining slots. These pin the window
 // arithmetic; fetchFreeSlots itself is covered in $lib/ghl/booking.test.ts.
 const fetchFreeSlots = vi.fn();
-vi.mock("$env/dynamic/private", () => ({ env: { CRM_FUNNEL_ACTIVE_TOKEN: "test-token" } }));
+vi.mock("$app/env/private", () => ({ CRM_FUNNEL_ACTIVE_TOKEN: "test-token" }));
 vi.mock("$lib/ghl/booking", () => ({ fetchFreeSlots: (o: unknown) => fetchFreeSlots(o) }));
 
 const { GET } = await import("./+server");

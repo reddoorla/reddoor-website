@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { env } = vi.hoisted(() => ({ env: {} as Record<string, string | undefined> }));
-vi.mock("$env/dynamic/private", () => ({ env }));
+vi.mock("$app/env/private", () => ({
+  get REPORT_EDIT_KEY() {
+    return env.REPORT_EDIT_KEY;
+  },
+  get PROSPECT_REPORT_URL() {
+    return env.PROSPECT_REPORT_URL;
+  },
+  get PROSPECT_EDIT_TOKEN() {
+    return env.PROSPECT_EDIT_TOKEN;
+  },
+}));
 
 import { POST } from "./+server";
 

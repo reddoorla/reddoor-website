@@ -1,5 +1,5 @@
 import { json } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { fetchAppointment, publicView } from "$lib/ghl/appointment";
 import type { RequestHandler } from "./$types";
 

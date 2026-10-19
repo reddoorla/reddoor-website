@@ -22,9 +22,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
       page = await client.getByUID("industry", params.uid);
       docType = "industry";
     } catch {
-      throw error(404, {
-        message: "Page Not Found",
-      });
+      throw error(404, "Page Not Found");
     }
   }
 

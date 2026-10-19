@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("$app/environment", () => ({ dev: false }));
-vi.mock("$env/dynamic/private", () => ({ env: {} }));
+vi.mock("$app/env", () => ({ dev: false }));
+vi.mock("$app/env/private", () => ({ PRISMIC_HIDDEN_CONTENT: undefined }));
 
 const { showsHiddenContent, HIDE_FILTER, HIDE_TAG, SHOW_HIDDEN_ENV } =
   await import("./content-visibility");

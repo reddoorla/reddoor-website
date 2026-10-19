@@ -4,7 +4,7 @@ This is [reddoorla.com](https://reddoorla.com) — Reddoor Creative's own site.
 It is a portfolio and marketing site, but it also runs the studio's sales
 apparatus: an industry landing page at `/medtech`, a two-step inquiry funnel
 that syncs to the CRM, a booking flow at `/schedule`, and per-prospect audit
-reports at `/audit/[token]`. SvelteKit 2 + Svelte 5 (runes), Prismic (Type Builder
+reports at `/audit/[token]`. SvelteKit 3 + Svelte 5 (runes), Prismic (Type Builder
 and the `prismic` CLI; Slice Machine is gone), Tailwind v4, Netlify; Node 24 + pnpm 11 through corepack.
 
 [README.md](README.md) is the orientation and is current: the scripts table,
@@ -17,6 +17,13 @@ are the other gates. `pnpm install` also installs a pre-commit hook that runs
 `prettier --write` on the staged files (`simple-git-hooks` and `lint-staged`); a
 checkout with no `node_modules` commits unformatted, with a `pre-commit:` line
 saying so.
+
+Kit 3 takes its config from `sveltekit.config.js` through `sveltekit(...)` in
+`vite.config.js`; there is no `svelte.config.js`. It exposes only the
+environment variables declared in `src/env.ts`, read through
+`$app/env/private` or `$app/env/public`: an undeclared read is silently
+`undefined`, with only a build warning. `scripts/kit-config.test.ts` (in
+`pnpm test:unit`) fails on one.
 
 Two things about how work moves here. Renovate and feature work open PRs
 against `staging`, which is then promoted into `main`. And several feature
