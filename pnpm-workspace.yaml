@@ -3,6 +3,7 @@ allowBuilds:
   esbuild: true
   protobufjs: true
   sharp: true
+  simple-git-hooks: false
 
 # pnpm 11 enables a 24h supply-chain release-age cooldown BY DEFAULT (pnpm 10 had none). With our
 # Renovate automation that breaks CI on every same-day bump and holds us ~24h behind latest, so we

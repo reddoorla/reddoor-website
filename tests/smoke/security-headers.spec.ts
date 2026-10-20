@@ -41,7 +41,7 @@ async function watchCsp(page: Page) {
   };
 }
 
-test("the SSR form page carries the full header set", async ({ page }) => {
+test("the SSR form page carries the full header set", { tag: "@smoke" }, async ({ page }) => {
   const res = await page.goto("/contact");
   expect(res?.status()).toBe(200);
   const headers = res!.headers();
@@ -63,7 +63,36 @@ test("enforcing the policy does not break Turnstile or the type", async ({ page 
   expect(await csp.read()).toEqual([]);
 });
 
-test("the 404 page is protected too", async ({ page }) => {
+test(
+  "the enforced policy lets the type load, and Turnstile when a sitekey is set",
+  { tag: "@smoke" },
+  async ({ page, request }) => {
+    // Positive evidence rather than a quiet console: a blocked style-src or
+    // font-src means no font file is ever requested from Typekit, so this
+    // waits for one to arrive.
+    const csp = await watchCsp(page);
+    const typekitFont = page.waitForResponse(
+      (r) => r.request().resourceType() === "font" && r.url().includes(".typekit.net/") && r.ok(),
+    );
+    await page.goto("/contact", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+    await typekitFont;
+
+    // The widget is dark without PUBLIC_TURNSTILE_SITE_KEY, and /health reads
+    // the same variable the page does.
+    const { forms } = await (await request.get("/health")).json();
+    if (forms.turnstile) {
+      await expect
+        .poll(() =>
+          page.frames().some((f) => f.url().startsWith("https://challenges.cloudflare.com/")),
+        )
+        .toBe(true);
+    }
+    expect(await csp.read()).toEqual([]);
+  },
+);
+
+test("the 404 page is protected too", { tag: "@smoke" }, async ({ page }) => {
   // Also SSR, also previously bare. A 404 is the page an attacker reaches most
   // easily, by definition.
   const res = await page.goto("/definitely-not-a-real-page-xyz");
@@ -73,34 +102,40 @@ test("the 404 page is protected too", async ({ page }) => {
   expect(headers["content-security-policy"]).toContain("frame-ancestors 'self'");
 });
 
-test("API responses are hardened but carry no CSP", async ({ request }) => {
+test("API responses are hardened but carry no CSP", { tag: "@smoke" }, async ({ request }) => {
   const res = await request.get("/api/slots");
   expect(res.headers()["x-content-type-options"]).toBe("nosniff");
   expect(res.headers()["content-security-policy"]).toBeUndefined();
 });
 
-test("a credential-bearing page keeps its own stricter referrer policy", async ({ page }) => {
-  // The hook must not overwrite what a route already set. These URLs carry an
-  // appointment id, which is a bearer token — downgrading them to the site
-  // default would leak it in the Referer of everything they link to.
-  const res = await page.goto("/reschedule/AAAAAAAAAAAA");
-  expect(res?.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
-  await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "no-referrer");
-});
+test(
+  "a credential-bearing page keeps its own stricter referrer policy",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // The hook must not overwrite what a route already set. These URLs carry an
+    // appointment id, which is a bearer token — downgrading them to the site
+    // default would leak it in the Referer of everything they link to.
+    const res = await page.goto("/reschedule/AAAAAAAAAAAA");
+    expect(res?.headers()["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    await expect(page.locator('meta[name="referrer"]')).toHaveAttribute("content", "no-referrer");
+  },
+);
 
-test("the slice simulator can be framed by Slice Machine and the Page Builder", async ({
-  request,
-}) => {
-  // Both load this one route in an iframe from another origin (localhost:9999
-  // and prismic.io). Every other route stays SAMEORIGIN; this one carries no
-  // X-Frame-Options at all, since that header has no multi-origin form, and
-  // names its framers in frame-ancestors instead.
-  const res = await request.get("/slice-simulator");
-  expect(res.status()).toBe(200);
-  const headers = res.headers();
-  expect(headers["x-frame-options"]).toBeUndefined();
-  expect(headers["content-security-policy"]).toContain(
-    "frame-ancestors 'self' http://localhost:* https://*.prismic.io https://prismic.io",
-  );
-  expect(headers["x-content-type-options"]).toBe("nosniff");
-});
+test(
+  "the slice simulator can be framed by Slice Machine and the Page Builder",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // Both load this one route in an iframe from another origin (localhost:9999
+    // and prismic.io). Every other route stays SAMEORIGIN; this one carries no
+    // X-Frame-Options at all, since that header has no multi-origin form, and
+    // names its framers in frame-ancestors instead.
+    const res = await request.get("/slice-simulator");
+    expect(res.status()).toBe(200);
+    const headers = res.headers();
+    expect(headers["x-frame-options"]).toBeUndefined();
+    expect(headers["content-security-policy"]).toContain(
+      "frame-ancestors 'self' http://localhost:* https://*.prismic.io https://prismic.io",
+    );
+    expect(headers["x-content-type-options"]).toBe("nosniff");
+  },
+);

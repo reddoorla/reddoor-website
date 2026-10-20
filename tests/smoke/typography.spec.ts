@@ -71,26 +71,34 @@ const PAGES = [
 
 test.describe("typographic marks in rendered copy", () => {
   for (const path of PAGES) {
-    test(`${path} paints no straight apostrophe or double quote`, async ({ page }) => {
-      await page.goto(path);
-      const chunks = await renderedText(page);
+    test(
+      `${path} paints no straight apostrophe or double quote`,
+      { tag: "@smoke" },
+      async ({ page }) => {
+        // Hydration, not `load`: the copy is all rendered by then, and `load`
+        // also waits on every image, which the dev server encodes per request
+        // with no cache (/portfolio ran past the 30s budget on it).
+        await page.goto(path, { waitUntil: "domcontentloaded" });
+        await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+        const chunks = await renderedText(page);
 
-      const offenders = chunks
-        .filter((c) => STRAIGHT.test(c.text))
-        .map((c) => `${c.where} ${c.text.slice(0, 120)}`);
-      expect(offenders, `${path}: straight marks in rendered prose`).toEqual([]);
+        const offenders = chunks
+          .filter((c) => STRAIGHT.test(c.text))
+          .map((c) => `${c.where} ${c.text.slice(0, 120)}`);
+        expect(offenders, `${path}: straight marks in rendered prose`).toEqual([]);
 
-      // …and the scrape actually read prose, rather than passing because it
-      // found nothing. Both halves are needed: an empty page has no straight
-      // marks either. 200 characters is the floor because the two email
-      // preference pages are one short paragraph each.
-      const all = chunks.map((c) => c.text).join(" ");
-      expect(all.length, `${path}: text scraped`).toBeGreaterThan(200);
-      expect(
-        (all.match(TYPOGRAPHIC) ?? []).length,
-        `${path}: typographic marks present`,
-      ).toBeGreaterThan(0);
-    });
+        // …and the scrape actually read prose, rather than passing because it
+        // found nothing. Both halves are needed: an empty page has no straight
+        // marks either. 200 characters is the floor because the two email
+        // preference pages are one short paragraph each.
+        const all = chunks.map((c) => c.text).join(" ");
+        expect(all.length, `${path}: text scraped`).toBeGreaterThan(200);
+        expect(
+          (all.match(TYPOGRAPHIC) ?? []).length,
+          `${path}: typographic marks present`,
+        ).toBeGreaterThan(0);
+      },
+    );
   }
 });
 

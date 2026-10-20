@@ -1,6 +1,6 @@
 import * as prismic from "@prismicio/client";
-import { dev } from "$app/environment";
-import { env } from "$env/dynamic/private";
+import { dev } from "$app/env";
+import * as env from "$app/env/private";
 
 /**
  * A document tagged `hide` in Prismic exists on staging and nowhere else.
@@ -30,5 +30,8 @@ export function showsHiddenContent(input: VisibilityInput): boolean {
 
 /** The live decision for this process and, given the cookie, this request. */
 export function currentlyShowsHidden(previewCookie: string | undefined): boolean {
-  return showsHiddenContent({ dev, showHiddenEnv: env[SHOW_HIDDEN_ENV], previewCookie });
+  // Read by its literal name, not indexed by SHOW_HIDDEN_ENV: kit 3 exposes only
+  // the variables src/env.ts declares, and the kit-config gate checks the
+  // declaration by finding each read's name in the source.
+  return showsHiddenContent({ dev, showHiddenEnv: env.PRISMIC_HIDDEN_CONTENT, previewCookie });
 }

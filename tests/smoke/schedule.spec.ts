@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The booking step. Reached automatically on finishing the questionnaire (that
 // hand-off is covered in inquiry-modal.spec.ts) and reachable cold, which is
@@ -91,181 +92,209 @@ async function seedHandoff(page: Page, value: Record<string, unknown>) {
 test.describe("in Los Angeles", () => {
   test.use({ timezoneId: "America/Los_Angeles" });
 
-  test("renders Mountain slots as Pacific times, with the zone named", async ({ page }) => {
-    const { strayCrmCalls } = await stubApi(page);
-    await gotoHydrated(page);
+  test(
+    "renders Mountain slots as Pacific times, with the zone named",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      const { strayCrmCalls } = await stubApi(page);
+      await gotoHydrated(page);
 
-    // The assertion the whole module exists for: 09:00 Mountain is 8:00 AM here.
-    // A page that echoed the API would say 9:00 and be an hour wrong.
-    await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "8:30 AM", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "3:30 PM", exact: true })).toBeVisible();
+      // The assertion the whole module exists for: 09:00 Mountain is 8:00 AM here.
+      // A page that echoed the API would say 9:00 and be an hour wrong.
+      await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "8:30 AM", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "3:30 PM", exact: true })).toBeVisible();
 
-    // Named, never the raw offset — "-06:00" tells a visitor nothing.
-    await expect(page.getByText(/Times shown in your local time \(PDT\)/)).toBeVisible();
-    expect(strayCrmCalls).toEqual([]);
-  });
+      // Named, never the raw offset — "-06:00" tells a visitor nothing.
+      await expect(page.getByText(/Times shown in your local time \(PDT\)/)).toBeVisible();
+      expect(strayCrmCalls).toEqual([]);
+    },
+  );
 
-  test("switching day swaps the times and drops any selection", async ({ page }) => {
-    await stubApi(page);
-    await gotoHydrated(page);
+  test(
+    "switching day swaps the times and drops any selection",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await stubApi(page);
+      await gotoHydrated(page);
 
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).first().click();
-    await expect(page.locator("#book-name")).toBeVisible();
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).first().click();
+      await expect(page.locator("#book-name")).toBeVisible();
 
-    // Thursday has one slot; the form must not survive the switch still holding
-    // Wednesday's time.
-    await page.getByRole("button", { name: /Thu/ }).click();
-    await expect(page.locator("#book-name")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "3:30 PM", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toBeVisible();
-  });
+      // Thursday has one slot; the form must not survive the switch still holding
+      // Wednesday's time.
+      await page.getByRole("button", { name: /Thu/ }).click();
+      await expect(page.locator("#book-name")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "3:30 PM", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toBeVisible();
+    },
+  );
 
-  test("booking sends the CRM's own ISO string, not a re-rendered local one", async ({ page }) => {
-    const { bookCalls } = await stubApi(page);
-    await gotoHydrated(page);
+  test(
+    "booking sends the CRM's own ISO string, not a re-rendered local one",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      const { bookCalls } = await stubApi(page);
+      await gotoHydrated(page);
 
-    await page.getByRole("button", { name: "8:30 AM", exact: true }).click();
-    await page.locator("#book-name").fill("Pat Buyer");
-    await page.locator("#book-email").fill("buyer@example.com");
-    await page.getByRole("button", { name: "Confirm this time" }).click();
+      await page.getByRole("button", { name: "8:30 AM", exact: true }).click();
+      await page.locator("#book-name").fill("Pat Buyer");
+      await page.locator("#book-email").fill("buyer@example.com");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
-    // Echoed back to the visitor in THEIR zone…
-    await expect(page.getByText("Wednesday, August 19 at 8:30 AM PDT")).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
+      // Echoed back to the visitor in THEIR zone…
+      await expect(page.getByText("Wednesday, August 19 at 8:30 AM PDT")).toBeVisible();
 
-    // …but sent to the CRM byte-identical to what free-slots returned. Sending a
-    // reformatted local time would drift by the offset and book the wrong hour.
-    expect(bookCalls).toHaveLength(1);
-    expect(bookCalls[0].startTime).toBe("2026-08-19T09:30:00-06:00");
-    expect(bookCalls[0].email).toBe("buyer@example.com");
-    expect(bookCalls[0].name).toBe("Pat Buyer");
-    // No campaign: utm/funnel are written when the application is submitted,
-    // where the landing page is actually known. See the note in the page.
-    expect(bookCalls[0].campaign).toBeUndefined();
-    // The zone the page rendered every slot in, carried so the CRM sets it on
-    // the contact. Without it GHL has no zone and renders its confirmation
-    // email and SMS in the location's Mountain — reported 2026-08-19, a 10:30am
-    // Central booking confirmed as "9:30 AM MDT".
-    expect(bookCalls[0].timezone).toBe("America/Los_Angeles");
-  });
+      // …but sent to the CRM byte-identical to what free-slots returned. Sending a
+      // reformatted local time would drift by the offset and book the wrong hour.
+      expect(bookCalls).toHaveLength(1);
+      expect(bookCalls[0].startTime).toBe("2026-08-19T09:30:00-06:00");
+      expect(bookCalls[0].email).toBe("buyer@example.com");
+      expect(bookCalls[0].name).toBe("Pat Buyer");
+      // No campaign: utm/funnel are written when the application is submitted,
+      // where the landing page is actually known. See the note in the page.
+      expect(bookCalls[0].campaign).toBeUndefined();
+      // The zone the page rendered every slot in, carried so the CRM sets it on
+      // the contact. Without it GHL has no zone and renders its confirmation
+      // email and SMS in the location's Mountain — reported 2026-08-19, a 10:30am
+      // Central booking confirmed as "9:30 AM MDT".
+      expect(bookCalls[0].timezone).toBe("America/Los_Angeles");
+    },
+  );
 
-  test("a slot taken mid-flight refetches instead of looping on a stale list", async ({ page }) => {
-    // The 409 path: the CRM rejected the time because someone else took it. The
-    // page must go back for a fresh list — re-offering the same dead slot is the
-    // loop this guards.
-    let served = 0;
-    await page.route("**/api/slots**", async (route) => {
-      served += 1;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ slots: served === 1 ? SLOTS : SLOTS.slice(1) }),
+  test(
+    "a slot taken mid-flight refetches instead of looping on a stale list",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      // The 409 path: the CRM rejected the time because someone else took it. The
+      // page must go back for a fresh list — re-offering the same dead slot is the
+      // loop this guards.
+      let served = 0;
+      await page.route("**/api/slots**", async (route) => {
+        served += 1;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ slots: served === 1 ? SLOTS : SLOTS.slice(1) }),
+        });
       });
-    });
-    await page.route("**/api/book", (route) =>
-      route.fulfill({
-        status: 409,
-        contentType: "application/json",
-        body: JSON.stringify({
-          error: "That time was just taken. Please choose another.",
-          refreshSlots: true,
+      await page.route("**/api/book", (route) =>
+        route.fulfill({
+          status: 409,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "That time was just taken. Please choose another.",
+            refreshSlots: true,
+          }),
         }),
-      }),
-    );
+      );
 
-    await gotoHydrated(page);
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
-    await page.locator("#book-name").fill("Pat Buyer");
-    await page.locator("#book-email").fill("buyer@example.com");
-    await page.getByRole("button", { name: "Confirm this time" }).click();
+      await gotoHydrated(page);
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await page.locator("#book-name").fill("Pat Buyer");
+      await page.locator("#book-email").fill("buyer@example.com");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
 
-    await expect(page.getByRole("alert")).toContainText("just taken");
-    expect(served).toBe(2);
-    // The dead slot is gone and the form is closed, so the only thing they can
-    // do is pick a time that still exists.
-    await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toHaveCount(0);
-    await expect(page.locator("#book-name")).toHaveCount(0);
-  });
+      await expect(page.getByRole("alert")).toContainText("just taken");
+      expect(served).toBe(2);
+      // The dead slot is gone and the form is closed, so the only thing they can
+      // do is pick a time that still exists.
+      await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toHaveCount(0);
+      await expect(page.locator("#book-name")).toHaveCount(0);
+    },
+  );
 
-  test("the form refuses to submit without a name and a real email", async ({ page }) => {
-    const { bookCalls } = await stubApi(page);
-    await gotoHydrated(page);
+  test(
+    "the form refuses to submit without a name and a real email",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      const { bookCalls } = await stubApi(page);
+      await gotoHydrated(page);
 
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
-    await page.locator("#book-email").fill("not-an-email");
-    await page.getByRole("button", { name: "Confirm this time" }).click();
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await page.locator("#book-email").fill("not-an-email");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
 
-    await expect(page.locator("#book-name-error")).toContainText("name");
-    expect(bookCalls).toEqual([]);
-  });
+      await expect(page.locator("#book-name-error")).toContainText("name");
+      expect(bookCalls).toEqual([]);
+    },
+  );
 
-  test("a finished application is greeted by name and never asked twice", async ({ page }) => {
-    const { bookCalls } = await stubApi(page);
-    await seedHandoff(page, {
-      email: "buyer@example.com",
-      name: "Pat Buyer",
-      phone: "(555) 123-4567",
-      applied: true,
-    });
-    await gotoHydrated(page);
+  test(
+    "a finished application is greeted by name and never asked twice",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      const { bookCalls } = await stubApi(page);
+      await seedHandoff(page, {
+        email: "buyer@example.com",
+        name: "Pat Buyer",
+        phone: "(555) 123-4567",
+        applied: true,
+      });
+      await gotoHydrated(page);
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("your application is in");
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("your application is in");
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
 
-    // "Never asked twice" means no fields at all — a prefilled input still
-    // reads as something to check, one screen after they typed it.
-    await expect(page.locator("#book-name")).toHaveCount(0);
-    await expect(page.locator("#book-email")).toHaveCount(0);
-    await expect(page.locator("#book-phone")).toHaveCount(0);
+      // "Never asked twice" means no fields at all — a prefilled input still
+      // reads as something to check, one screen after they typed it.
+      await expect(page.locator("#book-name")).toHaveCount(0);
+      await expect(page.locator("#book-email")).toHaveCount(0);
+      await expect(page.locator("#book-phone")).toHaveCount(0);
 
-    const form = page.locator("form");
-    await expect(form).toContainText("Booking as");
-    await expect(form).toContainText("Pat Buyer");
-    // The address the invite goes to is the one thing worth showing back.
-    await expect(form).toContainText("buyer@example.com");
-    await expect(form).toContainText("(555) 123-4567");
+      const form = page.locator("form");
+      await expect(form).toContainText("Booking as");
+      await expect(form).toContainText("Pat Buyer");
+      // The address the invite goes to is the one thing worth showing back.
+      await expect(form).toContainText("buyer@example.com");
+      await expect(form).toContainText("(555) 123-4567");
 
-    // And the values still reach the server unretyped.
-    await page.getByRole("button", { name: "Confirm this time" }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
-    expect(bookCalls).toHaveLength(1);
-    expect(bookCalls[0]).toMatchObject({
-      email: "buyer@example.com",
-      name: "Pat Buyer",
-      phone: "(555) 123-4567",
-    });
-  });
+      // And the values still reach the server unretyped.
+      await page.getByRole("button", { name: "Confirm this time" }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
+      expect(bookCalls).toHaveLength(1);
+      expect(bookCalls[0]).toMatchObject({
+        email: "buyer@example.com",
+        name: "Pat Buyer",
+        phone: "(555) 123-4567",
+      });
+    },
+  );
 
-  test("a visitor arriving from the CRM's email is not asked again either", async ({ page }) => {
-    // The CRM's "Schedule Appointment" trigger link interpolates the contact
-    // record into the query string. That visitor comes from an email, in a
-    // browser that has never seen the modal, so sessionStorage is empty — the
-    // path the handoff cannot serve.
-    const { bookCalls } = await stubApi(page);
-    await gotoHydrated(
-      page,
-      "/schedule?first_name=Pat&last_name=Buyer&email=buyer%40example.com&phone=%2B15551234567",
-    );
+  test(
+    "a visitor arriving from the CRM's email is not asked again either",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      // The CRM's "Schedule Appointment" trigger link interpolates the contact
+      // record into the query string. That visitor comes from an email, in a
+      // browser that has never seen the modal, so sessionStorage is empty — the
+      // path the handoff cannot serve.
+      const { bookCalls } = await stubApi(page);
+      await gotoHydrated(
+        page,
+        "/schedule?first_name=Pat&last_name=Buyer&email=buyer%40example.com&phone=%2B15551234567",
+      );
 
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
 
-    const form = page.locator("form");
-    await expect(form).toContainText("Booking as");
-    await expect(form).toContainText("Pat Buyer");
-    await expect(form).toContainText("buyer@example.com");
-    await expect(page.locator("#book-email")).toHaveCount(0);
+      const form = page.locator("form");
+      await expect(form).toContainText("Booking as");
+      await expect(form).toContainText("Pat Buyer");
+      await expect(form).toContainText("buyer@example.com");
+      await expect(page.locator("#book-email")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Confirm this time" }).click();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
-    expect(bookCalls[0]).toMatchObject({
-      email: "buyer@example.com",
-      name: "Pat Buyer",
-      phone: "+15551234567",
-    });
-  });
+      await page.getByRole("button", { name: "Confirm this time" }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
+      expect(bookCalls[0]).toMatchObject({
+        email: "buyer@example.com",
+        name: "Pat Buyer",
+        phone: "+15551234567",
+      });
+    },
+  );
 
-  test("the contact's address does not linger in the URL", async ({ page }) => {
+  test("the contact's address does not linger in the URL", { tag: "@smoke" }, async ({ page }) => {
     // An address in a URL is an address in the history, in a screenshot, and in
     // anything that reads location.href later — gtag.js among them, which is
     // deferred until first interaction and so must find this already cleaned.
@@ -277,20 +306,24 @@ test.describe("in Los Angeles", () => {
     expect(page.url()).not.toContain("buyer%40example.com");
   });
 
-  test("a link carrying only a name still asks for the address", async ({ page }) => {
-    // Half a prefill is not a prefill: the summary claims we know where the
-    // invite is going, so it may only appear when we actually do.
-    await stubApi(page);
-    await gotoHydrated(page, "/schedule?first_name=Pat&last_name=Buyer");
+  test(
+    "a link carrying only a name still asks for the address",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      // Half a prefill is not a prefill: the summary claims we know where the
+      // invite is going, so it may only appear when we actually do.
+      await stubApi(page);
+      await gotoHydrated(page, "/schedule?first_name=Pat&last_name=Buyer");
 
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
 
-    await expect(page.locator("#book-email")).toBeVisible();
-    await expect(page.locator("#book-name")).toHaveValue("Pat Buyer");
-    await expect(page.locator("form")).not.toContainText("Booking as");
-  });
+      await expect(page.locator("#book-email")).toBeVisible();
+      await expect(page.locator("#book-name")).toHaveValue("Pat Buyer");
+      await expect(page.locator("form")).not.toContainText("Booking as");
+    },
+  );
 
-  test("the summary can be corrected without retyping it", async ({ page }) => {
+  test("the summary can be corrected without retyping it", { tag: "@smoke" }, async ({ page }) => {
     const { bookCalls } = await stubApi(page);
     await seedHandoff(page, {
       email: "buyer@example.com",
@@ -316,79 +349,129 @@ test.describe("in Los Angeles", () => {
     expect(bookCalls[0]).toMatchObject({ email: "someone.else@example.com" });
   });
 
-  test("a handoff without a usable email asks rather than assumes", async ({ page }) => {
-    await stubApi(page);
-    // readHandoff accepts any non-empty string as an email. The summary may
-    // only stand in for a value the submit would also take — otherwise the
-    // visitor meets a validation error pointed at an input that is not on
-    // screen, which is a dead end with no way to correct it.
-    await seedHandoff(page, { email: "not-an-email", name: "Pat Buyer", phone: "", applied: true });
-    await gotoHydrated(page);
-
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
-    await expect(page.locator("#book-email")).toHaveValue("not-an-email");
-    await expect(page.locator("form")).not.toContainText("Booking as");
-  });
-
-  test("the in-flight button animates without changing its accessible name", async ({ page }) => {
-    // The suite runs with reduced motion emulated (shared Playwright base), and
-    // SendingDots deliberately holds its dots still under that media query. This
-    // test is about the dots MOVING, so it has to opt back into motion.
-    await page.emulateMedia({ reducedMotion: "no-preference" });
-    await stubApi(page);
-    // Hold the booking open, or the in-flight state never exists to be looked at.
-    await page.route("**/api/book", async (route) => {
-      await new Promise((r) => setTimeout(r, 2000));
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ success: true }),
+  test(
+    "a handoff without a usable email asks rather than assumes",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await stubApi(page);
+      // readHandoff accepts any non-empty string as an email. The summary may
+      // only stand in for a value the submit would also take — otherwise the
+      // visitor meets a validation error pointed at an input that is not on
+      // screen, which is a dead end with no way to correct it.
+      await seedHandoff(page, {
+        email: "not-an-email",
+        name: "Pat Buyer",
+        phone: "",
+        applied: true,
       });
-    });
-    await gotoHydrated(page);
+      await gotoHydrated(page);
 
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
-    await page.locator("#book-name").fill("Pat Buyer");
-    await page.locator("#book-email").fill("buyer@example.com");
-    await page.getByRole("button", { name: "Confirm this time" }).click();
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await expect(page.locator("#book-email")).toHaveValue("not-an-email");
+      await expect(page.locator("form")).not.toContainText("Booking as");
+    },
+  );
 
-    // "Booking", not "Booking...": the dots are aria-hidden, so a screen reader
-    // is never handed a name that mutates while it is speaking. aria-busy is
-    // what carries the state assistively.
-    const busy = page.getByRole("button", { name: "Booking", exact: true });
-    await expect(busy).toBeVisible();
-    await expect(busy).toHaveAttribute("aria-busy", "true");
-
-    // And the dots are actually moving — a decorative element that silently
-    // fails to animate is the whole point of this change, undone.
-    const running = await busy
-      .locator("span span")
-      .first()
-      .evaluate((el) => {
-        const s = getComputedStyle(el);
-        return { name: s.animationName, state: s.animationPlayState };
+  test(
+    "the in-flight button animates without changing its accessible name",
+    { tag: "@nightly" },
+    async ({ page }) => {
+      // The suite runs with reduced motion emulated (shared Playwright base), and
+      // SendingDots deliberately holds its dots still under that media query. This
+      // test is about the dots MOVING, so it has to opt back into motion.
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      await stubApi(page);
+      // Hold the booking open, or the in-flight state never exists to be looked at.
+      await page.route("**/api/book", async (route) => {
+        await new Promise((r) => setTimeout(r, 2000));
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true }),
+        });
       });
-    expect(running.name).not.toBe("none");
-    expect(running.state).toBe("running");
-  });
+      await gotoHydrated(page);
 
-  test("a cold visitor gets the cold headline", async ({ page }) => {
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await page.locator("#book-name").fill("Pat Buyer");
+      await page.locator("#book-email").fill("buyer@example.com");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
+
+      // "Booking", not "Booking...": the dots are aria-hidden, so a screen reader
+      // is never handed a name that mutates while it is speaking. aria-busy is
+      // what carries the state assistively.
+      const busy = page.getByRole("button", { name: "Booking", exact: true });
+      await expect(busy).toBeVisible();
+      await expect(busy).toHaveAttribute("aria-busy", "true");
+
+      // And the dots are actually moving — a decorative element that silently
+      // fails to animate is the whole point of this change, undone.
+      const running = await busy
+        .locator("span span")
+        .first()
+        .evaluate((el) => {
+          const s = getComputedStyle(el);
+          return { name: s.animationName, state: s.animationPlayState };
+        });
+      expect(running.name).not.toBe("none");
+      expect(running.state).toBe("running");
+    },
+  );
+
+  test(
+    "the in-flight button keeps its accessible name and says it is busy",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await stubApi(page);
+      // Held open until the assertions are done, so the in-flight state cannot
+      // end under them.
+      let release!: () => void;
+      const held = new Promise<void>((r) => (release = r));
+      await page.route("**/api/book", async (route) => {
+        await held;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true }),
+        });
+      });
+      await gotoHydrated(page);
+
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await page.locator("#book-name").fill("Pat Buyer");
+      await page.locator("#book-email").fill("buyer@example.com");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
+
+      const busy = page.getByRole("button", { name: "Booking", exact: true });
+      await expect(busy).toBeVisible();
+      await expect(busy).toHaveAttribute("aria-busy", "true");
+
+      release();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
+    },
+  );
+
+  test("a cold visitor gets the cold headline", { tag: "@smoke" }, async ({ page }) => {
     await stubApi(page);
     await gotoHydrated(page);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Let’s find a time");
   });
 
-  test("an empty calendar offers a way through rather than a dead end", async ({ page }) => {
-    await stubApi(page, { slots: [] });
-    await gotoHydrated(page);
-    // Scoped to the message: the footer carries the same mailto on every page,
-    // so an unscoped query passes whether or not this branch renders anything.
-    const message = page.getByText(/nothing open in the next couple of weeks/);
-    await expect(message).toBeVisible();
-    await expect(message.getByRole("link", { name: "info@reddoorla.com" })).toBeVisible();
-  });
+  test(
+    "an empty calendar offers a way through rather than a dead end",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await stubApi(page, { slots: [] });
+      await gotoHydrated(page);
+      // Scoped to the message: the footer carries the same mailto on every page,
+      // so an unscoped query passes whether or not this branch renders anything.
+      const message = page.getByText(/nothing open in the next couple of weeks/);
+      await expect(message).toBeVisible();
+      await expect(message.getByRole("link", { name: "info@reddoorla.com" })).toBeVisible();
+    },
+  );
 
-  test("a failed slot load can be retried in place", async ({ page }) => {
+  test("a failed slot load can be retried in place", { tag: "@smoke" }, async ({ page }) => {
     let calls = 0;
     await page.route("**/api/slots**", async (route) => {
       calls += 1;
@@ -408,7 +491,7 @@ test.describe("in Los Angeles", () => {
     await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toBeVisible();
   });
 
-  test("has no accessibility violations, picker open", async ({ page }) => {
+  test("has no accessibility violations, picker open", { tag: "@smoke" }, async ({ page }) => {
     await stubApi(page);
     // Set here rather than relied on from playwright.config.ts, whose
     // `use: { reducedMotion: "reduce" }` is NOT reaching the page — probed
@@ -439,50 +522,56 @@ test.describe("in Los Angeles", () => {
       )
       .toBe(1);
 
+    await settleAnimations(page);
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
     expect(results.violations).toEqual([]);
   });
 
-  test("has no accessibility violations, booking summary shown", async ({ page }) => {
-    await stubApi(page);
-    await seedHandoff(page, {
-      email: "buyer@example.com",
-      name: "Pat Buyer",
-      phone: "(555) 123-4567",
-      applied: true,
-    });
-    // See the picker-open test above for why this is set per-test.
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await gotoHydrated(page);
-    await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Use different details" })).toBeVisible();
+  test(
+    "has no accessibility violations, booking summary shown",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await stubApi(page);
+      await seedHandoff(page, {
+        email: "buyer@example.com",
+        name: "Pat Buyer",
+        phone: "(555) 123-4567",
+        applied: true,
+      });
+      // See the picker-open test above for why this is set per-test.
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await gotoHydrated(page);
+      await page.getByRole("button", { name: "8:00 AM", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Use different details" })).toBeVisible();
 
-    await expect
-      .poll(
-        () =>
-          page
-            .locator("[data-page-transition]")
-            .last()
-            .evaluate((el) => Number(getComputedStyle(el).opacity)),
-        {
-          timeout: 15_000,
-        },
-      )
-      .toBe(1);
+      await expect
+        .poll(
+          () =>
+            page
+              .locator("[data-page-transition]")
+              .last()
+              .evaluate((el) => Number(getComputedStyle(el).opacity)),
+          {
+            timeout: 15_000,
+          },
+        )
+        .toBe(1);
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
-    expect(results.violations).toEqual([]);
-  });
+      await settleAnimations(page);
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      expect(results.violations).toEqual([]);
+    },
+  );
 });
 
 test.describe("in New York", () => {
   test.use({ timezoneId: "America/New_York" });
 
-  test("the same slots read three hours later", async ({ page }) => {
+  test("the same slots read three hours later", { tag: "@smoke" }, async ({ page }) => {
     await stubApi(page);
     await gotoHydrated(page);
     // 09:00 Mountain is 11:00 Eastern. Same payload, different page — which is
@@ -491,27 +580,31 @@ test.describe("in New York", () => {
     await expect(page.getByText(/Times shown in your local time \(EDT\)/)).toBeVisible();
   });
 
-  test("the booking carries THIS visitor's zone, not a baked-in one", async ({ page }) => {
-    // The companion to the Los Angeles assertion: the zone has to follow the
-    // visitor. A constant would have passed there and still confirmed every
-    // Eastern booking in Pacific.
-    const { bookCalls } = await stubApi(page);
-    await gotoHydrated(page);
+  test(
+    "the booking carries THIS visitor's zone, not a baked-in one",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      // The companion to the Los Angeles assertion: the zone has to follow the
+      // visitor. A constant would have passed there and still confirmed every
+      // Eastern booking in Pacific.
+      const { bookCalls } = await stubApi(page);
+      await gotoHydrated(page);
 
-    await page.getByRole("button", { name: "11:00 AM", exact: true }).click();
-    await page.locator("#book-name").fill("Pat Buyer");
-    await page.locator("#book-email").fill("buyer@example.com");
-    await page.getByRole("button", { name: "Confirm this time" }).click();
+      await page.getByRole("button", { name: "11:00 AM", exact: true }).click();
+      await page.locator("#book-name").fill("Pat Buyer");
+      await page.locator("#book-email").fill("buyer@example.com");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
 
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
-    expect(bookCalls[0].timezone).toBe("America/New_York");
-  });
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
+      expect(bookCalls[0].timezone).toBe("America/New_York");
+    },
+  );
 });
 
 test.describe("in Shanghai", () => {
   test.use({ timezoneId: "Asia/Shanghai" });
 
-  test("one Mountain day splits across two local days", async ({ page }) => {
+  test("one Mountain day splits across two local days", { tag: "@smoke" }, async ({ page }) => {
     await stubApi(page);
     await gotoHydrated(page);
     // The calendar's 09:00-17:00 Mountain window straddles local midnight here,

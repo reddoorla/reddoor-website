@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { ssr, renderText } from "./ssr-test-harness";
+import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 import { wasNamed, type ProbeAnswer } from "./model";
 
 /**
@@ -19,9 +20,8 @@ import { wasNamed, type ProbeAnswer } from "./model";
  * the reader to discount all of it, which is what Standing.svelte spends forty
  * lines of comments guarding against.
  *
- * The source-text assertions follow token-privacy.test.ts: a Svelte template has
- * no seam to import, and the alternative is no coverage at all on the property
- * that actually broke.
+ * Both surfaces are rendered, so what is tested is the sentence the reader got,
+ * not whether the template's source names `wasNamed`.
  */
 const probe = (over: Partial<ProbeAnswer> = {}): ProbeAnswer => ({
   engine: "claude",
@@ -61,33 +61,58 @@ describe("wasNamed — the single verdict on whether the engine named them", () 
   });
 });
 
-describe("nothing re-derives the verdict for itself", () => {
-  const LOOSE = /domainCited\s*\|\|\s*\w*\.?brandMentioned/;
+/**
+ * Four answers that differ ONLY in what decides whether the business was named:
+ * same query, same engine, same cited domains. So a surface that asks
+ * `wasNamed` renders two of them identically to each other and differently from
+ * the other two — whatever its sentences say, and however they are styled.
+ */
+const CITED = ["clutch.co", "designrush.com"];
+const ACCEPTED = probe({ brandMentioned: true, countedAsVisible: true, citedDomains: CITED });
+const NOBODY = probe({ countedAsVisible: false, citedDomains: CITED });
+/** The case that broke: named in the answer, but not distinctively enough to count. */
+const COINCIDENCE = probe({ brandMentioned: true, countedAsVisible: false, citedDomains: CITED });
+/** Stored before the scorer recorded a verdict. */
+const LEGACY = probe({ brandMentioned: true, citedDomains: CITED });
 
-  /** Comment lines are stripped so these assertions are about the code, not
-   *  about prose — the explanation of the old rule has to stay writable. */
-  const codeOf = (path: string): string =>
-    readFileSync(path, "utf-8")
-      .replace(/^\s*(\/\/|\*|\/\*).*$/gm, "")
-      .replace(/^\s*<!--[\s\S]*?-->\s*$/gm, "");
+const searchResults = await ssr<{ probes: ProbeAnswer[]; businessName: string | null }>(
+  "src/lib/report/SearchResults.svelte",
+);
+const printSheet = await ssr<{ data: { report: unknown; overrides: unknown } }>(
+  "src/routes/audit/[token]/print/+page.svelte",
+);
 
-  const surfaces: Array<[string, string]> = [
-    ["the web report", "src/lib/report/SearchResults.svelte"],
-    ["the print sheet", "src/routes/audit/[token]/print/+page.svelte"],
-  ];
+const sheetWith = (answer: ProbeAnswer): string => {
+  const report = structuredClone(ALL_PASS_REPORT) as typeof ALL_PASS_REPORT & {
+    probes: { data: { answers: ProbeAnswer[] } };
+  };
+  report.probes.data.answers = [answer];
+  return renderText(printSheet, { data: { report, overrides: {} } });
+};
 
-  for (const [label, path] of surfaces) {
-    it(`${label} asks wasNamed rather than re-deriving it`, () => {
-      const code = codeOf(path);
-      expect(code).toContain("wasNamed");
-      expect(code).not.toMatch(LOOSE);
+const surfaces: Array<[string, (answer: ProbeAnswer) => string]> = [
+  [
+    "the web report",
+    (answer) => renderText(searchResults, { probes: [answer], businessName: "Creative Studio" }),
+  ],
+  ["the print sheet", sheetWith],
+];
+
+for (const [label, render] of surfaces) {
+  describe(`${label} prints the verdict wasNamed gives`, () => {
+    it("reads a mention the scorer rejected exactly as it reads no mention at all", () => {
+      expect(wasNamed(COINCIDENCE)).toBe(false);
+      expect(render(COINCIDENCE)).toBe(render(NOBODY));
     });
-  }
 
-  it("model.ts derives it exactly once, inside wasNamed", () => {
-    const code = codeOf("src/lib/report/model.ts");
-    expect(code.match(new RegExp(LOOSE.source, "g")) ?? []).toHaveLength(1);
-    const fn = code.slice(code.indexOf("export function wasNamed"));
-    expect(fn.slice(0, fn.indexOf("\n}"))).toMatch(LOOSE);
+    // POSITIVE CONTROL — a surface that printed the same thing for every answer
+    // would pass the case above.
+    it("says something different when the scorer counted them", () => {
+      expect(render(ACCEPTED)).not.toBe(render(NOBODY));
+    });
+
+    it("falls back to the loose rule for a report that predates the verdict", () => {
+      expect(render(LEGACY)).toBe(render(ACCEPTED));
+    });
   });
-});
+}

@@ -4,6 +4,7 @@ import { imagetools } from "@zerodevx/svelte-img/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import kitConfig from "./sveltekit.config.js";
 
 /**
  * `virtual:og-assets` — everything the OG card renderer needs, as base64.
@@ -47,7 +48,9 @@ function ogAssets() {
 }
 
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit(), imagetools(), ogAssets()],
+  // SvelteKit 3 takes its configuration here, not from svelte.config.js (which
+  // it refuses to start beside); sveltekit.config.js holds the object.
+  plugins: [tailwindcss(), sveltekit(kitConfig), imagetools(), ogAssets()],
   server: {
     fs: {
       // Allow access to files from the project root.

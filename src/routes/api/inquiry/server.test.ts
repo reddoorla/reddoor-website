@@ -6,11 +6,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // payloads and drive success/failure; screenSubmission stays REAL so the
 // honeypot/timing contract is the true one.
 const submitToIngest = vi.fn();
-vi.mock("$env/dynamic/private", () => ({
-  env: {
-    FORMS_INGEST_URL: "https://ingest.test/api/forms/reddoor",
-    FORMS_INGEST_TOKEN: "test-token",
-  },
+vi.mock("$app/env/private", () => ({
+  FORMS_INGEST_URL: "https://ingest.test/api/forms/reddoor",
+  FORMS_INGEST_TOKEN: "test-token",
+  // Unset, as it was under $env/dynamic: the CRM sync stays off in this suite.
+  CRM_FUNNEL_ACTIVE_TOKEN: undefined,
 }));
 vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@reddoorla/maintenance/forms")>();

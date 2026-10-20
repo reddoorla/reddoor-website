@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("keyboard navigation", () => {
+test.describe("keyboard navigation", { tag: "@smoke" }, () => {
   test("first Tab reveals a skip link that moves focus to main content", async ({ page }) => {
     await page.goto("/", { waitUntil: "networkidle" });
 

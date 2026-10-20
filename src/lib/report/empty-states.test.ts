@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
 import { render } from "svelte/server";
 import type { Component } from "svelte";
 import { ssr, renderText } from "./ssr-test-harness";
+import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 import {
   sourceCheckHasStatements,
   sourceCheckMeasured,
@@ -72,7 +72,9 @@ describe("QuestionMeter — the all-unknown report", () => {
     for (const label of ["Answered clearly", "Partly answered", "Not answered at all"]) {
       expect(body).toContain(label);
     }
-    expect(body).toContain("width: 50%");
+    const widths = [...body.matchAll(/width:\s*([\d.]+)%/g)].map((m) => Number(m[1]));
+    expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(100);
+    expect(widths[0] / widths[2]).toBeCloseTo(3 / 2);
     expect(body).toContain("One further question could not be judged");
     expect(body).toContain("not counted above");
   });
@@ -92,9 +94,8 @@ describe("QuestionMeter — the all-unknown report", () => {
  * `sourceCheckHasStatements`.
  *
  * The remedy is the one PR #152 applied to `wasNamed`: one exported predicate,
- * and a test that no surface re-derives it. The source-text assertions follow
- * named-consistency.test.ts — but on their own they are blind to which way
- * round the conditional is, so the states are rendered below as well.
+ * asked by every surface. The surfaces are rendered below in each state, so
+ * what is tested is which way round each conditional reads.
  */
 const viewWith = (accuracy: ReportView["accuracy"]): ReportView =>
   ({
@@ -180,8 +181,8 @@ describe("sourceCheckHasStatements — whether the check came back holding a sta
 });
 
 /**
- * RENDERED, not grepped. Every source-text assertion in this file passes
- * unchanged if the conditional guarding the lede is inverted; these do not.
+ * RENDERED, not grepped: a source-text assertion passes unchanged if the
+ * conditional guarding the lede is inverted; these do not.
  */
 const lede = await ssr<ViewProps>("src/lib/report/SourceCheckLede.svelte");
 const sourceCheck = await ssr<ViewProps>("src/lib/report/SourceCheck.svelte");
@@ -263,67 +264,36 @@ describe("the accuracy lede — the three states it can be read in", () => {
   });
 });
 
-describe("nothing claims the check ran on its own authority", () => {
-  const codeOf = (path: string): string =>
-    readFileSync(path, "utf-8")
-      .replace(/^\s*(\/\/|\*|\/\*).*$/gm, "")
-      .replace(/<!--[\s\S]*?-->/g, "");
+/**
+ * The print sheet has no lede and no empty state: without a statement it leaves
+ * the section out. The corner it can get wrong is a stored statement from an
+ * answer the report says it never read, which `sourceCheckHasStatements`
+ * refuses and a count of `assertions` would not. The engine quote is asserted
+ * rather than the claim: the headline and the passes list still repeat the
+ * claim in that state (#245).
+ */
+const printSheet = await ssr<{ data: { report: unknown; overrides: unknown } }>(
+  "src/routes/audit/[token]/print/+page.svelte",
+);
 
-  const REPORT = "src/lib/report/Report.svelte";
-  const LEDE_FILE = "src/lib/report/SourceCheckLede.svelte";
-  const PRINT = "src/routes/audit/[token]/print/+page.svelte";
-  const LEDE = "We asked an AI assistant about";
-  const RAW = /answersRead\s*(===|>|!==)\s*0/;
-  const PREDICATE = /sourceCheck(Measured|HasStatements)\(/;
+const QUOTE = "Acme Co closed its Dallas office in 2019";
 
-  it("the accuracy lede is printed only inside the stricter shared predicate", () => {
-    const code = codeOf(LEDE_FILE);
-    const at = code.indexOf(LEDE);
-    expect(at).toBeGreaterThan(-1);
+const sheetWith = (answersRead: number): string => {
+  const report = structuredClone(ALL_PASS_REPORT) as typeof ALL_PASS_REPORT & {
+    accuracy: { data: { answersRead: number; assertions: Assertion[] } };
+  };
+  report.accuracy.data.answersRead = answersRead;
+  report.accuracy.data.assertions = [{ ...assertion("contradicted"), engineQuote: QUOTE }];
+  return renderText(printSheet, { data: { report, overrides: {} } });
+};
 
-    const before = code.slice(0, at);
-    const opened = before.lastIndexOf("{#if ");
-    // The lede must sit inside an open conditional at all: before the fix the
-    // nearest `{#if}` above it was already closed.
-    expect(opened).toBeGreaterThan(before.lastIndexOf("{/if}"));
-    expect(code.slice(opened, at)).toContain("sourceCheckHasStatements(view)");
+describe("the print sheet — statements only from an answer it read", () => {
+  it("prints no statement out of an answer the report says it did not read", () => {
+    expect(sheetWith(0)).not.toContain(QUOTE);
   });
 
-  const surfaces: Array<[string, string]> = [
-    ["the accuracy lede", LEDE_FILE],
-    ["the source-check section", "src/lib/report/SourceCheck.svelte"],
-    ["the print sheet", PRINT],
-    ["the narrative primer", "src/lib/report/narrative.ts"],
-  ];
-
-  for (const [label, path] of surfaces) {
-    it(`${label} asks a shared predicate rather than re-deriving it`, () => {
-      const code = codeOf(path);
-      expect(code).toMatch(PREDICATE);
-      expect(code).not.toMatch(RAW);
-    });
-  }
-
-  // The report page no longer answers the question at all — it delegates the
-  // whole paragraph — but it must never start answering it again inline.
-  it("the report page re-derives nothing", () => {
-    expect(codeOf(REPORT)).not.toMatch(RAW);
-  });
-
-  it("the print sheet asks the predicate instead of counting statements itself", () => {
-    expect(codeOf(PRINT)).not.toMatch(/assertions\.length\s*(===|>|!==)\s*0/);
-  });
-
-  it("model.ts derives it exactly once, inside sourceCheckMeasured", () => {
-    const code = codeOf("src/lib/report/model.ts");
-    expect(code.match(new RegExp(RAW.source, "g")) ?? []).toHaveLength(1);
-    const fn = code.slice(code.indexOf("export function sourceCheckMeasured"));
-    expect(fn.slice(0, fn.indexOf("\n}"))).toMatch(RAW);
-  });
-
-  it("model.ts builds the stricter predicate on top of the looser one", () => {
-    const code = codeOf("src/lib/report/model.ts");
-    const fn = code.slice(code.indexOf("export function sourceCheckHasStatements"));
-    expect(fn.slice(0, fn.indexOf("\n}"))).toContain("sourceCheckMeasured(view)");
+  // POSITIVE CONTROL — the ordinary report prints it.
+  it("prints the statement once an answer was read", () => {
+    expect(sheetWith(2)).toContain(QUOTE);
   });
 });

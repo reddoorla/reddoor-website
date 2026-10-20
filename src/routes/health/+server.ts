@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
-import { env as privateEnv } from "$env/dynamic/private";
-import { env as publicEnv } from "$env/dynamic/public";
+import * as privateEnv from "$app/env/private";
+import * as publicEnv from "$app/env/public";
 import * as prismicio from "$lib/prismicio";
 import { currentlyShowsHidden } from "$lib/server/content-visibility";
 import type { RequestHandler } from "./$types";

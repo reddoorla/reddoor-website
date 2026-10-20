@@ -30,7 +30,21 @@ test("Reduce Motion: video is never embedded, only the static sketch shows", asy
   await page.close();
 });
 
-test("Vimeo iframe is granted autoplay permission", async ({ page }) => {
+test(
+  "Reduce Motion: no video is embedded and the sketch is on the page",
+  { tag: "@smoke" },
+  async ({ browser }) => {
+    const page = await browser.newPage({ reducedMotion: "reduce" });
+    await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+
+    await expect(page.locator(IFRAME)).toHaveCount(0);
+    await expect(page.locator(FALLBACK)).not.toHaveCSS("opacity", "0");
+    await page.close();
+  },
+);
+
+test("Vimeo iframe is granted autoplay permission", { tag: "@smoke" }, async ({ page }) => {
   await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
   const iframe = page.locator(IFRAME);
@@ -42,25 +56,44 @@ test("Vimeo iframe is granted autoplay permission", async ({ page }) => {
   await expect(iframe).toHaveAttribute("referrerpolicy", "strict-origin-when-cross-origin");
 });
 
-test("fallback sketch stays visible when the video cannot play (iPad case)", async ({ page }) => {
-  // Simulate an environment where the Vimeo player never starts — same observable
-  // outcome as iPad Low Power Mode / a blocked autoplay: no play event arrives.
-  await page.route(/player\.vimeo\.com/, (route) => route.abort());
+test(
+  "the sketch stays up and the video hidden when the video cannot play",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await page.route(/player\.vimeo\.com/, (route) => route.abort());
+    await allowMotion(page);
+    await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
 
-  await allowMotion(page);
-  await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(IFRAME)).toBeAttached();
+    await expect(page.locator(FALLBACK)).not.toHaveCSS("opacity", "0");
+    await expect(page.locator(IFRAME)).toHaveCSS("opacity", "0");
+  },
+);
 
-  const fallback = page.locator(FALLBACK);
-  const iframe = page.locator(IFRAME);
-  await expect(fallback).toBeAttached();
+test(
+  "fallback sketch stays visible when the video cannot play (iPad case)",
+  { tag: "@nightly" },
+  async ({ page }) => {
+    // Simulate an environment where the Vimeo player never starts — same observable
+    // outcome as iPad Low Power Mode / a blocked autoplay: no play event arrives.
+    await page.route(/player\.vimeo\.com/, (route) => route.abort());
 
-  // Fallback frame is served locally (bundled import), so it survives the block.
-  await expect(fallback).toHaveCSS("opacity", "0.9");
-  // …and the never-playing video stays hidden rather than showing a blank box.
-  await expect(iframe).toHaveCSS("opacity", "0");
-});
+    await allowMotion(page);
+    await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
-test("video reveals itself once it actually plays", async ({ page }) => {
+    const fallback = page.locator(FALLBACK);
+    const iframe = page.locator(IFRAME);
+    await expect(fallback).toBeAttached();
+
+    // Fallback frame is served locally (bundled import), so it survives the block.
+    await expect(fallback).toHaveCSS("opacity", "0.9");
+    // …and the never-playing video stays hidden rather than showing a blank box.
+    await expect(iframe).toHaveCSS("opacity", "0");
+  },
+);
+
+test("video reveals itself once it actually plays", { tag: "@nightly" }, async ({ page }) => {
   await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
@@ -85,22 +118,26 @@ const STALLING_VIMEO_STUB = `<!doctype html><html><body><script>
   }, 200);
 </script></body></html>`;
 
-test("fallback returns when playback stalls mid-stream (the iPad bug)", async ({ page }) => {
-  await page.route(/player\.vimeo\.com/, (route) =>
-    route.fulfill({ contentType: "text/html", body: STALLING_VIMEO_STUB }),
-  );
-  await allowMotion(page);
-  await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
+test(
+  "fallback returns when playback stalls mid-stream (the iPad bug)",
+  { tag: "@nightly" },
+  async ({ page }) => {
+    await page.route(/player\.vimeo\.com/, (route) =>
+      route.fulfill({ contentType: "text/html", body: STALLING_VIMEO_STUB }),
+    );
+    await allowMotion(page);
+    await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
-  const fallback = page.locator(FALLBACK);
-  const iframe = page.locator(IFRAME);
+    const fallback = page.locator(FALLBACK);
+    const iframe = page.locator(IFRAME);
 
-  // Heartbeats arrive → the sketch hides and the video shows.
-  await expect(iframe).toHaveCSS("opacity", "0.9");
-  await expect(fallback).toHaveCSS("opacity", "0");
+    // Heartbeats arrive → the sketch hides and the video shows.
+    await expect(iframe).toHaveCSS("opacity", "0.9");
+    await expect(fallback).toHaveCSS("opacity", "0");
 
-  // Stream goes silent (no pause event) → the watchdog restores the static
-  // sketch instead of leaving the blank box that shipped to the iPad.
-  await expect(fallback).toHaveCSS("opacity", "0.9");
-  await expect(iframe).toHaveCSS("opacity", "0");
-});
+    // Stream goes silent (no pause event) → the watchdog restores the static
+    // sketch instead of leaving the blank box that shipped to the iPad.
+    await expect(fallback).toHaveCSS("opacity", "0.9");
+    await expect(iframe).toHaveCSS("opacity", "0");
+  },
+);

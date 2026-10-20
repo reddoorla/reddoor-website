@@ -10,7 +10,7 @@ async function locationOf(request: import("@playwright/test").APIRequestContext,
   return new URL(res.headers()["location"], "http://x");
 }
 
-test("/bew lands on /boise tagged as the event", async ({ request }) => {
+test("/bew lands on /boise tagged as the event", { tag: "@smoke" }, async ({ request }) => {
   const to = await locationOf(request, "/bew");
   expect(to.pathname).toBe("/boise");
   expect(to.searchParams.get("utm_source")).toBe("bew");
@@ -18,21 +18,29 @@ test("/bew lands on /boise tagged as the event", async ({ request }) => {
   expect(to.searchParams.get("utm_campaign")).toBe("bew-2026");
 });
 
-test("a collateral-specific utm_content survives the hop", async ({ request }) => {
-  const to = await locationOf(request, "/bew?utm_content=booth-card");
-  expect(to.searchParams.get("utm_content")).toBe("booth-card");
-  expect(to.searchParams.get("utm_source")).toBe("bew");
-});
+test(
+  "a collateral-specific utm_content survives the hop",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    const to = await locationOf(request, "/bew?utm_content=booth-card");
+    expect(to.searchParams.get("utm_content")).toBe("booth-card");
+    expect(to.searchParams.get("utm_source")).toBe("bew");
+  },
+);
 
-test("nothing but utm parameters passes, and the path never moves", async ({ request }) => {
-  const to = await locationOf(request, "/bew?next=https://evil.example.com&email=x%40y.z");
-  expect(to.host).toBe("x");
-  expect(to.pathname).toBe("/boise");
-  expect(to.searchParams.has("next")).toBe(false);
-  expect(to.searchParams.has("email")).toBe(false);
-});
+test(
+  "nothing but utm parameters passes, and the path never moves",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    const to = await locationOf(request, "/bew?next=https://evil.example.com&email=x%40y.z");
+    expect(to.host).toBe("x");
+    expect(to.pathname).toBe("/boise");
+    expect(to.searchParams.has("next")).toBe(false);
+    expect(to.searchParams.has("email")).toBe(false);
+  },
+);
 
-test("the redirect is not cached", async ({ request }) => {
+test("the redirect is not cached", { tag: "@smoke" }, async ({ request }) => {
   const res = await request.get("/bew", { maxRedirects: 0 });
   expect(res.headers()["cache-control"]).toContain("no-store");
 });

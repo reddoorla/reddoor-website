@@ -940,7 +940,8 @@ describe("a map that overrides nothing changes nothing", () => {
    *
    * `composed:goalVerdict` is the one override key missing from it. That wrap
    * lives inside GoalFit.svelte, and this repo's vitest config loads no Svelte
-   * plugin, so the component cannot be imported here at all.
+   * plugin, so the component cannot be imported here; ssr-test-harness.ts
+   * renders it instead.
    */
   const dump = (v: ReportView): string => {
     const headline = headlineFinding(v);

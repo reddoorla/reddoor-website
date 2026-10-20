@@ -2,7 +2,7 @@
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import { enhance } from "$app/forms";
-  import { env } from "$env/dynamic/public";
+  import * as env from "$app/env/public";
   import { loadTurnstile } from "$lib/turnstile";
   import type { PageData, ActionData } from "./$types";
 

@@ -5,9 +5,7 @@ import { readFileSync } from "node:fs";
 // to be hand-mocked — the convention already used by
 // src/routes/api/slots/server.test.ts. The module under test is then pulled in
 // with a dynamic import, after the mock is registered.
-vi.mock("$env/dynamic/private", () => ({
-  env: { PROSPECT_REPORT_URL: "https://ops.test" },
-}));
+vi.mock("$app/env/private", () => ({ PROSPECT_REPORT_URL: "https://ops.test" }));
 
 const { load, prerender } = await import("./+page.server");
 

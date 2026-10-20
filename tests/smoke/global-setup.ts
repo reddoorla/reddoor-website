@@ -41,6 +41,7 @@ const ROUTES = [
   "/about",
   "/contact",
   "/portfolio",
+  "/portfolio/rubrik-zero-labs",
   "/medtech",
   "/twenty-for-twenty",
   "/schedule",

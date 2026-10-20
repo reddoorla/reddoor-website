@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The two-form inquiry flow that industry landing-page CTAs open instead of
 // navigating to /contact (MED-16 follow-up): an email-capture frame, then the
@@ -130,240 +131,264 @@ async function throughStepOne(page: import("@playwright/test").Page, email = "bu
   return dialog;
 }
 
-test("the modal is closed until a CTA is clicked", async ({ page }) => {
+test("the modal is closed until a CTA is clicked", { tag: "@smoke" }, async ({ page }) => {
   await gotoHydrated(page);
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("an #inquire link opens the modal and focuses the email field", async ({ page }) => {
-  await stubInquiry(page);
-  await gotoHydrated(page);
+test(
+  "an #inquire link opens the modal and focuses the email field",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInquiry(page);
+    await gotoHydrated(page);
 
-  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+    await page.getByRole("link", { name: "Open the inquiry modal" }).click();
 
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toHaveAttribute("aria-modal", "true");
-  // trapFocus sends focus to [data-autofocus] — without it a keyboard user
-  // lands at the top of the page behind the overlay.
-  await expect(page.locator("#inquiry-email")).toBeFocused();
-});
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute("aria-modal", "true");
+    // trapFocus sends focus to [data-autofocus] — without it a keyboard user
+    // lands at the top of the page behind the overlay.
+    await expect(page.locator("#inquiry-email")).toBeFocused();
+  },
+);
 
-test("submitting the email advances to the questions and posts the lead", async ({ page }) => {
-  const { calls, strayCrmCalls } = await stubInquiry(page);
-  await gotoHydrated(page);
+test(
+  "submitting the email advances to the questions and posts the lead",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls, strayCrmCalls } = await stubInquiry(page);
+    await gotoHydrated(page);
 
-  await throughStepOne(page);
+    await throughStepOne(page);
 
-  // Central ingest got the lead the moment frame one submitted — a visitor who
-  // bails on the questions is still captured.
-  expect(calls).toHaveLength(1);
-  expect(calls[0].email).toBe("buyer@example.com");
-  // `data-inquire-step` on the trigger, so a lead can be traced to the section
-  // that produced it. Trailing colon trimmed — the CMS title is "The Diagnosis:".
-  expect(calls[0].step).toBe("The Diagnosis");
-  // Honeypot must go up empty from a real fill, or every genuine submission
-  // would be screened out server-side.
-  expect(calls[0].botField).toBe("");
+    // Central ingest got the lead the moment frame one submitted — a visitor who
+    // bails on the questions is still captured.
+    expect(calls).toHaveLength(1);
+    expect(calls[0].email).toBe("buyer@example.com");
+    // `data-inquire-step` on the trigger, so a lead can be traced to the section
+    // that produced it. Trailing colon trimmed — the CMS title is "The Diagnosis:".
+    expect(calls[0].step).toBe("The Diagnosis");
+    // Honeypot must go up empty from a real fill, or every genuine submission
+    // would be screened out server-side.
+    expect(calls[0].botField).toBe("");
 
-  // Everything the server-side CRM sync needs rides on this one POST. The API
-  // cannot write real attribution, so the landing URL and referrer are what the
-  // CRM's attribution note is composed from — if they stop going up, the note
-  // silently becomes useless.
-  expect(calls[0].sourceUrl).toContain("/dev/a11y-fixtures");
-  expect(typeof calls[0].referrer).toBe("string");
-  expect(calls[0].campaign).toBeTruthy();
-  // The survey id selects BOTH the question set shown and the custom fields the
-  // server is willing to write, so a wrong/missing one silently drops answers.
-  expect(calls[0].surveyId).toBe("VfiN5rugWcATPw47P20U");
+    // Everything the server-side CRM sync needs rides on this one POST. The API
+    // cannot write real attribution, so the landing URL and referrer are what the
+    // CRM's attribution note is composed from — if they stop going up, the note
+    // silently becomes useless.
+    expect(calls[0].sourceUrl).toContain("/dev/a11y-fixtures");
+    expect(typeof calls[0].referrer).toBe("string");
+    expect(calls[0].campaign).toBeTruthy();
+    // The survey id selects BOTH the question set shown and the custom fields the
+    // server is willing to write, so a wrong/missing one silently drops answers.
+    expect(calls[0].surveyId).toBe("VfiN5rugWcATPw47P20U");
 
-  // The browser must not talk to the CRM any more.
-  expect(strayCrmCalls).toEqual([]);
-});
+    // The browser must not talk to the CRM any more.
+    expect(strayCrmCalls).toEqual([]);
+  },
+);
 
-test("an invalid email is rejected client-side and never reaches the server", async ({ page }) => {
-  const { calls, strayCrmCalls } = await stubInquiry(page);
-  await gotoHydrated(page);
+test(
+  "an invalid email is rejected client-side and never reaches the server",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls, strayCrmCalls } = await stubInquiry(page);
+    await gotoHydrated(page);
 
-  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
-  await page.locator("#inquiry-email").fill("not-an-email");
-  await page.getByRole("button", { name: "Inquire Now" }).click();
+    await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+    await page.locator("#inquiry-email").fill("not-an-email");
+    await page.getByRole("button", { name: "Inquire Now" }).click();
 
-  await expect(page.getByRole("alert")).toContainText("valid email");
-  expect(calls).toHaveLength(0);
-  expect(strayCrmCalls).toEqual([]);
-  // The field is marked invalid and points at the message, so the error is
-  // reachable by screen reader rather than colour-only.
-  await expect(page.locator("#inquiry-email")).toHaveAttribute("aria-invalid", "true");
-});
+    await expect(page.getByRole("alert")).toContainText("valid email");
+    expect(calls).toHaveLength(0);
+    expect(strayCrmCalls).toEqual([]);
+    // The field is marked invalid and points at the message, so the error is
+    // reachable by screen reader rather than colour-only.
+    await expect(page.locator("#inquiry-email")).toHaveAttribute("aria-invalid", "true");
+  },
+);
 
-test("a server error is surfaced and the visitor is not advanced", async ({ page }) => {
-  const { strayCrmCalls } = await stubInquiry(page, {
-    status: 502,
-    body: { error: "Ingest is down." },
-  });
-  await gotoHydrated(page);
+test(
+  "a server error is surfaced and the visitor is not advanced",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { strayCrmCalls } = await stubInquiry(page, {
+      status: 502,
+      body: { error: "Ingest is down." },
+    });
+    await gotoHydrated(page);
 
-  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
-  await page.locator("#inquiry-email").fill("buyer@example.com");
-  await page.getByRole("button", { name: "Inquire Now" }).click();
+    await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+    await page.locator("#inquiry-email").fill("buyer@example.com");
+    await page.getByRole("button", { name: "Inquire Now" }).click();
 
-  await expect(page.getByRole("alert")).toContainText("Ingest is down.");
-  await expect(page.getByRole("status")).toHaveCount(0);
-  // Ingest is the system of record: when it rejects the lead the endpoint never
-  // reaches its CRM sync at all, so nothing is left holding the only copy.
-  // The visitor stays on the email frame rather than being marched onward.
-  await expect(page.locator("#inquiry-email")).toBeVisible();
-  expect(strayCrmCalls).toEqual([]);
-});
+    await expect(page.getByRole("alert")).toContainText("Ingest is down.");
+    await expect(page.getByRole("status")).toHaveCount(0);
+    // Ingest is the system of record: when it rejects the lead the endpoint never
+    // reaches its CRM sync at all, so nothing is left holding the only copy.
+    // The visitor stays on the email frame rather than being marched onward.
+    await expect(page.locator("#inquiry-email")).toBeVisible();
+    expect(strayCrmCalls).toEqual([]);
+  },
+);
 
-test("the full application: five questions, contact details, both submissions", async ({
-  page,
-}) => {
-  const { calls, strayCrmCalls } = await stubInquiry(page);
-  await gotoHydrated(page);
-  const dialog = await throughStepOne(page);
+test(
+  "the full application: five questions, contact details, both submissions",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls, strayCrmCalls } = await stubInquiry(page);
+    await gotoHydrated(page);
+    const dialog = await throughStepOne(page);
 
-  // Q1 — problems (checkboxes; multiple allowed).
-  await dialog.getByRole("checkbox", { name: "Outdated sales and marketing materials" }).check();
-  await dialog.getByRole("checkbox", { name: "Using DIY tools with little or no success" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q1 — problems (checkboxes; multiple allowed).
+    await dialog.getByRole("checkbox", { name: "Outdated sales and marketing materials" }).check();
+    await dialog
+      .getByRole("checkbox", { name: "Using DIY tools with little or no success" })
+      .check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q2 — website (free text).
-  await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeVisible();
-  await dialog.getByRole("textbox").fill("https://buyer.example.com");
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q2 — website (free text).
+    await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeVisible();
+    await dialog.getByRole("textbox").fill("https://buyer.example.com");
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q3 — goals.
-  await expect(dialog.getByRole("heading", { name: /goals for this project/ })).toBeVisible();
-  await dialog.getByRole("checkbox", { name: "Confidence to compete in new markets" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q3 — goals.
+    await expect(dialog.getByRole("heading", { name: /goals for this project/ })).toBeVisible();
+    await dialog.getByRole("checkbox", { name: "Confidence to compete in new markets" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q4 — stakeholders (radio).
-  await expect(dialog.getByRole("heading", { name: /anyone else involved/ })).toBeVisible();
-  await dialog.getByRole("radio", { name: "My business partner" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q4 — stakeholders (radio).
+    await expect(dialog.getByRole("heading", { name: /anyone else involved/ })).toBeVisible();
+    await dialog.getByRole("radio", { name: "My business partner" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q5 — the budget gate (radio). "Yes" continues to the calendar; the "No"
-  // path has its own test below.
-  await expect(dialog.getByRole("heading", { name: /expect to pay/ })).toBeVisible();
-  await dialog.getByRole("radio", { name: "Yes" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q5 — the budget gate (radio). "Yes" continues to the calendar; the "No"
+    // path has its own test below.
+    await expect(dialog.getByRole("heading", { name: /expect to pay/ })).toBeVisible();
+    await dialog.getByRole("radio", { name: "Yes" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Contact frame.
-  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
-  await page.locator("#inquiry-name").fill("Pat Buyer");
-  await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
-  await dialog.getByRole("button", { name: "Submit Application" }).click();
+    // Contact frame.
+    await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+    await page.locator("#inquiry-name").fill("Pat Buyer");
+    await page.locator("#inquiry-phone").fill("(555) 123-4567");
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  // A finished application hands off to the calendar rather than stopping on a
-  // thank-you: booking runs in PARALLEL with vetting, so the confirmation lands
-  // as /schedule's own headline and the next action is already on screen.
-  await expect(page).toHaveURL(/\/schedule$/);
-  // By name, not by level: the layout crossfades between routes, so the old
-  // page's <h1> is still in the DOM for the ~1.2s the transition takes and a
-  // level-1 query resolves to both pages at once.
-  await expect(page.getByRole("heading", { name: /your application is in/ })).toBeVisible();
+    // A finished application hands off to the calendar rather than stopping on a
+    // thank-you: booking runs in PARALLEL with vetting, so the confirmation lands
+    // as /schedule's own headline and the next action is already on screen.
+    await expect(page).toHaveURL(/\/schedule$/);
+    // By name, not by level: the layout crossfades between routes, so the old
+    // page's <h1> is still in the DOM for the ~1.2s the transition takes and a
+    // level-1 query resolves to both pages at once.
+    await expect(page.getByRole("heading", { name: /your application is in/ })).toBeVisible();
 
-  // Two ingest submissions: the step-one capture and the full application.
-  expect(calls).toHaveLength(2);
-  const application = calls[1];
-  expect(application.email).toBe("buyer@example.com");
-  expect(application.name).toBe("Pat Buyer");
-  expect(application.phone).toBe("(555) 123-4567");
-  expect(application.smsConsent).toBe(true);
-  const answers = application.answers as { label: string; value: string | string[] }[];
-  expect(answers).toHaveLength(5);
-  expect(answers[0].value).toEqual([
-    "Outdated sales and marketing materials",
-    "Using DIY tools with little or no success",
-  ]);
-  expect(answers[1].value).toBe("https://buyer.example.com");
-  expect(answers[4].value).toBe("Yes");
+    // Two ingest submissions: the step-one capture and the full application.
+    expect(calls).toHaveLength(2);
+    const application = calls[1];
+    expect(application.email).toBe("buyer@example.com");
+    expect(application.name).toBe("Pat Buyer");
+    expect(application.phone).toBe("(555) 123-4567");
+    expect(application.smsConsent).toBe(true);
+    const answers = application.answers as { label: string; value: string | string[] }[];
+    expect(answers).toHaveLength(5);
+    expect(answers[0].value).toEqual([
+      "Outdated sales and marketing materials",
+      "Using DIY tools with little or no success",
+    ]);
+    expect(answers[1].value).toBe("https://buyer.example.com");
+    expect(answers[4].value).toBe("Yes");
 
-  // `fields` is the same answers keyed by CRM FIELD ID — the payload the server
-  // turns into the contact's custom fields. Asserted by value shape, not by
-  // substring: the CRM matches option strings byte-for-byte and stores checkbox
-  // answers as arrays, so a checkbox arriving as a bare string would silently
-  // unmap the answer from the contact record while any grep still passed.
-  const fields = application.fields as Record<string, string | string[]>;
-  // Checkboxes as arrays, in the order they were ticked…
-  expect(fields["vlLzA6TsJhHkmvmf6ArR"]).toEqual([
-    "Outdated sales and marketing materials",
-    "Using DIY tools with little or no success",
-  ]);
-  expect(fields["K0obgvYezsY9MX088GFN"]).toEqual(["Confidence to compete in new markets"]);
-  // …radios as a single string, not a one-element array…
-  expect(fields["iRpYADswmWvMc0hnWtrT"]).toBe("My business partner");
-  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("Yes");
-  // …and free text as a string. `website` names a STANDARD contact field, so the
-  // server routes it out of the custom-field write (see ghl/client).
-  expect(fields["website"]).toBe("https://buyer.example.com");
+    // `fields` is the same answers keyed by CRM FIELD ID — the payload the server
+    // turns into the contact's custom fields. Asserted by value shape, not by
+    // substring: the CRM matches option strings byte-for-byte and stores checkbox
+    // answers as arrays, so a checkbox arriving as a bare string would silently
+    // unmap the answer from the contact record while any grep still passed.
+    const fields = application.fields as Record<string, string | string[]>;
+    // Checkboxes as arrays, in the order they were ticked…
+    expect(fields["vlLzA6TsJhHkmvmf6ArR"]).toEqual([
+      "Outdated sales and marketing materials",
+      "Using DIY tools with little or no success",
+    ]);
+    expect(fields["K0obgvYezsY9MX088GFN"]).toEqual(["Confidence to compete in new markets"]);
+    // …radios as a single string, not a one-element array…
+    expect(fields["iRpYADswmWvMc0hnWtrT"]).toBe("My business partner");
+    expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("Yes");
+    // …and free text as a string. `website` names a STANDARD contact field, so the
+    // server routes it out of the custom-field write (see ghl/client).
+    expect(fields["website"]).toBe("https://buyer.example.com");
 
-  // Consent is NOT carried as a field value. The browser sends the boolean and
-  // the server writes the CRM's exact stored sentence itself, so a client can
-  // never assert consent on a visitor's behalf.
-  expect(fields["K6hRBtIufgEo0ZuJfDPD"]).toBeUndefined();
-  expect(application.smsConsent).toBe(true);
+    // Consent is NOT carried as a field value. The browser sends the boolean and
+    // the server writes the CRM's exact stored sentence itself, so a client can
+    // never assert consent on a visitor's behalf.
+    expect(fields["K6hRBtIufgEo0ZuJfDPD"]).toBeUndefined();
+    expect(application.smsConsent).toBe(true);
 
-  // The details cross to the booking page in sessionStorage, so nobody is asked
-  // for their name a third time in one sitting. Deliberately NOT query params —
-  // those would put a real person's contact details into the browser history
-  // and the Referer of every request the page makes.
-  await page.getByRole("button", { name: "8:00 AM" }).click();
-  // Scoped to the booking form by class: the layout crossfade keeps the
-  // outgoing page — modal form and all — mounted for ~1.2s, so a bare `form`
-  // matches two elements here.
-  const booking = page.locator("form.details");
-  await expect(booking).toContainText("Booking as");
-  await expect(booking).toContainText("Pat Buyer");
-  await expect(booking).toContainText("buyer@example.com");
-  await expect(booking).toContainText("(555) 123-4567");
-  // Not asked again at all — the whole point of carrying them across.
-  await expect(page.locator("#book-name")).toHaveCount(0);
-  // And nothing personal ended up in the URL on the way here.
-  expect(page.url()).not.toContain("buyer@example.com");
-  expect(page.url()).not.toContain("Pat");
+    // The details cross to the booking page in sessionStorage, so nobody is asked
+    // for their name a third time in one sitting. Deliberately NOT query params —
+    // those would put a real person's contact details into the browser history
+    // and the Referer of every request the page makes.
+    await page.getByRole("button", { name: "8:00 AM" }).click();
+    // Scoped to the booking form by class: the layout crossfade keeps the
+    // outgoing page — modal form and all — mounted for ~1.2s, so a bare `form`
+    // matches two elements here.
+    const booking = page.locator("form.details");
+    await expect(booking).toContainText("Booking as");
+    await expect(booking).toContainText("Pat Buyer");
+    await expect(booking).toContainText("buyer@example.com");
+    await expect(booking).toContainText("(555) 123-4567");
+    // Not asked again at all — the whole point of carrying them across.
+    await expect(page.locator("#book-name")).toHaveCount(0);
+    // And nothing personal ended up in the URL on the way here.
+    expect(page.url()).not.toContain("buyer@example.com");
+    expect(page.url()).not.toContain("Pat");
 
-  expect(strayCrmCalls).toEqual([]);
-});
+    expect(strayCrmCalls).toEqual([]);
+  },
+);
 
-test("a No at the budget gate lands on /not-a-fit, not the calendar", async ({ page }) => {
-  const { calls, strayCrmCalls, bookCalls } = await stubInquiry(page);
-  await gotoHydrated(page);
-  const dialog = await throughStepOne(page);
+test(
+  "a No at the budget gate lands on /not-a-fit, not the calendar",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls, strayCrmCalls, bookCalls } = await stubInquiry(page);
+    await gotoHydrated(page);
+    const dialog = await throughStepOne(page);
 
-  // Every other question skipped — they are optional, and the gate must route
-  // on its own answer, not on how much else was filled in.
-  for (let i = 0; i < 4; i++) await dialog.getByRole("button", { name: "Next" }).click();
-  await expect(dialog.getByRole("heading", { name: /expect to pay/ })).toBeVisible();
-  await dialog.getByRole("radio", { name: "No" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Every other question skipped — they are optional, and the gate must route
+    // on its own answer, not on how much else was filled in.
+    for (let i = 0; i < 4; i++) await dialog.getByRole("button", { name: "Next" }).click();
+    await expect(dialog.getByRole("heading", { name: /expect to pay/ })).toBeVisible();
+    await dialog.getByRole("radio", { name: "No" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  await page.locator("#inquiry-name").fill("Pat Modest");
-  await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
-  await dialog.getByRole("button", { name: "Submit Application" }).click();
+    await page.locator("#inquiry-name").fill("Pat Modest");
+    await page.locator("#inquiry-phone").fill("(555) 123-4567");
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  // The official page, not the scheduler.
-  await expect(page).toHaveURL(/\/not-a-fit$/);
-  await expect(page.getByRole("heading", { name: /straight with us/i })).toBeVisible();
+    // The official page, not the scheduler.
+    await expect(page).toHaveURL(/\/not-a-fit$/);
+    await expect(page.getByRole("heading", { name: /straight with us/i })).toBeVisible();
 
-  // The application still submitted in full — the No is an answer worth
-  // recording, and the server marks the CRM record from it.
-  expect(calls).toHaveLength(2);
-  const fields = calls[1].fields as Record<string, string | string[]>;
-  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("No");
+    // The application still submitted in full — the No is an answer worth
+    // recording, and the server marks the CRM record from it.
+    expect(calls).toHaveLength(2);
+    const fields = calls[1].fields as Record<string, string | string[]>;
+    expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBe("No");
 
-  // No booking handoff was written: /schedule visited later in this tab must
-  // treat them as a cold visitor, not offer to book the person who opted out.
-  expect(await page.evaluate(() => sessionStorage.getItem("reddoor:inquiry"))).toBeNull();
-  expect(bookCalls).toEqual([]);
-  expect(strayCrmCalls).toEqual([]);
-});
+    // No booking handoff was written: /schedule visited later in this tab must
+    // treat them as a cold visitor, not offer to book the person who opted out.
+    expect(await page.evaluate(() => sessionStorage.getItem("reddoor:inquiry"))).toBeNull();
+    expect(bookCalls).toEqual([]);
+    expect(strayCrmCalls).toEqual([]);
+  },
+);
 
-test("the contact frame enforces name, phone and consent", async ({ page }) => {
+test("the contact frame enforces name, phone and consent", { tag: "@smoke" }, async ({ page }) => {
   const { calls } = await stubInquiry(page);
   await gotoHydrated(page);
   const dialog = await throughStepOne(page);
@@ -386,7 +411,7 @@ test("the contact frame enforces name, phone and consent", async ({ page }) => {
   expect(calls).toHaveLength(1);
 });
 
-test("Back preserves what was already answered", async ({ page }) => {
+test("Back preserves what was already answered", { tag: "@smoke" }, async ({ page }) => {
   await stubInquiry(page);
   await gotoHydrated(page);
   const dialog = await throughStepOne(page);
@@ -402,34 +427,42 @@ test("Back preserves what was already answered", async ({ page }) => {
   await expect(first).toBeChecked();
 });
 
-test("closing mid-wizard resumes where the visitor left off", async ({ page }) => {
-  await stubInquiry(page);
-  await gotoHydrated(page);
-  const dialog = await throughStepOne(page);
+test(
+  "closing mid-wizard resumes where the visitor left off",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInquiry(page);
+    await gotoHydrated(page);
+    const dialog = await throughStepOne(page);
 
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeVisible();
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeVisible();
 
-  // Escape closes; the email is already captured, so reopening must not march
-  // the visitor back through frame one — that is how applications get abandoned.
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Escape closes; the email is already captured, so reopening must not march
+    // the visitor back through frame one — that is how applications get abandoned.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
-  await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeVisible();
-});
+    await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+    await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeVisible();
+  },
+);
 
-test("moving between frames lands focus on the new frame's heading", async ({ page }) => {
-  await stubInquiry(page);
-  await gotoHydrated(page);
-  const dialog = await throughStepOne(page);
+test(
+  "moving between frames lands focus on the new frame's heading",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInquiry(page);
+    await gotoHydrated(page);
+    const dialog = await throughStepOne(page);
 
-  // Without this, a keyboard or screen-reader user is left on a button that
-  // no longer exists after the frame swap.
-  await expect(dialog.getByRole("heading", { name: /What problems/ })).toBeFocused();
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeFocused();
-});
+    // Without this, a keyboard or screen-reader user is left on a button that
+    // no longer exists after the frame swap.
+    await expect(dialog.getByRole("heading", { name: /What problems/ })).toBeFocused();
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await expect(dialog.getByRole("heading", { name: /check out your work/ })).toBeFocused();
+  },
+);
 
 // The modal is ONE frame that says "you are at step one". The other two steps
 // are drawn to place it in the framework, not to be picked. An earlier pass
@@ -465,6 +498,23 @@ test("the step row is decorative, not a set of controls", async ({ page }) => {
   await expect(dialog).toContainText("We audit your marketing deliverables");
 });
 
+test(
+  "the step row offers no controls and is hidden from AT",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInquiry(page);
+    await gotoHydrated(page);
+    await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.locator(".inquiry-steps :is(button, a, [tabindex], [role=tab], [role=tabpanel])"),
+    ).toHaveCount(0);
+    await expect(dialog.locator(".inquiry-steps")).toHaveAttribute("aria-hidden", "true");
+    await expect(dialog).toContainText("We audit your marketing deliverables");
+  },
+);
+
 test("opening the modal arrests scroll without shifting the page sideways", async ({ page }) => {
   await stubInquiry(page);
   await gotoHydrated(page);
@@ -489,10 +539,12 @@ test("opening the modal arrests scroll without shifting the page sideways", asyn
   const after = await probe.evaluate((el) => el.getBoundingClientRect().left);
   expect(after).toBe(before);
 
-  // Scroll really is arrested.
+  // Scroll really is arrested. The layout's hydration afterNavigate can still
+  // scroll to the top on its 600ms timer here, so the wheel must never take the
+  // page further down; it may legitimately land at 0.
   const y0 = await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 600);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(y0);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(y0);
 
   // …and everything is put back on close.
   await page.keyboard.press("Escape");
@@ -502,24 +554,59 @@ test("opening the modal arrests scroll without shifting the page sideways", asyn
     .not.toBe("hidden");
 });
 
-test("Escape closes the modal and returns focus to the trigger", async ({ page }) => {
-  await stubInquiry(page);
-  await gotoHydrated(page);
+test(
+  "the open modal holds the page still, and closing it lets the page scroll",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInquiry(page);
+    await gotoHydrated(page);
 
-  const trigger = page.getByRole("link", { name: "Open the inquiry modal" });
-  await trigger.click();
-  await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    // A wheel is not awaited by Playwright, so an unchanged scrollY right after
+    // one proves nothing; the lock itself is read instead.
+    const bodyOverflow = () => page.evaluate(() => getComputedStyle(document.body).overflow);
+    await expect.poll(bodyOverflow).toBe("hidden");
 
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  // WCAG 2.4.3: focus must not be dumped at the top of the document.
-  await expect(trigger).toBeFocused();
-});
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect.poll(bodyOverflow).not.toBe("hidden");
+    // Where the page sits after the click is not something to measure from: the
+    // layout's afterNavigate also fires on hydration and scrolls to the top on a
+    // 600ms timer, which can land between the click scrolling the trigger into
+    // view and any read taken here, leaving scrollY at 0 with nowhere to wheel
+    // up to. Start from the top instead. That timer only ever scrolls TO 0, so a
+    // scrollY above 0 after a downward wheel is the wheel's doing and nothing else.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(async () => {
+      await page.mouse.wheel(0, 600);
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    }).toPass();
+  },
+);
+
+test(
+  "Escape closes the modal and returns focus to the trigger",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInquiry(page);
+    await gotoHydrated(page);
+
+    const trigger = page.getByRole("link", { name: "Open the inquiry modal" });
+    await trigger.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // WCAG 2.4.3: focus must not be dumped at the top of the document.
+    await expect(trigger).toBeFocused();
+  },
+);
 
 // Axe over each distinct frame of the flow, not just the first one — the
 // wizard's fieldsets, option rows and error wiring are exactly the markup a
 // regression would land in.
-test("no frame of the flow has axe violations", async ({ page }) => {
+test("no frame of the flow has axe violations", { tag: "@smoke" }, async ({ page }) => {
   await stubInquiry(page);
   await gotoHydrated(page);
   await page.getByRole("link", { name: "Open the inquiry modal" }).click();
@@ -537,8 +624,12 @@ test("no frame of the flow has axe violations", async ({ page }) => {
     )
     .toBe(1);
 
-  const scan = () =>
-    new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const scan = async () => {
+    await settleAnimations(page);
+    return new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+  };
 
   // Frame one (email).
   expect((await scan()).violations).toEqual([]);
@@ -580,110 +671,122 @@ test("only step one is drawn, at full red", async ({ page }) => {
 // one with a step that is deliberately NOT steps[0], one with no step at all —
 // pin both halves of that: the attribute is read when present, and there is a
 // sane fallback when it isn't.
-test("a CTA's data-inquire-step is the step sent to ingest, over the steps[0] fallback", async ({
-  page,
-}) => {
-  const { calls } = await stubInquiry(page);
-  await gotoHydrated(page);
+test(
+  "a CTA's data-inquire-step is the step sent to ingest, over the steps[0] fallback",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls } = await stubInquiry(page);
+    await gotoHydrated(page);
 
-  // This trigger carries data-inquire-step="The Rollout" — the LAST framework
-  // step, chosen to differ from steps[0] ("The Diagnosis") so a pass proves the
-  // attribute was read rather than the fallback happening to match.
-  await page.getByRole("link", { name: "Open inquiry from the rollout step" }).click();
-  await page.locator("#inquiry-email").fill("buyer@example.com");
-  await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
+    // This trigger carries data-inquire-step="The Rollout" — the LAST framework
+    // step, chosen to differ from steps[0] ("The Diagnosis") so a pass proves the
+    // attribute was read rather than the fallback happening to match.
+    await page.getByRole("link", { name: "Open inquiry from the rollout step" }).click();
+    await page.locator("#inquiry-email").fill("buyer@example.com");
+    await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
 
-  await expect.poll(() => calls.length).toBe(1);
-  expect(calls[0].step).toBe("The Rollout");
-});
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0].step).toBe("The Rollout");
+  },
+);
 
-test("a CTA with no data-inquire-step falls back to the first framework step", async ({ page }) => {
-  const { calls } = await stubInquiry(page);
-  await gotoHydrated(page);
+test(
+  "a CTA with no data-inquire-step falls back to the first framework step",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls } = await stubInquiry(page);
+    await gotoHydrated(page);
 
-  // The bare trigger names no step; the lead must still trace to the first
-  // framework step rather than being attributed to nothing.
-  await page.getByRole("link", { name: "Open inquiry with no step attribute" }).click();
-  await page.locator("#inquiry-email").fill("buyer@example.com");
-  await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
+    // The bare trigger names no step; the lead must still trace to the first
+    // framework step rather than being attributed to nothing.
+    await page.getByRole("link", { name: "Open inquiry with no step attribute" }).click();
+    await page.locator("#inquiry-email").fill("buyer@example.com");
+    await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
 
-  await expect.poll(() => calls.length).toBe(1);
-  // steps[0] is the iconColumns first title, "The Diagnosis:", colon trimmed.
-  expect(calls[0].step).toBe("The Diagnosis");
-});
+    await expect.poll(() => calls.length).toBe(1);
+    // steps[0] is the iconColumns first title, "The Diagnosis:", colon trimmed.
+    expect(calls[0].step).toBe("The Diagnosis");
+  },
+);
 
 // The CRM sync lives behind /api/inquiry, so an ingest failure means the whole
 // endpoint failed and nothing reached the CRM either — ingest is the system of
 // record and the CRM must never hold an application it rejected. Step one
 // succeeds (so the visitor reaches the wizard); the application POST fails.
-test("an application-step ingest failure surfaces the error and holds the visitor", async ({
-  page,
-}) => {
-  const calls: Record<string, unknown>[] = [];
-  await page.route("**/api/inquiry", async (route) => {
-    calls.push(JSON.parse(route.request().postData() ?? "{}"));
-    const failing = calls.length >= 2; // 1 = email capture (ok), 2 = application (fail)
-    await route.fulfill({
-      status: failing ? 502 : 200,
-      contentType: "application/json",
-      body: JSON.stringify(failing ? { error: "Ingest is down." } : { success: true }),
+test(
+  "an application-step ingest failure surfaces the error and holds the visitor",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const calls: Record<string, unknown>[] = [];
+    await page.route("**/api/inquiry", async (route) => {
+      calls.push(JSON.parse(route.request().postData() ?? "{}"));
+      const failing = calls.length >= 2; // 1 = email capture (ok), 2 = application (fail)
+      await route.fulfill({
+        status: failing ? 502 : 200,
+        contentType: "application/json",
+        body: JSON.stringify(failing ? { error: "Ingest is down." } : { success: true }),
+      });
     });
-  });
-  await page.route("**/challenges.cloudflare.com/**", (route) => route.abort());
-  const strayCrmCalls: string[] = [];
-  await page.route("**/*.leadconnectorhq.com/**", async (route) => {
-    strayCrmCalls.push(route.request().url());
-    await route.abort();
-  });
+    await page.route("**/challenges.cloudflare.com/**", (route) => route.abort());
+    const strayCrmCalls: string[] = [];
+    await page.route("**/*.leadconnectorhq.com/**", async (route) => {
+      strayCrmCalls.push(route.request().url());
+      await route.abort();
+    });
 
-  await gotoHydrated(page);
-  const dialog = await throughStepOne(page);
+    await gotoHydrated(page);
+    const dialog = await throughStepOne(page);
 
-  for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
-  await page.locator("#inquiry-name").fill("Pat Buyer");
-  await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
-  await dialog.getByRole("button", { name: "Submit Application" }).click();
+    for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#inquiry-name").fill("Pat Buyer");
+    await page.locator("#inquiry-phone").fill("(555) 123-4567");
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  // The failure is surfaced and the visitor is held on the contact frame rather
-  // than marched to the thank-you, so the application can be retried.
-  await expect(dialog.getByRole("alert")).toContainText("Ingest is down.");
-  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
-  await expect(dialog.getByRole("status")).toHaveCount(0);
-  // Both POSTs were attempted; neither reached the CRM from the browser.
-  expect(calls).toHaveLength(2);
-  expect(strayCrmCalls).toEqual([]);
-});
+    // The failure is surfaced and the visitor is held on the contact frame rather
+    // than marched to the thank-you, so the application can be retried.
+    await expect(dialog.getByRole("alert")).toContainText("Ingest is down.");
+    await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+    await expect(dialog.getByRole("status")).toHaveCount(0);
+    // Both POSTs were attempted; neither reached the CRM from the browser.
+    expect(calls).toHaveLength(2);
+    expect(strayCrmCalls).toEqual([]);
+  },
+);
 
 // The resume path is only for a mid-wizard abandon. A FINISHED application must
 // reopen clean — otherwise the next visitor on a shared machine is greeted by
 // the last one's thank-you, or worse, their half-filled contact frame.
-test("reopening after a completed application starts a fresh email frame", async ({ page }) => {
-  await stubInquiry(page);
-  await gotoHydrated(page);
-  const dialog = await throughStepOne(page);
+test(
+  "reopening after a completed application starts a fresh email frame",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInquiry(page);
+    await gotoHydrated(page);
+    const dialog = await throughStepOne(page);
 
-  // Blow through the optional questions, fill contact, submit.
-  for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
-  await page.locator("#inquiry-name").fill("Pat Buyer");
-  await page.locator("#inquiry-phone").fill("(555) 123-4567");
-  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
-  await dialog.getByRole("button", { name: "Submit Application" }).click();
-  await expect(page).toHaveURL(/\/schedule$/);
+    // Blow through the optional questions, fill contact, submit.
+    for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#inquiry-name").fill("Pat Buyer");
+    await page.locator("#inquiry-phone").fill("(555) 123-4567");
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
+    await expect(page).toHaveURL(/\/schedule$/);
 
-  // Back to the landing page — the browser Back button after a booking hand-off
-  // is an ordinary thing to do, and it is how a shared machine ends up showing
-  // the next person whatever the last one left behind.
-  await page.goBack();
-  await settled(page);
+    // Back to the landing page — the browser Back button after a booking hand-off
+    // is an ordinary thing to do, and it is how a shared machine ends up showing
+    // the next person whatever the last one left behind.
+    await page.goBack();
+    await settled(page);
 
-  await page.getByRole("link", { name: "Open the inquiry modal" }).click();
-  const reopened = page.getByRole("dialog");
-  // Back at frame one with an empty field — not the thank-you, not the contact form.
-  await expect(reopened.locator("#inquiry-email")).toBeVisible();
-  await expect(reopened.locator("#inquiry-email")).toHaveValue("");
-  await expect(reopened.getByText("your application is in")).toHaveCount(0);
-});
+    await page.getByRole("link", { name: "Open the inquiry modal" }).click();
+    const reopened = page.getByRole("dialog");
+    // Back at frame one with an empty field — not the thank-you, not the contact form.
+    await expect(reopened.locator("#inquiry-email")).toBeVisible();
+    await expect(reopened.locator("#inquiry-email")).toHaveValue("");
+    await expect(reopened.getByText("your application is in")).toHaveCount(0);
+  },
+);
 
 // ── Resuming from the CRM's chase link ────────────────────────────────────
 //
@@ -694,7 +797,7 @@ test("reopening after a completed application starts a fresh email frame", async
 
 const CHASE = `${PATH}?email=pat%40example.com&full_name=Pat%20Buyer&phone=(310)%20555-0101`;
 
-test("a chase link opens straight into the questions", async ({ page }) => {
+test("a chase link opens straight into the questions", { tag: "@smoke" }, async ({ page }) => {
   const { calls } = await stubInquiry(page);
   await gotoHydrated(page, CHASE);
 
@@ -708,7 +811,7 @@ test("a chase link opens straight into the questions", async ({ page }) => {
   expect(calls).toEqual([]);
 });
 
-test("the address does not linger in the URL", async ({ page }) => {
+test("the address does not linger in the URL", { tag: "@smoke" }, async ({ page }) => {
   // gtag.js is deferred until first interaction, so it must find this already
   // cleaned — that ordering is the only thing keeping a lead's address out of
   // analytics.
@@ -720,42 +823,46 @@ test("the address does not linger in the URL", async ({ page }) => {
   expect(page.url()).not.toContain("pat%40example.com");
 });
 
-test("the name and phone carry through to the contact frame", async ({ page }) => {
-  const { calls } = await stubInquiry(page);
-  await gotoHydrated(page, CHASE);
-  const dialog = page.getByRole("dialog");
+test(
+  "the name and phone carry through to the contact frame",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls } = await stubInquiry(page);
+    await gotoHydrated(page, CHASE);
+    const dialog = page.getByRole("dialog");
 
-  // The same five questions the full-flow test walks, entered from the resume
-  // point rather than through step one.
-  await dialog.getByRole("checkbox", { name: "Outdated sales and marketing materials" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("textbox").fill("https://buyer.example.com");
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("checkbox", { name: "Confidence to compete in new markets" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("radio", { name: "My business partner" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("radio", { name: "Yes" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // The same five questions the full-flow test walks, entered from the resume
+    // point rather than through step one.
+    await dialog.getByRole("checkbox", { name: "Outdated sales and marketing materials" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await dialog.getByRole("textbox").fill("https://buyer.example.com");
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await dialog.getByRole("checkbox", { name: "Confidence to compete in new markets" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await dialog.getByRole("radio", { name: "My business partner" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
+    await dialog.getByRole("radio", { name: "Yes" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Arrived with both fields already filled — the whole point of the link.
-  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
-  await expect(page.locator("#inquiry-name")).toHaveValue("Pat Buyer");
-  await expect(page.locator("#inquiry-phone")).toHaveValue("(310) 555-0101");
+    // Arrived with both fields already filled — the whole point of the link.
+    await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+    await expect(page.locator("#inquiry-name")).toHaveValue("Pat Buyer");
+    await expect(page.locator("#inquiry-phone")).toHaveValue("(310) 555-0101");
 
-  // Still nothing sent until they actually submit.
-  expect(calls).toEqual([]);
+    // Still nothing sent until they actually submit.
+    expect(calls).toEqual([]);
 
-  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
-  await dialog.getByRole("button", { name: "Submit Application" }).click();
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  // And the address from the link is what reaches the server, unretyped.
-  await expect.poll(() => calls.length).toBe(1);
-  expect(calls[0].email).toBe("pat@example.com");
-  expect(calls[0].name).toBe("Pat Buyer");
-});
+    // And the address from the link is what reaches the server, unretyped.
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0].email).toBe("pat@example.com");
+    expect(calls[0].name).toBe("Pat Buyer");
+  },
+);
 
-test("a link with no usable address just shows the page", async ({ page }) => {
+test("a link with no usable address just shows the page", { tag: "@smoke" }, async ({ page }) => {
   // No modal thrown over the page for a malformed link — but the params still
   // go, so a broken link leaves nothing behind either.
   await stubInquiry(page);
@@ -774,76 +881,82 @@ test("a link with no usable address just shows the page", async ({ page }) => {
 // (xW6eFrHUFBNQCijp1mOM) — a /digital submission can therefore never be
 // routed to /not-a-fit, which reads that field to decide.
 
-test("the digital funnel submits its own fields and never the budget gate", async ({ page }) => {
-  const { calls, strayCrmCalls } = await stubInquiry(page);
-  await gotoHydrated(page);
+test(
+  "the digital funnel submits its own fields and never the budget gate",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const { calls, strayCrmCalls } = await stubInquiry(page);
+    await gotoHydrated(page);
 
-  await page.getByRole("button", { name: "Open the digital inquiry" }).click();
-  const dialog = page.getByRole("dialog");
-  await page.locator("#inquiry-email").fill("digital-smoke@example.test");
-  await dialog.getByRole("button", { name: "Inquire Now" }).click();
+    await page.getByRole("button", { name: "Open the digital inquiry" }).click();
+    const dialog = page.getByRole("dialog");
+    await page.locator("#inquiry-email").fill("digital-smoke@example.test");
+    await dialog.getByRole("button", { name: "Inquire Now" }).click();
 
-  // Q1 — needs (checkbox).
-  await expect(dialog.getByRole("heading", { name: /What do you need help with\?/ })).toBeVisible();
-  await dialog.getByRole("checkbox", { name: "A new website" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q1 — needs (checkbox).
+    await expect(
+      dialog.getByRole("heading", { name: /What do you need help with\?/ }),
+    ).toBeVisible();
+    await dialog.getByRole("checkbox", { name: "A new website" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q2 — website (free text). Deliberately skipped: a startup has no site yet,
-  // and the flow must allow it.
-  await expect(
-    dialog.getByRole("heading", { name: /Where can we see your current website\?/ }),
-  ).toBeVisible();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q2 — website (free text). Deliberately skipped: a startup has no site yet,
+    // and the flow must allow it.
+    await expect(
+      dialog.getByRole("heading", { name: /Where can we see your current website\?/ }),
+    ).toBeVisible();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q3 — goal (radio).
-  await expect(
-    dialog.getByRole("heading", { name: /main job your website needs to do/ }),
-  ).toBeVisible();
-  await dialog.getByRole("radio", { name: "Bring in leads and calls" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q3 — goal (radio).
+    await expect(
+      dialog.getByRole("heading", { name: /main job your website needs to do/ }),
+    ).toBeVisible();
+    await dialog.getByRole("radio", { name: "Bring in leads and calls" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q4 — stakeholders (radio).
-  await expect(dialog.getByRole("heading", { name: /anyone else involved/ })).toBeVisible();
-  await dialog.getByRole("radio", { name: "Just myself" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q4 — stakeholders (radio).
+    await expect(dialog.getByRole("heading", { name: /anyone else involved/ })).toBeVisible();
+    await dialog.getByRole("radio", { name: "Just myself" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Q5 — budget (radio). This is /digital's OWN budget question
-  // (2gNEfoXr5XwltWMFhaxS), not medtech's $10k+ gate.
-  await expect(dialog.getByRole("heading", { name: /budget for this project/ })).toBeVisible();
-  await dialog.getByRole("radio", { name: "Under $5,000" }).check();
-  await dialog.getByRole("button", { name: "Next" }).click();
+    // Q5 — budget (radio). This is /digital's OWN budget question
+    // (2gNEfoXr5XwltWMFhaxS), not medtech's $10k+ gate.
+    await expect(dialog.getByRole("heading", { name: /budget for this project/ })).toBeVisible();
+    await dialog.getByRole("radio", { name: "Under $5,000" }).check();
+    await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Contact frame.
-  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
-  await page.locator("#inquiry-name").fill("Digital Smoke");
-  await page.locator("#inquiry-phone").fill("(310) 555-0102");
-  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
-  await dialog.getByRole("button", { name: "Submit Application" }).click();
+    // Contact frame.
+    await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+    await page.locator("#inquiry-name").fill("Digital Smoke");
+    await page.locator("#inquiry-phone").fill("(310) 555-0102");
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
 
-  // The scheduler, never the medtech opt-out page — see the header comment.
-  // Asserted as the URL it DOES reach: a `not.toHaveURL(/not-a-fit/)` would
-  // pass instantly against the pre-navigation URL and could never fail.
-  await expect(page).toHaveURL(/\/schedule$/);
+    // The scheduler, never the medtech opt-out page — see the header comment.
+    // Asserted as the URL it DOES reach: a `not.toHaveURL(/not-a-fit/)` would
+    // pass instantly against the pre-navigation URL and could never fail.
+    await expect(page).toHaveURL(/\/schedule$/);
 
-  await expect.poll(() => calls.length).toBe(2);
-  const application = calls[1];
-  expect(application.surveyId).toBe("digital");
+    await expect.poll(() => calls.length).toBe(2);
+    const application = calls[1];
+    expect(application.surveyId).toBe("digital");
 
-  const fields = application.fields as Record<string, string | string[]>;
-  // Exactly the four custom ids the wizard answered — `website` is a standard
-  // field routed out of this map server-side, and it was skipped besides.
-  expect(Object.keys(fields).sort()).toEqual(
-    [
-      "6ADqYeIoiuoZYjNOVe65", // needs
-      "LF7fDBprx9TnmuuE0r3Z", // goal
-      "hFMs3VYZALF59mloih9F", // stakeholders
-      "2gNEfoXr5XwltWMFhaxS", // budget
-    ].sort(),
-  );
-  // The skipped website question submits nothing rather than an empty string.
-  expect(fields.website).toBeUndefined();
-  // A digital submission never carries medtech's budget-gate field.
-  expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBeUndefined();
+    const fields = application.fields as Record<string, string | string[]>;
+    // Exactly the four custom ids the wizard answered — `website` is a standard
+    // field routed out of this map server-side, and it was skipped besides.
+    expect(Object.keys(fields).sort()).toEqual(
+      [
+        "6ADqYeIoiuoZYjNOVe65", // needs
+        "LF7fDBprx9TnmuuE0r3Z", // goal
+        "hFMs3VYZALF59mloih9F", // stakeholders
+        "2gNEfoXr5XwltWMFhaxS", // budget
+      ].sort(),
+    );
+    // The skipped website question submits nothing rather than an empty string.
+    expect(fields.website).toBeUndefined();
+    // A digital submission never carries medtech's budget-gate field.
+    expect(fields["xW6eFrHUFBNQCijp1mOM"]).toBeUndefined();
 
-  expect(strayCrmCalls).toEqual([]);
-});
+    expect(strayCrmCalls).toEqual([]);
+  },
+);

@@ -1,5 +1,5 @@
 import { error, redirect } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { fetchAppointment } from "$lib/ghl/appointment";
 import { googleCalendarUrl } from "$lib/schedule/ics";
 import type { RequestHandler } from "./$types";

@@ -15,7 +15,7 @@ async function gotoHydrated(page: Page) {
   await expect(page.locator("html")).toHaveAttribute("data-hydrated", "true");
 }
 
-test.describe("Accordion disclosure", () => {
+test.describe("Accordion disclosure", { tag: "@smoke" }, () => {
   test("open-by-default item starts expanded and collapses on click", async ({ page }) => {
     await gotoHydrated(page);
 

@@ -42,7 +42,7 @@ async function openFixture(page: Page) {
 }
 
 test.describe("ContentWidthMedia slideshow item", () => {
-  test("renders the gallery images as a carousel", async ({ page }) => {
+  test("renders the gallery images as a carousel", { tag: "@smoke" }, async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on("console", (m) => {
       // Ignore failed-resource noise (external Unsplash images); assert only on
@@ -65,53 +65,73 @@ test.describe("ContentWidthMedia slideshow item", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("hides controls while autoplaying, reveals them on hover, keeps them once paused", async ({
-    page,
-  }) => {
-    await forceReducedMotion(page, false); // motion allowed → autoplay runs
-    await openFixture(page);
+  test(
+    "hides controls while autoplaying, reveals them on hover, keeps them once paused",
+    { tag: "@nightly" },
+    async ({ page }) => {
+      await forceReducedMotion(page, false); // motion allowed → autoplay runs
+      await openFixture(page);
 
-    const section = page.locator(SECTION);
-    const carousel = section.locator(".\\@container").first();
-    const next = section.getByRole("button", { name: "Next slide" });
-    // The controls' wrapper carries the fade; read its computed opacity.
-    const controlsOpacity = () =>
-      next.evaluate((el) => getComputedStyle(el.parentElement as HTMLElement).opacity);
+      const section = page.locator(SECTION);
+      const carousel = section.locator(".\\@container").first();
+      const next = section.getByRole("button", { name: "Next slide" });
+      // The controls' wrapper carries the fade; read its computed opacity.
+      const controlsOpacity = () =>
+        next.evaluate((el) => getComputedStyle(el.parentElement as HTMLElement).opacity);
 
-    // Auto-advancing → chrome faded out.
-    await expect.poll(controlsOpacity).toBe("0");
+      // Auto-advancing → chrome faded out.
+      await expect.poll(controlsOpacity).toBe("0");
 
-    // Hovering the carousel reveals the chrome.
-    await carousel.hover();
-    await expect.poll(controlsOpacity).toBe("1");
+      // Hovering the carousel reveals the chrome.
+      await carousel.hover();
+      await expect.poll(controlsOpacity).toBe("1");
 
-    // The revealed pause control works, and once paused the chrome stays put even
-    // after the pointer leaves (no longer auto-advancing).
-    await section.getByRole("button", { name: "Pause slideshow" }).click();
-    // Assert the pause LANDED before moving the pointer. The label flips on the
-    // same element, so this is the state change itself — and checking it first
-    // means a dead click fails here, naming the cause, instead of being masked
-    // by an opacity that reads "1" for a moment on its way back down to 0.
-    await expect(section.getByRole("button", { name: "Play slideshow" })).toBeVisible();
-    await page.mouse.move(5, 5);
-    await expect.poll(controlsOpacity).toBe("1");
-  });
+      // The revealed pause control works, and once paused the chrome stays put even
+      // after the pointer leaves (no longer auto-advancing).
+      await section.getByRole("button", { name: "Pause slideshow" }).click();
+      // Assert the pause LANDED before moving the pointer. The label flips on the
+      // same element, so this is the state change itself — and checking it first
+      // means a dead click fails here, naming the cause, instead of being masked
+      // by an opacity that reads "1" for a moment on its way back down to 0.
+      await expect(section.getByRole("button", { name: "Play slideshow" })).toBeVisible();
+      await page.mouse.move(5, 5);
+      await expect.poll(controlsOpacity).toBe("1");
+    },
+  );
 
-  test("omits the pause control under reduced motion (WCAG 2.2.2)", async ({ page }) => {
-    await forceReducedMotion(page, true);
-    await openFixture(page);
+  test(
+    "the pause control pauses the autoplay (WCAG 2.2.2)",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await forceReducedMotion(page, false);
+      await openFixture(page);
 
-    const section = page.locator(SECTION);
-    await expect(section).toBeVisible();
+      const section = page.locator(SECTION);
+      await section.locator(".\\@container").first().hover();
+      await section.getByRole("button", { name: "Pause slideshow" }).click();
+      await expect(section.getByRole("button", { name: "Play slideshow" })).toBeVisible();
+    },
+  );
 
-    // Images still render as a static carousel...
-    await expect.poll(() => section.locator("img").count()).toBeGreaterThanOrEqual(3);
+  test(
+    "omits the pause control under reduced motion (WCAG 2.2.2)",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await forceReducedMotion(page, true);
+      await openFixture(page);
 
-    // ...but nothing auto-advances, so there is no misleading no-op pause button,
-    // and the nav arrows stay put (no autoplay chrome to hide behind).
-    await expect(section.getByRole("button", { name: /slideshow/ })).toHaveCount(0);
-    await expect(section.getByRole("button", { name: "Next slide" })).toBeVisible();
-  });
+      const section = page.locator(SECTION);
+      await expect(section).toBeVisible();
+
+      // Images still render as a static carousel...
+      await expect.poll(() => section.locator("img").count()).toBeGreaterThanOrEqual(3);
+
+      // ...but nothing auto-advances, so there is no misleading no-op pause button,
+      // and the nav arrows stay put (no autoplay chrome to hide behind).
+      await expect(section.getByRole("button", { name: /slideshow/ })).toHaveCount(0);
+      await expect(section.getByRole("button", { name: "Next slide" })).toBeVisible();
+    },
+  );
 
   test.describe("on a narrow cell", () => {
     test.use({ viewport: { width: 375, height: 800 } });

@@ -14,7 +14,7 @@ export default {
     colors: {
       transparent: "transparent",
       current: "currentColor",
-      black: "#000",
+      black: "oklab(0 0 0)",
       white: "#fff",
       light: "#BBBDBF",
       // Two grays introduced by the industry landing pages.

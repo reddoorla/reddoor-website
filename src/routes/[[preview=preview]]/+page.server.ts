@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
     // Log the real cause — the controlled 503 must not silence what the old
     // unhandled 500 used to print.
     console.error("[home] Prismic load failed:", err);
-    throw error(503, { message: "Content is temporarily unavailable — please try again." });
+    throw error(503, "Content is temporarily unavailable — please try again.");
   }
 
   return {

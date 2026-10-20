@@ -29,7 +29,7 @@ const TOKEN_PATHS = ["/reschedule", "/cancel", "/calendar"];
  *  /inquiry is where the CRM's chase link lands, carrying a lead's address. */
 const REDIRECT_PATHS = ["/inquiry"];
 
-test("the sitemap advertises no part of the funnel", async ({ request }) => {
+test("the sitemap advertises no part of the funnel", { tag: "@smoke" }, async ({ request }) => {
   const res = await request.get("/sitemap.xml");
   expect(res.status()).toBe(200);
   const xml = await res.text();
@@ -46,7 +46,7 @@ test("the sitemap advertises no part of the funnel", async ({ request }) => {
   }
 });
 
-test("every funnel page tells crawlers to stay out", async ({ request }) => {
+test("every funnel page tells crawlers to stay out", { tag: "@smoke" }, async ({ request }) => {
   for (const p of FUNNEL_PATHS) {
     const html = await (await request.get(p)).text();
     const robots = html.match(/<meta\s+name="robots"\s+content="([^"]+)"/i)?.[1];
@@ -55,26 +55,34 @@ test("every funnel page tells crawlers to stay out", async ({ request }) => {
   }
 });
 
-test("the id-bearing pages also refuse to leak the id through Referer", async ({ request }) => {
-  // The appointment id IS the credential. `no-referrer` keeps it out of the
-  // headers sent to anything the page links to, and `nofollow` keeps a crawler
-  // that somehow reached one from walking to the next.
-  for (const prefix of TOKEN_PATHS) {
-    const html = await (await request.get(`${prefix}/AAAAAAAAAAAA`)).text();
-    expect(html, prefix).toContain('name="robots" content="noindex, nofollow"');
-    expect(html, prefix).toContain('name="referrer" content="no-referrer"');
-  }
-});
+test(
+  "the id-bearing pages also refuse to leak the id through Referer",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // The appointment id IS the credential. `no-referrer` keeps it out of the
+    // headers sent to anything the page links to, and `nofollow` keeps a crawler
+    // that somehow reached one from walking to the next.
+    for (const prefix of TOKEN_PATHS) {
+      const html = await (await request.get(`${prefix}/AAAAAAAAAAAA`)).text();
+      expect(html, prefix).toContain('name="robots" content="noindex, nofollow"');
+      expect(html, prefix).toContain('name="referrer" content="no-referrer"');
+    }
+  },
+);
 
-test("robots.txt does not disallow the pages that carry noindex", async ({ request }) => {
-  // Deliberate, and the opposite of the obvious instinct. A crawler must FETCH
-  // a page to read its `noindex`; a robots.txt `Disallow` stops the fetch, so
-  // the directive is never seen — and a disallowed URL that something links to
-  // can still be indexed, URL-only, with no way to remove it. Blocking here
-  // would weaken the control above, not reinforce it.
-  const txt = await (await request.get("/robots.txt")).text();
-  for (const p of [...FUNNEL_PATHS, ...TOKEN_PATHS]) {
-    expect(txt, p).not.toContain(`Disallow: ${p}`);
-  }
-  expect(txt).toContain("Sitemap:");
-});
+test(
+  "robots.txt does not disallow the pages that carry noindex",
+  { tag: "@smoke" },
+  async ({ request }) => {
+    // Deliberate, and the opposite of the obvious instinct. A crawler must FETCH
+    // a page to read its `noindex`; a robots.txt `Disallow` stops the fetch, so
+    // the directive is never seen — and a disallowed URL that something links to
+    // can still be indexed, URL-only, with no way to remove it. Blocking here
+    // would weaken the control above, not reinforce it.
+    const txt = await (await request.get("/robots.txt")).text();
+    for (const p of [...FUNNEL_PATHS, ...TOKEN_PATHS]) {
+      expect(txt, p).not.toContain(`Disallow: ${p}`);
+    }
+    expect(txt).toContain("Sitemap:");
+  },
+);

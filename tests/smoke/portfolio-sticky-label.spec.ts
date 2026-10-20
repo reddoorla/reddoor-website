@@ -393,4 +393,43 @@ test.describe("portfolio featured-project sticky label", () => {
     await expect(page.locator('[data-sticky-label="rubrik-zero-labs"]')).toBeHidden();
     await expect(page.getByRole("link", { name: "Go to Rubrik Zero Labs project" })).toHaveCount(1);
   });
+
+  test(
+    "every featured-project link, at desktop and phone widths, resolves to a page",
+    { tag: "@smoke" },
+    async ({ page, request }) => {
+      // Only the markup matters here. The featured imagery is vite-imagetools
+      // output, which the dev server re-encodes (AVIF included) on every request
+      // with no cache. Waiting for `load` held this test on 9s of encoding at the
+      // first breakpoint and 3s at the second, which left the 30s budget to run
+      // out inside the request loop below on a loaded machine; and the encodes
+      // fill libuv's four-thread pool, which also starves concurrent SSR of the
+      // DNS lookup for its Prismic fetch (a 500 in another worker). The links
+      // are server-rendered, so DOMContentLoaded is enough.
+      await page.route("**/@imagetools/**", (route) => route.abort());
+      const targets = new Set<string>();
+      for (const viewport of [
+        { width: 1280, height: 800 },
+        { width: 390, height: 844 },
+      ]) {
+        await page.setViewportSize(viewport);
+        await page.goto("/portfolio", { waitUntil: "domcontentloaded" });
+        const links = page.getByRole("link", { name: /^Go to .+ project$/ });
+        await expect(links.first(), `at ${viewport.width}`).toBeVisible();
+        for (const link of await links.all()) {
+          await expect(link, `at ${viewport.width}`).toHaveAttribute(
+            "href",
+            /^\/portfolio\/[a-z0-9-]+$/,
+          );
+          targets.add((await link.getAttribute("href"))!);
+        }
+      }
+      // In parallel: each is an independent SSR, so there is nothing to gain
+      // from paying for them one after another.
+      const statuses = await Promise.all(
+        [...targets].map(async (href) => [href, (await request.get(href)).status()] as const),
+      );
+      for (const [href, status] of statuses) expect(status, href).toBe(200);
+    },
+  );
 });

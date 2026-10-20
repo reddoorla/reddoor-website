@@ -15,9 +15,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
     // slideshow item can render its gallery's images (one level: gallery.images).
     page = await client.getByUID("showcase", params.uid, { fetchLinks: ["gallery.images"] });
   } catch {
-    throw error(404, {
-      message: "Showcase not found",
-    });
+    throw error(404, "Showcase not found");
   }
 
   // isFilled.contentRelationship does NOT exclude broken links (an unpublished

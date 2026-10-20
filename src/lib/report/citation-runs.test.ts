@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
 import { ssr, renderText } from "./ssr-test-harness";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 import { citationRuns, type Assertion, type ReportView } from "./model";
@@ -342,50 +341,48 @@ for (const [label, body, sectionStart] of surfaces) {
 }
 
 /**
- * Both surfaces had their own copy of the run logic, and the issue names the
- * print sheet as the second site of the same bug. One function, asked twice —
- * the pattern `wasNamed` and `sourceCheckMeasured` follow. The source-text
- * assertions follow named-consistency.test.ts.
+ * The original defect, on the page: two answers that happen to cite the same
+ * domains are two answers, and each prints its own list.
  */
-describe("neither surface keys a run on the citation list", () => {
-  const codeOf = (path: string): string =>
-    readFileSync(path, "utf-8")
-      .replace(/^\s*(\/\/|\*|\/\*).*$/gm, "")
-      .replace(/<!--[\s\S]*?-->/g, "");
+const SAME_LIST_ROWS: Assertion[] = [
+  claim({
+    claim: "ROWONE has been trading since 1998",
+    query: "who is acme",
+    sourceDomains: ["yelp.com", "bbb.org"],
+  }),
+  claim({
+    claim: "ROWTWO is based in Dallas",
+    query: "is acme any good",
+    sourceDomains: ["bbb.org", "yelp.com"],
+  }),
+  RUN_ROWS[3], // the absent row that bounds the region
+];
 
-  /** The old key: the sorted, joined citation list. */
-  const BY_LIST = /\[\s*\.\.\.\s*\w+\s*\]\s*\.sort\(\)\s*\.join\(/;
+const sameListReport = structuredClone(printReport);
+sameListReport.accuracy.data.assertions = SAME_LIST_ROWS;
 
-  const surfaces: Array<[string, string]> = [
-    ["the source-check section", "src/lib/report/SourceCheck.svelte"],
-    ["the print sheet", "src/routes/audit/[token]/print/+page.svelte"],
-  ];
+const sameListSurfaces: Array<[string, () => string, string]> = [
+  [
+    "the source-check section",
+    () =>
+      renderText(sourceCheck, {
+        view: { ...view, accuracy: { ...view.accuracy, assertions: SAME_LIST_ROWS } } as ReportView,
+      }),
+    "Your site says something different",
+  ],
+  [
+    "the print sheet",
+    () => renderText(printSheet, { data: { report: sameListReport, overrides: {} } }),
+    "What AI is saying about you",
+  ],
+];
 
-  for (const [label, path] of surfaces) {
-    it(`${label} asks citationRuns rather than keying on the domains`, () => {
-      const code = codeOf(path);
-      expect(code).toContain("citationRuns");
-      expect(code).not.toMatch(BY_LIST);
+for (const [label, body, sectionStart] of sameListSurfaces) {
+  describe(`${label} — two answers that cite the same domains`, () => {
+    it("prints the list under each of them", () => {
+      const r = region(body(), sectionStart);
+      expect(between(r, "ROWONE", "ROWTWO")).toContain(ALSO_READ);
+      expect(between(r, "ROWTWO", null)).toContain(ALSO_READ);
     });
-
-    // Belt and braces under the rendered tests above: the exact sentence, and
-    // the exact branch it hangs off, so a swapped condition is caught twice.
-    it(`${label} says what it recorded, on the "none" branch and no other`, () => {
-      const code = codeOf(path);
-      expect(code).toContain(NO_SOURCES);
-      expect(code).not.toMatch(OVERCLAIM);
-      const at = code.indexOf(NO_SOURCES);
-      const opened = code.lastIndexOf("{:else if citations ===", at);
-      expect(opened).toBeGreaterThan(code.lastIndexOf("{#if citations ===", at));
-      expect(code.slice(opened, at)).toContain('{:else if citations === "none"}');
-    });
-  }
-
-  it("model.ts keys the run on the answer, not on the list", () => {
-    const code = codeOf("src/lib/report/model.ts");
-    expect(code).not.toMatch(BY_LIST);
-    const fn = code.slice(code.indexOf("export function citationRuns"));
-    expect(fn.slice(0, fn.indexOf("\n}"))).toContain("row.query");
-    expect(fn.slice(0, fn.indexOf("\n}"))).toContain("row.engine");
   });
-});
+}
