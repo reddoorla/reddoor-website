@@ -44,6 +44,9 @@
   // The visitor's address, handed to the modal on the trigger itself
   // (data-inquire-email) so frame one opens already filled in.
   let email = $state("");
+  // When the visitor started typing, carried with the address so the modal's
+  // bot-screen clock measures the real fill rather than starting at zero.
+  let startedAt = $state(0);
   const buttonLabel = $derived(slice.primary.button_label?.trim() || "Get Started");
 </script>
 
@@ -168,12 +171,14 @@
           autocomplete="email"
           placeholder={slice.primary.email_placeholder || "Email Address"}
           bind:value={email}
+          oninput={() => (startedAt ||= Date.now())}
           class="offer-email h-12 w-full rounded-[6px] border-0 bg-white px-3 text-[16px] text-black md:w-79.5"
         />
         <button
           type="submit"
           data-inquire
           data-inquire-email={email.trim() || undefined}
+          data-inquire-started={startedAt || undefined}
           class="h-12 shrink-0 cursor-pointer rounded-[4px] border-1 border-primary bg-primary px-4.5 text-[20px] font-normal text-white transition-colors duration-300 hover:bg-primary-dark"
         >
           {buttonLabel}

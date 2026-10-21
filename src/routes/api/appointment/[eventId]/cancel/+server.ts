@@ -1,7 +1,12 @@
 import { json } from "@sveltejs/kit";
 import * as env from "$app/env/private";
 import { screenSubmission } from "@reddoorla/maintenance/forms";
-import { cancelAppointment, fetchAppointment, publicView } from "$lib/ghl/appointment";
+import {
+  cancelAppointment,
+  fetchAppointment,
+  publicView,
+  stopBookingWorkflowAfterCancel,
+} from "$lib/ghl/appointment";
 import type { RequestHandler } from "./$types";
 
 export const prerender = false;
@@ -21,7 +26,7 @@ const EVENT_ID = /^[A-Za-z0-9_-]{10,64}$/;
  * on their laptop, has got what they wanted, and an error would suggest
  * otherwise.
  */
-export const POST: RequestHandler = async ({ params, request, fetch }) => {
+export const POST: RequestHandler = async ({ params, request, fetch, platform }) => {
   const eventId = params.eventId ?? "";
   if (!EVENT_ID.test(eventId)) {
     return json({ error: "We couldn’t find that booking." }, { status: 404 });
@@ -72,6 +77,18 @@ export const POST: RequestHandler = async ({ params, request, fetch }) => {
       { status: 502 },
     );
   }
+
+  // A cancel re-enrols the contact in A-102-3, which would send the "Call
+  // Confirmation" again (see stopBookingWorkflowAfterCancel). The guard runs
+  // after the response, so nothing it does can turn this cancel into an error.
+  // With no platform (vite dev) it still runs, just unawaited.
+  const guard = stopBookingWorkflowAfterCancel({
+    token,
+    fetch,
+    contactId: existing.data.contactId,
+    eventId,
+  });
+  platform?.context?.waitUntil?.(guard);
 
   return json({ success: true });
 };
