@@ -116,3 +116,12 @@ export const GHL_CALENDAR_ID = "kNRHivTnovXd07knBgu1";
 
 /** Process-state tag for a booked intro call. */
 export const TAG_SCHEDULED_A_CALL = "scheduled a call";
+
+/**
+ * "A-102-3. Appointment Booked + Reminders": the lead's "Call Confirmation"
+ * email and the pre-call reminders. Read from `GET /workflows/` 2026-10-21.
+ *
+ * Its trigger also fires on a cancel; see stopBookingWorkflowAfterCancel. Not
+ * "Z-002-1. Cancelled Meeting > Let's Reschedule", which must keep running.
+ */
+export const GHL_WORKFLOW_APPOINTMENT_BOOKED = "16c2a705-040c-49ae-9c96-3bfe7f8dbbb9";
