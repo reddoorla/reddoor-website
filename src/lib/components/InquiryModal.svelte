@@ -137,7 +137,17 @@
       ? 300
       : 0;
 
-  function show(step?: string, prefillEmail?: string) {
+  /**
+   * The server's bot screen (`screenSubmission`, @reddoorla/maintenance/forms)
+   * silently drops a step-one submit that arrives under MIN_FILL_MS (800ms)
+   * after `ts`, with a 200, so a lead lost that way leaves no trace anywhere.
+   * Every submit waits until at least this long after `openedAt`: a visitor
+   * typing in the modal is always past it already; the auto-submit of an
+   * address carried in from the page is not. Kept above 800 for clock jitter.
+   */
+  const MIN_SUBMIT_AFTER_OPEN_MS = 1000;
+
+  function show(step?: string, prefillEmail?: string, startedAt?: number) {
     // A visitor who closed the modal mid-questions resumes where they were:
     // their email is already captured and re-asking five answered questions is
     // how applications get abandoned. Everything else — a fresh open, a
@@ -161,8 +171,17 @@
     // only a prefill: nothing reaches ingest until they submit the frame, so
     // the capture path is the same one an empty open takes.
     email = prefillEmail?.trim() ?? "";
-    openedAt = Date.now();
+    // The fill started on the page when the address came from there, so the
+    // bot screen's clock starts there too (a plausible past time only).
+    const now = Date.now();
+    openedAt = startedAt && startedAt <= now && now - startedAt < 3_600_000 ? startedAt : now;
     open = true;
+    // A valid carried address skips the screen that would only ask for it
+    // again (Tim, 2026-10-21): step one is submitted with it, exactly as if
+    // the visitor had pressed Inquire Now, so the CRM lead, its "application
+    // started" tag and the chase all still happen; then question one shows.
+    // An invalid or empty one lands on frame one, prefilled, as before.
+    if (email && emailLooksValid) void submitEmail();
   }
 
   /**
@@ -311,6 +330,7 @@
       show(
         trigger.getAttribute("data-inquire-step") || undefined,
         trigger.getAttribute("data-inquire-email") || undefined,
+        Number(trigger.getAttribute("data-inquire-started")) || undefined,
       );
     };
     document.addEventListener("click", onClick, true);
@@ -394,8 +414,8 @@
     }
   }
 
-  async function submitEmail(e: SubmitEvent) {
-    e.preventDefault();
+  async function submitEmail(e?: SubmitEvent) {
+    e?.preventDefault();
     if (status === "sending") return;
     if (!emailLooksValid) {
       status = "error";
@@ -411,6 +431,10 @@
     const capturedEmail = email.trim();
     status = "sending";
     error = "";
+
+    const early = MIN_SUBMIT_AFTER_OPEN_MS - (Date.now() - openedAt);
+    if (early > 0) await new Promise((r) => setTimeout(r, early));
+    if (session !== mySession) return;
 
     const res = await postIngest({ email: capturedEmail });
     if (!res.ok) {
