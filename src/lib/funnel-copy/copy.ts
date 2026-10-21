@@ -76,7 +76,7 @@ export function localHref(url: string): string {
  * `javascript:` URL typed into a Prismic Web link would run; it renders as
  * plain text instead.
  */
-const SAFE_HREF = /^(https?:|mailto:|tel:|\/(?!\/)|#)/i;
+const SAFE_HREF = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
 
 /**
  * Values the page inserts into the copy. The editor writes the token, e.g.
