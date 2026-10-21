@@ -1888,6 +1888,23 @@ enrolment.
 The steps are in the home base, `briefs/2026-10-21-crm-confirmation-on-cancel-editor-steps.md`.
 Once those are in, the guard removes a contact that is no longer enrolled.
 
+**The builder fix, as made (2026-10-21, Z-002-1 v4 → v5).** The plan above did
+not survive the builder. A-102-3 has two triggers. "Appointment status – You
+booked it FOR them" already filters on status confirmed and on changes made by
+a User. "Customer booked appointment – They scheduled with YOU" filters only on
+the intro-call calendar and offers no status filter, so it is almost certainly
+the one a cancel re-fires (inferred; the API cannot say which trigger fired).
+A-102-3's If/Else offers contact fields only, not appointment status, so it
+cannot check for a cancel either. The 30-second wait right after A-102-3's
+triggers is where its ~28s send delay comes from. So the fix went in on the
+cancel side: Z-002-1 (trigger: appointment status cancelled) now starts with
+"Wait 10 seconds" and "Remove from Workflow → A-102-3", ahead of its own
+30-second wait and email. A-102-3 is unchanged (v8). A cancel made straight
+through the API, with no site guard, at 2:17:01pm PT sent no second
+confirmation, and the cancellation email arrived at 2:17:53pm. The guard in
+`stopBookingWorkflowAfterCancel` now overlaps it, and both removals are
+harmless when the contact is already out.
+
 ## 7. Rules of engagement
 
 1. **No CRM writes without explicit permission** — including probe writes.
