@@ -1847,7 +1847,7 @@ with the site's exact request bodies. A cancel (`PUT
 /calendars/events/appointments/{id}`, `appointmentStatus: "cancelled"`,
 `toNotify: true`) re-enrols the contact in `A-102-3. Appointment Booked +
 Reminders`: the appointment activity logs 2–4s after the request, and the
-confirmation follows 26–28s after it. While A-102-3 ran, Z-002-1's
+confirmation follows about 28s after it. While A-102-3 ran, Z-002-1's
 "Cancellation Confirmation & Reschedule Link - Reddoor Creative" never
 arrived. So the follow-up §6.10 says the status change exists for was not
 being sent.
@@ -1878,8 +1878,8 @@ returns, so the removals land a little later than the table's times, which
 are from the request. Verified on the deploy preview the same day: a cancel
 through the deployed route sent no second confirmation, and Z-002-1's email
 arrived 43s after the cancel. Whether the second pass runs within Netlify's
-function limit is unobserved, because a successful pass logs nothing; the first
-pass was enough. One race is accepted: a call booked in the seconds before a
+function limit is unobserved, because a successful pass logs nothing; one of
+the two passes was enough, and which one is unobserved too. One race is accepted: a call booked in the seconds before a
 pass, and not yet in the contact's appointment list, loses its A-102-3
 enrolment.
 

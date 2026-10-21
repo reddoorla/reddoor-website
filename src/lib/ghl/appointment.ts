@@ -191,7 +191,7 @@ export async function removeFromWorkflow(opts: {
  * wait, so the removals land about 6s and 15s after the cancel.
  *
  * The cancel re-enrols the contact 2–4s after it lands, and A-102-3 sends the
- * "Call Confirmation" about 26s after the cancel. Measured on a test contact,
+ * "Call Confirmation" about 28s after the cancel. Measured on a test contact,
  * 2026-10-21: removed 1s after the cancel, the confirmation still went (the
  * enrolment came after the removal); removed at 7s and at 13s, no
  * confirmation, and Z-002-1's "Cancellation Confirmation & Reschedule Link"

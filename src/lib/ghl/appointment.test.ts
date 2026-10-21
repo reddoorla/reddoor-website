@@ -278,7 +278,7 @@ describe("stopBookingWorkflowAfterCancel", () => {
     expect(seen[0]?.callsSoFar).toBe(0);
     // Measured CRM timing, not a design value: removed 1s after a live cancel,
     // the confirmation still went; at 7s it did not (2026-10-21). Both
-    // removals stay before the send, 26–28s after the cancel.
+    // removals stay before the send, about 28s after the cancel.
     expect(seen[0]?.ms).toBeGreaterThanOrEqual(5_000);
     expect(seen.reduce((t, s) => t + s.ms, 0)).toBeLessThan(20_000);
   });
