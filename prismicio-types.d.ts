@@ -120,6 +120,608 @@ interface FormRepliesDocumentData {
 export type FormRepliesDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<Simplify<FormRepliesDocumentData>, "form_replies", Lang>;
 
 /**
+ * Content for Booking pages copy documents
+ */
+interface FunnelCopyDocumentData {
+	/**
+	 * Heading — before the questionnaire field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_heading
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	schedule_heading: prismic.KeyTextField;
+	
+	/**
+	 * Heading — after the questionnaire field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_applied_heading
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	schedule_applied_heading: prismic.KeyTextField;
+	
+	/**
+	 * Heading — once booked field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_booked_heading
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	schedule_booked_heading: prismic.KeyTextField;
+	
+	/**
+	 * Side label — before booking field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_kicker
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	schedule_kicker: prismic.KeyTextField;
+	
+	/**
+	 * Side label — once booked field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_booked_kicker
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	schedule_booked_kicker: prismic.KeyTextField;
+	
+	/**
+	 * Intro — before the questionnaire field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_lede
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	schedule_lede: prismic.RichTextField;
+	
+	/**
+	 * Intro — after the questionnaire field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_applied_lede
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	schedule_applied_lede: prismic.RichTextField;
+	
+	/**
+	 * Confirmation text — once booked field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Write {email} where the visitor’s email address should appear. The booked time shows above this text on its own. Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_booked_body
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	schedule_booked_body: prismic.RichTextField;
+	
+	/**
+	 * No open times (booking and reschedule pages) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.schedule_no_times
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	schedule_no_times: prismic.RichTextField;
+	
+	/**
+	 * Tim’s photo field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: funnel_copy.tim_photo
+	 * - **Tab**: Booking page
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	tim_photo: prismic.ImageField<never>;/**
+	 * “Your time” label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_time_label
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_time_label: prismic.KeyTextField;
+	
+	/**
+	 * “Booking as” label (shown when we already know their details) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_booking_as
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_booking_as: prismic.KeyTextField;
+	
+	/**
+	 * “Use different details” link field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_different_details
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_different_details: prismic.KeyTextField;
+	
+	/**
+	 * Name — label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_name_label
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_name_label: prismic.KeyTextField;
+	
+	/**
+	 * Name — placeholder field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_name_placeholder
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_name_placeholder: prismic.KeyTextField;
+	
+	/**
+	 * Email — label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_email_label
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_email_label: prismic.KeyTextField;
+	
+	/**
+	 * Email — placeholder field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_email_placeholder
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_email_placeholder: prismic.KeyTextField;
+	
+	/**
+	 * Phone — label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_phone_label
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_phone_label: prismic.KeyTextField;
+	
+	/**
+	 * Phone — “optional” marker field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_phone_optional
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_phone_optional: prismic.KeyTextField;
+	
+	/**
+	 * Phone — placeholder field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_phone_placeholder
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_phone_placeholder: prismic.KeyTextField;
+	
+	/**
+	 * Phone — hint field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_phone_hint
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_phone_hint: prismic.KeyTextField;
+	
+	/**
+	 * Confirm button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_submit
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_submit: prismic.KeyTextField;
+	
+	/**
+	 * “Pick another” button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.form_pick_another
+	 * - **Tab**: Booking form
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	form_pick_another: prismic.KeyTextField;/**
+	 * Heading field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.not_a_fit_heading
+	 * - **Tab**: Not a fit
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	not_a_fit_heading: prismic.KeyTextField;
+	
+	/**
+	 * Side label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.not_a_fit_kicker
+	 * - **Tab**: Not a fit
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	not_a_fit_kicker: prismic.KeyTextField;
+	
+	/**
+	 * Body field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.not_a_fit_body
+	 * - **Tab**: Not a fit
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	not_a_fit_body: prismic.RichTextField;
+	
+	/**
+	 * Closing note (smaller grey text) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.not_a_fit_footnote
+	 * - **Tab**: Not a fit
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	not_a_fit_footnote: prismic.RichTextField;/**
+	 * Heading field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_heading
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_heading: prismic.KeyTextField;
+	
+	/**
+	 * Side label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_kicker
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_kicker: prismic.KeyTextField;
+	
+	/**
+	 * “Booked for” label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_current_label
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_current_label: prismic.KeyTextField;
+	
+	/**
+	 * Intro field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_lede
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	cancel_lede: prismic.RichTextField;
+	
+	/**
+	 * Cancel button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_button
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_button: prismic.KeyTextField;
+	
+	/**
+	 * “Reschedule instead” button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_reschedule_link
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_reschedule_link: prismic.KeyTextField;
+	
+	/**
+	 * Heading — once cancelled field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_done_heading
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_done_heading: prismic.KeyTextField;
+	
+	/**
+	 * Side label — once cancelled field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_done_kicker
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_done_kicker: prismic.KeyTextField;
+	
+	/**
+	 * Text — once cancelled field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_done_body
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	cancel_done_body: prismic.RichTextField;
+	
+	/**
+	 * Already cancelled or passed — first line field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_gone_lede
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_gone_lede: prismic.KeyTextField;
+	
+	/**
+	 * Already cancelled or passed — text field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_gone_body
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	cancel_gone_body: prismic.RichTextField;
+	
+	/**
+	 * Booking not found — first line field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_missing_lede
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cancel_missing_lede: prismic.KeyTextField;
+	
+	/**
+	 * Booking not found — text field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.cancel_missing_body
+	 * - **Tab**: Cancel
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	cancel_missing_body: prismic.RichTextField;/**
+	 * Heading field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_heading
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_heading: prismic.KeyTextField;
+	
+	/**
+	 * Side label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_kicker
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_kicker: prismic.KeyTextField;
+	
+	/**
+	 * “Currently booked for” label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_current_label
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_current_label: prismic.KeyTextField;
+	
+	/**
+	 * Intro field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_lede
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	reschedule_lede: prismic.RichTextField;
+	
+	/**
+	 * “Moving to” label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_moving_label
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_moving_label: prismic.KeyTextField;
+	
+	/**
+	 * Move button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_button
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_button: prismic.KeyTextField;
+	
+	/**
+	 * “Pick another” button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_pick_another
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_pick_another: prismic.KeyTextField;
+	
+	/**
+	 * Heading — once moved field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_done_heading
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_done_heading: prismic.KeyTextField;
+	
+	/**
+	 * Side label — once moved field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_done_kicker
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_done_kicker: prismic.KeyTextField;
+	
+	/**
+	 * Text — once moved field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_done_body
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	reschedule_done_body: prismic.RichTextField;
+	
+	/**
+	 * Already cancelled or passed — first line field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_gone_lede
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_gone_lede: prismic.KeyTextField;
+	
+	/**
+	 * Already cancelled or passed — text field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_gone_body
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	reschedule_gone_body: prismic.RichTextField;
+	
+	/**
+	 * Booking not found — first line field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_missing_lede
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	reschedule_missing_lede: prismic.KeyTextField;
+	
+	/**
+	 * Booking not found — text field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: Leave empty to keep the site’s current wording
+	 * - **API ID Path**: funnel_copy.reschedule_missing_body
+	 * - **Tab**: Reschedule
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	reschedule_missing_body: prismic.RichTextField;
+}
+
+/**
+ * Booking pages copy document from Prismic
+ *
+ * - **API ID**: `funnel_copy`
+ * - **Repeatable**: `false`
+ * - **Documentation**: https://prismic.io/docs/content-modeling
+ *
+ * @typeParam Lang - Language API ID of the document.
+ */
+export type FunnelCopyDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<Simplify<FunnelCopyDocumentData>, "funnel_copy", Lang>;
+
+/**
  * Item in *Gallery → images*
  */
 export interface GalleryDocumentDataImagesItem {
@@ -1149,7 +1751,7 @@ interface TwentyForTwentyDocumentData {
  */
 export type TwentyForTwentyDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<TwentyForTwentyDocumentData>, "twenty_for_twenty", Lang>;
 
-export type AllDocumentTypes = FormRepliesDocument | GalleryDocument | IndustryDocument | LogoSoupDocument | OpeningAnimationDocument | PageDocument | ProjectDocument | RouteMetaDocument | ShowcaseDocument | TwentyForTwentyDocument;
+export type AllDocumentTypes = FormRepliesDocument | FunnelCopyDocument | GalleryDocument | IndustryDocument | LogoSoupDocument | OpeningAnimationDocument | PageDocument | ProjectDocument | RouteMetaDocument | ShowcaseDocument | TwentyForTwentyDocument;
 
 /**
  * Item in *Accordion → Default → Primary → items*
@@ -3863,6 +4465,8 @@ declare module "@prismicio/client" {
 			FormRepliesDocument,
 			FormRepliesDocumentData,
 			FormRepliesDocumentDataRepliesItem,
+			FunnelCopyDocument,
+			FunnelCopyDocumentData,
 			GalleryDocument,
 			GalleryDocumentData,
 			GalleryDocumentDataImagesItem,
