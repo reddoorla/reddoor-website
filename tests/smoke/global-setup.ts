@@ -46,6 +46,8 @@ const ROUTES = [
   "/twenty-for-twenty",
   "/schedule",
   "/not-a-fit",
+  "/preview/funnel",
+  "/dev/funnel-photo",
   "/email/unsubscribed",
   "/email/resubscribed",
   "/reschedule/AAAAAAAAAAAA",

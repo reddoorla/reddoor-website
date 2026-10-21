@@ -1,0 +1,412 @@
+{
+  "format": "custom",
+  "id": "funnel_copy",
+  "label": "Booking pages copy",
+  "repeatable": false,
+  "status": true,
+  "json": {
+    "Booking page": {
+      "schedule_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading — before the questionnaire",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "schedule_applied_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading — after the questionnaire",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "schedule_booked_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading — once booked",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "schedule_kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Side label — before booking",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "schedule_booked_kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Side label — once booked",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "schedule_lede": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro — before the questionnaire",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "schedule_applied_lede": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro — after the questionnaire",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "schedule_booked_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Confirmation text — once booked (write {email} for their address)",
+          "placeholder": "Write {email} where the visitor’s email address should appear. The booked time shows above this text on its own. Leave empty to keep the site’s current wording",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "schedule_no_times": {
+        "type": "StructuredText",
+        "config": {
+          "label": "No open times (booking and reschedule pages)",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "tim_photo": {
+        "type": "Image",
+        "config": {
+          "label": "Tim’s photo (under the side label; set its alt text on the image)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      }
+    },
+    "Booking form": {
+      "form_time_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Your time” label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_booking_as": {
+        "type": "Text",
+        "config": {
+          "label": "“Booking as” label (shown when we already know their details)",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_different_details": {
+        "type": "Text",
+        "config": {
+          "label": "“Use different details” link",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_name_label": {
+        "type": "Text",
+        "config": {
+          "label": "Name — label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_name_placeholder": {
+        "type": "Text",
+        "config": {
+          "label": "Name — placeholder",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_email_label": {
+        "type": "Text",
+        "config": {
+          "label": "Email — label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_email_placeholder": {
+        "type": "Text",
+        "config": {
+          "label": "Email — placeholder",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_phone_label": {
+        "type": "Text",
+        "config": {
+          "label": "Phone — label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_phone_optional": {
+        "type": "Text",
+        "config": {
+          "label": "Phone — “optional” marker",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_phone_placeholder": {
+        "type": "Text",
+        "config": {
+          "label": "Phone — placeholder",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_phone_hint": {
+        "type": "Text",
+        "config": {
+          "label": "Phone — hint",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_submit": {
+        "type": "Text",
+        "config": {
+          "label": "Confirm button",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "form_pick_another": {
+        "type": "Text",
+        "config": {
+          "label": "“Pick another” button",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      }
+    },
+    "Not a fit": {
+      "not_a_fit_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "not_a_fit_kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Side label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "not_a_fit_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Body",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "not_a_fit_footnote": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Closing note (smaller grey text)",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      }
+    },
+    "Cancel": {
+      "cancel_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Side label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_current_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Booked for” label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_lede": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "cancel_button": {
+        "type": "Text",
+        "config": {
+          "label": "Cancel button",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_reschedule_link": {
+        "type": "Text",
+        "config": {
+          "label": "“Reschedule instead” button",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_done_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading — once cancelled",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_done_kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Side label — once cancelled",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_done_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Text — once cancelled",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "cancel_gone_lede": {
+        "type": "Text",
+        "config": {
+          "label": "Already cancelled or passed — first line",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_gone_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Already cancelled or passed — text",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "cancel_missing_lede": {
+        "type": "Text",
+        "config": {
+          "label": "Booking not found — first line",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "cancel_missing_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Booking not found — text",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      }
+    },
+    "Reschedule": {
+      "reschedule_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Side label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_current_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Currently booked for” label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_lede": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "reschedule_moving_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Moving to” label",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_button": {
+        "type": "Text",
+        "config": {
+          "label": "Move button",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_pick_another": {
+        "type": "Text",
+        "config": {
+          "label": "“Pick another” button",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_done_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Heading — once moved",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_done_kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Side label — once moved",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_done_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Text — once moved",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "reschedule_gone_lede": {
+        "type": "Text",
+        "config": {
+          "label": "Already cancelled or passed — first line",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_gone_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Already cancelled or passed — text",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "reschedule_missing_lede": {
+        "type": "Text",
+        "config": {
+          "label": "Booking not found — first line",
+          "placeholder": "Leave empty to keep the site’s current wording"
+        }
+      },
+      "reschedule_missing_body": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Booking not found — text",
+          "placeholder": "Leave empty to keep the site’s current wording",
+          "single": "paragraph,strong,em,hyperlink"
+        }
+      }
+    }
+  }
+}
