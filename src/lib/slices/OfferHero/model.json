@@ -1,0 +1,101 @@
+{
+  "id": "offer_hero",
+  "type": "SharedSlice",
+  "name": "OfferHero",
+  "description": "OfferHero",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Offer landing hero: headline on red, a 16:9 video card over the red-to-paper break, and an email field that opens the inquiry questionnaire",
+      "imageUrl": "",
+      "primary": {
+        "eyebrow": {
+          "type": "Text",
+          "config": {
+            "label": "eyebrow",
+            "placeholder": "e.g. MedTech Founders"
+          }
+        },
+        "headline": {
+          "type": "StructuredText",
+          "config": {
+            "label": "headline",
+            "placeholder": "The page's H1",
+            "allowTargetBlank": true,
+            "single": "heading1"
+          }
+        },
+        "subhead": {
+          "type": "Text",
+          "config": {
+            "label": "subhead",
+            "placeholder": "e.g. If you don't like the plan, you don't pay!"
+          }
+        },
+        "video_poster": {
+          "type": "Image",
+          "config": {
+            "label": "video poster",
+            "constraint": {},
+            "thumbnails": []
+          }
+        },
+        "vimeo_video": {
+          "type": "Text",
+          "config": {
+            "label": "Vimeo video (link or id)",
+            "placeholder": "e.g. https://vimeo.com/123456789 \u2014 leave empty to show the poster only"
+          }
+        },
+        "video_title": {
+          "type": "Text",
+          "config": {
+            "label": "video title (read to screen readers)",
+            "placeholder": "e.g. Brand Friction Audit"
+          }
+        },
+        "cta_heading": {
+          "type": "Text",
+          "config": {
+            "label": "CTA heading",
+            "placeholder": "e.g. Think this a good fit for you?"
+          }
+        },
+        "cta_body": {
+          "type": "Text",
+          "config": {
+            "label": "CTA body",
+            "placeholder": "e.g. Fill out a short questionnaire and find out."
+          }
+        },
+        "email_placeholder": {
+          "type": "Text",
+          "config": {
+            "label": "email placeholder",
+            "placeholder": "e.g. Email Address"
+          }
+        },
+        "button_label": {
+          "type": "Text",
+          "config": {
+            "label": "button label",
+            "placeholder": "e.g. Get Started"
+          }
+        },
+        "hide": {
+          "type": "Boolean",
+          "config": {
+            "label": "hide",
+            "default_value": false,
+            "placeholder_true": "hidden",
+            "placeholder_false": "visible"
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}

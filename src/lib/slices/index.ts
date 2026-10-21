@@ -8,6 +8,7 @@ import FeaturedProject from "./FeaturedProject/index.svelte";
 import IndustryHero from "./IndustryHero/index.svelte";
 import LeadText from "./LeadText/index.svelte";
 import LogoGrid from "./LogoGrid/index.svelte";
+import OfferHero from "./OfferHero/index.svelte";
 import RichText from "./RichText/index.svelte";
 import ScreenWidthColumns from "./ScreenWidthColumns/index.svelte";
 import ScreenWidthMedia from "./ScreenWidthMedia/index.svelte";
@@ -25,6 +26,7 @@ export const components = {
 	industry_hero: IndustryHero,
 	lead_text: LeadText,
 	logo_grid: LogoGrid,
+	offer_hero: OfferHero,
 	rich_text: RichText,
 	screen_width_columns: ScreenWidthColumns,
 	screen_width_image: ScreenWidthMedia,

@@ -11,6 +11,7 @@
   import FeaturedProject from "$lib/slices/FeaturedProject/index.svelte";
   import ValueBlock from "$lib/slices/ValueBlock/index.svelte";
   import CtaBanner from "$lib/slices/CtaBanner/index.svelte";
+  import OfferHero from "$lib/slices/OfferHero/index.svelte";
   import InquiryModal from "$lib/components/InquiryModal.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
 
@@ -488,6 +489,39 @@
     items: [],
   };
 
+  // The offer landing page's hero (/brand-friction-audit). Two instances: one
+  // with a Vimeo link, so the play button and the player's accessible name are
+  // reachable, and one before the video exists, where the card is a still.
+  const offerHero = (id: string, vimeo: string): Content.OfferHeroSlice => ({
+    id,
+    slice_type: "offer_hero",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      eyebrow: "MedTech Founders",
+      headline: [
+        {
+          type: "heading1",
+          text: "Get a plan to fix what’s costing you credibility with new buyers.",
+          spans: [],
+        },
+      ] as unknown as Content.OfferHeroSlice["primary"]["headline"],
+      subhead: "If you don’t like the plan, you don’t pay!",
+      video_poster: img("Brand Friction Audit"),
+      vimeo_video: vimeo,
+      video_title: "Brand Friction Audit",
+      cta_heading: "Think this a good fit for you?",
+      cta_body: "Fill out a short questionnaire and find out.",
+      email_placeholder: "Email Address",
+      button_label: "Get Started",
+      hide: false,
+    },
+    items: [],
+  });
+  const offerHeroWithVideo = offerHero("fixture-offer-hero", "https://vimeo.com/76979871");
+  const offerHeroNoVideo = offerHero("fixture-offer-hero-still", "");
+
   const ctaBanner: Content.CtaBannerSlice = {
     id: "fixture-cta-banner",
     slice_type: "cta_banner",
@@ -577,6 +611,11 @@
   <ValueBlock slice={valueExpandable} />
   <Accordion slice={faqRail} />
   <CtaBanner slice={ctaBanner} />
+
+  <!-- The offer landing page's hero. Its email CTA is an unkeyed trigger, so
+       the unkeyed InquiryModal below answers it. -->
+  <OfferHero slice={offerHeroWithVideo} />
+  <OfferHero slice={offerHeroNoVideo} />
 
   <!-- Inquiry modal (industry pages). The live /medtech document still points
        its CTAs at /contact until the content migration runs, so the trigger has

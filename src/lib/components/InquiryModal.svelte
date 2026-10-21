@@ -137,7 +137,7 @@
       ? 300
       : 0;
 
-  function show(step?: string) {
+  function show(step?: string, prefillEmail?: string) {
     // A visitor who closed the modal mid-questions resumes where they were:
     // their email is already captured and re-asking five answered questions is
     // how applications get abandoned. Everything else — a fresh open, a
@@ -154,6 +154,11 @@
       return;
     }
     resetSession(step);
+    // An address the visitor already typed into the page (the offer hero's
+    // email field) fills frame one rather than being asked for twice. It is
+    // only a prefill: nothing reaches ingest until they submit the frame, so
+    // the capture path is the same one an empty open takes.
+    email = prefillEmail?.trim() ?? "";
     openedAt = Date.now();
     open = true;
   }
@@ -296,7 +301,12 @@
       // A CTA may name the section it sits in via data-inquire-step so the lead
       // traces back to where it was opened; absent that, stepLabel falls back to
       // the first framework step.
-      show(trigger.getAttribute("data-inquire-step") || undefined);
+      // And it may carry an email the visitor typed beside it
+      // (data-inquire-email), which prefills frame one.
+      show(
+        trigger.getAttribute("data-inquire-step") || undefined,
+        trigger.getAttribute("data-inquire-email") || undefined,
+      );
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);

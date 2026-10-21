@@ -1,0 +1,85 @@
+[
+  {
+    "__TYPE__": "SharedSliceContent",
+    "variation": "default",
+    "primary": {
+      "eyebrow": {
+        "__TYPE__": "FieldContent",
+        "value": "MedTech Founders",
+        "type": "Text"
+      },
+      "headline": {
+        "__TYPE__": "StructuredTextContent",
+        "value": [
+          {
+            "type": "heading1",
+            "content": {
+              "text": "Get a plan to fix what’s costing you credibility with new buyers."
+            }
+          }
+        ]
+      },
+      "subhead": {
+        "__TYPE__": "FieldContent",
+        "value": "If you don’t like the plan, you don’t pay!",
+        "type": "Text"
+      },
+      "video_poster": {
+        "__TYPE__": "ImageContent",
+        "origin": {
+          "id": "main",
+          "url": "https://images.unsplash.com/photo-1497366216548-37526070297c",
+          "width": 1920,
+          "height": 1080
+        },
+        "url": "https://images.unsplash.com/photo-1497366216548-37526070297c",
+        "width": 1920,
+        "height": 1080,
+        "edit": {
+          "zoom": 1,
+          "crop": {
+            "x": 0,
+            "y": 0
+          },
+          "background": "transparent"
+        },
+        "alt": "Brand Friction Audit"
+      },
+      "vimeo_video": {
+        "__TYPE__": "FieldContent",
+        "value": "",
+        "type": "Text"
+      },
+      "video_title": {
+        "__TYPE__": "FieldContent",
+        "value": "Brand Friction Audit",
+        "type": "Text"
+      },
+      "cta_heading": {
+        "__TYPE__": "FieldContent",
+        "value": "Think this a good fit for you?",
+        "type": "Text"
+      },
+      "cta_body": {
+        "__TYPE__": "FieldContent",
+        "value": "Fill out a short questionnaire and find out.",
+        "type": "Text"
+      },
+      "email_placeholder": {
+        "__TYPE__": "FieldContent",
+        "value": "Email Address",
+        "type": "Text"
+      },
+      "button_label": {
+        "__TYPE__": "FieldContent",
+        "value": "Get Started",
+        "type": "Text"
+      },
+      "hide": {
+        "__TYPE__": "BooleanContent",
+        "value": false
+      }
+    },
+    "items": []
+  }
+]

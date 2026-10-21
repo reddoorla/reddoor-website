@@ -46,6 +46,10 @@
     class?: string;
     title?: string;
     allow?: string;
+    /** An unlisted video's privacy hash (`h=`), which the player requires. */
+    hash?: string;
+    /** Start playing on load: for an embed mounted by the visitor's own click. */
+    autoplay?: boolean;
   }
   let {
     vimeoId,
@@ -54,6 +58,8 @@
     class: className = "",
     title = "background video",
     allow = "autoplay",
+    hash = "",
+    autoplay = false,
   }: Props = $props();
 
   let iframeEl: HTMLIFrameElement | undefined = $state();
@@ -67,7 +73,8 @@
 
   const src = $derived(
     `https://player.vimeo.com/video/${vimeoId}?title=0&dnt=1` +
-      (background ? "&background=1&loop=1&autoplay=1&muted=1" : ""),
+      (hash ? `&h=${encodeURIComponent(hash)}` : "") +
+      (background ? "&background=1&loop=1&autoplay=1&muted=1" : autoplay ? "&autoplay=1" : ""),
   );
 
   // Engagement + proximity gate — ALL background embeds (poster or not), so the

@@ -30,6 +30,9 @@
             "industry_hero": {
               "type": "SharedSlice"
             },
+            "offer_hero": {
+              "type": "SharedSlice"
+            },
             "lead_text": {
               "type": "SharedSlice"
             },
