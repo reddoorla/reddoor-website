@@ -143,9 +143,14 @@
    * after `ts`, with a 200, so a lead lost that way leaves no trace anywhere.
    * Every submit waits until at least this long after `openedAt`: a visitor
    * typing in the modal is always past it already; the auto-submit of an
-   * address carried in from the page is not. Kept above 800 for clock jitter.
+   * address carried in from the page (autofill, then an instant click) is not.
+   * The margin over 800 is for clock skew: `ts` is the BROWSER's clock and the
+   * server subtracts it from its own, so a visitor clock running fast shortens
+   * the measured fill. 2500 tolerates 1.7s of skew. Screening on a duration
+   * the browser measures would remove the skew entirely, but that is a change
+   * to /api/inquiry, which this flow deliberately leaves alone.
    */
-  const MIN_SUBMIT_AFTER_OPEN_MS = 1000;
+  const MIN_SUBMIT_AFTER_OPEN_MS = 2500;
 
   function show(step?: string, prefillEmail?: string, startedAt?: number) {
     // A visitor who closed the modal mid-questions resumes where they were:
