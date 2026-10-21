@@ -9,7 +9,8 @@ import type { PageLoad } from "./$types";
  */
 export const prerender = true;
 
-export const load: PageLoad = () => ({
+export const load: PageLoad = ({ data }) => ({
+  ...data,
   title: "Schedule a Call | Reddoor Creative",
   meta_title: "Schedule a Call | Reddoor Creative",
   meta_description:

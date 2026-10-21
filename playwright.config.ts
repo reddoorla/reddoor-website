@@ -24,6 +24,12 @@ const smokePort = process.env.REDDOOR_SMOKE_PORT;
 // here gives the server the test suite boots its own pool.
 process.env.UV_THREADPOOL_SIZE ??= "64";
 
+// The booking funnel's words are Tim's to change in Prismic (`funnel_copy`).
+// The smoke server renders the built-in copy instead, so the specs that read
+// /schedule, /cancel and /reschedule assert what the code owns, and a published
+// edit never turns the gate red. Inherited by the webServer like the line above.
+process.env.FUNNEL_COPY_BUILTIN ??= "1";
+
 export default defineConfig({
   ...base,
   // Compiles every route the suite uses before any worker starts, so the first

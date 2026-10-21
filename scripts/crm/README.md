@@ -110,14 +110,14 @@ interaction, `location.reload()` inside the iframe and redo the step.
 | ---------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
 | 2026-08-24 | A-102-3 Appointment Booked | Consolidated Tim's pre-call texts (SMS bodies via `execCommand`)                                                | —        |
 | 2026-09-15 | A-102-1 Inquiry Started    | `&funnel={{contact.funnel}}` appended to the `/inquiry?…` link in "Inquiry reminder 1" and "Inquiry reminder 3" | 11 → 13  |
+| 2026-10-21 | Z-002-1 Cancelled Meeting  | First actions "Wait 10 seconds" and "Remove from Workflow → A-102-3" (by hand in the builder)                   | 4 → 5    |
 
 Known gap seen on the way: "Inquiry reminder 2" (`Still interested?`) in
 A-102-1 has no link at all.
 
-Known gap, 2026-10-21: A-102-3's trigger also fires on a cancel's status
-change, so a cancel re-sends the "Call Confirmation". It needs a status filter
-in the builder (`docs/inquiry-funnel.md` §6.21);
-`stopBookingWorkflowAfterCancel` covers cancels made on the site until then.
+Closed 2026-10-21: A-102-3 re-fired on a cancel and re-sent the "Call
+Confirmation". Z-002-1 now removes the contact from A-102-3 10 seconds after a
+cancel (`docs/inquiry-funnel.md` §6.21).
 
 Workflow ids as of 2026-09-15 (A-101 folder `2627d9f1-4ab7-4c69-9a9f-b28423395f58`):
 

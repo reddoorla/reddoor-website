@@ -1622,3 +1622,41 @@ Tim asked at 12:27pm PT ("Can it jump to the first question since I already inpu
 **The copy check, reported without a change.** The modal says "answer 5 questions", and the page uses the default A-101 set, which asks five (`A101_QUESTIONS`: problems, website, goal, stakeholders, budget), then the contact step. The copy matches. Tim's 09-28 "four questions" ask was /boise's: its set drops the budget question, and its document's prompt says four.
 
 The review found two problems and I added a third, all fixed before landing. First, the 1000ms floor left only 200ms of margin. Clock skew is real here: `ts` is the browser's clock and the server subtracts it from its own, so an autofill-and-click from a visitor whose clock runs 250ms fast would measure 750ms and be dropped. The floor is now 2500ms, which tolerates 1.7s of skew. Removing the skew entirely would mean screening on a duration the browser measures, which is a change to `/api/inquiry`; this flow leaves that endpoint alone, so the floor is the fix for now. Second, the two "sends nothing" tests counted posts the instant the dialog appeared, before any held post could arrive. They now also require Inquire Now to be idle, because an auto-submit marks it busy before its hold. Third, my own first guard against a duplicate lead marked the address as sent before posting. Then a close during the hold, which abandons that submit through the session check, left the reopen unable to send it, so the result was zero leads. A test that closes during the hold and reopens now requires exactly one post. That mutation turns it red. The guard itself is gone: every path it covered is unreachable (a reopen after step one resumes mid-questions, and a finished application navigates away). A plain "no guard" mutation survives the test, which shows the same thing.
+
+## 2026-10-21 — The cancel re-confirmation, fixed in the builder: Z-002-1 removes the contact from A-102-3
+
+> Follows "A cancelled call re-sent the 'Call Confirmation'" above (#274).
+
+The planned builder fix, a status filter on A-102-3's trigger, could not be made. A-102-3 turned out to have two triggers, read from the operator's screenshots. One, "Appointment status", already filters on confirmed and on changes made by a User. The other, "Customer booked appointment", filters only on the intro-call calendar, and its filter list has no appointment status. That second one is the likely re-firer; that is inferred, because nothing reads which trigger fired. A-102-3's If/Else offers only contact fields, so a cancel cannot be caught inside it either. The screenshots also explained the timing: A-102-3 opens with a 30-second wait, which is where the ~28s between a cancel and the duplicate confirmation came from. That wait is what made the fix possible.
+
+The fix went on the side that knows about the cancel. Z-002-1, triggered on status cancelled, now starts with a 10-second wait and "Remove from Workflow → A-102-3" (v4 → v5, saved by the operator at 2:15pm PT). The first draft also had Z-002-1 selected in its own removal step, which would have ended Z-002-1 before its email; that was caught from the screenshot before it was saved. Proof: a booking cancelled at 2:17:01pm PT straight through the API, which bypasses the site guard and is the path a CRM-side cancel takes, sent no second confirmation, and "Cancellation Confirmation & Reschedule Link" arrived at 2:17:53. The site guard from #274 now duplicates this, harmlessly. It stays as a second line until someone decides it is redundant.
+
+## 2026-10-21 — The booking funnel's copy moves into Prismic, with Tim's photo and a preview of every state (#278, `48b9d6e`)
+
+Tim asked at 1:42pm PT whether he could edit the copy on the booking and confirmation pages without making a booking to see them, and to put his photo on the booking page. The operator picked moving the copy into Prismic over hand-editing it in code. Every visible line on /schedule, /not-a-fit, /cancel and /reschedule now comes from a new `funnel_copy` singleton ("Booking pages copy", 53 fields across five tabs). Today's wording sits in `src/lib/funnel-copy/defaults.ts` as a per-field fallback. Loading text, error messages and busy labels stay in code as system text.
+
+**Proof the fallback is word for word.** I built `staging@f056821` and the branch and diffed the visible text of the prerendered pages: /schedule (495 characters) and /not-a-fit (992) are identical. A script also found every default string verbatim in the base templates.
+
+**First paint is unchanged.** /schedule and /not-a-fit still prerender: they read the document at build time, and the Prismic build hooks on both sites rebuild them on publish. /cancel and /reschedule read per request, which costs no extra round trip because the root layout already makes a Prismic read on every SSR request and SvelteKit runs the two loads side by side.
+
+**The page bodies moved** into `src/lib/components/funnel/` with a `preview` prop. That is what makes `/preview/funnel` possible: the real components, put into 13 states (four on /schedule, /not-a-fit, four each for cancel and reschedule) from a sample visitor, with every fetch, handoff read and URL strip turned off. `/api/preview` resolves `funnel_copy` to `/funnel` through a `linkResolver`, because `routes` naming a type the API does not know fails every query (see the `industry` note in `prismicio.ts`), and `redirectToPreviewURL` adds the `/preview` prefix itself.
+
+**Tim's photo** reuses the Testimonial slice's round headshot, the only portrait pattern on the site. It sits under the "Book an intro call" label, in a column that is empty below the label on desktop. With the field empty the markup is byte for byte what it was.
+
+**Beliefs corrected on contact:**
+
+- **The release could not be created in this session.** A new custom type reaches Prismic only through `prismic-models / apply` on `push: main`, which is the staging→main promotion the operator merges. Until then `funnel_copy` does not exist in `reddoor-la`, and no document of that type can be made. The PR's dry run reported exactly `NEW customtype funnel_copy`, with 26 models unchanged.
+- **The review caught a gate I had not seen.** The smoke suite runs against `vite dev` reading live Prismic. Moving the copy into the CMS therefore turned the 46 existing funnel assertions in four specs, plus the new spec, into fences around Tim's words: his first publish would have turned `ci / ci` red on every PR. `FUNNEL_COPY_BUILTIN`, declared in `src/env.ts` and set only in `playwright.config.ts`, makes the gate render the code's wording. Positive control: making that branch return a marked heading turned the spec red.
+
+**Defects in my own process:**
+
+- **The mutation harness wiped work.** It undid each mutation with `git checkout --`. That fails silently on an untracked file, leaving two mutations applied. Worse, on a `git mv`'d file it restores the staged original, which threw away the component's edits. Recovered from a scratch copy; all five mutations were rerun only after everything was staged. Undo mutations from a backup, never from the index.
+- **A nested worktree under an unsynced checkout cannot start `vite dev`** (as "2026-09-30 — The audit's print sheet stops printing the site's nav and footer" already says). Moving the worktree outside the checkout fixed it.
+
+**Review.**
+
+- **Round 1 was dirty:**
+  - the smoke-gate major above;
+  - a minor: a `javascript:` URL in a Prismic Web link would render live, because the CSP allows inline script. Links now pass an http(s), mailto, tel or relative allowlist that also rejects `//` and `/\`.
+- **Round 2 was clean.**
+- **Mutations.** All five named in the brief turned a test red: one word of the fallback, a rethrow on a Prismic error, preview posting to `/api/book`, `{email}` shown literally, and an empty photo rendering a broken image. My first photo mutation crashed the page rather than rendering a broken image; I replaced it with one that renders an `<img>` with no source.

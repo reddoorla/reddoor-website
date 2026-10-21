@@ -139,20 +139,30 @@ POSTs to an API route instead of using a SvelteKit action `[4]`.
 
 ### 3.2 Module map
 
-| File                                                                                  | Job                                                             |
-| ------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| [`src/lib/ghl/constants.ts`](../src/lib/ghl/constants.ts)                             | Every CRM identifier, each with the reasoning for its value     |
-| [`src/lib/ghl/questions.ts`](../src/lib/ghl/questions.ts)                             | The five questions, transcribed from the live survey            |
-| [`src/lib/ghl/client.ts`](../src/lib/ghl/client.ts)                                   | Contacts, notes, tags, opportunities; the two sync entry points |
-| [`src/lib/ghl/booking.ts`](../src/lib/ghl/booking.ts)                                 | Free slots + appointment creation                               |
-| [`src/lib/ghl/phone.ts`](../src/lib/ghl/phone.ts)                                     | E.164 normalisation                                             |
-| [`src/lib/components/InquiryModal.svelte`](../src/lib/components/InquiryModal.svelte) | The whole client-side flow                                      |
-| [`src/routes/api/inquiry/+server.ts`](../src/routes/api/inquiry/+server.ts)           | Validate → screen → ingest → CRM sync                           |
-| [`src/lib/schedule/slots.ts`](../src/lib/schedule/slots.ts)                           | Regrouping and formatting slots in the visitor's timezone       |
-| [`src/lib/schedule/handoff.ts`](../src/lib/schedule/handoff.ts)                       | Carrying a finished application to /schedule via sessionStorage |
-| [`src/routes/schedule/+page.svelte`](../src/routes/schedule/+page.svelte)             | The booking page: day tabs, time grid, confirm, booked state    |
-| [`src/routes/api/slots/+server.ts`](../src/routes/api/slots/+server.ts)               | Free slots, flat and uncached                                   |
-| [`src/routes/api/book/+server.ts`](../src/routes/api/book/+server.ts)                 | Upsert → book → tag → notify ingest                             |
+| File                                                                                                | Job                                                                           |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [`src/lib/ghl/constants.ts`](../src/lib/ghl/constants.ts)                                           | Every CRM identifier, each with the reasoning for its value                   |
+| [`src/lib/ghl/questions.ts`](../src/lib/ghl/questions.ts)                                           | The five questions, transcribed from the live survey                          |
+| [`src/lib/ghl/client.ts`](../src/lib/ghl/client.ts)                                                 | Contacts, notes, tags, opportunities; the two sync entry points               |
+| [`src/lib/ghl/booking.ts`](../src/lib/ghl/booking.ts)                                               | Free slots + appointment creation                                             |
+| [`src/lib/ghl/phone.ts`](../src/lib/ghl/phone.ts)                                                   | E.164 normalisation                                                           |
+| [`src/lib/components/InquiryModal.svelte`](../src/lib/components/InquiryModal.svelte)               | The whole client-side flow                                                    |
+| [`src/routes/api/inquiry/+server.ts`](../src/routes/api/inquiry/+server.ts)                         | Validate → screen → ingest → CRM sync                                         |
+| [`src/lib/schedule/slots.ts`](../src/lib/schedule/slots.ts)                                         | Regrouping and formatting slots in the visitor's timezone                     |
+| [`src/lib/schedule/handoff.ts`](../src/lib/schedule/handoff.ts)                                     | Carrying a finished application to /schedule via sessionStorage               |
+| [`src/lib/components/funnel/SchedulePage.svelte`](../src/lib/components/funnel/SchedulePage.svelte) | The booking page: day tabs, time grid, confirm, booked state                  |
+| [`src/lib/funnel-copy/`](../src/lib/funnel-copy/)                                                   | The funnel pages' words: Prismic's `funnel_copy`, today's wording as fallback |
+| [`src/routes/api/slots/+server.ts`](../src/routes/api/slots/+server.ts)                             | Free slots, flat and uncached                                                 |
+| [`src/routes/api/book/+server.ts`](../src/routes/api/book/+server.ts)                               | Upsert → book → tag → notify ingest                                           |
+
+The words on /schedule, /not-a-fit, /cancel and /reschedule come from the
+`funnel_copy` singleton ("Booking pages copy" in Prismic), field by field, with
+the shipped wording in `src/lib/funnel-copy/defaults.ts` as the fallback for any
+empty field, a missing document or a Prismic outage. /schedule and /not-a-fit
+read it at build time and stay prerendered; a publish rebuilds them through the
+Prismic build hooks. `/preview/funnel` renders every state of all four pages
+from sample data with every network call off, and is where the document's
+Prismic preview opens (2026-10-21).
 
 Content comes from an **Inquiry tab** on the `industry` custom type (modal
 title, prompt, thank-you, survey id) — a tab rather than a slice, because the
@@ -1887,6 +1897,23 @@ enrolment.
 (confirmed only), and its reminders need an exit when the call is cancelled.
 The steps are in the home base, `briefs/2026-10-21-crm-confirmation-on-cancel-editor-steps.md`.
 Once those are in, the guard removes a contact that is no longer enrolled.
+
+**The builder fix, as made (2026-10-21, Z-002-1 v4 → v5).** The plan above did
+not survive the builder. A-102-3 has two triggers. "Appointment status – You
+booked it FOR them" already filters on status confirmed and on changes made by
+a User. "Customer booked appointment – They scheduled with YOU" filters only on
+the intro-call calendar and offers no status filter, so it is almost certainly
+the one a cancel re-fires (inferred; the API cannot say which trigger fired).
+A-102-3's If/Else offers contact fields only, not appointment status, so it
+cannot check for a cancel either. The 30-second wait right after A-102-3's
+triggers is where its ~28s send delay comes from. So the fix went in on the
+cancel side: Z-002-1 (trigger: appointment status cancelled) now starts with
+"Wait 10 seconds" and "Remove from Workflow → A-102-3", ahead of its own
+30-second wait and email. A-102-3 is unchanged (v8). A cancel made straight
+through the API, with no site guard, at 2:17:01pm PT sent no second
+confirmation, and the cancellation email arrived at 2:17:53pm. The guard in
+`stopBookingWorkflowAfterCancel` now overlaps it, and both removals are
+harmless when the contact is already out.
 
 ## 7. Rules of engagement
 
