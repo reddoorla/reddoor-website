@@ -48,14 +48,18 @@
 </script>
 
 <SliceSection {slice} class="relative w-full overflow-hidden bg-paper">
-  <!-- `data-masthead`: the part the layout measures to keep the overlay nav up;
-       the card's lower three quarters and the CTA row are below it. -->
-  <div class="offer-top relative" data-masthead>
+  <div class="offer-top relative">
     <!-- The red band runs from the top of the page to a quarter of the way down
          the card, where the board breaks to paper (y 626 against a card at
          477–1053). It is a layer rather than the text block's own background so
-         the card can straddle it. -->
-    <div class="offer-red bg-paper-red absolute inset-x-0 top-0" aria-hidden="true"></div>
+         the card can straddle it. `data-masthead` makes it what the layout
+         measures to keep the overlay nav up, so the fixed nav takes over at the
+         break rather than below the card. -->
+    <div
+      class="offer-red bg-paper-red absolute inset-x-0 top-0"
+      aria-hidden="true"
+      data-masthead
+    ></div>
 
     <ContentWidth class="relative flex flex-col items-start pt-32 md:pt-40 xl:pt-47.5">
       {#if slice.primary.eyebrow}
@@ -189,6 +193,9 @@
     --card-max: 1024px;
   }
   .offer-red {
+    /* vw first, for a browser without container units (Safari < 16), where
+       the cqw line is dropped and the band would otherwise collapse. */
+    bottom: calc(min(92vw, var(--card-max)) * 9 / 16 * 0.74);
     bottom: calc(min(92cqw, var(--card-max)) * 9 / 16 * 0.74);
   }
   .offer-card {

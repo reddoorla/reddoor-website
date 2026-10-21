@@ -300,7 +300,7 @@
       // its tab. A button has no such meaning, and a submit button would take
       // a Shift+Enter (the key's modifiers ride on the click it fires) off the
       // page to /contact.
-      if (trigger.tagName === "A" && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return;
+      if (trigger.localName === "a" && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return;
       if ((trigger.getAttribute("data-inquire") ?? "") !== triggerKey) return;
       e.preventDefault();
       // A CTA may name the section it sits in via data-inquire-step so the lead

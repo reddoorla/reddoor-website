@@ -28,6 +28,9 @@ export function parseVimeo(raw: string | null | undefined): { id: string; hash?:
   // or channel links such as /showcase/1234567/video/987654321, whose first
   // number is the showcase); otherwise it is the first all-digit segment.
   const afterVideo = segments.indexOf("video") + 1;
+  // A showcase or album link with no video in it names a collection, not a
+  // video.
+  if (afterVideo === 0 && ["showcase", "album"].includes(segments[0] ?? "")) return null;
   const at =
     afterVideo > 0 && /^\d+$/.test(segments[afterVideo] ?? "")
       ? afterVideo
