@@ -91,7 +91,13 @@
   let heroBottom = $state<number | null>(Number.POSITIVE_INFINITY);
 
   const measureHero = () => {
-    const heroes = document.querySelectorAll('[data-slice-type="industry_hero"]');
+    // The offer hero is an industry page's masthead too, so the same white
+    // overlay nav sits over its red band. Only its red part counts
+    // (`data-masthead`): measuring the whole slice, card and CTA included,
+    // would hold the fixed nav back for a thousand pixels of scroll.
+    const heroes = document.querySelectorAll(
+      '[data-slice-type="industry_hero"], [data-slice-type="offer_hero"] [data-masthead]',
+    );
     const hero = heroes[heroes.length - 1];
     heroBottom = hero ? hero.getBoundingClientRect().bottom : null;
   };

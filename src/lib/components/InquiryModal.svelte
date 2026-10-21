@@ -137,12 +137,14 @@
       ? 300
       : 0;
 
-  function show(step?: string) {
+  function show(step?: string, prefillEmail?: string) {
     // A visitor who closed the modal mid-questions resumes where they were:
     // their email is already captured and re-asking five answered questions is
     // how applications get abandoned. Everything else — a fresh open, a
     // finished application, a lingering error on frame one — resets so a
     // previous visitor's state never greets the next.
+    // A prefilled address is ignored here on purpose: the one they gave is
+    // already captured, and the questions they answered belong to it.
     if (frame === "question" || frame === "contact") {
       // Resuming — but never clear a still-in-flight submit, or its guard drops
       // and the visitor could fire a second one on reopen.
@@ -154,6 +156,11 @@
       return;
     }
     resetSession(step);
+    // An address the visitor already typed into the page (the offer hero's
+    // email field) fills frame one rather than being asked for twice. It is
+    // only a prefill: nothing reaches ingest until they submit the frame, so
+    // the capture path is the same one an empty open takes.
+    email = prefillEmail?.trim() ?? "";
     openedAt = Date.now();
     open = true;
   }
@@ -284,19 +291,27 @@
   // Capture phase, so it runs before SvelteKit's client router sees the click.
   $effect(() => {
     const onClick = (e: MouseEvent) => {
-      // Let modified clicks through — a Cmd/ctrl-click should not be swallowed.
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-        return;
+      if (e.defaultPrevented || e.button !== 0) return;
       const trigger = (e.target as Element | null)?.closest?.(
         'a[href="#inquire"], a[href$="#inquire"], [data-inquire]',
       );
       if (!trigger) return;
+      // Let modified clicks on a LINK through — a Cmd/ctrl-click should open
+      // its tab. A button has no such meaning, and a submit button would take
+      // a Shift+Enter (the key's modifiers ride on the click it fires) off the
+      // page to /contact.
+      if (trigger.localName === "a" && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return;
       if ((trigger.getAttribute("data-inquire") ?? "") !== triggerKey) return;
       e.preventDefault();
       // A CTA may name the section it sits in via data-inquire-step so the lead
       // traces back to where it was opened; absent that, stepLabel falls back to
       // the first framework step.
-      show(trigger.getAttribute("data-inquire-step") || undefined);
+      // And it may carry an email the visitor typed beside it
+      // (data-inquire-email), which prefills frame one.
+      show(
+        trigger.getAttribute("data-inquire-step") || undefined,
+        trigger.getAttribute("data-inquire-email") || undefined,
+      );
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
