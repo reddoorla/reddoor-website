@@ -187,25 +187,29 @@ export async function removeFromWorkflow(opts: {
 }
 
 /**
- * How long after a cancel to wait before taking the contact out of A-102-3.
+ * When, after a cancel, to take the contact out of A-102-3: each entry is a
+ * wait, so the removals land about 6s and 15s after the cancel.
  *
- * The cancel re-enrols the contact a few seconds after it lands, and A-102-3
- * sends the "Call Confirmation" about 26s after the cancel. Measured on a test
- * contact, 2026-10-21: removed 1s after the cancel, the confirmation still went
- * (the enrolment came after the removal); removed at 7s and at 13s, no
+ * The cancel re-enrols the contact 2–4s after it lands, and A-102-3 sends the
+ * "Call Confirmation" about 26s after the cancel. Measured on a test contact,
+ * 2026-10-21: removed 1s after the cancel, the confirmation still went (the
+ * enrolment came after the removal); removed at 7s and at 13s, no
  * confirmation, and Z-002-1's "Cancellation Confirmation & Reschedule Link"
- * arrived instead, which it never did while A-102-3 ran.
+ * arrived instead, which it never did while A-102-3 ran. A removal is a
+ * harmless 200 when the contact is not enrolled, so the second one costs
+ * nothing and covers an enrolment that comes late under load.
  */
-export const CANCEL_GUARD_DELAY_MS = 6_000;
+export const CANCEL_GUARD_WAITS_MS = [6_000, 9_000] as const;
 
 /**
  * After a successful cancel, take the contact out of "A-102-3. Appointment
  * Booked + Reminders", so the cancel's re-enrolment sends no "Call
- * Confirmation" and no reminders for a call that is not happening.
+ * Confirmation" and no reminders for a call that is not happening (timing:
+ * CANCEL_GUARD_WAITS_MS).
  *
  * A backstop for a trigger the API cannot edit: the real fix is a status
- * filter on A-102-3's trigger in the workflow builder. Once that is in, this
- * removes a contact that is no longer enrolled, which is a harmless 200.
+ * filter on A-102-3's trigger in the workflow builder (docs/inquiry-funnel.md
+ * §6.21). Once that is in, this removes a contact that is no longer enrolled.
  *
  * Skipped when the contact still has another standing call, because A-102-3 is
  * what reminds them about that one. Never throws, and never touches Z-002-1,
@@ -220,28 +224,35 @@ export async function stopBookingWorkflowAfterCancel(opts: {
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
 }): Promise<void> {
+  if (!opts.contactId) {
+    console.error("[cancel] guard skipped, the appointment has no contact");
+    return;
+  }
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   try {
-    await sleep(CANCEL_GUARD_DELAY_MS);
+    for (const wait of CANCEL_GUARD_WAITS_MS) {
+      await sleep(wait);
 
-    const events = await listContactAppointments(opts);
-    if (!events.ok) {
-      console.error(
-        `[cancel] guard skipped, appointments unreadable (${events.status}): ${events.error}`,
-      );
-      return;
-    }
-    const now = (opts.now ?? Date.now)();
-    if (events.data.some((e) => e.id !== opts.eventId && publicView(e, now).actionable)) return;
+      // Read each time: a call booked since the last pass must keep A-102-3.
+      const events = await listContactAppointments(opts);
+      if (!events.ok) {
+        console.error(
+          `[cancel] guard skipped, appointments unreadable (${events.status}): ${events.error}`,
+        );
+        return;
+      }
+      const now = (opts.now ?? Date.now)();
+      if (events.data.some((e) => e.id !== opts.eventId && publicView(e, now).actionable)) return;
 
-    const removed = await removeFromWorkflow({
-      token: opts.token,
-      fetch: opts.fetch,
-      contactId: opts.contactId,
-      workflowId: GHL_WORKFLOW_APPOINTMENT_BOOKED,
-    });
-    if (!removed.ok) {
-      console.error(`[cancel] A-102-3 removal failed (${removed.status}): ${removed.error}`);
+      const removed = await removeFromWorkflow({
+        token: opts.token,
+        fetch: opts.fetch,
+        contactId: opts.contactId,
+        workflowId: GHL_WORKFLOW_APPOINTMENT_BOOKED,
+      });
+      if (!removed.ok) {
+        console.error(`[cancel] A-102-3 removal failed (${removed.status}): ${removed.error}`);
+      }
     }
   } catch (err) {
     console.error(`[cancel] guard threw: ${err instanceof Error ? err.message : String(err)}`);

@@ -78,10 +78,10 @@ export const POST: RequestHandler = async ({ params, request, fetch, platform })
     );
   }
 
-  // A cancel re-enrols the contact in A-102-3, which would send them the "Call
-  // Confirmation" again, about 26s later. The guard waits for that enrolment
-  // and then removes it, after the response, so the visitor does not wait and
-  // nothing it does can turn this cancel into an error.
+  // A cancel re-enrols the contact in A-102-3, which would send the "Call
+  // Confirmation" again (see stopBookingWorkflowAfterCancel). The guard runs
+  // after the response, so nothing it does can turn this cancel into an error.
+  // With no platform (vite dev) it still runs, just unawaited.
   const guard = stopBookingWorkflowAfterCancel({
     token,
     fetch,

@@ -8,7 +8,7 @@ vi.mock("$app/env/private", () => ({ CRM_FUNNEL_ACTIVE_TOKEN: "crm-token" }));
 
 const { POST } = await import("./+server");
 
-const EVENT_ID = "ikp5gFqZB2OqnXk6XyDq";
+const EVENT_ID = "test_event_000001";
 
 type Call = { url: string; method: string };
 
@@ -74,7 +74,10 @@ const isRemoval = (c: Call) => c.method === "DELETE" && c.url.includes("/workflo
 
 describe("POST /api/appointment/[eventId]/cancel", () => {
   beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout"] }));
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it("cancels, then takes the contact out of A-102-3 after the response", async () => {
     const { fetchStub, calls } = crm();
@@ -113,6 +116,5 @@ describe("POST /api/appointment/[eventId]/cancel", () => {
     expect(
       error.mock.calls.some((args) => String(args[0]).includes("A-102-3 removal failed")),
     ).toBe(true);
-    error.mockRestore();
   });
 });
