@@ -65,8 +65,18 @@ const escapeHTML = (s: string) =>
  * site's own origin is dropped.
  */
 export function localHref(url: string): string {
-  return url.replace(/^https?:\/\/(www\.)?reddoorla\.com(?=\/|$)/i, "") || "/";
+  const local = url.replace(/^https?:\/\/(www\.)?reddoorla\.com(?=\/|$)/i, "") || "/";
+  // `https://reddoorla.com//elsewhere.example` must not become the
+  // protocol-relative `//elsewhere.example`.
+  return local.startsWith("//") ? url : local;
 }
+
+/**
+ * The link schemes copy may use. The CSP allows inline script, so a
+ * `javascript:` URL typed into a Prismic Web link would run; it renders as
+ * plain text instead.
+ */
+const SAFE_HREF = /^(https?:|mailto:|tel:|\/(?!\/)|#)/i;
 
 /**
  * Values the page inserts into the copy. The editor writes the token, e.g.
@@ -85,7 +95,7 @@ export function richHTML(field: RichTextField, pClass: string, values: CopyValue
     paragraph: ({ children }) => `<p class="${pClass}">${children}</p>`,
     hyperlink: ({ node, children }) => {
       const href = asLink(node.data);
-      if (!href) return children;
+      if (!href || !SAFE_HREF.test(localHref(href))) return children;
       return `<a class="text-primary underline" href="${escapeHTML(localHref(href))}">${children}</a>`;
     },
   };

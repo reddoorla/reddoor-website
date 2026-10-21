@@ -262,5 +262,13 @@ describe("richHTML", () => {
       "https://reddoorla.com.evil.example/x",
     );
     expect(localHref("mailto:info@reddoorla.com")).toBe("mailto:info@reddoorla.com");
+    expect(localHref("https://reddoorla.com//evil.example/x")).toBe(
+      "https://reddoorla.com//evil.example/x",
+    );
+  });
+
+  it("renders a link with an unsafe scheme as plain text", () => {
+    const field = rich("Click [here](javascript:alert`1`) now.");
+    expect(richHTML(field, "p")).toBe('<p class="p">Click here now.</p>');
   });
 });
