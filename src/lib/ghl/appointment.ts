@@ -236,10 +236,11 @@ export async function stopBookingWorkflowAfterCancel(opts: {
       // Read each time: a call booked since the last pass must keep A-102-3.
       const events = await listContactAppointments(opts);
       if (!events.ok) {
+        // No removal without a good read; the next pass may get one.
         console.error(
-          `[cancel] guard skipped, appointments unreadable (${events.status}): ${events.error}`,
+          `[cancel] guard pass skipped, appointments unreadable (${events.status}): ${events.error}`,
         );
-        return;
+        continue;
       }
       const now = (opts.now ?? Date.now)();
       if (events.data.some((e) => e.id !== opts.eventId && publicView(e, now).actionable)) return;

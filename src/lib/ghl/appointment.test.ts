@@ -276,8 +276,9 @@ describe("stopBookingWorkflowAfterCancel", () => {
     });
     // Nothing reaches the CRM before the first wait.
     expect(seen[0]?.callsSoFar).toBe(0);
-    // Removed 1s after a live cancel, the confirmation still went; at 7s it
-    // did not (2026-10-21). Both removals stay before the ~26s send.
+    // Measured CRM timing, not a design value: removed 1s after a live cancel,
+    // the confirmation still went; at 7s it did not (2026-10-21). Both
+    // removals stay before the send, 26–28s after the cancel.
     expect(seen[0]?.ms).toBeGreaterThanOrEqual(5_000);
     expect(seen.reduce((t, s) => t + s.ms, 0)).toBeLessThan(20_000);
   });
@@ -298,9 +299,35 @@ describe("stopBookingWorkflowAfterCancel", () => {
   });
 
   it("does not remove when the appointment list is unreadable", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     const { fetch, calls } = crm({ listStatus: 500 });
     await run(fetch);
     expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+  });
+
+  it("still removes on the second pass when only the first read fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { fetch, calls } = crm({ events: [cancelled] });
+    let reads = 0;
+    const flaky = async (url: string, init: RequestInit = {}) => {
+      if (url.includes("/appointments") && ++reads === 1)
+        return new Response("{}", { status: 502 });
+      return fetch(url, init);
+    };
+    await run(flaky);
+    expect(calls.filter((c) => c.method === "DELETE")).toHaveLength(1);
+  });
+
+  it("does not count the just-cancelled call as standing, even on a stale read", async () => {
+    // The list can lag the cancel and still show the call as confirmed.
+    const stale = {
+      ...cancelled,
+      appointmentStatus: "confirmed",
+      startTime: "2026-10-29T13:30:00-07:00",
+    };
+    const { fetch, calls } = crm({ events: [stale] });
+    await run(fetch);
+    expect(calls.some((c) => c.method === "DELETE")).toBe(true);
   });
 
   it("stops when a call is booked between the two passes", async () => {
