@@ -5,6 +5,7 @@
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import type { RichTextComponents } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
+  import { tick } from "svelte";
   import { parseVimeo } from "./vimeo";
   import playDisc from "$lib/assets/offer/play-disc.svg";
   import playTriangle from "$lib/assets/offer/play-triangle.svg";
@@ -26,6 +27,19 @@
   const video = $derived(parseVimeo(slice.primary.vimeo_video));
   const videoTitle = $derived(slice.primary.video_title?.trim() || "Video");
   let playing = $state(false);
+  let card = $state<HTMLElement>();
+
+  // The play button unmounts as the player mounts, so focus would drop to
+  // <body>; hand it to the player instead.
+  async function play() {
+    playing = true;
+    await tick();
+    card?.querySelector("iframe")?.focus();
+  }
+
+  // With no video and no alt text on the poster asset, the card's copy (which
+  // is in the pixels) would have no name at all.
+  const posterUnnamed = $derived(!video && !slice.primary.video_poster?.alt?.trim());
 
   // The visitor's address, handed to the modal on the trigger itself
   // (data-inquire-email) so frame one opens already filled in.
@@ -34,11 +48,13 @@
 </script>
 
 <SliceSection {slice} class="relative w-full overflow-hidden bg-paper">
-  <div class="offer-top relative">
+  <!-- `data-masthead`: the part the layout measures to keep the overlay nav up;
+       the card's lower three quarters and the CTA row are below it. -->
+  <div class="offer-top relative" data-masthead>
     <!-- The red band runs from the top of the page to a quarter of the way down
          the card, where the board breaks to paper (y 626 against a card at
          477–1053). It is a layer rather than the text block's own background so
-         the card can straddle it; `--card-h` is the card's rendered height. -->
+         the card can straddle it. -->
     <div class="offer-red bg-paper-red absolute inset-x-0 top-0" aria-hidden="true"></div>
 
     <ContentWidth class="relative flex flex-col items-start pt-32 md:pt-40 xl:pt-47.5">
@@ -55,6 +71,7 @@
       {/if}
 
       <div
+        bind:this={card}
         class="offer-card relative mt-10 aspect-video w-full overflow-hidden rounded-[9px] bg-white shadow-[0_4px_11.5px_rgba(0,0,0,0.11)] md:mt-12"
       >
         {#if video && playing}
@@ -89,7 +106,7 @@
               type="button"
               class="offer-play absolute inset-0 flex cursor-pointer items-center justify-center"
               aria-label="Play video: {videoTitle}"
-              onclick={() => (playing = true)}
+              onclick={play}
             >
               <span class="offer-play-glyph relative block" aria-hidden="true">
                 <img src={playDisc} alt="" class="absolute inset-0 h-full w-full" />
@@ -99,6 +116,9 @@
           {:else}
             <!-- No video yet: the still and its play mark, as the board draws
                  them, with nothing to activate. -->
+            {#if posterUnnamed}
+              <span class="sr-only">{videoTitle}</span>
+            {/if}
             <span
               class="offer-play pointer-events-none absolute inset-0 flex items-center justify-center"
               aria-hidden="true"
@@ -160,17 +180,19 @@
 </SliceSection>
 
 <style>
-  /* The card is the content column's full width up to the board's 1024px, at
-     16:9; the red layer stops 74% of the card's height above the section's
-     bottom edge (the board's break sits 149px into a 576px card). */
+  /* The card is the content column's full width (ContentWidth's 92%) up to
+     the board's 1024px, at 16:9; the red layer stops 74% of the card's height
+     above this block's bottom edge (the board's break sits 149px into a 576px
+     card). Container units, not vw, so a classic scrollbar can't skew it. */
   .offer-top {
-    --card-h: calc(min(92vw, 1024px) * 9 / 16);
+    container-type: inline-size;
+    --card-max: 1024px;
   }
   .offer-red {
-    bottom: calc(var(--card-h) * 0.74);
+    bottom: calc(min(92cqw, var(--card-max)) * 9 / 16 * 0.74);
   }
   .offer-card {
-    max-width: 1024px;
+    max-width: var(--card-max);
   }
 
   /* Pragmatica Light 21/30, the board's Body 1. */
@@ -200,9 +222,11 @@
     top: 50%;
     transform: translate(-42%, -50%) rotate(90deg);
   }
+  /* Two-tone, so the ring shows on a light or a dark poster. */
   .offer-play:focus-visible {
     outline: 3px solid #fff;
     outline-offset: -6px;
+    box-shadow: inset 0 0 0 6px #000;
   }
 
   .offer-email {

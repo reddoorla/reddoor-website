@@ -149,9 +149,9 @@
   };
 
   // ── Industry landing-page slices (the /medtech board) ──────────────────────
-  // These carry the page's own outline: the hero owns the h1, so the fixture
-  // page's own <h1> above is the only other one — axe sees hero h1 → section h2
-  // → column h3 with no skips, matching a real industry page.
+  // These carry the page's own outline: the hero owns the h1 — axe sees hero h1
+  // → section h2 → column h3 with no skips, matching a real industry page. The
+  // fixture page's own <h1> above and the two offer heroes' are the others.
 
   // Prismic image fields need a url + dimensions to render at all; the host is
   // never fetched during an axe scan, and alt text is what the gate checks.

@@ -22,6 +22,20 @@ describe("parseVimeo", () => {
     });
   });
 
+  it("takes the video, not the showcase, from a showcase link", () => {
+    expect(parseVimeo("https://vimeo.com/showcase/1234567/video/987654321")).toEqual({
+      id: "987654321",
+    });
+  });
+
+  it("takes the iframe snippet from Vimeo's Embed button", () => {
+    expect(
+      parseVimeo(
+        '<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/987654321?h=abc123&amp;badge=0" frameborder="0"></iframe></div>',
+      ),
+    ).toEqual({ id: "987654321", hash: "abc123" });
+  });
+
   it("is null for empty or non-Vimeo input", () => {
     expect(parseVimeo("")).toBeNull();
     expect(parseVimeo(null)).toBeNull();

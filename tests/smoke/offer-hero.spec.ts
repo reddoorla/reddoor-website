@@ -62,6 +62,20 @@ test(
   },
 );
 
+test(
+  "Shift+Enter in the email field stays on the page too",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoHydrated(page);
+    const field = hero(page).getByRole("textbox", { name: "Email address" });
+    await field.fill("founder@example.com");
+    await field.press("Shift+Enter");
+    await expect(
+      page.getByRole("dialog").getByRole("textbox", { name: "Email address" }),
+    ).toHaveValue("founder@example.com");
+  },
+);
+
 test("an empty field still opens the questionnaire, empty", { tag: "@smoke" }, async ({ page }) => {
   await gotoHydrated(page);
   await hero(page).getByRole("button", { name: "Get Started" }).click();
@@ -74,8 +88,11 @@ test("the video is named, and its player keeps the name", { tag: "@smoke" }, asy
   await gotoHydrated(page);
   const play = hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" });
   await expect(play).toBeVisible();
-  await play.click();
-  await expect(hero(page).locator('iframe[title="Brand Friction Audit"]')).toBeAttached();
+  // By keyboard: the button unmounts as the player mounts, and focus has to
+  // land on the player rather than drop to <body>.
+  await play.focus();
+  await page.keyboard.press("Enter");
+  await expect(hero(page).locator('iframe[title="Brand Friction Audit"]')).toBeFocused();
 });
 
 test(
