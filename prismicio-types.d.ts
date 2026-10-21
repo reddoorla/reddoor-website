@@ -172,7 +172,7 @@ interface GalleryDocumentData {
  */
 export type GalleryDocument<Lang extends string = string> = prismic.PrismicDocumentWithUID<Simplify<GalleryDocumentData>, "gallery", Lang>;
 
-type IndustryDocumentDataSlicesSlice = IndustryHeroSlice | LeadTextSlice | TextColumnsSlice | CaseStudySlice | LogoGridSlice | TestimonialSlice | FeaturedProjectSlice | ValueBlockSlice | AccordionSlice | CtaBannerSlice | RichTextSlice
+type IndustryDocumentDataSlicesSlice = IndustryHeroSlice | OfferHeroSlice | LeadTextSlice | TextColumnsSlice | CaseStudySlice | LogoGridSlice | TestimonialSlice | FeaturedProjectSlice | ValueBlockSlice | AccordionSlice | CtaBannerSlice | RichTextSlice
 
 /**
  * Content for Industry documents
@@ -2472,6 +2472,145 @@ type LogoGridSliceVariation = LogoGridSliceDefault
 export type LogoGridSlice = prismic.SharedSlice<"logo_grid", LogoGridSliceVariation>;
 
 /**
+ * Primary content in *OfferHero → Default → Primary*
+ */
+export interface OfferHeroSliceDefaultPrimary {
+	/**
+	 * eyebrow field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. MedTech Founders
+	 * - **API ID Path**: offer_hero.default.primary.eyebrow
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	eyebrow: prismic.KeyTextField;
+	
+	/**
+	 * headline field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: The page's H1
+	 * - **API ID Path**: offer_hero.default.primary.headline
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	headline: prismic.RichTextField;
+	
+	/**
+	 * subhead field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. If you don't like the plan, you don't pay!
+	 * - **API ID Path**: offer_hero.default.primary.subhead
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	subhead: prismic.KeyTextField;
+	
+	/**
+	 * video poster field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: offer_hero.default.primary.video_poster
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	video_poster: prismic.ImageField<never>;
+	
+	/**
+	 * Vimeo video (link or id) field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. https://vimeo.com/123456789 — leave empty to show the poster only
+	 * - **API ID Path**: offer_hero.default.primary.vimeo_video
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	vimeo_video: prismic.KeyTextField;
+	
+	/**
+	 * video title (read to screen readers) field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Brand Friction Audit
+	 * - **API ID Path**: offer_hero.default.primary.video_title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	video_title: prismic.KeyTextField;
+	
+	/**
+	 * CTA heading field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Think this a good fit for you?
+	 * - **API ID Path**: offer_hero.default.primary.cta_heading
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cta_heading: prismic.KeyTextField;
+	
+	/**
+	 * CTA body field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Fill out a short questionnaire and find out.
+	 * - **API ID Path**: offer_hero.default.primary.cta_body
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	cta_body: prismic.KeyTextField;
+	
+	/**
+	 * email placeholder field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Email Address
+	 * - **API ID Path**: offer_hero.default.primary.email_placeholder
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	email_placeholder: prismic.KeyTextField;
+	
+	/**
+	 * button label field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Get Started
+	 * - **API ID Path**: offer_hero.default.primary.button_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	button_label: prismic.KeyTextField;
+	
+	/**
+	 * hide field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Boolean
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: false
+	 * - **API ID Path**: offer_hero.default.primary.hide
+	 * - **Documentation**: https://prismic.io/docs/fields/boolean
+	 */
+	hide: prismic.BooleanField;
+}
+
+/**
+ * Default variation for OfferHero Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: Offer landing hero: headline on red, a 16:9 video card over the red-to-paper break, and an email field that opens the inquiry questionnaire
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type OfferHeroSliceDefault = prismic.SharedSliceVariation<"default", Simplify<OfferHeroSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *OfferHero*
+ */
+type OfferHeroSliceVariation = OfferHeroSliceDefault
+
+/**
+ * OfferHero Shared Slice
+ *
+ * - **API ID**: `offer_hero`
+ * - **Description**: OfferHero
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type OfferHeroSlice = prismic.SharedSlice<"offer_hero", OfferHeroSliceVariation>;
+
+/**
  * Primary content in *RichText → Default → Primary*
  */
 export interface RichTextSliceDefaultPrimary {
@@ -3795,6 +3934,10 @@ declare module "@prismicio/client" {
 			LogoGridSliceDefaultPrimary,
 			LogoGridSliceVariation,
 			LogoGridSliceDefault,
+			OfferHeroSlice,
+			OfferHeroSliceDefaultPrimary,
+			OfferHeroSliceVariation,
+			OfferHeroSliceDefault,
 			RichTextSlice,
 			RichTextSliceDefaultPrimary,
 			RichTextSliceVariation,
