@@ -89,6 +89,8 @@
 
   const NAV_HEIGHT = 48;
   let heroBottom = $state<number | null>(Number.POSITIVE_INFINITY);
+  // The offer page's overlay nav carries the script Reddoor, not the door.
+  let heroIsOffer = $state(false);
 
   const measureHero = () => {
     // The offer hero is an industry page's masthead too, so the same white
@@ -99,6 +101,7 @@
       '[data-slice-type="industry_hero"], [data-slice-type="offer_hero"] [data-masthead]',
     );
     const hero = heroes[heroes.length - 1];
+    heroIsOffer = !!hero?.closest('[data-slice-type="offer_hero"]');
     heroBottom = hero ? hero.getBoundingClientRect().bottom : null;
   };
 
@@ -307,13 +310,27 @@
         >
           <ContentWidth class="flex flex-row items-start justify-between">
             <a href="/" class="block shrink-0 transition-opacity duration-500 hover:opacity-80">
-              <img
-                src={doorLogo}
-                alt="Reddoor Creative"
-                width="63"
-                height="40"
-                class="block h-10 w-auto"
-              />
+              {#if heroIsOffer}
+                <!-- The footer's script, at the footer's widths, drawn white
+                     for the red band (the asset is black ink). Negative margins
+                     take back the PNG's padding so the ink starts at the
+                     content edge and centres on the nav row. -->
+                <img
+                  src={scriptReddoor}
+                  alt="Reddoor Creative"
+                  width="480"
+                  height="267"
+                  class="-mt-2 -ml-3 block h-auto w-30 max-w-none brightness-0 invert md:-mt-4 md:-ml-4 md:w-37.75"
+                />
+              {:else}
+                <img
+                  src={doorLogo}
+                  alt="Reddoor Creative"
+                  width="63"
+                  height="40"
+                  class="block h-10 w-auto"
+                />
+              {/if}
             </a>
 
             <div class="flex flex-row items-center">
