@@ -32,6 +32,8 @@ const hero = (page: import("@playwright/test").Page, n = 0) =>
   page.locator('section[data-slice-type="offer_hero"]').nth(n);
 
 const FIRST_QUESTION = /What problems are you experiencing\?/;
+/** Room for the modal's pre-submit hold (2.5s) plus a slow runner. */
+const HOLD_TIMEOUT = 15_000;
 
 /** Step one went up with this address, and late enough that the server's bot
  *  screen (MIN_FILL_MS after `ts`) forwards it instead of dropping it. */
@@ -62,7 +64,7 @@ test(
 
     await expect(
       page.getByRole("dialog").getByRole("heading", { name: FIRST_QUESTION }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible({ timeout: HOLD_TIMEOUT });
     expectStepOne(posts, "founder@example.com");
     expect(page.url()).toBe(before);
   },
@@ -74,7 +76,7 @@ test("Enter in the email field opens on question one too", { tag: "@smoke" }, as
   await field.fill("founder@example.com");
   await field.press("Enter");
   await expect(page.getByRole("dialog").getByRole("heading", { name: FIRST_QUESTION })).toBeVisible(
-    { timeout: 15_000 },
+    { timeout: HOLD_TIMEOUT },
   );
   expectStepOne(posts, "founder@example.com");
 });
@@ -93,9 +95,10 @@ test(
     // send is abandoned, so the reopen has to make it.
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
+    expect(posts, "Escape must land inside the pre-submit hold").toHaveLength(0);
     await getStarted.click();
     await expect(dialog.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible({
-      timeout: 15_000,
+      timeout: HOLD_TIMEOUT,
     });
     expectStepOne(posts, "founder@example.com");
     // Once it is in, coming back resumes mid-questions rather than sending
@@ -117,7 +120,7 @@ test(
     await field.press("Shift+Enter");
     await expect(
       page.getByRole("dialog").getByRole("heading", { name: FIRST_QUESTION }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible({ timeout: HOLD_TIMEOUT });
     expectStepOne(posts, "founder@example.com");
   },
 );
