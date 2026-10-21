@@ -46,6 +46,11 @@ export const variables = defineEnvVars({
     schema: optional,
     description: "Key that unlocks /api/meeting-outcome.",
   },
+  FUNNEL_COPY_BUILTIN: {
+    schema: optional,
+    description:
+      'Set to "1" by the Playwright smoke suite only: the booking funnel renders its built-in copy, whatever is published in Prismic.',
+  },
   PRISMIC_HIDDEN_CONTENT: {
     schema: optional,
     description: 'Set to "show" on the staging site to show hide-tagged Prismic documents.',

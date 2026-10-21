@@ -60,7 +60,7 @@
       "schedule_booked_body": {
         "type": "StructuredText",
         "config": {
-          "label": "Confirmation text — once booked",
+          "label": "Confirmation text — once booked (write {email} for their address)",
           "placeholder": "Write {email} where the visitor’s email address should appear. The booked time shows above this text on its own. Leave empty to keep the site’s current wording",
           "multi": "paragraph,strong,em,hyperlink"
         }
@@ -76,7 +76,7 @@
       "tim_photo": {
         "type": "Image",
         "config": {
-          "label": "Tim’s photo",
+          "label": "Tim’s photo (under the side label; set its alt text on the image)",
           "constraint": {},
           "thumbnails": []
         }

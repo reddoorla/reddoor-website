@@ -201,7 +201,7 @@ interface FunnelCopyDocumentData {
 	schedule_applied_lede: prismic.RichTextField;
 	
 	/**
-	 * Confirmation text — once booked field in *Booking pages copy*
+	 * Confirmation text — once booked (write {email} for their address) field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Rich Text
 	 * - **Placeholder**: Write {email} where the visitor’s email address should appear. The booked time shows above this text on its own. Leave empty to keep the site’s current wording
@@ -223,7 +223,7 @@ interface FunnelCopyDocumentData {
 	schedule_no_times: prismic.RichTextField;
 	
 	/**
-	 * Tim’s photo field in *Booking pages copy*
+	 * Tim’s photo (under the side label; set its alt text on the image) field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Image
 	 * - **Placeholder**: *None*

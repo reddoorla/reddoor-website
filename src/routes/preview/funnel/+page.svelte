@@ -19,6 +19,7 @@
     { id: "schedule", label: "Booking page — arriving cold (/schedule)" },
     { id: "schedule-applied", label: "Booking page — after the questionnaire" },
     { id: "schedule-booked", label: "Booking page — once booked (the confirmation)" },
+    { id: "schedule-no-times", label: "Booking page — no open times" },
     { id: "not-a-fit", label: "Not a fit (/not-a-fit)" },
     { id: "cancel", label: "Cancel — the link in the confirmation email" },
     { id: "cancel-done", label: "Cancel — once cancelled" },
@@ -60,6 +61,8 @@
 <SchedulePage copy={data.copy} preview={{ ...v, state: "applied" }} />
 {@render band("schedule-booked")}
 <SchedulePage copy={data.copy} preview={{ ...v, state: "booked" }} />
+{@render band("schedule-no-times")}
+<SchedulePage copy={data.copy} preview={{ ...v, slots: [], state: "default" }} />
 {@render band("not-a-fit")}
 <NotAFitPage copy={data.copy} />
 {@render band("cancel")}

@@ -9,11 +9,11 @@ import { test, expect, type Page } from "@playwright/test";
  * makes a real appointment on Tim's calendar whenever the server has a CRM
  * token. Each is also stubbed, so a regression is a red test, not a booking.
  */
-const FUNNEL_APIS = ["/api/book", "/api/slots", "/api/inquiry", "/api/appointment"];
+const FUNNEL_APIS = ["/api/book", "/api/slots", "/api/inquiry", "/api/appointment", "/inquiry"];
 
 async function countFunnelCalls(page: Page): Promise<string[]> {
   const calls: string[] = [];
-  await page.route("**/api/**", async (route) => {
+  await page.route(/\/(api\/|inquiry)/, async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (FUNNEL_APIS.some((api) => path === api || path.startsWith(`${api}/`))) {
       calls.push(`${route.request().method()} ${path}`);
