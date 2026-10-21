@@ -998,6 +998,9 @@ Let's Reschedule` is keyed to the status — a delete takes the follow-up with i
 shape and has never been fired, because it would move or cancel a real booking
 (§7.1). One throwaway booking would settle both.
 
+> The cancel has since been fired on a test contact, and it re-sent A-102-3's
+> confirmation: see §6.21.
+
 ### 6.11 The go.reddoorla.com pages, replaced
 
 All five hosted funnel pages were read before anything was built, because
@@ -1835,6 +1838,55 @@ not the header Save ran.
 **inferred** — `{{contact.funnel}}` is the custom field key the site writes
 (`contact.funnel`, id `NlnuKejf3ThqsfBVvMgU`) in the form every other custom
 field takes in the picker; it has not been seen rendered in a delivered email.
+
+### 6.21 A cancel re-sent the confirmation — 2026-10-21
+
+Reported by Tim: a test call cancelled on `/cancel/{id}` sent him "Call
+Confirmation for …" a second time. Five runs on a test contact,
+with the site's exact request bodies. A cancel (`PUT
+/calendars/events/appointments/{id}`, `appointmentStatus: "cancelled"`,
+`toNotify: true`) re-enrols the contact in `A-102-3. Appointment Booked +
+Reminders`: the appointment activity logs 2–4s after the request, and the
+confirmation follows about 28s after it. While A-102-3 ran, Z-002-1's
+"Cancellation Confirmation & Reschedule Link - Reddoor Creative" never
+arrived. So the follow-up §6.10 says the status change exists for was not
+being sent.
+
+| After the cancel                           | 2nd confirmation | Z-002-1's email |
+| ------------------------------------------ | ---------------- | --------------- |
+| nothing                                    | yes, +28s        | none            |
+| contact removed from A-102-3 at +1s        | yes, +28s        | none            |
+| removed at +7s                             | no               | yes, +39s       |
+| removed at +13s                            | no               | yes, +40s       |
+| cancel sent with `toNotify: false` instead | no               | none            |
+
+What the API reaches here: `GET /workflows/` lists workflows, and `/workflows/{id}`
+and `/{id}/triggers` are still 404, so A-102-3's trigger can be neither read
+nor set. `DELETE /contacts/{id}/workflow/{workflowId}` (contacts.write)
+removes a contact from a workflow, and it answers 200 whether or not the
+contact was enrolled, so only the message log shows that it did anything.
+Nothing lists a contact's enrolments. That Z-002-1 comes back once the
+contact leaves A-102-3 suggests A-102-3 stops Z-002-1 somewhere in its
+actions. That is inferred, not read.
+
+**Shipped: a guard, not the fix.** After a successful cancel, the route hands
+`stopBookingWorkflowAfterCancel` to `waitUntil`. It removes the contact from
+A-102-3 about 6s and again about 15s after the cancel, unless the contact
+still has another standing call (A-102-3 reminds them about that one). It
+only covers cancels made on this site. The waits start when the cancel
+returns, so the removals land a little later than the table's times, which
+are from the request. Verified on the deploy preview the same day: a cancel
+through the deployed route sent no second confirmation, and Z-002-1's email
+arrived 43s after the cancel. Whether the second pass runs within Netlify's
+function limit is unobserved, because a successful pass logs nothing; one of
+the two passes was enough, and which one is unobserved too. One race is accepted: a call booked in the seconds before a
+pass, and not yet in the contact's appointment list, loses its A-102-3
+enrolment.
+
+**Still open: the builder fix.** A-102-3's trigger needs a status filter
+(confirmed only), and its reminders need an exit when the call is cancelled.
+The steps are in the home base, `briefs/2026-10-21-crm-confirmation-on-cancel-editor-steps.md`.
+Once those are in, the guard removes a contact that is no longer enrolled.
 
 ## 7. Rules of engagement
 
