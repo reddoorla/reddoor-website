@@ -43,5 +43,7 @@ describe("parseVimeo", () => {
     expect(parseVimeo("https://notvimeo.com/123456789")).toBeNull();
     expect(parseVimeo("https://vimeo.com/channels/staffpicks")).toBeNull();
     expect(parseVimeo("https://vimeo.com/showcase/1234567")).toBeNull();
+    expect(parseVimeo("https://vimeo.com/Showcase/1234567")).toBeNull();
+    expect(parseVimeo("https://vimeo.com/album/1234567")).toBeNull();
   });
 });

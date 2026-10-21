@@ -3,7 +3,7 @@
  * id, `https://vimeo.com/123456789`, an unlisted share link
  * (`vimeo.com/123456789/abcdef1234`, whose second segment is the privacy hash
  * the player needs as `h=`), a `player.vimeo.com/video/123456789` embed URL, a
- * showcase link, or the whole `<iframe>` snippet from Vimeo's Embed button.
+ * showcase link to a video, or the whole `<iframe>` snippet from Vimeo's Embed button.
  * Anything else is null, and the card stays a poster rather than embedding a
  * player for a video that does not exist.
  */
@@ -30,7 +30,8 @@ export function parseVimeo(raw: string | null | undefined): { id: string; hash?:
   const afterVideo = segments.indexOf("video") + 1;
   // A showcase or album link with no video in it names a collection, not a
   // video.
-  if (afterVideo === 0 && ["showcase", "album"].includes(segments[0] ?? "")) return null;
+  if (afterVideo === 0 && ["showcase", "album"].includes(segments[0]?.toLowerCase() ?? ""))
+    return null;
   const at =
     afterVideo > 0 && /^\d+$/.test(segments[afterVideo] ?? "")
       ? afterVideo
