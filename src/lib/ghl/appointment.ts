@@ -1,4 +1,4 @@
-import { GHL_CALENDAR_ID } from "./constants";
+import { GHL_CALENDAR_ID, GHL_WORKFLOW_APPOINTMENT_BOOKED } from "./constants";
 import { crmCall, type CrmFetch, type CrmResult } from "./client";
 
 /**
@@ -163,6 +163,89 @@ export async function cancelAppointment(opts: {
     },
     (json) => ({ status: pickAppointment(json).status || "cancelled" }),
   );
+}
+
+/**
+ * Take a contact out of a workflow. Needs contacts.write.
+ *
+ * The CRM answers 200 whether or not the contact was enrolled (measured
+ * 2026-10-21: the same call twice, both 200), so success here says the request
+ * was accepted, not that anything was stopped. Only the message log shows that.
+ */
+export async function removeFromWorkflow(opts: {
+  token: string;
+  fetch: CrmFetch;
+  contactId: string;
+  workflowId: string;
+}): Promise<CrmResult<null>> {
+  return crmCall(
+    { token: opts.token, fetch: opts.fetch },
+    `/contacts/${encodeURIComponent(opts.contactId)}/workflow/${encodeURIComponent(opts.workflowId)}`,
+    { method: "DELETE", body: "{}" },
+    () => null,
+  );
+}
+
+/**
+ * How long after a cancel to wait before taking the contact out of A-102-3.
+ *
+ * The cancel re-enrols the contact a few seconds after it lands, and A-102-3
+ * sends the "Call Confirmation" about 26s after the cancel. Measured on a test
+ * contact, 2026-10-21: removed 1s after the cancel, the confirmation still went
+ * (the enrolment came after the removal); removed at 7s and at 13s, no
+ * confirmation, and Z-002-1's "Cancellation Confirmation & Reschedule Link"
+ * arrived instead, which it never did while A-102-3 ran.
+ */
+export const CANCEL_GUARD_DELAY_MS = 6_000;
+
+/**
+ * After a successful cancel, take the contact out of "A-102-3. Appointment
+ * Booked + Reminders", so the cancel's re-enrolment sends no "Call
+ * Confirmation" and no reminders for a call that is not happening.
+ *
+ * A backstop for a trigger the API cannot edit: the real fix is a status
+ * filter on A-102-3's trigger in the workflow builder. Once that is in, this
+ * removes a contact that is no longer enrolled, which is a harmless 200.
+ *
+ * Skipped when the contact still has another standing call, because A-102-3 is
+ * what reminds them about that one. Never throws, and never touches Z-002-1,
+ * the workflow that tries to win the lead back.
+ */
+export async function stopBookingWorkflowAfterCancel(opts: {
+  token: string;
+  fetch: CrmFetch;
+  contactId: string;
+  /** The appointment just cancelled. */
+  eventId: string;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+}): Promise<void> {
+  const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  try {
+    await sleep(CANCEL_GUARD_DELAY_MS);
+
+    const events = await listContactAppointments(opts);
+    if (!events.ok) {
+      console.error(
+        `[cancel] guard skipped, appointments unreadable (${events.status}): ${events.error}`,
+      );
+      return;
+    }
+    const now = (opts.now ?? Date.now)();
+    if (events.data.some((e) => e.id !== opts.eventId && publicView(e, now).actionable)) return;
+
+    const removed = await removeFromWorkflow({
+      token: opts.token,
+      fetch: opts.fetch,
+      contactId: opts.contactId,
+      workflowId: GHL_WORKFLOW_APPOINTMENT_BOOKED,
+    });
+    if (!removed.ok) {
+      console.error(`[cancel] A-102-3 removal failed (${removed.status}): ${removed.error}`);
+    }
+  } catch (err) {
+    console.error(`[cancel] guard threw: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 /** Statuses that mean the appointment is already resolved one way or another. */
