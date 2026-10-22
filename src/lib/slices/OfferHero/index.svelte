@@ -39,11 +39,15 @@
 
   // At the end the player comes down and the card is its poster and play
   // button again, so Vimeo's end screen (other Reddoor videos, a Follow
-  // button) never leads a visitor off the offer. Focus goes back to the button.
+  // button) never leads a visitor off the offer. Focus goes back to the button,
+  // but only if it was in the player (or nowhere): a visitor typing their email
+  // while the video runs keeps their place.
   async function ended() {
+    const active = document.activeElement;
+    const hadFocus = !active || active === document.body || !!card?.contains(active);
     playing = false;
     await tick();
-    card?.querySelector<HTMLElement>(".offer-play")?.focus();
+    if (hadFocus) card?.querySelector<HTMLElement>(".offer-play")?.focus();
   }
 
   // With no video and no alt text on the poster asset, the card's copy (which

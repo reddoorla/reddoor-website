@@ -183,6 +183,9 @@
     if (background || !onended) return;
     const el = playerEl;
     if (!el) return;
+    // `subscribe` runs on `ready` and on `load`, for two event names, so one
+    // end can arrive more than once; the caller hears it once.
+    let fired = false;
     const subscribe = () => {
       for (const value of ["ended", "finish"])
         el.contentWindow?.postMessage(
@@ -200,7 +203,10 @@
         return;
       }
       if (data.event === "ready") subscribe();
-      else if (data.event === "ended" || data.event === "finish") onended();
+      else if ((data.event === "ended" || data.event === "finish") && !fired) {
+        fired = true;
+        onended();
+      }
     };
     window.addEventListener("message", onMessage);
     el.addEventListener("load", subscribe);

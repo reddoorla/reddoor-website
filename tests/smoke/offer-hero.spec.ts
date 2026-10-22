@@ -200,30 +200,52 @@ const FAKE_PLAYER = `<!doctype html><body><script>
   parent.postMessage(JSON.stringify({ event: "ready" }), "*");
 </script></body>`;
 
+/** Plays the hero's video in the stand-in player and plays it to its end. */
+async function playToEnd(page: import("@playwright/test").Page, beforeEnd?: () => Promise<void>) {
+  await page.route("https://player.vimeo.com/**", (route) =>
+    route.fulfill({ status: 200, contentType: "text/html", body: FAKE_PLAYER }),
+  );
+  await hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }).click();
+  const player = hero(page).locator('iframe[title="Brand Friction Audit"]');
+  await expect(player).toBeAttached();
+  await beforeEnd?.();
+
+  // Vimeo's end screen would fill the frame from here; the page has to have
+  // asked to hear about the end, and has to take the player down when it does.
+  const frame = player.contentFrame();
+  await expect
+    .poll(() =>
+      frame
+        .locator("body")
+        .evaluate(() => (window as unknown as { finish(): boolean }).finish())
+        .catch(() => false),
+    )
+    .toBe(true);
+  await expect(player).toHaveCount(0);
+}
+
 test(
   "at the video's end the card is its poster and play button again, with focus on the button",
   { tag: "@smoke" },
   async ({ page }) => {
     await gotoHydrated(page);
-    await page.route("https://player.vimeo.com/**", (route) =>
-      route.fulfill({ status: 200, contentType: "text/html", body: FAKE_PLAYER }),
-    );
-    await hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }).click();
-    const player = hero(page).locator('iframe[title="Brand Friction Audit"]');
-    await expect(player).toBeAttached();
-
-    // Vimeo's end screen would fill the frame from here; the page has to have
-    // asked to hear about the end, and has to take the player down when it does.
-    const frame = (await player.elementHandle())!.contentFrame();
-    await expect
-      .poll(async () =>
-        (await frame)?.evaluate(() => (window as unknown as { finish(): boolean }).finish()),
-      )
-      .toBe(true);
-
-    await expect(player).toHaveCount(0);
+    await playToEnd(page);
     await expect(
       hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }),
     ).toBeFocused();
+  },
+);
+
+test(
+  "the video ending does not take focus from a visitor typing elsewhere",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoHydrated(page);
+    const field = hero(page).getByRole("textbox", { name: "Email address" });
+    await playToEnd(page, async () => {
+      await field.fill("founder@exa");
+    });
+    await expect(hero(page).getByRole("button", { name: /Play video/ })).toBeVisible();
+    await expect(field).toBeFocused();
   },
 );
