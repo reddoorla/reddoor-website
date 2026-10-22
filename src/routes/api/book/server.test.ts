@@ -31,6 +31,7 @@ function crm(
     noEndTime?: boolean;
     noId?: boolean;
     noEndOnRead?: boolean;
+    readFails?: boolean;
   } = {},
 ) {
   const calls: Call[] = [];
