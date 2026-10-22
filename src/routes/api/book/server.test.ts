@@ -55,6 +55,7 @@ function crm(
     // The read of one appointment (GET, by id), which carries the end the
     // create response leaves out unless `endOnRead` says the CRM has none.
     if (url.includes("/calendars/events/appointments/") && method === "GET") {
+      if (opts.readFails) return new Response(JSON.stringify({ message: "boom" }), { status: 500 });
       return new Response(
         JSON.stringify({
           appointment: {
@@ -205,6 +206,15 @@ describe("what the confirmation page is told", () => {
     const { fetchStub, calls } = crm();
     await call(BOOKING(), fetchStub);
     expect(calls.some((c) => c.method === "GET" && c.url.includes("/appointments/"))).toBe(false);
+  });
+
+  it("still confirms the booking, without a length, when the read of its end fails", async () => {
+    const { fetchStub } = crm({ noEndTime: true, readFails: true });
+    const res = await call(BOOKING(), fetchStub);
+    expect(res.status).toBe(200);
+    expect(res.json.success).toBe(true);
+    expect(res.json.eventId).toBe("appt_1");
+    expect(res.json).not.toHaveProperty("endTime");
   });
 
   it("leaves the end out when neither the booking nor the appointment has one", async () => {
