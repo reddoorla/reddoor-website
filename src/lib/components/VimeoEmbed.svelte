@@ -50,6 +50,9 @@
     hash?: string;
     /** Start playing on load: for an embed mounted by the visitor's own click. */
     autoplay?: boolean;
+    /** Called when an interactive embed plays to its end, so the caller can
+     *  take the player down before Vimeo's end screen holds the frame. */
+    onended?: () => void;
   }
   let {
     vimeoId,
@@ -60,9 +63,11 @@
     allow = "autoplay",
     hash = "",
     autoplay = false,
+    onended,
   }: Props = $props();
 
   let iframeEl: HTMLIFrameElement | undefined = $state();
+  let playerEl: HTMLIFrameElement | undefined = $state();
   let mountSrc = $state(false); // attach src (engaged + near viewport, motion allowed)
   let playing = $state(false); // reveal the video (heartbeat is alive)
 
@@ -168,6 +173,42 @@
       clearInterval(watchdog);
     };
   });
+
+  // End of an interactive embed. No URL parameter turns off Vimeo's end screen
+  // ("More from …" and three other videos); only the account's embed settings
+  // can. So the caller hears about the end and takes the player down instead.
+  // `ended` is the player.js SDK's name, `finish` the legacy Froogaloop one;
+  // origin and source are checked as in the heartbeat above.
+  $effect(() => {
+    if (background || !onended) return;
+    const el = playerEl;
+    if (!el) return;
+    const subscribe = () => {
+      for (const value of ["ended", "finish"])
+        el.contentWindow?.postMessage(
+          JSON.stringify({ method: "addEventListener", value }),
+          "https://player.vimeo.com",
+        );
+    };
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== "https://player.vimeo.com") return;
+      if (e.source !== el.contentWindow) return;
+      let data: VimeoEventMessage;
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      if (data.event === "ready") subscribe();
+      else if (data.event === "ended" || data.event === "finish") onended();
+    };
+    window.addEventListener("message", onMessage);
+    el.addEventListener("load", subscribe);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      el.removeEventListener("load", subscribe);
+    };
+  });
 </script>
 
 {#if background}
@@ -182,5 +223,5 @@
     aria-hidden="true"
   ></iframe>
 {:else}
-  <iframe {title} {src} class={className} frameborder="0" {allow}></iframe>
+  <iframe bind:this={playerEl} {title} {src} class={className} frameborder="0" {allow}></iframe>
 {/if}

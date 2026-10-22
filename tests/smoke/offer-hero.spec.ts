@@ -182,3 +182,48 @@ test(
     await expect(hero(page, 1).getByRole("img", { name: "Brand Friction Audit" })).toBeVisible();
   },
 );
+
+// A stand-in for Vimeo's player, served from its origin: it says `ready`, and
+// `window.finish()` posts `ended` only if the page subscribed to it, as the
+// real player does.
+const FAKE_PLAYER = `<!doctype html><body><script>
+  const subscribed = new Set();
+  addEventListener("message", (e) => {
+    const m = JSON.parse(e.data);
+    if (m.method === "addEventListener") subscribed.add(m.value);
+  });
+  window.finish = () => {
+    if (!subscribed.has("ended")) return false;
+    parent.postMessage(JSON.stringify({ event: "ended", data: { seconds: 269 } }), "*");
+    return true;
+  };
+  parent.postMessage(JSON.stringify({ event: "ready" }), "*");
+</script></body>`;
+
+test(
+  "at the video's end the card is its poster and play button again, with focus on the button",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoHydrated(page);
+    await page.route("https://player.vimeo.com/**", (route) =>
+      route.fulfill({ status: 200, contentType: "text/html", body: FAKE_PLAYER }),
+    );
+    await hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }).click();
+    const player = hero(page).locator('iframe[title="Brand Friction Audit"]');
+    await expect(player).toBeAttached();
+
+    // Vimeo's end screen would fill the frame from here; the page has to have
+    // asked to hear about the end, and has to take the player down when it does.
+    const frame = (await player.elementHandle())!.contentFrame();
+    await expect
+      .poll(async () =>
+        (await frame)?.evaluate(() => (window as unknown as { finish(): boolean }).finish()),
+      )
+      .toBe(true);
+
+    await expect(player).toHaveCount(0);
+    await expect(
+      hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }),
+    ).toBeFocused();
+  },
+);
