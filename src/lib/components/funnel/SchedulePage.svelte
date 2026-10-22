@@ -3,7 +3,13 @@
   import { page } from "$app/state";
   import { stripQueryParams } from "$lib/url/stripQueryParams";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import { groupByDay, resolveTimeZone, formatFullSlot, type SlotDay } from "$lib/schedule/slots";
+  import {
+    groupByDay,
+    resolveTimeZone,
+    formatFullSlot,
+    formatDuration,
+    type SlotDay,
+  } from "$lib/schedule/slots";
   import { readHandoff, clearHandoff } from "$lib/schedule/handoff";
   import SlotPicker from "$lib/components/SlotPicker.svelte";
   import SendingDots from "$lib/components/SendingDots.svelte";
@@ -80,6 +86,24 @@
   let formError = $state("");
   let fieldErrors = $state<{ name?: string; email?: string }>({});
   let booked = $state<string | null>(sample?.state === "booked" ? sampleSlot : null);
+  // What the CRM said about the booking: its end, for the duration, and its id,
+  // the same bearer id the confirmation email links the calendar, reschedule
+  // and cancel routes by. A preview has a sample end and no id, so it shows the
+  // buttons without anywhere to go. Its 30 minutes is the calendar's length as
+  // configured in the CRM today, written here only so the sample has one.
+  let bookedEnd = $state<string | null>(
+    sample?.state === "booked" && sampleSlot
+      ? new Date(Date.parse(sampleSlot) + 30 * 60_000).toISOString()
+      : null,
+  );
+  let bookedId = $state<string | null>(null);
+  const bookedDuration = $derived(booked ? formatDuration(booked, bookedEnd) : null);
+  // Only an id the routes accept becomes a link; anything else would 404.
+  const bookedBase = $derived(
+    bookedId && /^[A-Za-z0-9_-]{10,64}$/.test(bookedId)
+      ? `/calendar/${encodeURIComponent(bookedId)}`
+      : null,
+  );
 
   let nameEl = $state<HTMLInputElement>();
   let submitEl = $state<HTMLButtonElement>();
@@ -240,6 +264,8 @@
         return;
       }
       booked = typeof data?.startTime === "string" ? data.startTime : chosen;
+      bookedEnd = typeof data?.endTime === "string" ? data.endTime : null;
+      bookedId = typeof data?.eventId === "string" ? data.eventId : null;
       // The prefill has done its job; leaving it would greet a second visit in
       // this tab with "your application is in" long after it stopped being news.
       clearHandoff();
@@ -308,11 +334,48 @@
              added after it exists. Focus is moved here as well. -->
         <div class="booked" role="status" tabindex="-1" bind:this={bookedEl}>
           <p class="booked-when">{formatFullSlot(booked, timeZone)}</p>
+          {#if bookedDuration}
+            <p class="booked-duration">Duration: {bookedDuration}</p>
+          {/if}
           <!-- CMS copy, rendered from the editor's own document; the email is
                the visitor's, escaped in richHTML. -->
           <!-- eslint-disable-next-line svelte/no-at-html-tags -->
           {@html richHTML(copy.schedule_booked_body, "booked-body", { email })}
         </div>
+        {#if bookedBase || sample}
+          <!-- The routes the confirmation email links to, by the same id. They
+               build the calendar hand-offs server-side, so the Zoom link never
+               reaches this page's source. -->
+          <div class="options">
+            <a class="option" href={bookedBase ? `${bookedBase}/google` : undefined}
+              >Add to Google Calendar</a
+            >
+            <!-- No `download`: the server sets Content-Disposition. -->
+            <a class="option" href={bookedBase ? `${bookedBase}/event.ics` : undefined}
+              >Add to iCal / Outlook</a
+            >
+            <!-- Outlook on the web cannot open an .ics download; this hands it
+                 the event the way the calendar page does. -->
+            <a class="option" href={bookedBase ? `${bookedBase}/outlook` : undefined}
+              >Add to Outlook.com</a
+            >
+          </div>
+          <p class="aside">
+            Need to change it?
+            <a
+              class="text-primary underline"
+              href={bookedId && bookedBase
+                ? `/reschedule/${encodeURIComponent(bookedId)}`
+                : undefined}>Reschedule</a
+            >
+            or
+            <a
+              class="text-primary underline"
+              href={bookedId && bookedBase ? `/cancel/${encodeURIComponent(bookedId)}` : undefined}
+              >cancel</a
+            >.
+          </p>
+        {/if}
       {:else}
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html richHTML(applied ? copy.schedule_applied_lede : copy.schedule_lede, "lede")}
@@ -684,5 +747,48 @@
   .booked:focus-visible {
     outline: 2px solid #d71920;
     outline-offset: 4px;
+  }
+  .booked-duration {
+    margin: -10px 0 18px;
+    font-size: 18px;
+    font-weight: 200;
+    color: #000;
+  }
+
+  /* The calendar page's buttons (/calendar/[eventId]), the same flow later on. */
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .option {
+    padding: 12px 22px;
+    border: 1px solid #bbbdbf;
+    border-radius: 4px;
+    background: #fff;
+    color: #000;
+    font-size: 15px;
+    line-height: 1;
+    text-decoration: none;
+    transition: border-color 300ms;
+  }
+  .option:hover {
+    border-color: #6e6f72;
+  }
+  .option:focus-visible {
+    outline: 2px solid #d71920;
+    outline-offset: 1px;
+  }
+  .aside {
+    margin: 28px 0 0;
+    font-size: 15px;
+    font-weight: 200;
+    color: #6e6f72;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .option {
+      transition: none;
+    }
   }
 </style>

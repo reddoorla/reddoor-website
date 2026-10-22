@@ -10,6 +10,7 @@ import {
 } from "$lib/ghl/client";
 import { normalizeZone } from "$lib/schedule/timezone";
 import { bookAppointment, TAG_SCHEDULED_A_CALL } from "$lib/ghl/booking";
+import { fetchAppointment } from "$lib/ghl/appointment";
 import type { RequestHandler } from "./$types";
 
 export const prerender = false;
@@ -214,5 +215,27 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     if (!result.ok) console.error(`[book] ingest failed (${result.status}): ${result.error}`);
   }
 
-  return json({ success: true, startTime: appointment.data.startTime });
+  // The create response carries no end (measured on a live booking,
+  // 2026-10-22), but the appointment record does, and it is what the page
+  // reads the call's length from. One read, best-effort: without it the page
+  // shows no length, never a wrong one.
+  let endTime = appointment.data.endTime;
+  if (!endTime && appointment.data.appointmentId) {
+    const read = await fetchAppointment({
+      token: env.CRM_FUNNEL_ACTIVE_TOKEN,
+      fetch,
+      eventId: appointment.data.appointmentId,
+    });
+    if (read.ok) endTime = read.data.endTime;
+    else console.warn(`[book] end read failed (${read.status}): ${read.error}`);
+  }
+
+  // The id is the same bearer id the CRM's confirmation email links by, so the
+  // page can offer the same calendar, reschedule and cancel routes it does.
+  return json({
+    success: true,
+    startTime: appointment.data.startTime,
+    ...(endTime ? { endTime } : {}),
+    ...(appointment.data.appointmentId ? { eventId: appointment.data.appointmentId } : {}),
+  });
 };
