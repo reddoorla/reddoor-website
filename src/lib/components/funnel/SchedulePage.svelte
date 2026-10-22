@@ -273,13 +273,15 @@
 </div>
 
 <div class="w-screen bg-white py-16">
-  <ContentWidth class="flex flex-col md:flex-row gap-8 mb-32">
+  <!-- No gap on desktop: the body starts on the 20% line the headline above
+       sits on (as /contact does); the kicker keeps clear with its own pr-4. -->
+  <ContentWidth class="flex flex-col md:flex-row gap-8 md:gap-0 mb-32">
     {#if copy.tim_photo}
       <!-- The Testimonial slice's headshot, the site's one portrait pattern:
            round, 72px then 100px. It sits under the kicker because that
            column is empty below it on desktop, so the form keeps its place;
            with no photo the markup is exactly what it was before. -->
-      <div class="md:w-1/5 shrink-0 flex flex-col gap-4">
+      <div class="md:w-1/5 md:pr-4 shrink-0 flex flex-col gap-4">
         <h2 class="type-kicker text-primary">{@render kicker()}</h2>
         <img
           src={asImageSrc(copy.tim_photo, {
@@ -296,7 +298,7 @@
         />
       </div>
     {:else}
-      <h2 class="type-kicker md:w-1/5 text-primary shrink-0">{@render kicker()}</h2>
+      <h2 class="type-kicker md:w-1/5 md:pr-4 text-primary shrink-0">{@render kicker()}</h2>
     {/if}
 
     <div class="funnel-body w-full md:w-4/5 max-w-2xl">
