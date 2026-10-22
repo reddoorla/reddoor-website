@@ -60,8 +60,10 @@
 </div>
 
 <div class="w-screen bg-white py-16">
-  <ContentWidth class="flex flex-col md:flex-row gap-8 mb-32">
-    <h2 class="type-kicker md:w-1/5 text-primary shrink-0">Add to your calendar</h2>
+  <!-- No gap on desktop: the body starts on the 20% line the headline above
+       sits on (as /contact does); the kicker keeps clear with its own pr-4. -->
+  <ContentWidth class="flex flex-col md:flex-row gap-8 md:gap-0 mb-32">
+    <h2 class="type-kicker md:w-1/5 md:pr-4 text-primary shrink-0">Add to your calendar</h2>
 
     <div class="w-full md:w-4/5 max-w-2xl">
       {#if lookup === "loading"}
