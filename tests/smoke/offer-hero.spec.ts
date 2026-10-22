@@ -249,3 +249,22 @@ test(
     await expect(field).toBeFocused();
   },
 );
+
+test(
+  "the video ending does not scroll a visitor who has scrolled on",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoHydrated(page);
+    // The fixture page's last link, two tall heroes below the video's card.
+    const below = page.getByRole("link", { name: "Open inquiry with no step attribute" });
+    // Scrolling leaves focus in the player, so this is the case where focus
+    // does go back to the play button; it must not take the page with it.
+    await playToEnd(page, async () => {
+      await below.scrollIntoViewIfNeeded();
+    });
+    await expect(
+      hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }),
+    ).toBeFocused();
+    await expect(below).toBeInViewport();
+  },
+);
