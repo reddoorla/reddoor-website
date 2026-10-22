@@ -25,7 +25,13 @@ type Call = { url: string; method: string; body: Record<string, unknown> };
  * when the number already sits on a different contact.
  */
 function crm(
-  opts: { storedPhone?: string; noteOk?: boolean; noEndTime?: boolean; noId?: boolean } = {},
+  opts: {
+    storedPhone?: string;
+    noteOk?: boolean;
+    noEndTime?: boolean;
+    noId?: boolean;
+    noEndOnRead?: boolean;
+  } = {},
 ) {
   const calls: Call[] = [];
   const fetchStub = (async (input: string, init?: RequestInit) => {
@@ -46,6 +52,20 @@ function crm(
       });
     }
     if (url.includes("/tags")) return new Response(JSON.stringify({ tags: [] }), { status: 200 });
+    // The read of one appointment (GET, by id), which carries the end the
+    // create response leaves out unless `endOnRead` says the CRM has none.
+    if (url.includes("/calendars/events/appointments/") && method === "GET") {
+      return new Response(
+        JSON.stringify({
+          appointment: {
+            id: "appt_1",
+            startTime: "2026-08-21T15:30:00Z",
+            ...(opts.noEndOnRead ? {} : { endTime: "2026-08-21T16:00:00Z" }),
+          },
+        }),
+        { status: 200 },
+      );
+    }
     if (url.includes("/calendars/events/appointments")) {
       return new Response(
         JSON.stringify({
@@ -171,8 +191,24 @@ describe("what the confirmation page is told", () => {
     expect(res.json).not.toHaveProperty("eventId");
   });
 
-  it("leaves the end out when the CRM did not send one", async () => {
-    const { fetchStub } = crm({ noEndTime: true });
+  it("reads the end off the appointment when the booking response has none, as the live CRM's does", async () => {
+    const { fetchStub, calls } = crm({ noEndTime: true });
+    const res = await call(BOOKING(), fetchStub);
+    expect(res.status).toBe(200);
+    expect(res.json.endTime).toBe("2026-08-21T16:00:00Z");
+    expect(calls.some((c) => c.method === "GET" && c.url.includes("/appointments/appt_1"))).toBe(
+      true,
+    );
+  });
+
+  it("does not read the appointment again when the booking response had the end", async () => {
+    const { fetchStub, calls } = crm();
+    await call(BOOKING(), fetchStub);
+    expect(calls.some((c) => c.method === "GET" && c.url.includes("/appointments/"))).toBe(false);
+  });
+
+  it("leaves the end out when neither the booking nor the appointment has one", async () => {
+    const { fetchStub } = crm({ noEndTime: true, noEndOnRead: true });
     const res = await call(BOOKING(), fetchStub);
     expect(res.status).toBe(200);
     expect(res.json).not.toHaveProperty("endTime");
