@@ -24,7 +24,9 @@ type Call = { url: string; method: string; body: Record<string, unknown> };
  * EMPTY phone is the case under test: GHL does exactly that, on a clean 200,
  * when the number already sits on a different contact.
  */
-function crm(opts: { storedPhone?: string; noteOk?: boolean; noEndTime?: boolean } = {}) {
+function crm(
+  opts: { storedPhone?: string; noteOk?: boolean; noEndTime?: boolean; noId?: boolean } = {},
+) {
   const calls: Call[] = [];
   const fetchStub = (async (input: string, init?: RequestInit) => {
     const url = String(input);
@@ -47,7 +49,7 @@ function crm(opts: { storedPhone?: string; noteOk?: boolean; noEndTime?: boolean
     if (url.includes("/calendars/events/appointments")) {
       return new Response(
         JSON.stringify({
-          id: "appt_1",
+          ...(opts.noId ? {} : { id: "appt_1" }),
           startTime: "2026-08-21T15:30:00Z",
           ...(opts.noEndTime ? {} : { endTime: "2026-08-21T16:00:00Z" }),
         }),
@@ -160,6 +162,13 @@ describe("what the confirmation page is told", () => {
     expect(res.json.eventId).toBe("appt_1");
     expect(res.json.startTime).toBe("2026-08-21T15:30:00Z");
     expect(res.json.endTime).toBe("2026-08-21T16:00:00Z");
+  });
+
+  it("leaves the id out when the CRM did not send one, rather than an empty string", async () => {
+    const { fetchStub } = crm({ noId: true });
+    const res = await call(BOOKING(), fetchStub);
+    expect(res.status).toBe(200);
+    expect(res.json).not.toHaveProperty("eventId");
   });
 
   it("leaves the end out when the CRM did not send one", async () => {

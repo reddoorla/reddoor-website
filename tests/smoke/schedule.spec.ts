@@ -142,6 +142,10 @@ test.describe("in Los Angeles", () => {
         "href",
         "/calendar/appt_Booked123/event.ics",
       );
+      await expect(page.getByRole("link", { name: "Add to Outlook.com" })).toHaveAttribute(
+        "href",
+        "/calendar/appt_Booked123/outlook",
+      );
       await expect(page.getByRole("link", { name: "Reschedule" })).toHaveAttribute(
         "href",
         "/reschedule/appt_Booked123",

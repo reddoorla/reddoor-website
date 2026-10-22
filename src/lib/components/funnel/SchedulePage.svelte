@@ -89,7 +89,8 @@
   // What the CRM said about the booking: its end, for the duration, and its id,
   // the same bearer id the confirmation email links the calendar, reschedule
   // and cancel routes by. A preview has a sample end and no id, so it shows the
-  // buttons without anywhere to go.
+  // buttons without anywhere to go. Its 30 minutes is the calendar's length as
+  // configured in the CRM today, written here only so the sample has one.
   let bookedEnd = $state<string | null>(
     sample?.state === "booked" && sampleSlot
       ? new Date(Date.parse(sampleSlot) + 30 * 60_000).toISOString()
@@ -352,6 +353,11 @@
             <!-- No `download`: the server sets Content-Disposition. -->
             <a class="option" href={bookedBase ? `${bookedBase}/event.ics` : undefined}
               >Add to iCal / Outlook</a
+            >
+            <!-- Outlook on the web cannot open an .ics download; this hands it
+                 the event the way the calendar page does. -->
+            <a class="option" href={bookedBase ? `${bookedBase}/outlook` : undefined}
+              >Add to Outlook.com</a
             >
           </div>
           <p class="aside">
