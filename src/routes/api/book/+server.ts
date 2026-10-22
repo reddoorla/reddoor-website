@@ -214,5 +214,12 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     if (!result.ok) console.error(`[book] ingest failed (${result.status}): ${result.error}`);
   }
 
-  return json({ success: true, startTime: appointment.data.startTime });
+  // The id is the same bearer id the CRM's confirmation email links by, so the
+  // page can offer the same calendar, reschedule and cancel routes it does.
+  return json({
+    success: true,
+    startTime: appointment.data.startTime,
+    ...(appointment.data.endTime ? { endTime: appointment.data.endTime } : {}),
+    ...(appointment.data.appointmentId ? { eventId: appointment.data.appointmentId } : {}),
+  });
 };

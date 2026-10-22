@@ -24,7 +24,7 @@ type Call = { url: string; method: string; body: Record<string, unknown> };
  * EMPTY phone is the case under test: GHL does exactly that, on a clean 200,
  * when the number already sits on a different contact.
  */
-function crm(opts: { storedPhone?: string; noteOk?: boolean } = {}) {
+function crm(opts: { storedPhone?: string; noteOk?: boolean; noEndTime?: boolean } = {}) {
   const calls: Call[] = [];
   const fetchStub = (async (input: string, init?: RequestInit) => {
     const url = String(input);
@@ -45,9 +45,14 @@ function crm(opts: { storedPhone?: string; noteOk?: boolean } = {}) {
     }
     if (url.includes("/tags")) return new Response(JSON.stringify({ tags: [] }), { status: 200 });
     if (url.includes("/calendars/events/appointments")) {
-      return new Response(JSON.stringify({ id: "appt_1", startTime: "2026-08-21T15:30:00Z" }), {
-        status: 201,
-      });
+      return new Response(
+        JSON.stringify({
+          id: "appt_1",
+          startTime: "2026-08-21T15:30:00Z",
+          ...(opts.noEndTime ? {} : { endTime: "2026-08-21T16:00:00Z" }),
+        }),
+        { status: 201 },
+      );
     }
     if (url.includes("/contacts/upsert")) {
       return new Response(
@@ -144,5 +149,23 @@ describe("a phone the CRM silently refuses to store", () => {
     const at = (frag: string) => calls.findIndex((c) => c.url.includes(frag));
     expect(at("/contacts/upsert")).toBeLessThan(at("/calendars/events/appointments"));
     expect(at("/calendars/events/appointments")).toBeGreaterThan(-1);
+  });
+});
+
+describe("what the confirmation page is told", () => {
+  it("returns the booking's id and end, so the page can link the calendar and change routes", async () => {
+    const { fetchStub } = crm();
+    const res = await call(BOOKING(), fetchStub);
+    expect(res.status).toBe(200);
+    expect(res.json.eventId).toBe("appt_1");
+    expect(res.json.startTime).toBe("2026-08-21T15:30:00Z");
+    expect(res.json.endTime).toBe("2026-08-21T16:00:00Z");
+  });
+
+  it("leaves the end out when the CRM did not send one", async () => {
+    const { fetchStub } = crm({ noEndTime: true });
+    const res = await call(BOOKING(), fetchStub);
+    expect(res.status).toBe(200);
+    expect(res.json).not.toHaveProperty("endTime");
   });
 });

@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { groupByDay, formatTime, formatZone, formatDayLabel, formatFullSlot } from "./slots";
+import {
+  groupByDay,
+  formatTime,
+  formatZone,
+  formatDayLabel,
+  formatFullSlot,
+  formatDuration,
+} from "./slots";
 
 // The CRM's own shape: 9:00 and 16:30 Mountain on 2026-08-19, which is what
 // `free-slots` returns for a Boise-timezone location.
@@ -85,5 +92,31 @@ describe("formatFullSlot", () => {
     expect(formatFullSlot(MT_0900, "America/Los_Angeles")).toBe(
       "Wednesday, August 19 at 8:00 AM PDT",
     );
+  });
+});
+
+describe("formatDuration", () => {
+  it("reads the CRM's start and end as minutes", () => {
+    expect(formatDuration("2026-08-19T09:30:00-06:00", "2026-08-19T10:00:00-06:00")).toBe(
+      "30 minutes",
+    );
+  });
+
+  it("measures across a written offset, not the wall clock", () => {
+    expect(formatDuration("2026-08-19T09:30:00-06:00", "2026-08-19T16:15:00Z")).toBe("45 minutes");
+  });
+
+  it("says hours when there are some", () => {
+    expect(formatDuration("2026-08-19T09:00:00Z", "2026-08-19T10:00:00Z")).toBe("1 hour");
+    expect(formatDuration("2026-08-19T09:00:00Z", "2026-08-19T10:45:00Z")).toBe(
+      "1 hour 45 minutes",
+    );
+  });
+
+  it("says nothing it would have to guess", () => {
+    expect(formatDuration("2026-08-19T09:00:00Z")).toBeNull();
+    expect(formatDuration("2026-08-19T09:00:00Z", "")).toBeNull();
+    expect(formatDuration("2026-08-19T09:00:00Z", "not a time")).toBeNull();
+    expect(formatDuration("2026-08-19T09:00:00Z", "2026-08-19T09:00:00Z")).toBeNull();
   });
 });

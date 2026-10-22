@@ -112,6 +112,70 @@ test.describe("in Los Angeles", () => {
   );
 
   test(
+    "the booked page says when, for how long, and links this booking's calendar and change routes",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await stubApi(page, {
+        // The CRM's own record, half an hour off the slot clicked: the page
+        // must report what was booked, not what was asked for.
+        bookBody: {
+          success: true,
+          startTime: "2026-08-19T10:00:00-06:00",
+          endTime: "2026-08-19T10:30:00-06:00",
+          eventId: "appt_Booked123",
+        },
+      });
+      await gotoHydrated(page);
+      await page.getByRole("button", { name: "8:30 AM", exact: true }).click();
+      await page.locator("#book-name").fill("Pat Buyer");
+      await page.locator("#book-email").fill("buyer@example.com");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
+
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
+      await expect(page.getByText("Wednesday, August 19 at 9:00 AM PDT")).toBeVisible();
+      await expect(page.getByText("Duration: 30 minutes")).toBeVisible();
+      await expect(page.getByRole("link", { name: "Add to Google Calendar" })).toHaveAttribute(
+        "href",
+        "/calendar/appt_Booked123/google",
+      );
+      await expect(page.getByRole("link", { name: "Add to iCal / Outlook" })).toHaveAttribute(
+        "href",
+        "/calendar/appt_Booked123/event.ics",
+      );
+      await expect(page.getByRole("link", { name: "Reschedule" })).toHaveAttribute(
+        "href",
+        "/reschedule/appt_Booked123",
+      );
+      await expect(page.getByRole("link", { name: "cancel", exact: true })).toHaveAttribute(
+        "href",
+        "/cancel/appt_Booked123",
+      );
+    },
+  );
+
+  test(
+    "with no booking id from the CRM, the booked page links nowhere it would have to guess",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await stubApi(page, {
+        bookBody: { success: true, startTime: "2026-08-19T09:30:00-06:00" },
+      });
+      await gotoHydrated(page);
+      await page.getByRole("button", { name: "8:30 AM", exact: true }).click();
+      await page.locator("#book-name").fill("Pat Buyer");
+      await page.locator("#book-email").fill("buyer@example.com");
+      await page.getByRole("button", { name: "Confirm this time" }).click();
+
+      await expect(page.getByText("Wednesday, August 19 at 8:30 AM PDT")).toBeVisible();
+      // By text, not role: an anchor with no href is not a link, so a role
+      // query would also pass if dead buttons were drawn.
+      await expect(page.getByText("Add to Google Calendar")).toHaveCount(0);
+      await expect(page.getByText("Need to change it?")).toHaveCount(0);
+      await expect(page.getByText(/^Duration:/)).toHaveCount(0);
+    },
+  );
+
+  test(
     "switching day swaps the times and drops any selection",
     { tag: "@smoke" },
     async ({ page }) => {
