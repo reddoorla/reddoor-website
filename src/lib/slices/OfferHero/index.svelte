@@ -37,6 +37,19 @@
     card?.querySelector("iframe")?.focus();
   }
 
+  // At the end the player comes down and the card is its poster and play
+  // button again, so Vimeo's end screen (other Reddoor videos, a Follow
+  // button) never leads a visitor off the offer. Focus goes back to the button,
+  // but only if it was in the player (or nowhere): a visitor typing their email
+  // while the video runs keeps their place, and nobody is scrolled back up.
+  async function ended() {
+    const active = document.activeElement;
+    const hadFocus = !active || active === document.body || !!card?.contains(active);
+    playing = false;
+    await tick();
+    if (hadFocus) card?.querySelector<HTMLElement>(".offer-play")?.focus({ preventScroll: true });
+  }
+
   // With no video and no alt text on the poster asset, the card's copy (which
   // is in the pixels) would have no name at all.
   const posterUnnamed = $derived(!video && !slice.primary.video_poster?.alt?.trim());
@@ -86,6 +99,7 @@
             vimeoId={video.id}
             hash={video.hash}
             autoplay
+            onended={ended}
             title={videoTitle}
             allow="autoplay; fullscreen; picture-in-picture"
             class="absolute inset-0 h-full w-full"
