@@ -36,5 +36,8 @@ export const GET: RequestHandler = async ({ params, fetch }) => {
       endTime: a.data.endTime,
       join: a.data.address,
     }),
+    // Kit 3 refuses an external redirect it was not told to expect, and
+    // answers 500 instead (it did, from #264 until this line).
+    { external: ["https://calendar.google.com"] },
   );
 };

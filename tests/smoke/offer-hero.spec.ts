@@ -182,3 +182,89 @@ test(
     await expect(hero(page, 1).getByRole("img", { name: "Brand Friction Audit" })).toBeVisible();
   },
 );
+
+// A stand-in for Vimeo's player, served from its origin: it says `ready`, and
+// `window.finish()` posts `ended` only if the page subscribed to it, as the
+// real player does.
+const FAKE_PLAYER = `<!doctype html><body><script>
+  const subscribed = new Set();
+  addEventListener("message", (e) => {
+    const m = JSON.parse(e.data);
+    if (m.method === "addEventListener") subscribed.add(m.value);
+  });
+  window.finish = () => {
+    if (!subscribed.has("ended")) return false;
+    parent.postMessage(JSON.stringify({ event: "ended", data: { seconds: 269 } }), "*");
+    return true;
+  };
+  parent.postMessage(JSON.stringify({ event: "ready" }), "*");
+</script></body>`;
+
+/** Plays the hero's video in the stand-in player and plays it to its end. */
+async function playToEnd(page: import("@playwright/test").Page, beforeEnd?: () => Promise<void>) {
+  await page.route("https://player.vimeo.com/**", (route) =>
+    route.fulfill({ status: 200, contentType: "text/html", body: FAKE_PLAYER }),
+  );
+  await hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }).click();
+  const player = hero(page).locator('iframe[title="Brand Friction Audit"]');
+  await expect(player).toBeAttached();
+  await beforeEnd?.();
+
+  // Vimeo's end screen would fill the frame from here; the page has to have
+  // asked to hear about the end, and has to take the player down when it does.
+  const frame = player.contentFrame();
+  await expect
+    .poll(() =>
+      frame
+        .locator("body")
+        .evaluate(() => (window as unknown as { finish(): boolean }).finish())
+        .catch(() => false),
+    )
+    .toBe(true);
+  await expect(player).toHaveCount(0);
+}
+
+test(
+  "at the video's end the card is its poster and play button again, with focus on the button",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoHydrated(page);
+    await playToEnd(page);
+    await expect(
+      hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }),
+    ).toBeFocused();
+  },
+);
+
+test(
+  "the video ending does not take focus from a visitor typing elsewhere",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoHydrated(page);
+    const field = hero(page).getByRole("textbox", { name: "Email address" });
+    await playToEnd(page, async () => {
+      await field.fill("founder@exa");
+    });
+    await expect(hero(page).getByRole("button", { name: /Play video/ })).toBeVisible();
+    await expect(field).toBeFocused();
+  },
+);
+
+test(
+  "the video ending does not scroll a visitor who has scrolled on",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoHydrated(page);
+    // The fixture page's last link, two tall heroes below the video's card.
+    const below = page.getByRole("link", { name: "Open inquiry with no step attribute" });
+    // Scrolling leaves focus in the player, so this is the case where focus
+    // does go back to the play button; it must not take the page with it.
+    await playToEnd(page, async () => {
+      await below.scrollIntoViewIfNeeded();
+    });
+    await expect(
+      hero(page).getByRole("button", { name: "Play video: Brand Friction Audit" }),
+    ).toBeFocused();
+    await expect(below).toBeInViewport();
+  },
+);

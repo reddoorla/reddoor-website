@@ -118,3 +118,22 @@ export function formatFullSlot(iso: string, timeZone?: string): string {
   const zone = formatZone(iso, timeZone);
   return `${when} at ${formatTime(iso, timeZone)}${zone ? ` ${zone}` : ""}`;
 }
+
+/**
+ * A booking's length as a visitor reads it ("30 minutes", "1 hour 15 minutes"),
+ * from the start and end the CRM returned. Null when the end is missing or not
+ * after the start: the page then says nothing rather than guess the calendar's
+ * duration.
+ */
+export function formatDuration(startIso: string, endIso?: string | null): string | null {
+  if (!endIso) return null;
+  const minutes = Math.round((Date.parse(endIso) - Date.parse(startIso)) / 60_000);
+  if (!Number.isFinite(minutes) || minutes <= 0) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const parts = [
+    h ? `${h} ${h === 1 ? "hour" : "hours"}` : "",
+    m ? `${m} ${m === 1 ? "minute" : "minutes"}` : "",
+  ];
+  return parts.filter(Boolean).join(" ");
+}
