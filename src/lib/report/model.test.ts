@@ -4,6 +4,7 @@ import {
   openingSummary,
   ownSiteCitations,
   findNamesake,
+  namesakeLeads,
   goalVerdict,
   fieldShape,
   isListingSite,
@@ -480,6 +481,269 @@ describe("findNamesake", () => {
       domain: "reddoorcreative.com",
       count: 13,
     });
+  });
+
+  // P1-77, a live report: "ca.linkedin.com" was read as "ca", which
+  // sits inside "abcascreening", and the report told the prospect someone else
+  // was answering to their name. Nobody was.
+  it("does not read a country subdomain as a namesake", () => {
+    expect(
+      findNamesake("ABCA Screening", "https://abcascreening.example/", [
+        { domain: "ca.linkedin.com", count: 1 },
+      ]),
+    ).toBeNull();
+  });
+
+  // The shapes of the other false positives the sweep of every stored audit
+  // found (names changed), each printed on a real report as "someone else is answering to your name".
+  it.each([
+    ["Golden Sensing Solutions", "https://www.goldensensing.example/", "en.wikipedia.org"],
+    ["Florida Organ Recovery Network", "https://www.forn.example/", "organ.org"],
+    ["The Glendale Studios", "https://theglendalestudios.example/", "studio.guide"],
+    ["Falcon Prosthetics", "https://www.falcon.example/", "falconprosthetics.ac-page.com"],
+    // Not on a stored report: the first cut of this fix produced it, by reading
+    // "health.florida.gov" as "florida", and the after-sweep caught it.
+    ["Florida Organ Recovery Network", "https://www.forn.example/", "health.florida.gov"],
+    // A leading word that is a cause, a place or another brand, not a namesake.
+    ["Heart & Vascular Institute", "https://hvi.example/", "heart.org"],
+    ["Boston Scientific", "https://www.bostonscientific.com/", "boston.com"],
+    ["MedTech Diversified", "https://medtechdiversified.example/", "medtechdive.com"],
+    ["Amazonia Landscaping", "https://amazonia.example/", "amazon.com"],
+  ])("does not call %s's %s a namesake", (name, url, domain) => {
+    expect(findNamesake(name, url, [{ domain, count: 3 }])).toBeNull();
+  });
+
+  it("compares on the registrable domain, not the first label", () => {
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "blog.reddoorcreative.com", count: 2 },
+      ]),
+    ).toEqual({ domain: "blog.reddoorcreative.com", count: 2 });
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "reddoorcreative.co.uk", count: 1 },
+      ]),
+    ).toEqual({ domain: "reddoorcreative.co.uk", count: 1 });
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "reddoorcreative.co.il", count: 1 },
+      ]),
+    ).toEqual({ domain: "reddoorcreative.co.il", count: 1 });
+  });
+
+  it("ignores the legal form and reads '&' as 'and'", () => {
+    expect(
+      findNamesake("Reddoor Creative, LLC", "https://reddoorla.com/", [
+        { domain: "reddoorcreative.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "reddoorcreative.com", count: 1 });
+    expect(
+      findNamesake("Heart & Vascular Institute", "https://hvi.example/", [
+        { domain: "heartandvascularinstitute.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "heartandvascularinstitute.com", count: 1 });
+  });
+
+  it.each(["Smith Dental, P.C.", "Smith Dental, L.L.P.", "Smith Dental, P.L.L.C."])(
+    "ignores a legal form written with dots: %s",
+    (name) => {
+      expect(
+        findNamesake(name, "https://sd.example/", [{ domain: "smithdental.com", count: 1 }]),
+      ).toEqual({ domain: "smithdental.com", count: 1 });
+    },
+  );
+
+  it("ignores a professional or stacked legal form", () => {
+    expect(
+      findNamesake("Bright Smiles Dental, PC", "https://bsd.example/", [
+        { domain: "brightsmilesdental.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "brightsmilesdental.com", count: 1 });
+    expect(
+      findNamesake("Acme Widgets Co., Ltd.", "https://aw.example/", [
+        { domain: "acmewidgets.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "acmewidgets.com", count: 1 });
+  });
+
+  // Round 3: "& Co" lost only its "Co", so "Johnson & Co" read as
+  // "johnsonand", long enough to clear the floor.
+  it("drops '& Co' whole", () => {
+    expect(
+      findNamesake("Robinson & Co", "https://rco.example/", [{ domain: "robinson.com", count: 2 }]),
+    ).toEqual({ domain: "robinson.com", count: 2 });
+  });
+
+  // Round 4: "and Co" took the end of "Brand" with it.
+  it("strips 'and Co' only as a word", () => {
+    expect(
+      findNamesake("Highland Brand Co", "https://hb.example/", [
+        { domain: "highlandbrand.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "highlandbrand.com", count: 1 });
+  });
+
+  // Deliberate: a same-label site in another country is as likely the
+  // prospect's own as another company's.
+  it("skips a site that shares the prospect's own label", () => {
+    expect(
+      findNamesake("ABCA Screening", "https://abcascreening.example/", [
+        { domain: "abcascreening.ca", count: 2 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("refuses to guess from a short name, even on an exact domain", () => {
+    expect(
+      findNamesake("Apex", "https://apexroofing.example/", [{ domain: "apex.com", count: 4 }]),
+    ).toBeNull();
+  });
+
+  // A generic name inside a competitor's domain is a competitor, not a namesake.
+  it.each([
+    ["Dental Group", "dentalgroupofmiami.com"],
+    ["Physical Therapy", "physicaltherapyfirst.com"],
+    ["The Dental Group", "riversidedentalgroup.com"],
+    ["The Dental Group", "dentalgroupofmiami.com"],
+    ["The Wellness Center", "oakwellnesscenter.com"],
+    ["Family Dentistry", "smithfamilydentistry.com"],
+  ])("does not call %s's competitor %s a namesake", (name, domain) => {
+    expect(findNamesake(name, "https://own.example/", [{ domain, count: 2 }])).toBeNull();
+  });
+
+  // "The Dental Group" and "Dental Group" are not the same name.
+  it("keeps a leading 'the'", () => {
+    expect(
+      findNamesake("The Dental Group", "https://tdg.example/", [
+        { domain: "dentalgroup.com", count: 2 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("does not match a domain shorter or longer than the name", () => {
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "reddoor.biz", count: 1 },
+        { domain: "reddoorcreativeva.com", count: 1 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("never calls a listing site a namesake", () => {
+    expect(
+      findNamesake("Chamber of Commerce", "https://localchamber.example/", [
+        { domain: "chamberofcommerce.com", count: 6 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("knows a listing site written with a port or a trailing dot", () => {
+    expect(
+      findNamesake("Chamber of Commerce", "https://localchamber.example/", [
+        { domain: "chamberofcommerce.com:443", count: 2 },
+        { domain: "chamberofcommerce.com.", count: 1 },
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe("namesakeLeads", () => {
+  const view = (cited: { domain: string; count: number }[]) =>
+    toReportView(
+      asReport({
+        url: "https://reddoorla.com/",
+        businessName: "Reddoor Creative",
+        probes: {
+          ok: true,
+          data: {
+            answers: cited.map((c, i) => ({
+              engine: "claude",
+              query: `q${i}`,
+              kind: "category",
+              domainCited: false,
+              brandMentioned: false,
+              citedDomains: Array.from({ length: c.count }, () => c.domain),
+            })),
+          },
+        },
+      }),
+    );
+
+  it("is true only when the namesake was cited more than every other source", () => {
+    const leads = view([
+      { domain: "reddoorcreative.com", count: 5 },
+      { domain: "clutch.co", count: 2 },
+    ]);
+    expect(leads.namesake?.domain).toBe("reddoorcreative.com");
+    expect(namesakeLeads(leads)).toBe(true);
+  });
+
+  // Round 5: summing the namesake's hosts printed "cited 3 times — more than
+  // any other source" above clutch.co at 4. The printed count is what leads.
+  it("judges the host it prints, not the namesake's hosts summed", () => {
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 3 },
+          { domain: "reddoorcreative.co", count: 3 },
+          { domain: "clutch.co", count: 4 },
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  // Round 6: a tie between two of the namesake's own hosts is still a tie.
+  it("is false when another host of the namesake was cited as often", () => {
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 2 },
+          { domain: "reddoorcreative.co", count: 2 },
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  // Round 6: a report stored before per-answer citations has only the stored
+  // list, which leaves the prospect's own site out.
+  it("is false when there are no category answers to rank against", () => {
+    const stored = toReportView(
+      asReport({
+        url: "https://reddoorla.com/",
+        businessName: "Reddoor Creative",
+        probes: {
+          ok: true,
+          data: {
+            answers: [],
+            competitorsSeen: [
+              { domain: "reddoorcreative.com", count: 3 },
+              { domain: "clutch.co", count: 2 },
+            ],
+          },
+        },
+      }),
+    );
+    expect(stored.namesake?.domain).toBe("reddoorcreative.com");
+    expect(namesakeLeads(stored)).toBe(false);
+  });
+
+  it("is false when another source was cited as often or more", () => {
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 2 },
+          { domain: "clutch.co", count: 4 },
+        ]),
+      ),
+    ).toBe(false);
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 2 },
+          { domain: "clutch.co", count: 2 },
+        ]),
+      ),
+    ).toBe(false);
   });
 });
 

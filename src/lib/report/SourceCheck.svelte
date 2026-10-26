@@ -2,6 +2,7 @@
   import { displayQuote, numberWord } from "./narrative";
   import {
     citationRuns,
+    namesakeLeads,
     notSourcedFromSite,
     ownSiteCitations,
     sourceCheckMeasured,
@@ -129,8 +130,10 @@
               >{view.namesake.domain}</strong
             >
             was cited {view.namesake.count}
-            {view.namesake.count === 1 ? "time" : "times"} — more than any other source. It is a different
-            company with a name close enough to yours that the assistant has to tell you apart.
+            {view.namesake.count === 1 ? "time" : "times"}{namesakeLeads(view)
+              ? " — more than any other source"
+              : ""}. It is a different company with a name close enough to yours that the assistant
+            has to tell you apart.
           </p>
         {/if}
         <p class="type-meta m-0 text-muted">

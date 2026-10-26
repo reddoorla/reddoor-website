@@ -466,6 +466,11 @@ const bareHost = (d: string): string =>
  * never names it. Subdomains count; a look-alike domain never does.
  */
 export function ownSiteCitations(view: ReportView): number {
+  return ownCitations(view, view.brandedProbes);
+}
+
+/** How many times these answers cited the site itself. */
+function ownCitations(view: ReportView, probes: ProbeAnswer[]): number {
   let own: string;
   try {
     own = bareHost(new URL(view.url).hostname);
@@ -476,7 +481,7 @@ export function ownSiteCitations(view: ReportView): number {
     const h = bareHost(d);
     return h === own || h.endsWith(`.${own}`);
   };
-  return view.brandedProbes.reduce((n, p) => n + p.citedDomains.filter(isOwn).length, 0);
+  return probes.reduce((n, p) => n + p.citedDomains.filter(isOwn).length, 0);
 }
 
 const LISTING_SITES = [
@@ -849,10 +854,75 @@ function stage<T>(value: unknown): T | null {
   return s.ok === true && s.data !== undefined ? (s.data as T) : null;
 }
 
-/** The registrable label of a hostname: "reddoorcreative.com" → "reddoorcreative". */
+/**
+ * Public suffixes of two labels, so "reddoorcreative.co.uk" yields
+ * "reddoorcreative" rather than "co".
+ *
+ * A short list rather than the public-suffix list: the report renders from
+ * stored JSON and has no other use for a 200 KB table, and a suffix missing
+ * here fails safe: the label read instead is the suffix's own ("co", "com"),
+ * which never contains a business name, so a miss means no namesake, never a
+ * false one.
+ */
+const TWO_LABEL_SUFFIXES = new Set([
+  "co.uk",
+  "org.uk",
+  "ac.uk",
+  "gov.uk",
+  "com.au",
+  "net.au",
+  "org.au",
+  "co.nz",
+  "co.za",
+  "co.in",
+  "co.jp",
+  "com.br",
+  "com.mx",
+  "com.cn",
+  "com.sg",
+  "com.hk",
+  "com.tr",
+  "com.ar",
+  "co.il",
+  "co.kr",
+  "ltd.uk",
+  "plc.uk",
+]);
+
+/** The registrable label of a hostname: "reddoorcreative.com" →
+ *  "reddoorcreative", and "ca.linkedin.com" → "linkedin". It was the FIRST
+ *  label until P1-77, which read "ca.linkedin.com" as "ca", found "ca" inside
+ *  "abcascreening", and told that business that LinkedIn was answering to its
+ *  name. */
 function domainLabel(domain: string): string {
-  const host = domain.replace(/^www\./i, "").toLowerCase();
-  return (host.split(".")[0] ?? "").replace(/[^a-z0-9]/g, "");
+  const labels = domain
+    .replace(/^www\./i, "")
+    .toLowerCase()
+    .split(".")
+    .filter(Boolean);
+  const suffix = TWO_LABEL_SUFFIXES.has(labels.slice(-2).join(".")) ? 2 : 1;
+  const registrable = labels.length > suffix ? labels[labels.length - suffix - 1] : labels[0];
+  return (registrable ?? "").replace(/[^a-z0-9]/g, "");
+}
+
+/** "Reddoor Creative, LLC" → "Reddoor Creative", "Acme Co., Ltd." → "Acme",
+ *  "Bright Smiles Dental, PC" (or "P.C.") → "Bright Smiles Dental". A legal or
+ *  professional form is how a business registers, rarely how its domain reads.
+ *  Repeated, for a stacked form, and "& Co" goes whole: stripping "Co" alone
+ *  left "Johnson &", which read as "johnsonand" and matched
+ *  johnsonandjohnson.com in review. */
+function withoutLegalSuffix(name: string): string {
+  const form =
+    /(?:[,\s]+(?:l\.?l\.?c|inc|corp|ltd|p\.?l\.?l\.?c|l\.?p|l\.?l\.?p|plc|co|p\.?c|p\.?a|dds|dmd|md|gmbh)\.?|(?:\s+and|\s*&)\s*co\.?)\s*$/i;
+  // Capped, because the pattern backtracks over long runs of spaces and runs
+  // once per stacked form: a 50 000-character name took a minute to render.
+  // No business name is 200 characters long.
+  let out = name.slice(0, 200).trim();
+  for (let prev = ""; prev !== out;) {
+    prev = out;
+    out = out.replace(form, "").trim();
+  }
+  return out;
 }
 
 /** Letters and digits only, so "Reddoor Creative" and "reddoorcreative.com"
@@ -862,9 +932,7 @@ function normalizeName(name: string): string {
 }
 
 /** The prospect's own registrable label, or "" when the url is unparseable —
- *  in which case nothing is excluded and every cited domain stays eligible,
- *  which is the safe direction: we would rather surface a candidate a human
- *  dismisses than silently skip the real one. */
+ *  in which case nothing is excluded and every cited domain stays eligible. */
 function ownDomainLabel(url: string): string {
   try {
     return domainLabel(new URL(url).hostname);
@@ -876,16 +944,39 @@ function ownDomainLabel(url: string): string {
 /**
  * Find a cited domain that is trading on the prospect's own name.
  *
- * Matched on the registrable label rather than the full host, and only when one
- * side contains the other — so "reddoorcreative" matches a business called
- * "Reddoor Creative" while "clutch" does not.
+ * Matched on the registrable label rather than the full host, and only when the
+ * label IS the name — so "reddoorcreative.com", ".co" and ".co.uk", the
+ * Reddoor Creatives an assistant confuses with this one, match a business
+ * called "Reddoor Creative", while "clutch" does not.
  *
- * A short name would match far too much ("ace" appears inside plenty of
- * domains), so a floor applies: below it, a coincidence is likelier than a
- * collision, and asserting a collision to a prospect who then checks is worse
- * than staying quiet.
+ * Exact, because every looser rule tried in P1-77 claimed businesses that are
+ * not namesakes. A label found inside the name: "ca" (ca.linkedin.com) inside
+ * a screening company's name, "en" (en.wikipedia.org) inside a sensor maker's,
+ * "organ" (organ.org) inside an organ-donation network's — the shape of the
+ * nine false namesakes on the 72 stored reports, with the first host label
+ * read as the name. A label that leads the
+ * name: heart.org for "Heart & Vascular Institute", boston.com for "Boston
+ * Scientific". A label that starts with the name: dentalgroupofmiami.com for
+ * "Dental Group" — a competitor, named for its category and its city, which is
+ * exactly what an assistant cites for a category question. No string rule
+ * tells that apart from "reddoorcreativeva", so neither counts.
  *
- * The prospect's own domain is excluded — it is not a namesake of itself.
+ * The cost is a namesake spelled longer, shorter or differently
+ * ("reddoorcreativeva.com", "reddoor.biz", "glendalestudiosla.com"), which goes
+ * unreported; asserting a collision to a prospect who then checks is worse
+ * than staying quiet. So is any namesake of a prospect whose own domain
+ * spells its name: abcascreening.com's label is the name, so a cited
+ * abcascreening.ca is skipped with it. That one is deliberate. Another
+ * country's site under the same label is as likely the prospect's own as
+ * someone else's, and the block says "a different company". The match above
+ * therefore works for a prospect like Reddoor, whose domain (reddoorla.com)
+ * is not its name.
+ *
+ * A short name would still match far too much, so a floor applies to the name.
+ *
+ * A listing site is never a namesake: a LinkedIn or Facebook page is a profile
+ * ABOUT the business, which is a different finding. The prospect's own domain
+ * is excluded too — it is not a namesake of itself.
  */
 export function findNamesake(
   businessName: string | null,
@@ -893,17 +984,47 @@ export function findNamesake(
   cited: CitedDomain[],
 ): CitedDomain | null {
   if (!businessName) return null;
-  const name = normalizeName(businessName);
+  const name = normalizeName(withoutLegalSuffix(businessName).replace(/&/g, "and"));
   if (name.length < 8) return null;
 
   const own = ownDomainLabel(ownUrl);
 
   for (const entry of cited) {
-    const label = domainLabel(entry.domain);
+    // A port or a trailing dot would slip past the listing-site match.
+    const host = entry.domain.replace(/:\d+$/, "").replace(/\.$/, "");
+    if (isListingSite(host)) continue;
+    const label = domainLabel(host);
     if (!label || label === own) continue;
-    if (label.includes(name) || name.includes(label)) return entry;
+    if (label === name) return entry;
   }
   return null;
+}
+
+/**
+ * Was the namesake cited more than every other source in the field? The
+ * collision block said so of every namesake, unchecked; ABCA's "namesake" had
+ * one citation against four for each of the most-cited sources. A tie is not
+ * "more than any other".
+ */
+export function namesakeLeads(view: ReportView): boolean {
+  const n = view.namesake;
+  if (!n) return false;
+  // The sentence prints this host's own count, so this host's count is what
+  // has to lead. Summing the namesake's other hosts (review round 4) printed
+  // "cited 3 times — more than any other source" above a source cited 4 times
+  // (round 5). A namesake split across hosts may therefore not be said to
+  // lead when together it does; that fails quiet, not false.
+  //
+  // The field leaves the prospect's own site out, so count it back in: a
+  // namesake cited once is not "more than any other source" when the prospect
+  // was cited three times.
+  //
+  // Without category answers the field is the stored list, which never counted
+  // the prospect's own site and mixes in branded answers, so there is nothing
+  // to rank against (review round 6).
+  if (view.categoryProbes.length === 0) return false;
+  if (ownCitations(view, view.categoryProbes) >= n.count) return false;
+  return view.citedDomains.every((d) => d.domain === n.domain || d.count < n.count);
 }
 
 /**
