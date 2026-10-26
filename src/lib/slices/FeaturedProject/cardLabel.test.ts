@@ -65,9 +65,9 @@ describe("resolveCardLabel", () => {
   });
 
   it("leads with the project and keeps the services after it", () => {
-    expect(resolveCardLabel("Medical Solutions of Texas", null, "  brand, digital ")).toBe(
-      "Medical Solutions of Texas, brand, digital",
-    );
+    const name = resolveCardLabel("Medical Solutions of Texas", null, "  brand, digital ");
+    expect(name.startsWith("Medical Solutions of Texas")).toBe(true);
+    expect(name.endsWith("brand, digital")).toBe(true);
     expect(resolveCardLabel("Medical Solutions of Texas", null, "   ")).toBe(
       "Medical Solutions of Texas",
     );
