@@ -23,13 +23,18 @@
  * Whitespace-only values count as absent (Prismic returns `""` for a cleared
  * Text field, and a stray space must not beat the alt). The winner is trimmed.
  *
- * Note the WCAG 2.5.3 "Label in Name" angle: the returned label contains the
- * visible title (case-insensitively), so the visible label is inside the
- * accessible name as required.
+ * WCAG 2.5.3 "Label in Name": the caption shows the services line under the
+ * title, so the services follow the winner ("Medical Solutions of Texas,
+ * brand, digital"). The name then contains everything the card shows,
+ * case-insensitively. With the title alone it did not, and axe 4.14, which
+ * runs `label-content-name-mismatch` by default, failed the card on it.
  */
 export function resolveCardLabel(
   title: string | null | undefined,
   imageAlt: string | null | undefined,
+  services?: string | null,
 ): string {
-  return title?.trim() || imageAlt?.trim() || "View project";
+  const name = title?.trim() || imageAlt?.trim() || "View project";
+  const shown = services?.trim();
+  return shown ? `${name}, ${shown}` : name;
 }
