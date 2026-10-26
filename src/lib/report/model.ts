@@ -913,7 +913,7 @@ function domainLabel(domain: string): string {
  *  johnsonandjohnson.com in review. */
 function withoutLegalSuffix(name: string): string {
   const form =
-    /(?:[,\s]+(?:llc|l\.l\.c|inc|corp|ltd|pllc|lp|llp|plc|co|pc|pa|dds|dmd|md|gmbh)\.?|(?:\s+and|\s*&)\s*co\.?)\s*$/i;
+    /(?:[,\s]+(?:l\.?l\.?c|inc|corp|ltd|p\.?l\.?l\.?c|l\.?p|l\.?l\.?p|plc|co|p\.?c|p\.?a|dds|dmd|md|gmbh)\.?|(?:\s+and|\s*&)\s*co\.?)\s*$/i;
   // Capped, because the pattern backtracks over long runs of spaces and runs
   // once per stacked form: a 50 000-character name took a minute to render.
   // No business name is 200 characters long.
@@ -1008,20 +1008,17 @@ export function findNamesake(
 export function namesakeLeads(view: ReportView): boolean {
   const n = view.namesake;
   if (!n) return false;
-  // One namesake, however many hosts: reddoorcreative.com and .co are the same
-  // business, not rivals to each other.
-  const label = domainLabel(n.domain);
-  let total = 0;
-  const rivals: number[] = [];
-  for (const d of view.citedDomains) {
-    if (domainLabel(d.domain) === label && !isListingSite(d.domain)) total += d.count;
-    else rivals.push(d.count);
-  }
+  // The sentence prints this host's own count, so this host's count is what
+  // has to lead. Summing the namesake's other hosts (review round 4) printed
+  // "cited 3 times — more than any other source" above a source cited 4 times
+  // (round 5). A namesake split across hosts may therefore not be said to
+  // lead when together it does; that fails quiet, not false.
+  //
   // The field leaves the prospect's own site out, so count it back in: a
   // namesake cited once is not "more than any other source" when the prospect
   // was cited three times.
-  if (ownCitations(view, view.categoryProbes) >= total) return false;
-  return rivals.every((c) => c < total);
+  if (ownCitations(view, view.categoryProbes) >= n.count) return false;
+  return view.citedDomains.every((d) => d.domain === n.domain || d.count < n.count);
 }
 
 /**

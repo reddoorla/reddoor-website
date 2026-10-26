@@ -544,6 +544,14 @@ describe("findNamesake", () => {
     ).toEqual({ domain: "heartandvascularinstitute.com", count: 1 });
   });
 
+  it("ignores a legal form written with dots", () => {
+    expect(
+      findNamesake("Smith Dental, P.C.", "https://sd.example/", [
+        { domain: "smithdental.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "smithdental.com", count: 1 });
+  });
+
   it("ignores a professional or stacked legal form", () => {
     expect(
       findNamesake("Bright Smiles Dental, PC", "https://bsd.example/", [
@@ -669,7 +677,9 @@ describe("namesakeLeads", () => {
     expect(namesakeLeads(leads)).toBe(true);
   });
 
-  it("counts the namesake's other hosts as the namesake, not as rivals", () => {
+  // Round 5: summing the namesake's hosts printed "cited 3 times — more than
+  // any other source" above clutch.co at 4. The printed count is what leads.
+  it("judges the host it prints, not the namesake's hosts summed", () => {
     expect(
       namesakeLeads(
         view([
@@ -678,7 +688,7 @@ describe("namesakeLeads", () => {
           { domain: "clutch.co", count: 4 },
         ]),
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("is false when another source was cited as often or more", () => {
