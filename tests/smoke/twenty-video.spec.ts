@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 
 // Behaviour added when fixing the "20 for 20" background video not running on
@@ -16,6 +17,16 @@ const IFRAME = "iframe[title='20 for 20 animated sketch']";
 // out from under it, which is what the assertion log shows ("5 x locator
 // resolved ... unexpected value 0", then "element(s) not found").
 const allowMotion = (page: Page) => page.emulateMedia({ reducedMotion: "no-preference" });
+
+// The sketch plays self-hosted from Prismic's media library (P1-74,
+// src/lib/video/hosted.ts), and the Vimeo iframe is only its fallback. The
+// iframe tests below make the hosted file 404, which is the fallback's own
+// trigger; the hosted test answers it with the fixture clip, so no test here
+// depends on the CDN.
+const PRISMIC_CDN = "https://reddoor-la.cdn.prismic.io/**";
+const CLIP = readFileSync(new URL("../fixtures/clip.mp4", import.meta.url));
+const failHostedFile = (page: Page) =>
+  page.route(PRISMIC_CDN, (route) => route.fulfill({ status: 404, body: "" }));
 
 test("Reduce Motion: video is never embedded, only the static sketch shows", async ({
   browser,
@@ -44,7 +55,26 @@ test(
   },
 );
 
+test("the sketch plays self-hosted, with no Vimeo embed", { tag: "@smoke" }, async ({ page }) => {
+  await page.route(PRISMIC_CDN, (route) =>
+    route.fulfill({ status: 200, contentType: "video/mp4", body: CLIP }),
+  );
+  await page.route(/player\.vimeo\.com/, (route) => route.abort());
+  await allowMotion(page);
+  await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+
+  const video = page.locator('video[data-video="self-hosted"]');
+  await expect(video.locator("source").last()).toHaveAttribute(
+    "src",
+    /reddoor-la\.cdn\.prismic\.io/,
+  );
+  await expect(video).toHaveAttribute("data-state", "playing");
+  await expect(page.locator(IFRAME)).toHaveCount(0);
+});
+
 test("Vimeo iframe is granted autoplay permission", { tag: "@smoke" }, async ({ page }) => {
+  await failHostedFile(page);
   await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
   const iframe = page.locator(IFRAME);
@@ -61,6 +91,7 @@ test(
   { tag: "@smoke" },
   async ({ page }) => {
     await page.route(/player\.vimeo\.com/, (route) => route.abort());
+    await failHostedFile(page);
     await allowMotion(page);
     await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
@@ -79,6 +110,7 @@ test(
     // outcome as iPad Low Power Mode / a blocked autoplay: no play event arrives.
     await page.route(/player\.vimeo\.com/, (route) => route.abort());
 
+    await failHostedFile(page);
     await allowMotion(page);
     await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
@@ -94,6 +126,7 @@ test(
 );
 
 test("video reveals itself once it actually plays", { tag: "@nightly" }, async ({ page }) => {
+  await failHostedFile(page);
   await allowMotion(page);
   await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
@@ -125,6 +158,7 @@ test(
     await page.route(/player\.vimeo\.com/, (route) =>
       route.fulfill({ contentType: "text/html", body: STALLING_VIMEO_STUB }),
     );
+    await failHostedFile(page);
     await allowMotion(page);
     await page.goto("/twenty-for-twenty", { waitUntil: "domcontentloaded" });
 
