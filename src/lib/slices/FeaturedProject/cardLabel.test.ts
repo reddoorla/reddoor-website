@@ -39,6 +39,40 @@ describe("resolveCardLabel", () => {
     expect(resolveCardLabel(undefined, undefined)).toBe("View project");
   });
 
+  // WCAG 2.5.3 (Label in Name): the caption shows the services line under the
+  // title, so it has to be in the name too. axe 4.14 runs this as
+  // `label-content-name-mismatch` and compares lowercased, punctuation-stripped
+  // text; this does the same.
+  describe("contains every word the caption shows", () => {
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const cases: [string | null, string | null, string | null][] = [
+      ["Medical Solutions of Texas", "An iMac showing the MSOT site", "brand, digital"],
+      [null, "An iMac showing the MSOT site", "brand, digital"],
+      [null, null, "brand, digital"],
+      ["Medical Solutions of Texas", null, null],
+    ];
+    for (const [title, alt, services] of cases) {
+      it(`title ${JSON.stringify(title)}, alt ${JSON.stringify(alt)}, services ${JSON.stringify(services)}`, () => {
+        const visible = normalize([title, services].filter(Boolean).join(" "));
+        expect(normalize(resolveCardLabel(title, alt, services))).toContain(visible);
+      });
+    }
+  });
+
+  it("leads with the project and keeps the services after it", () => {
+    const name = resolveCardLabel("Medical Solutions of Texas", null, "  brand, digital ");
+    expect(name.startsWith("Medical Solutions of Texas")).toBe(true);
+    expect(name.endsWith("brand, digital")).toBe(true);
+    expect(resolveCardLabel("Medical Solutions of Texas", null, "   ")).toBe(
+      "Medical Solutions of Texas",
+    );
+  });
+
   it("returns the trimmed value it picked", () => {
     expect(resolveCardLabel("  Medical Solutions of Texas  ", null)).toBe(
       "Medical Solutions of Texas",

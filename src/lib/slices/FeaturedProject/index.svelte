@@ -50,7 +50,9 @@
 
   // ONE link wraps the whole card and the arrow is decorative, so the link's
   // accessible name has to carry the project on its own — see cardLabel.ts.
-  const accessibleName = $derived(resolveCardLabel(slice.primary.title, slice.primary.image.alt));
+  const accessibleName = $derived(
+    resolveCardLabel(slice.primary.title, slice.primary.image.alt, slice.primary.services),
+  );
 </script>
 
 {#snippet plate()}
