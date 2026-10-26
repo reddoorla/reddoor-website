@@ -4,7 +4,8 @@
   import { PrismicImage } from "@prismicio/svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
-  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
+  import Video from "$lib/components/Video.svelte";
+  import { mediaUrl } from "$lib/video/media";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
   import type {
@@ -155,7 +156,7 @@
                   </div>
                 {/if}
 
-                {#if item.vimeoid}
+                {#if item.vimeoid || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
                   <PrismicImage
                     class="w-full h-full object-cover absolute top-0 left-0 z-0"
                     field={item.image}
@@ -165,9 +166,12 @@
                     loading="lazy"
                     decoding="async"
                   />
-                  <VimeoEmbed
+                  <Video
+                    mp4={mediaUrl(item.video_mp4)}
+                    mobileMp4={mediaUrl(item.video_mp4_mobile)}
                     vimeoId={item.vimeoid}
-                    background={!!item.loopvideo}
+                    mode={item.loopvideo ? "background" : "player"}
+                    poster={item.image?.url}
                     hasPoster={isFilled.image(item.image)}
                     class="object-cover w-full {item.aspect !== 'free'
                       ? 'h-full'
@@ -216,7 +220,7 @@
                 </div>
               {/if}
 
-              {#if item.vimeoid}
+              {#if item.vimeoid || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
                 <!-- Poster is absolute against the padded (pr-6/pb-6) cell, so
                        subtract the gap when hasGap to match the video box instead
                        of bleeding into the gap. -->
@@ -231,9 +235,12 @@
                   loading="lazy"
                   decoding="async"
                 />
-                <VimeoEmbed
+                <Video
+                  mp4={mediaUrl(item.video_mp4)}
+                  mobileMp4={mediaUrl(item.video_mp4_mobile)}
                   vimeoId={item.vimeoid}
-                  background={!!item.loopvideo}
+                  mode={item.loopvideo ? "background" : "player"}
+                  poster={item.image?.url}
                   hasPoster={isFilled.image(item.image)}
                   class="object-cover w-full {item.aspect !== 'free' ? 'h-full' : ''} z-10"
                 />

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Video from "$lib/components/Video.svelte";
+  import { hostedVideo } from "$lib/video/hosted";
   import { MAX_IMAGE_W } from "$lib/images";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import { animateIn as anim } from "$lib/actions/animateIn";
@@ -34,6 +36,10 @@
   // stays visible, so the box is never blank.
   let vimeoIframe: HTMLIFrameElement | undefined = $state();
   let videoPlaying = $state(false);
+  // The self-hosted sketch's own reveal (Video.svelte's bindable `playing`).
+  let hostedPlaying = $state(false);
+  const TWENTY_VIMEO = "1125997849";
+  const twentyVideo = hostedVideo(TWENTY_VIMEO);
 
   // Honor Reduce Motion: motion-sensitive users get the static sketch and the
   // video is never embedded or played (WCAG 2.3.3 / 2.2.2). This is independent
@@ -297,26 +303,44 @@
           <img
             src={twentySketchFallback}
             alt="Hand-drawn sketch of the number 20"
-            class="absolute inset-0 h-full w-full scale-110 object-cover mix-blend-multiply transition-opacity duration-700 {videoPlaying
+            class="absolute inset-0 h-full w-full scale-110 object-cover mix-blend-multiply transition-opacity duration-700 {videoPlaying ||
+            hostedPlaying
               ? 'opacity-0'
               : 'opacity-90'}"
           />
-          {#if !prefersReducedMotion}
-            <!-- dnt=1 kept from main (fleet privacy rollout); the reveal/gating
-                 machinery kept from staging (iPad autoplay + reduced-motion). -->
-            <iframe
-              bind:this={vimeoIframe}
-              title="20 for 20 animated sketch"
-              src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1&dnt=1"
-              class="absolute inset-0 h-full w-full scale-110 mix-blend-multiply transition-opacity duration-700 {videoPlaying
-                ? 'opacity-90'
-                : 'opacity-0'}"
-              frameborder="0"
-              allow="autoplay; fullscreen; picture-in-picture"
-              referrerpolicy="strict-origin-when-cross-origin"
-              allowfullscreen
-            ></iframe>
-          {/if}
+          <!-- The sketch plays self-hosted when a file is set (Video.svelte);
+               the Vimeo iframe below is its fallback, with its own heartbeat
+               reveal. Both stay out under Reduce Motion. -->
+          <Video
+            mode="background"
+            mp4={twentyVideo.mp4}
+            mobileMp4={twentyVideo.mobileMp4}
+            vimeoId={TWENTY_VIMEO}
+            pauseControl={false}
+            bind:playing={hostedPlaying}
+            class="absolute inset-0 h-full w-full scale-110 object-cover mix-blend-multiply {hostedPlaying
+              ? 'opacity-90!'
+              : ''}"
+          >
+            {#snippet fallback()}
+              {#if !prefersReducedMotion}
+                <!-- dnt=1 kept from main (fleet privacy rollout); the reveal/gating
+                     machinery kept from staging (iPad autoplay + reduced-motion). -->
+                <iframe
+                  bind:this={vimeoIframe}
+                  title="20 for 20 animated sketch"
+                  src="https://player.vimeo.com/video/1125997849?background=1&muted=1&loop=1&autoplay=1&dnt=1"
+                  class="absolute inset-0 h-full w-full scale-110 mix-blend-multiply transition-opacity duration-700 {videoPlaying
+                    ? 'opacity-90'
+                    : 'opacity-0'}"
+                  frameborder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allowfullscreen
+                ></iframe>
+              {/if}
+            {/snippet}
+          </Video>
         </div>
       </div>
     </div>

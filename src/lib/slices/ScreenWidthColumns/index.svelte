@@ -4,7 +4,8 @@
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
   import { animateIn as anim } from "$lib/actions/animateIn";
-  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
+  import Video from "$lib/components/Video.svelte";
+  import { mediaUrl } from "$lib/video/media";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
 
@@ -58,7 +59,7 @@
               {item.label}
             </div>
           {/if}
-          {#if item.vimeoId}
+          {#if item.vimeoId || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
             <PrismicImage
               class="w-full h-full object-cover absolute top-0 left-0"
               field={item.image}
@@ -69,9 +70,12 @@
               decoding="async"
             />
 
-            <VimeoEmbed
+            <Video
+              mp4={mediaUrl(item.video_mp4)}
+              mobileMp4={mediaUrl(item.video_mp4_mobile)}
               vimeoId={item.vimeoId}
-              background={!!item.loopvideo}
+              mode={item.loopvideo ? "background" : "player"}
+              poster={item.image?.url}
               hasPoster={isFilled.image(item.image)}
               class="object-cover {item.aspect !== 'free'
                 ? 'h-full'
@@ -119,7 +123,7 @@
             {item.label}
           </div>
         {/if}
-        {#if item.vimeoId}
+        {#if item.vimeoId || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
           <PrismicImage
             class="w-full h-full object-cover absolute top-0 left-0"
             field={item.image}
@@ -130,9 +134,12 @@
             decoding="async"
           />
 
-          <VimeoEmbed
+          <Video
+            mp4={mediaUrl(item.video_mp4)}
+            mobileMp4={mediaUrl(item.video_mp4_mobile)}
             vimeoId={item.vimeoId}
-            background={!!item.loopvideo}
+            mode={item.loopvideo ? "background" : "player"}
+            poster={item.image?.url}
             hasPoster={isFilled.image(item.image)}
             class="object-cover {item.aspect !== 'free'
               ? 'h-full'

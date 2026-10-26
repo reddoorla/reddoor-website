@@ -53,6 +53,28 @@ describe("the SSR policy matches the static one", () => {
     expect(CONTENT_SECURITY_POLICY).toMatch(/script-src[^;]*challenges\.cloudflare\.com/);
     expect(CONTENT_SECURITY_POLICY).toMatch(/frame-src[^;]*challenges\.cloudflare\.com/);
   });
+
+  // The self-hosted videos (P1-74) are Prismic link-to-media files, served on
+  // <repo>.cdn.prismic.io or on Prismic's S3 host. Without a media-src, a
+  // <video> falls back to default-src 'self' and is blocked silently — and
+  // Video.svelte then plays Vimeo, so the page looks fine and nothing is
+  // self-hosted at all.
+  it("lets <video> load Prismic media from either host it is served on", () => {
+    const mediaSrc = (/(?:^|; )media-src ([^;]*)/.exec(CONTENT_SECURITY_POLICY)?.[1] ?? "").split(
+      " ",
+    );
+    const allows = (url: string) => {
+      const host = new URL(url).host;
+      return mediaSrc.some((source) => {
+        if (!source.startsWith("https://")) return false;
+        const pattern = source.slice("https://".length);
+        return pattern.startsWith("*.") ? host.endsWith(pattern.slice(1)) : host === pattern;
+      });
+    };
+    expect(allows("https://reddoor-la.cdn.prismic.io/reddoor-la/abc_offer-1080.mp4")).toBe(true);
+    expect(allows("https://prismic-io.s3.amazonaws.com/reddoor-la/abc_offer-1080.mp4")).toBe(true);
+    expect(allows("https://evil.example/reddoor-la/abc.mp4")).toBe(false);
+  });
 });
 
 describe("applySecurityHeaders", () => {

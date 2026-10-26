@@ -1,0 +1,71 @@
+# Uploads video files to this site's Prismic media library (P1-74). Ported
+# from williamson-construction-co's workflow of the same name; only the
+# repository header differs. The Prismic connector refuses video, and the
+# write token lives only in this repo's secrets, so the files are fetched from
+# a public HTTPS directory (a draft deploy's /video/, a share host) and posted
+# to the Asset API here. It never deletes, and the Asset API does not dedupe:
+# upload a changed encode under a new name.
+#
+# workflow_dispatch runs only once this file is on the default branch (main).
+name: prismic-media-upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Public HTTPS directory the files are fetched from"
+        required: true
+        type: string
+      files:
+        description: "Comma-separated file names under base_url (names only, no sub-paths)"
+        required: true
+        type: string
+
+concurrency:
+  group: prismic-media-upload
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Fetch each file and post it to the Prismic Asset API
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          FILES: ${{ inputs.files }}
+          PRISMIC_WRITE_TOKEN: ${{ secrets.PRISMIC_WRITE_TOKEN }}
+          ASSET_API: https://asset-api.prismic.io/assets
+        run: |
+          set -euo pipefail
+          : "${PRISMIC_WRITE_TOKEN:?PRISMIC_WRITE_TOKEN is not set}"
+          case "$BASE_URL" in https://*) ;; *) echo "base_url must be https://"; exit 2 ;; esac
+          IFS=',' read -r -d '' -a names <<< "$FILES" || true
+          count=0
+          for raw in "${names[@]}"; do
+            name="$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            [ -z "$name" ] && continue
+            case "$name" in */*|.*) echo "FAILED $name: names only, no paths"; exit 2 ;; esac
+            [ "$count" -gt 0 ] && sleep 1.2
+            enc="$(jq -rn --arg s "$name" '$s|@uri')"
+            curl -fsSL --proto '=https' --proto-redir '=https' --max-time 900 -o "$name" "${BASE_URL%/}/$enc" \
+              || { echo "FAILED $name: fetch ${BASE_URL%/}/$enc"; exit 21; }
+            type="$(file -b --mime-type -- "$name")"
+            q=${name//\\/\\\\}
+            q=${q//\"/\\\"}
+            code="$(curl -sS --retry 3 --retry-delay 2 --max-time 900 -o body.json -w '%{http_code}' -X POST "$ASSET_API" \
+              -H "Authorization: Bearer $PRISMIC_WRITE_TOKEN" \
+              -H "repository: reddoor-la" \
+              -F "file=@\"$q\";type=$type")" || { echo "FAILED $name: curl exit $? HTTP ${code:-none}"; exit 22; }
+            body="$(cat body.json 2>/dev/null || true)"
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ] || ! jq -e '.id' body.json >/dev/null 2>&1; then
+              echo "FAILED $name: HTTP $code $body"
+              exit 22
+            fi
+            echo "UPLOADED $name $body"
+            rm -f -- "$name" body.json
+            count=$((count + 1))
+          done
+          [ "$count" -gt 0 ] || { echo "no files named"; exit 2; }
+          echo "uploaded $count file(s)"

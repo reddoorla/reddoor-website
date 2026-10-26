@@ -2,7 +2,8 @@
   import { MAX_IMAGE_W } from "$lib/images";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
-  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
+  import Video from "$lib/components/Video.svelte";
+  import { mediaUrl } from "$lib/video/media";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
 
@@ -11,6 +12,9 @@
   const backgroundColorString = $derived("bg-" + slice.primary.background);
 
   const pad = $derived(resolvePadding(slice.primary, false));
+
+  const mp4 = $derived(mediaUrl(slice.primary.video_mp4));
+  const mobileMp4 = $derived(mediaUrl(slice.primary.video_mp4_mobile));
 
   /**
    * Author-selected aspect ratio. Full literal class names — Tailwind's scanner
@@ -45,7 +49,7 @@
     ? 'pb-12'
     : ''} {backgroundColorString}"
 >
-  {#if slice.primary.vimeoid}
+  {#if slice.primary.vimeoid || mp4 || mobileMp4}
     <PrismicImage
       class="w-screen h-full object-cover absolute {pad.padTop ? 'top-12' : 'top-0'} left-0 z-0"
       field={slice.primary.image}
@@ -56,9 +60,12 @@
       decoding="async"
     />
 
-    <VimeoEmbed
+    <Video
+      {mp4}
+      {mobileMp4}
       vimeoId={slice.primary.vimeoid}
-      background={!!slice.primary.loopvideo}
+      mode={slice.primary.loopvideo ? "background" : "player"}
+      poster={slice.primary.image?.url}
       hasPoster={isFilled.image(slice.primary.image)}
       allow="autoplay; fullscreen;"
       class="{videoAspectClass} relative z-10 mx-auto w-screen object-cover"

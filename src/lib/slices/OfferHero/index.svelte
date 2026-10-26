@@ -1,7 +1,8 @@
 <script lang="ts">
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
+  import Video from "$lib/components/Video.svelte";
+  import { mediaUrl } from "$lib/video/media";
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import type { RichTextComponents } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
@@ -24,7 +25,12 @@
     heading1: { class: "type-hero m-0 max-w-242.5 text-white" },
   };
 
-  const video = $derived(parseVimeo(slice.primary.vimeo_video));
+  const vimeo = $derived(parseVimeo(slice.primary.vimeo_video));
+  // The self-hosted file plays first; Vimeo is the fallback when it is not set
+  // or fails to load (see Video.svelte).
+  const mp4 = $derived(mediaUrl(slice.primary.video_mp4));
+  const mobileMp4 = $derived(mediaUrl(slice.primary.video_mp4_mobile));
+  const video = $derived(Boolean(vimeo || mp4 || mobileMp4));
   const videoTitle = $derived(slice.primary.video_title?.trim() || "Video");
   let playing = $state(false);
   let card = $state<HTMLElement>();
@@ -34,7 +40,7 @@
   async function play() {
     playing = true;
     await tick();
-    card?.querySelector("iframe")?.focus();
+    card?.querySelector<HTMLElement>("video, iframe")?.focus();
   }
 
   // At the end the player comes down and the card is its poster and play
@@ -95,9 +101,13 @@
         class="offer-card relative mt-10 aspect-video w-full overflow-hidden rounded-[9px] bg-white shadow-[0_4px_11.5px_rgba(0,0,0,0.11)] md:mt-12"
       >
         {#if video && playing}
-          <VimeoEmbed
-            vimeoId={video.id}
-            hash={video.hash}
+          <Video
+            mode="player"
+            {mp4}
+            {mobileMp4}
+            vimeoId={vimeo?.id}
+            hash={vimeo?.hash}
+            poster={slice.primary.video_poster?.url}
             autoplay
             onended={ended}
             title={videoTitle}

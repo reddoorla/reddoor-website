@@ -43,6 +43,7 @@ export const CONTENT_SECURITY_POLICY = [
   "font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com",
   "img-src 'self' data: https:",
   "frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com https://app.netlify.com",
+  "media-src 'self' https://*.prismic.io https://prismic-io.s3.amazonaws.com",
   "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net",
 ].join("; ");
 
