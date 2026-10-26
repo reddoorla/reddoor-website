@@ -544,8 +544,37 @@ describe("findNamesake", () => {
     ).toEqual({ domain: "heartandvascularinstitute.com", count: 1 });
   });
 
+  it("ignores a professional or stacked legal form", () => {
+    expect(
+      findNamesake("Bright Smiles Dental, PC", "https://bsd.example/", [
+        { domain: "brightsmilesdental.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "brightsmilesdental.com", count: 1 });
+    expect(
+      findNamesake("Acme Widgets Co., Ltd.", "https://aw.example/", [
+        { domain: "acmewidgets.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "acmewidgets.com", count: 1 });
+  });
+
+  // Round 3: "& Co" lost only its "Co", so "Johnson & Co" read as
+  // "johnsonand", long enough to clear the floor.
+  it("drops '& Co' whole", () => {
+    expect(
+      findNamesake("Robinson & Co", "https://rco.example/", [{ domain: "robinson.com", count: 2 }]),
+    ).toEqual({ domain: "robinson.com", count: 2 });
+  });
+
+  it("refuses to guess from a short name, even on an exact domain", () => {
+    expect(
+      findNamesake("Apex", "https://apexroofing.example/", [{ domain: "apex.com", count: 4 }]),
+    ).toBeNull();
+  });
+
   // A generic name inside a competitor's domain is a competitor, not a namesake.
   it.each([
+    ["Dental Group", "dentalgroupofmiami.com"],
+    ["Physical Therapy", "physicaltherapyfirst.com"],
     ["The Dental Group", "riversidedentalgroup.com"],
     ["The Dental Group", "dentalgroupofmiami.com"],
     ["The Wellness Center", "oakwellnesscenter.com"],
@@ -554,27 +583,37 @@ describe("findNamesake", () => {
     expect(findNamesake(name, "https://own.example/", [{ domain, count: 2 }])).toBeNull();
   });
 
-  it("does not match a domain shorter than the name", () => {
+  // "The Dental Group" and "Dental Group" are not the same name.
+  it("keeps a leading 'the'", () => {
+    expect(
+      findNamesake("The Dental Group", "https://tdg.example/", [
+        { domain: "dentalgroup.com", count: 2 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("does not match a domain shorter or longer than the name", () => {
     expect(
       findNamesake("Reddoor Creative", "https://reddoorla.com/", [
         { domain: "reddoor.biz", count: 1 },
+        { domain: "reddoorcreativeva.com", count: 1 },
       ]),
     ).toBeNull();
   });
 
   it("never calls a listing site a namesake", () => {
     expect(
-      findNamesake("Patient Connect", "https://patientconnectclinic.example/", [
-        { domain: "patientconnect365.com", count: 6 },
+      findNamesake("Chamber of Commerce", "https://localchamber.example/", [
+        { domain: "chamberofcommerce.com", count: 6 },
       ]),
     ).toBeNull();
   });
 
   it("knows a listing site written with a port or a trailing dot", () => {
     expect(
-      findNamesake("Patient Connect", "https://patientconnectclinic.example/", [
-        { domain: "patientconnect365.com:443", count: 2 },
-        { domain: "patientconnect365.com.", count: 1 },
+      findNamesake("Chamber of Commerce", "https://localchamber.example/", [
+        { domain: "chamberofcommerce.com:443", count: 2 },
+        { domain: "chamberofcommerce.com.", count: 1 },
       ]),
     ).toBeNull();
   });

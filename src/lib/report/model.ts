@@ -905,10 +905,21 @@ function domainLabel(domain: string): string {
   return (registrable ?? "").replace(/[^a-z0-9]/g, "");
 }
 
-/** "Reddoor Creative, LLC" → "Reddoor Creative": nobody's domain carries the
- *  legal form. */
+/** "Reddoor Creative, LLC" → "Reddoor Creative", "Acme Co., Ltd." → "Acme",
+ *  "Bright Smiles Dental, PC" → "Bright Smiles Dental". A legal or
+ *  professional form is how a business registers, rarely how its domain reads.
+ *  Repeated, for a stacked form, and "& Co" goes whole: stripping "Co" alone
+ *  left "Johnson &", which read as "johnsonand" and matched
+ *  johnsonandjohnson.com in review. */
 function withoutLegalSuffix(name: string): string {
-  return name.replace(/[,\s]+(llc|l\.l\.c\.|inc|corp|ltd|pllc|lp|plc|co)\.?\s*$/i, "");
+  const form =
+    /(?:[,\s]+(?:llc|l\.l\.c|inc|corp|ltd|pllc|lp|llp|plc|co|pc|pa|dds|dmd|md|gmbh)\.?|\s*(?:&|and)\s*co\.?)\s*$/i;
+  let out = name.trim();
+  for (let prev = ""; prev !== out;) {
+    prev = out;
+    out = out.replace(form, "").trim();
+  }
+  return out;
 }
 
 /** Letters and digits only, so "Reddoor Creative" and "reddoorcreative.com"
@@ -933,28 +944,27 @@ function ownDomainLabel(url: string): string {
  * Find a cited domain that is trading on the prospect's own name.
  *
  * Matched on the registrable label rather than the full host, and only when the
- * label starts with the whole name — so "reddoorcreative" and
- * "reddoorcreativeva" match a business called "Reddoor Creative" while
- * "clutch" does not.
+ * label IS the name — so "reddoorcreative.com", ".co" and ".co.uk", the
+ * Reddoor Creatives an assistant confuses with this one, match a business
+ * called "Reddoor Creative", while "clutch" does not.
  *
- * Never a label found inside the name: "ca" inside "CRCA Screening", "en"
- * inside "QTI Sensing Solutions", "organ" inside "Texas Organ Sharing
- * Alliance" and "studio" inside "The Burbank Studios" were four of the nine
- * false namesakes on the 72 stored reports (P1-77; the rest were the first
- * host label read as the name). Not a label that merely LEADS the name either:
- * heart.org is not a namesake of "Heart & Vascular Institute", nor boston.com
- * of "Boston Scientific". And the name has to START the label, not sit
- * anywhere in it: "smithfamilydentistry" is a competitor of "Family
- * Dentistry", not a namesake. A leading "the" is kept for the same reason —
- * without it "The Dental Group" matched "riversidedentalgroup".
+ * Exact, because every looser rule tried in P1-77 claimed businesses that are
+ * not namesakes. A label found inside the name: "ca" inside "CRCA Screening",
+ * "en" inside "QTI Sensing Solutions", "organ" inside "Texas Organ Sharing
+ * Alliance" (four of the nine false namesakes on the 72 stored reports; the
+ * rest were the first host label read as the name). A label that leads the
+ * name: heart.org for "Heart & Vascular Institute", boston.com for "Boston
+ * Scientific". A label that starts with the name: dentalgroupofmiami.com for
+ * "Dental Group" — a competitor, named for its category and its city, which is
+ * exactly what an assistant cites for a category question. No string rule
+ * tells that apart from "reddoorcreativeva", so neither counts.
  *
- * The cost is a namesake spelled shorter or differently, "reddoor.biz" or
- * "burbankstudiosla.com", which goes unreported; asserting a collision to a
- * prospect who then checks is worse than staying quiet.
+ * The cost is a namesake spelled longer, shorter or differently
+ * ("reddoorcreativeva.com", "reddoor.biz", "burbankstudiosla.com"), which goes
+ * unreported; asserting a collision to a prospect who then checks is worse
+ * than staying quiet.
  *
- * A short name would still match far too much ("ace" starts plenty of
- * domains), so a floor applies to the name; the label, starting with it, is
- * at least as long.
+ * A short name would still match far too much, so a floor applies to the name.
  *
  * A listing site is never a namesake: a LinkedIn or Facebook page is a profile
  * ABOUT the business, which is a different finding. The prospect's own domain
@@ -977,7 +987,7 @@ export function findNamesake(
     if (isListingSite(host)) continue;
     const label = domainLabel(host);
     if (!label || label === own) continue;
-    if (label.startsWith(name)) return entry;
+    if (label === name) return entry;
   }
   return null;
 }
