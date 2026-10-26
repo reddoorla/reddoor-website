@@ -5,7 +5,7 @@
   import { captionsUrl, mediaUrl } from "$lib/video/media";
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import type { RichTextComponents } from "@prismicio/svelte";
-  import { isFilled, type Content } from "@prismicio/client";
+  import { asImageSrc, isFilled, type Content } from "@prismicio/client";
   import { tick } from "svelte";
   import { parseVimeo } from "./vimeo";
   import playDisc from "$lib/assets/offer/play-disc.svg";
@@ -61,12 +61,14 @@
   // nothing behind it the card goes back to its poster, rather than a blank
   // box with no way back.
   async function failed(hasFallback: boolean) {
-    if (!hasFallback) {
-      playing = false;
-      return;
-    }
+    // As at the end: focus follows only if it was in the card (or nowhere).
+    const active = document.activeElement;
+    const hadFocus = !active || active === document.body || !!card?.contains(active);
+    if (!hasFallback) playing = false;
     await tick();
-    card?.querySelector<HTMLElement>("iframe")?.focus();
+    if (!hadFocus) return;
+    if (hasFallback) card?.querySelector<HTMLElement>("iframe")?.focus();
+    else card?.querySelector<HTMLElement>(".offer-play")?.focus({ preventScroll: true });
   }
 
   // With no video and no alt text on the poster asset, the card's copy (which
@@ -121,6 +123,11 @@
             vimeoId={vimeo?.id}
             hash={vimeo?.hash}
             captions={captionsUrl(slice.primary.video_captions)}
+            poster={asImageSrc(slice.primary.video_poster, {
+              w: 1600,
+              fit: "max",
+              auto: ["format", "compress"],
+            })}
             onfail={failed}
             autoplay
             onended={ended}

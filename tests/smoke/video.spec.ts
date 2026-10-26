@@ -202,10 +202,28 @@ test(
       "/linked-target",
     );
 
-    const before = page.url();
-    await cards.getByRole("button", { name: /background video: / }).click();
-    await videos.first().click();
-    expect(page.url()).toBe(before);
+    // That structure is the guard: a URL check straight after a click
+    // cannot see a client-side navigation that has not happened yet. The
+    // button is still reachable and named for its card.
+    await expect(
+      cards.getByRole("button", { name: /background video: Linked loop/ }),
+    ).toBeVisible();
+  },
+);
+
+test(
+  "a dead offer file with no Vimeo behind it goes back to the poster, focus on its button",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await serveMedia(page);
+    await page.goto("/dev/a11y-fixtures", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+    const hero = page.locator('section[data-slice-type="offer_hero"]').nth(3);
+    const play = hero.getByRole("button", { name: "Play video: Brand Friction Audit" });
+    await play.click();
+    await expect(hero.locator("video")).toHaveCount(0, { timeout: 15_000 });
+    await expect(hero.locator("iframe")).toHaveCount(0);
+    await expect(play).toBeFocused();
   },
 );
 

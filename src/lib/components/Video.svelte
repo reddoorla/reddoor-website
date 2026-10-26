@@ -176,7 +176,7 @@
     if (!motionOk) motionState = "reduced";
     const onChange = (event: MediaQueryListEvent) => {
       motionOk = !event.matches;
-      if (event.matches) motionState = "reduced";
+      motionState = event.matches ? "reduced" : "waiting";
       if (event.matches) el.pause();
       else if (inView && !userPaused) play();
     };
@@ -254,10 +254,13 @@
       />{/if}
     {#if mp4}<source src={mp4} type="video/mp4" onerror={fail} />{/if}
   </video>
+  <!-- z-10, not z-20: the fixed site nav is z-20 and comes first in the
+       DOM, so a z-20 button would paint over it. Later in the DOM than the
+       z-10 video, the button still sits above it. -->
   {#if pauseControl && mounted && motionOk}
     <button
       type="button"
-      class="absolute z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white {controlClass}"
+      class="absolute z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-white focus-visible:ring-4 focus-visible:ring-black {controlClass}"
       aria-label="{paused ? 'Play' : 'Pause'} background video{title ? `: ${title}` : ''}"
       onclick={toggle}
     >

@@ -6,7 +6,6 @@
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
   import Video from "$lib/components/Video.svelte";
   import { captionsUrl, mediaUrl } from "$lib/video/media";
-  import { asImageSrc } from "@prismicio/client";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
   import type {
@@ -39,10 +38,6 @@
       mediaUrl(item.video_mp4 as Parameters<typeof mediaUrl>[0]) ||
       mediaUrl(item.video_mp4_mobile as Parameters<typeof mediaUrl>[0]),
     );
-  // The player's own poster, sized: the original is the full-resolution
-  // upload, and a `poster` is never lazy.
-  const posterSrc = (field: Parameters<typeof asImageSrc>[0]) =>
-    asImageSrc(field, { w: 1600, auto: ["format", "compress"] });
 
   type CwmImageItem = ContentWidthImageSliceDefaultPrimaryImagesItem;
 
@@ -144,10 +139,15 @@
               }}
               class="{slice.primary.hasGap
                 ? 'pr-6 pb-6'
-                : ''} relative w-full flex flex-col items-center justify-start cursor-pointer {slice
-                .primary.desktopcolumns === '2'
-                ? 'lg:w-1/2'
-                : ''} {slice.primary.desktopcolumns === '3' ? 'lg:w-1/3' : ' '}
+                : ''} relative w-full flex flex-col items-center justify-start {hasVideo(
+                item,
+                item.vimeoid,
+              )
+                ? ''
+                : 'cursor-pointer'} {slice.primary.desktopcolumns === '2' ? 'lg:w-1/2' : ''} {slice
+                .primary.desktopcolumns === '3'
+                ? 'lg:w-1/3'
+                : ' '}
                   {item.aspect === 'square'
                 ? 'aspect-square'
                 : item.aspect === '4/3'
@@ -172,7 +172,7 @@
                 {#if item.label && hasVideo(item, item.vimeoid)}
                   <a
                     href={item.link.url}
-                    class="w-full border-b-1 border-dark label mb-8 cursor-pointer block"
+                    class="relative z-20 w-full border-b-1 border-dark label mb-8 cursor-pointer block"
                   >
                     {item.label}
                   </a>
@@ -181,7 +181,9 @@
                     {item.label}
                   </div>
                 {:else if hasVideo(item, item.vimeoid)}
-                  <a href={item.link.url} class="sr-only focus:not-sr-only"
+                  <a
+                    href={item.link.url}
+                    class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-30 focus:bg-white focus:px-2"
                     >{item.image.alt || "View linked media"}</a
                   >
                 {/if}
@@ -201,7 +203,6 @@
                     mobileMp4={mediaUrl(item.video_mp4_mobile)}
                     vimeoId={item.vimeoid}
                     mode={item.loopvideo ? "background" : "player"}
-                    poster={posterSrc(item.image)}
                     captions={captionsUrl(item.video_captions)}
                     title={item.label || item.image?.alt || undefined}
                     hasPoster={isFilled.image(item.image)}
@@ -272,7 +273,6 @@
                   mobileMp4={mediaUrl(item.video_mp4_mobile)}
                   vimeoId={item.vimeoid}
                   mode={item.loopvideo ? "background" : "player"}
-                  poster={posterSrc(item.image)}
                   captions={captionsUrl(item.video_captions)}
                   title={item.label || item.image?.alt || undefined}
                   controlClass={slice.primary.hasGap ? "bottom-10 right-10" : "bottom-4 right-4"}

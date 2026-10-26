@@ -6,7 +6,6 @@
   import { animateIn as anim } from "$lib/actions/animateIn";
   import Video from "$lib/components/Video.svelte";
   import { captionsUrl, mediaUrl } from "$lib/video/media";
-  import { asImageSrc } from "@prismicio/client";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
 
@@ -29,10 +28,6 @@
       mediaUrl(item.video_mp4 as Parameters<typeof mediaUrl>[0]) ||
       mediaUrl(item.video_mp4_mobile as Parameters<typeof mediaUrl>[0]),
     );
-  // The player's own poster, sized: the original is the full-resolution
-  // upload, and a `poster` is never lazy.
-  const posterSrc = (field: Parameters<typeof asImageSrc>[0]) =>
-    asImageSrc(field, { w: 1600, auto: ["format", "compress"] });
 </script>
 
 <SliceSection
@@ -74,7 +69,10 @@
           class="relative w-full flex flex-col items-center justify-start"
         >
           {#if item.label && hasVideo(item, item.vimeoId)}
-            <a href={item.link.url} class="w-full border-b-1 border-dark label mb-8 block">
+            <a
+              href={item.link.url}
+              class="relative z-20 w-full border-b-1 border-dark label mb-8 block"
+            >
               {item.label}
             </a>
           {:else if item.label}
@@ -82,7 +80,9 @@
               {item.label}
             </div>
           {:else if hasVideo(item, item.vimeoId)}
-            <a href={item.link.url} class="sr-only focus:not-sr-only"
+            <a
+              href={item.link.url}
+              class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-30 focus:bg-white focus:px-2"
               >{item.image.alt || "View linked media"}</a
             >
           {/if}
@@ -102,7 +102,6 @@
               mobileMp4={mediaUrl(item.video_mp4_mobile)}
               vimeoId={item.vimeoId}
               mode={item.loopvideo ? "background" : "player"}
-              poster={posterSrc(item.image)}
               captions={captionsUrl(item.video_captions)}
               title={item.label || item.image?.alt || undefined}
               hasPoster={isFilled.image(item.image)}
@@ -168,7 +167,6 @@
             mobileMp4={mediaUrl(item.video_mp4_mobile)}
             vimeoId={item.vimeoId}
             mode={item.loopvideo ? "background" : "player"}
-            poster={posterSrc(item.image)}
             captions={captionsUrl(item.video_captions)}
             title={item.label || item.image?.alt || undefined}
             hasPoster={isFilled.image(item.image)}

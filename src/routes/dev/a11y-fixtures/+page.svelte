@@ -550,6 +550,11 @@
     mp4: "fixture-offer-1080.mp4",
     mobile: "fixture-offer-phone-720.mp4",
   });
+  // A file that 404s with no Vimeo id behind it: the card must come back.
+  const offerHeroDead = offerHero("fixture-offer-hero-dead", "", {
+    mp4: "dead-offer-1080.mp4",
+    mobile: "dead-offer-phone-720.mp4",
+  });
 
   const ctaBanner: Content.CtaBannerSlice = {
     id: "fixture-cta-banner",
@@ -646,6 +651,7 @@
   <OfferHero slice={offerHeroWithVideo} />
   <OfferHero slice={offerHeroNoVideo} />
   <OfferHero slice={offerHeroHosted} />
+  <OfferHero slice={offerHeroDead} />
 
   <!-- Inquiry modal (industry pages). The live /medtech document still points
        its CTAs at /contact until the content migration runs, so the trigger has
