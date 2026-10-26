@@ -67,9 +67,9 @@
       mode={slice.primary.loopvideo ? "background" : "player"}
       title={slice.primary.image?.alt || undefined}
       poster={asImageSrc(slice.primary.image, {
-        w: 1920,
-        fit: "max",
         auto: ["format", "compress"],
+        fit: "max",
+        width: 1920,
       })}
       captions={captionsUrl(slice.primary.video_captions)}
       controlClass={pad.padBottom ? "bottom-16 right-4" : "bottom-4 right-4"}

@@ -9,6 +9,8 @@ import { readFileSync } from "node:fs";
 // player is on the page.
 
 const CLIP = readFileSync(new URL("../fixtures/clip.mp4", import.meta.url));
+// A square still: a different shape from the 16:9 clip, as an editor's may be.
+const SQUARE = readFileSync(new URL("../fixtures/poster-square.png", import.meta.url));
 const SELF_HOSTED = 'video[data-video="self-hosted"]';
 const VIMEO = 'iframe[src*="player.vimeo.com"], iframe[title]';
 
@@ -25,17 +27,25 @@ async function serveMedia(page: Page) {
     const url = route.request().url();
     asked.push(url);
     if (url.includes("/dead-")) return route.fulfill({ status: 404, headers, body: "" });
+    if (url.endsWith(".png"))
+      return route.fulfill({ status: 200, headers, contentType: "image/png", body: SQUARE });
     if (url.endsWith(".vtt"))
       return route.fulfill({ status: 200, headers, contentType: "text/vtt", body: VTT });
     return route.fulfill({ status: 200, headers, contentType: "video/mp4", body: CLIP });
   });
+  await page.route("https://images.prismic.io/**", (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: SQUARE }),
+  );
   await page.route("https://player.vimeo.com/**", (route) => route.abort());
   return asked;
 }
 
 async function gotoFixture(page: Page) {
   const asked = await serveMedia(page);
-  await page.goto("/dev/video-fixture", { waitUntil: "domcontentloaded" });
+  // With a hash: the root layout's afterNavigate scrolls to the top 600ms
+  // after every load that has none, which would undo a test's own scrolling
+  // (and is the cause of offer-hero's "does not scroll" flake).
+  await page.goto("/dev/video-fixture#cases", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
   return asked;
 }
@@ -119,7 +129,7 @@ test(
     expect(asked.some((u) => u.includes("far-1080"))).toBe(false);
 
     await far.scrollIntoViewIfNeeded();
-    await expect.poll(() => isPaused(page, "bg-far")).toBe(false);
+    await expect.poll(() => isPaused(page, "bg-far"), { timeout: 15_000 }).toBe(false);
 
     await far.getByRole("button", { name: "Pause background video" }).click();
     await expect.poll(() => isPaused(page, "bg-far")).toBe(true);
@@ -210,6 +220,41 @@ test(
     await expect(
       cards.getByRole("button", { name: /background video: Linked loop/ }),
     ).toBeVisible();
+  },
+);
+
+test(
+  "a player far down the page fetches neither its poster nor its file until it is near",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    const asked = await gotoFixture(page);
+    const video = kase(page, "player-far").locator(SELF_HOSTED);
+    await expect(video).toHaveAttribute("preload", "none");
+    expect(await video.getAttribute("poster")).toBeNull();
+    expect(asked.some((u) => u.includes("pl-far"))).toBe(false);
+
+    await kase(page, "player-far").scrollIntoViewIfNeeded();
+    await expect(video).toHaveAttribute("poster", /pl-far-poster\.png/);
+    await expect.poll(() => asked.some((u) => u.includes("pl-far-1080"))).toBe(true);
+  },
+);
+
+test(
+  "a player whose still is another shape keeps its box when play is pressed",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoFixture(page);
+    const card = page.locator('[data-case="linked-cards"]');
+    await card.scrollIntoViewIfNeeded();
+    const video = card.locator(SELF_HOSTED).first();
+    await expect
+      .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState))
+      .toBeGreaterThanOrEqual(1);
+    const before = await video.evaluate((v) => v.getBoundingClientRect().height);
+    await video.evaluate((v: HTMLVideoElement) => v.play());
+    await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
+    const after = await video.evaluate((v) => v.getBoundingClientRect().height);
+    expect(Math.abs(after - before)).toBeLessThan(2);
   },
 );
 

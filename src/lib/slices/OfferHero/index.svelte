@@ -124,9 +124,8 @@
             hash={vimeo?.hash}
             captions={captionsUrl(slice.primary.video_captions)}
             poster={asImageSrc(slice.primary.video_poster, {
-              w: 1600,
-              fit: "max",
               auto: ["format", "compress"],
+              width: 1440,
             })}
             onfail={failed}
             autoplay

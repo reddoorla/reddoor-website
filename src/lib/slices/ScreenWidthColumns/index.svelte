@@ -24,9 +24,10 @@
   // invalid). The old Vimeo iframe swallowed those clicks, so a card with a
   // video keeps its link on the label, or on a visually hidden link.
   // A player's poster, sized; Video sets it only when the player nears the
-  // viewport (frame 0 would otherwise cover the still underneath).
+  // viewport (frame 0 would otherwise cover the still underneath). Built as
+  // the underlay's own 1600w srcset URL, so it is usually a cache hit.
   const posterSrc = (field: Parameters<typeof asImageSrc>[0]) =>
-    asImageSrc(field, { w: 1600, fit: "max", auto: ["format", "compress"] });
+    asImageSrc(field, { auto: ["format", "compress"], fit: "max", width: 1600 });
 
   const hasVideo = (item: { video_mp4: unknown; video_mp4_mobile: unknown }, id: unknown) =>
     Boolean(

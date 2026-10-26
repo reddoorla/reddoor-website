@@ -8,7 +8,7 @@
   // tests/smoke/video.spec.ts: each mode self-hosted, with no file (Vimeo
   // plays), and with a file that 404s (Vimeo takes over). The file urls are on
   // Prismic's CDN host and never exist; the spec answers them through
-  // page.route. The last case sits two screens down, for the
+  // page.route. The far cases sit two screens down, for the
   // play-near-the-viewport and visitor's-pause checks.
   onMount(() => document.documentElement.setAttribute("data-hydrated", "true"));
 
@@ -108,7 +108,6 @@
       />
     </section>
   {/each}
-  <div data-case="linked-cards"><ContentWidthMedia slice={linkedCards} /></div>
   <div style="height: 250vh" aria-hidden="true"></div>
   <section data-case="bg-far" class="relative aspect-video w-80">
     <Video
@@ -119,5 +118,19 @@
       class="absolute inset-0 h-full w-full object-cover"
     />
   </section>
+  <section data-case="player-far" class="relative aspect-video w-80">
+    <Video
+      mode="player"
+      mp4={cdn("pl-far-1080.mp4")}
+      vimeoId={VIMEO}
+      poster={cdn("pl-far-poster.png")}
+      title="Fixture player-far"
+      class="absolute inset-0 h-full w-full object-cover"
+    />
+  </section>
+  <!-- Last on the page: these cards change height as their posters and
+       metadata arrive, which would move anything below them across the
+       play/pause margin while a test is clicking it. -->
+  <div data-case="linked-cards"><ContentWidthMedia slice={linkedCards} /></div>
   <div style="height: 50vh" aria-hidden="true"></div>
 </main>

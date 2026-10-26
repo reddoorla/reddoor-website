@@ -108,6 +108,12 @@
   let motionState = $state<"waiting" | "reduced" | "playing" | "paused">("waiting");
   // The phone file is media-gated only when a 1080p file exists to fall to.
   const phoneMedia = $derived(mp4 ? "(max-width: 767px)" : undefined);
+  // A player's box takes the clip's shape once its metadata is in. While a
+  // <video> shows its poster its intrinsic size is the poster's, so a still
+  // of another shape would size the box until play and then jump to the
+  // clip's (215px under the cursor, measured in round 4). The metadata
+  // arrives as the player nears the viewport, before it is seen.
+  let clipRatio = $state<string | null>(null);
   const playerName = $derived(title || "Video");
 
   function fail() {
@@ -291,6 +297,11 @@
     poster={preload === "metadata" || autoplay ? poster || undefined : undefined}
     aria-label={playerName}
     data-video="self-hosted"
+    style={clipRatio ? `aspect-ratio: ${clipRatio}` : undefined}
+    onloadedmetadata={(e) => {
+      const v = e.currentTarget;
+      if (v.videoWidth && v.videoHeight) clipRatio = `${v.videoWidth} / ${v.videoHeight}`;
+    }}
     onended={() => onended?.()}
     onerror={fail}
   >
