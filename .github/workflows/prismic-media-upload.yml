@@ -1,12 +1,18 @@
 # Uploads video files to this site's Prismic media library (P1-74). Ported
-# from williamson-construction-co's workflow of the same name; only the
-# repository header differs. The Prismic connector refuses video, and the
+# from williamson-construction-co's workflow of the same name; it differs in
+# the repository header, no retry on the upload POST, and refusing `-` and
+# `body.json` as names. The Prismic connector refuses video, and the
 # write token lives only in this repo's secrets, so the files are fetched from
 # a public HTTPS directory (a draft deploy's /video/, a share host) and posted
 # to the Asset API here. It never deletes, and the Asset API does not dedupe:
 # upload a changed encode under a new name.
 #
-# workflow_dispatch runs only once this file is on the default branch (main).
+# The files are the renditions maintenance's `reddoor-maint video` writes
+# (1080p H.264 crf 23 capped at 5M, phone 720p crf 24 capped at 1200k, both
+# +faststart); a player keeps its audio as AAC. This workflow encodes nothing.
+#
+# It can be dispatched once this file is on the default branch (main), and
+# then against any branch, with this repo's PRISMIC_WRITE_TOKEN.
 name: prismic-media-upload
 
 on:
@@ -46,7 +52,7 @@ jobs:
           for raw in "${names[@]}"; do
             name="$(printf '%s' "$raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
             [ -z "$name" ] && continue
-            case "$name" in */*|.*) echo "FAILED $name: names only, no paths"; exit 2 ;; esac
+            case "$name" in */*|.*|-|body.json) echo "FAILED $name: names only, no paths"; exit 2 ;; esac
             [ "$count" -gt 0 ] && sleep 1.2
             enc="$(jq -rn --arg s "$name" '$s|@uri')"
             curl -fsSL --proto '=https' --proto-redir '=https' --max-time 900 -o "$name" "${BASE_URL%/}/$enc" \
@@ -54,7 +60,9 @@ jobs:
             type="$(file -b --mime-type -- "$name")"
             q=${name//\\/\\\\}
             q=${q//\"/\\\"}
-            code="$(curl -sS --retry 3 --retry-delay 2 --max-time 900 -o body.json -w '%{http_code}' -X POST "$ASSET_API" \
+            # No --retry on this POST: the Asset API does not dedupe, and a
+            # retry after a stored-then-5xx upload would add a second copy.
+            code="$(curl -sS --max-time 900 -o body.json -w '%{http_code}' -X POST "$ASSET_API" \
               -H "Authorization: Bearer $PRISMIC_WRITE_TOKEN" \
               -H "repository: reddoor-la" \
               -F "file=@\"$q\";type=$type")" || { echo "FAILED $name: curl exit $? HTTP ${code:-none}"; exit 22; }

@@ -12,15 +12,22 @@ const CLIP = readFileSync(new URL("../fixtures/clip.mp4", import.meta.url));
 const SELF_HOSTED = 'video[data-video="self-hosted"]';
 const VIMEO = 'iframe[src*="player.vimeo.com"], iframe[title]';
 
-/** Answer every Prismic media url: a `dead-` name 404s, anything else is the
- *  fixture clip. Vimeo never loads. Returns the urls the browser asked for. */
+const VTT = "WEBVTT\n\n00:00.000 --> 00:01.000\nFixture caption\n";
+
+/** Answer every Prismic media url as its CDN does (with CORS: a player is
+ *  crossorigin="anonymous" for its captions): a `dead-` name 404s, a `.vtt`
+ *  is a caption file, anything else is the fixture clip. Vimeo never loads.
+ *  Returns the urls the browser asked for. */
 async function serveMedia(page: Page) {
   const asked: string[] = [];
+  const headers = { "access-control-allow-origin": "*" };
   await page.route("https://reddoor-la.cdn.prismic.io/**", (route) => {
     const url = route.request().url();
     asked.push(url);
-    if (url.includes("/dead-")) return route.fulfill({ status: 404, body: "" });
-    return route.fulfill({ status: 200, contentType: "video/mp4", body: CLIP });
+    if (url.includes("/dead-")) return route.fulfill({ status: 404, headers, body: "" });
+    if (url.endsWith(".vtt"))
+      return route.fulfill({ status: 200, headers, contentType: "text/vtt", body: VTT });
+    return route.fulfill({ status: 200, headers, contentType: "video/mp4", body: CLIP });
   });
   await page.route("https://player.vimeo.com/**", (route) => route.abort());
   return asked;
@@ -130,11 +137,77 @@ test(
 );
 
 test("under Reduce Motion a background video never starts", { tag: "@smoke" }, async ({ page }) => {
-  await gotoFixture(page);
-  await expect(kase(page, "bg-hosted").locator(SELF_HOSTED)).toBeAttached();
+  const asked = await gotoFixture(page);
+  // Wait for the component's own decision, so the checks below cannot pass
+  // merely by running before it made one.
+  await expect(kase(page, "bg-hosted").locator(SELF_HOSTED)).toHaveAttribute(
+    "data-state",
+    "reduced",
+  );
   await expect(kase(page, "bg-hosted").getByRole("button")).toHaveCount(0);
   expect(await isPaused(page, "bg-hosted")).toBe(true);
+  expect(asked.some((u) => u.includes("bg-1080"))).toBe(false);
 });
+
+test(
+  "a phone file with no 1080p file plays at desktop width too",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await allowMotion(page);
+    await gotoFixture(page);
+    const video = kase(page, "bg-phone-only").locator(SELF_HOSTED);
+    await kase(page, "bg-phone-only").scrollIntoViewIfNeeded();
+    await expect.poll(() => isPaused(page, "bg-phone-only")).toBe(false);
+    expect(await video.evaluate((v: HTMLVideoElement) => v.currentSrc)).toMatch(
+      /only-phone-720\.mp4$/,
+    );
+  },
+);
+
+test(
+  "a self-hosted player waits for the visitor, is named, and shows its captions",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await gotoFixture(page);
+    const video = kase(page, "player-hosted").locator(SELF_HOSTED);
+    await expect(video).toBeVisible();
+    await expect(video).toHaveAttribute("controls", "");
+    await expect(video).toHaveAttribute("aria-label", "Fixture player-hosted");
+    await expect(video).toHaveAttribute("preload", "metadata");
+    expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
+    await expect
+      .poll(() =>
+        video.evaluate((v: HTMLVideoElement) => {
+          const t = v.textTracks[0];
+          return t ? `${t.kind}:${t.mode}` : "none";
+        }),
+      )
+      .toBe("captions:showing");
+  },
+);
+
+test(
+  "a video in a linked card is not inside the link, and its controls do not follow it",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await allowMotion(page);
+    await gotoFixture(page);
+    const cards = page.locator('[data-case="linked-cards"]');
+    const videos = cards.locator(SELF_HOSTED);
+    await expect(videos).toHaveCount(2);
+    expect(await cards.locator(`a ${SELF_HOSTED}, a button`).count()).toBe(0);
+    // The link is still there, on the card's label.
+    await expect(cards.getByRole("link", { name: "Linked player" })).toHaveAttribute(
+      "href",
+      "/linked-target",
+    );
+
+    const before = page.url();
+    await cards.getByRole("button", { name: /background video: / }).click();
+    await videos.first().click();
+    expect(page.url()).toBe(before);
+  },
+);
 
 test(
   "the self-hosted offer video plays from its file and ends on its poster",

@@ -5,7 +5,8 @@
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
   import Video from "$lib/components/Video.svelte";
-  import { mediaUrl } from "$lib/video/media";
+  import { captionsUrl, mediaUrl } from "$lib/video/media";
+  import { asImageSrc } from "@prismicio/client";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
   import type {
@@ -27,6 +28,21 @@
   const itemDelayMax = $derived(slice.primary.hasGap ? 400 : 0);
 
   const pad = $derived(resolvePadding(slice.primary));
+
+  // A video in a linked card would sit inside its <a>: a click on the player
+  // or the pause button would follow the link (and a button in a link is
+  // invalid). The old Vimeo iframe swallowed those clicks, so a card with a
+  // video keeps its link on the label, or on a visually hidden link.
+  const hasVideo = (item: { video_mp4: unknown; video_mp4_mobile: unknown }, id: unknown) =>
+    Boolean(
+      id ||
+      mediaUrl(item.video_mp4 as Parameters<typeof mediaUrl>[0]) ||
+      mediaUrl(item.video_mp4_mobile as Parameters<typeof mediaUrl>[0]),
+    );
+  // The player's own poster, sized: the original is the full-resolution
+  // upload, and a `poster` is never lazy.
+  const posterSrc = (field: Parameters<typeof asImageSrc>[0]) =>
+    asImageSrc(field, { w: 1600, auto: ["format", "compress"] });
 
   type CwmImageItem = ContentWidthImageSliceDefaultPrimaryImagesItem;
 
@@ -145,15 +161,29 @@
                         : ''}
                   "
             >
-              <a
-                href={item.link.url}
-                aria-label={item.label || item.image.alt || "View linked media"}
+              <svelte:element
+                this={hasVideo(item, item.vimeoid) ? "div" : "a"}
+                href={hasVideo(item, item.vimeoid) ? undefined : item.link.url}
+                aria-label={hasVideo(item, item.vimeoid)
+                  ? undefined
+                  : item.label || item.image.alt || "View linked media"}
                 class="relative w-full flex flex-col items-center justify-start"
               >
-                {#if item.label}
+                {#if item.label && hasVideo(item, item.vimeoid)}
+                  <a
+                    href={item.link.url}
+                    class="w-full border-b-1 border-dark label mb-8 cursor-pointer block"
+                  >
+                    {item.label}
+                  </a>
+                {:else if item.label}
                   <div class="w-full border-b-1 border-dark label mb-8 cursor-pointer">
                     {item.label}
                   </div>
+                {:else if hasVideo(item, item.vimeoid)}
+                  <a href={item.link.url} class="sr-only focus:not-sr-only"
+                    >{item.image.alt || "View linked media"}</a
+                  >
                 {/if}
 
                 {#if item.vimeoid || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
@@ -171,11 +201,13 @@
                     mobileMp4={mediaUrl(item.video_mp4_mobile)}
                     vimeoId={item.vimeoid}
                     mode={item.loopvideo ? "background" : "player"}
-                    poster={item.image?.url}
+                    poster={posterSrc(item.image)}
+                    captions={captionsUrl(item.video_captions)}
+                    title={item.label || item.image?.alt || undefined}
                     hasPoster={isFilled.image(item.image)}
                     class="object-cover w-full {item.aspect !== 'free'
                       ? 'h-full'
-                      : ''} mx-auto z-10"
+                      : ''} relative mx-auto z-10"
                   />
                 {:else}
                   <PrismicImage
@@ -190,7 +222,7 @@
                     decoding="async"
                   />
                 {/if}
-              </a>
+              </svelte:element>
             </div>
           {:else}
             <div
@@ -240,9 +272,12 @@
                   mobileMp4={mediaUrl(item.video_mp4_mobile)}
                   vimeoId={item.vimeoid}
                   mode={item.loopvideo ? "background" : "player"}
-                  poster={item.image?.url}
+                  poster={posterSrc(item.image)}
+                  captions={captionsUrl(item.video_captions)}
+                  title={item.label || item.image?.alt || undefined}
+                  controlClass={slice.primary.hasGap ? "bottom-10 right-10" : "bottom-4 right-4"}
                   hasPoster={isFilled.image(item.image)}
-                  class="object-cover w-full {item.aspect !== 'free' ? 'h-full' : ''} z-10"
+                  class="object-cover w-full {item.aspect !== 'free' ? 'h-full' : ''} relative z-10"
                 />
               {:else}
                 <PrismicImage

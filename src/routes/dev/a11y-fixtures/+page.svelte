@@ -533,6 +533,7 @@
       vimeo_video: vimeo,
       video_mp4: file ? media(file.mp4) : noMedia(),
       video_mp4_mobile: file ? media(file.mobile) : noMedia(),
+      video_captions: file ? media("fixture-offer.en.vtt") : noMedia(),
       video_title: "Brand Friction Audit",
       cta_heading: "Think this a good fit for you?",
       cta_body: "Fill out a short questionnaire and find out.",

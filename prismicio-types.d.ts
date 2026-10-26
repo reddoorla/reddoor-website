@@ -2214,6 +2214,16 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
 	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
 	
 	/**
+	 * video captions (WebVTT) field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: content_width_image.default.primary.images[].video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
 	 * loopVideo field in *ContentWidthMedia → Default → Primary → images*
 	 *
 	 * - **Field Type**: Boolean
@@ -3188,6 +3198,16 @@ export interface OfferHeroSliceDefaultPrimary {
 	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
 	
 	/**
+	 * video captions (WebVTT) field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: offer_hero.default.primary.video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
 	 * video title (read to screen readers) field in *OfferHero → Default → Primary*
 	 *
 	 * - **Field Type**: Text
@@ -3452,6 +3472,16 @@ export interface ScreenWidthColumnsSliceDefaultPrimaryMediaItem {
 	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
 	
 	/**
+	 * video captions (WebVTT) field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
 	 * loopVideo field in *ScreenWidthColumns → Default → Primary → media*
 	 *
 	 * - **Field Type**: Boolean
@@ -3642,6 +3672,16 @@ export interface ScreenWidthImageSliceDefaultPrimary {
 	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
 	 */
 	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video captions (WebVTT) field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: screen_width_image.default.primary.video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
 	
 	/**
 	 * loopVideo field in *ScreenWidthMedia → Default → Primary*

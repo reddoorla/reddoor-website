@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Video from "$lib/components/Video.svelte";
+  import ContentWidthMedia from "$lib/slices/ContentWidthMedia/index.svelte";
+  import type { ContentWidthImageSlice } from "../../../../prismicio-types";
 
   // Every branch of the shared Video component (P1-74), for
   // tests/smoke/video.spec.ts: each mode self-hosted, with no file (Vimeo
@@ -34,7 +36,59 @@
     },
     { id: "player-empty", mode: "player", mp4: null, mobile: null },
     { id: "player-dead", mode: "player", mp4: cdn("dead-1080.mp4"), mobile: null },
+    { id: "bg-phone-only", mode: "background", mp4: null, mobile: cdn("only-phone-720.mp4") },
   ] as const;
+
+  // Linked cards with a video (ContentWidthMedia): the player and the pause
+  // button must not sit inside the card's link.
+  const fileField = (name: string) => ({
+    link_type: "Media",
+    kind: "file",
+    id: `fixture-${name}`,
+    name,
+    url: cdn(name),
+    size: "1",
+  });
+  const linkedItem = (label: string, loop: boolean, name: string) => ({
+    image: {
+      url: "https://images.prismic.io/reddoor-la/fixture.png?auto=format,compress",
+      alt: `${label} still`,
+      dimensions: { width: 1600, height: 900 },
+      id: "fixture",
+      edit: { x: 0, y: 0, zoom: 1, background: "transparent" },
+      copyright: null,
+    },
+    vimeoid: VIMEO,
+    video_mp4: fileField(name),
+    video_mp4_mobile: { link_type: "Any" },
+    video_captions: { link_type: "Any" },
+    label,
+    loopvideo: loop,
+    link: { link_type: "Web", url: "/linked-target" },
+    aspect: "16/9",
+    gallery: { link_type: "Document" },
+  });
+  const linkedCards = {
+    id: "fixture-linked-cards",
+    slice_type: "content_width_image",
+    slice_label: null,
+    variation: "default",
+    version: "initial",
+    primary: {
+      images: [
+        linkedItem("Linked player", false, "linked-player-1080.mp4"),
+        linkedItem("Linked loop", true, "linked-loop-1080.mp4"),
+      ],
+      label: null,
+      background: "white",
+      desktopcolumns: "2",
+      isFullContentWidth: false,
+      body: [],
+      hasGap: true,
+      isAnimated: false,
+    },
+    items: [],
+  } as unknown as ContentWidthImageSlice;
 </script>
 
 <main class="bg-paper">
@@ -48,10 +102,12 @@
         vimeoId={VIMEO}
         hasPoster={false}
         title="Fixture {c.id}"
+        captions={c.id === "player-hosted" ? cdn("pl.en.vtt") : null}
         class="absolute inset-0 h-full w-full object-cover"
       />
     </section>
   {/each}
+  <div data-case="linked-cards"><ContentWidthMedia slice={linkedCards} /></div>
   <div style="height: 250vh" aria-hidden="true"></div>
   <section data-case="bg-far" class="relative aspect-video w-80">
     <Video

@@ -300,9 +300,11 @@
       {/if}
 
       {#if media.mode === "video"}
-        <!-- A vimeo id replaces the after image outright and hides the switch
-             (see ./media.ts). Background loop: the design shows no play control,
-             and the still above doubles as its poster. -->
+        <!-- A video (a file, or a vimeo id) replaces the after image outright
+             and hides the switch (see ./media.ts). Background loop, the still
+             above doubling as its poster. The design draws no play control; a
+             self-hosted file adds the shared pause button (WCAG 2.2.2), in the
+             top corner, clear of the slideshow's own controls. -->
         <Video
           {mp4}
           {mobileMp4}
@@ -310,7 +312,8 @@
           mode="background"
           hasPoster={media.base !== "none"}
           title={mediaTitle}
-          class="absolute inset-0 h-full w-full"
+          controlClass="top-4 right-4"
+          class="absolute inset-0 h-full w-full object-cover"
         />
       {/if}
     </div>

@@ -2,7 +2,7 @@
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import Video from "$lib/components/Video.svelte";
-  import { mediaUrl } from "$lib/video/media";
+  import { captionsUrl, mediaUrl } from "$lib/video/media";
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import type { RichTextComponents } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
@@ -56,6 +56,19 @@
     if (hadFocus) card?.querySelector<HTMLElement>(".offer-play")?.focus({ preventScroll: true });
   }
 
+  // The file failed. With Vimeo behind it the player is swapped in place, and
+  // focus, which was on the removed <video>, goes to the new player. With
+  // nothing behind it the card goes back to its poster, rather than a blank
+  // box with no way back.
+  async function failed(hasFallback: boolean) {
+    if (!hasFallback) {
+      playing = false;
+      return;
+    }
+    await tick();
+    card?.querySelector<HTMLElement>("iframe")?.focus();
+  }
+
   // With no video and no alt text on the poster asset, the card's copy (which
   // is in the pixels) would have no name at all.
   const posterUnnamed = $derived(!video && !slice.primary.video_poster?.alt?.trim());
@@ -107,7 +120,8 @@
             {mobileMp4}
             vimeoId={vimeo?.id}
             hash={vimeo?.hash}
-            poster={slice.primary.video_poster?.url}
+            captions={captionsUrl(slice.primary.video_captions)}
+            onfail={failed}
             autoplay
             onended={ended}
             title={videoTitle}

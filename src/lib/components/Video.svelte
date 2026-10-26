@@ -5,7 +5,9 @@
   //
   // Self-hosted first: a 1080p H.264 mp4 plus an optional 720p phone mp4
   // behind `<source media="(max-width: 767px)">`, the pattern Williamson's
-  // BgVideo set (reddoor-maintenance decision 63).
+  // BgVideo set (reddoor-maintenance decision 63). A phone file with no 1080p
+  // file plays at every width. A player can carry a WebVTT captions file,
+  // shown by default, as Vimeo shows its own.
   //
   // Two modes:
   //
@@ -20,8 +22,8 @@
   // The fallback: when no file is set, or the video or its last <source>
   // fires `error` (every source failed), or play() says the format is not
   // supported, the Vimeo embed renders in the same place with the same class.
-  // `preload="none"` (background, and the player until hydration) means the file is
-  // not fetched in full before it is needed, and the embed is only mounted
+  // `preload="none"` (background, and the player until it nears the viewport)
+  // means the file is not fetched before it is needed, and the embed is only mounted
   // after the file has failed, so a normal load downloads one of the two,
   // never both. A caller with its own Vimeo markup passes it as `fallback`.
   import { onMount, type Snippet } from "svelte";
@@ -42,11 +44,17 @@
      *  with one the video fades in over it once playing, without one it shows
      *  at once. Passed through to the Vimeo fallback as well. */
     hasPoster?: boolean;
+    /** The player's accessible name, and the Vimeo fallback's title. */
     title?: string;
+    /** A player's WebVTT captions file (English). */
+    captions?: string | null;
     class?: string;
     allow?: string;
     autoplay?: boolean;
     onended?: () => void;
+    /** Called once when the self-hosted file fails, before Vimeo takes over
+     *  (or nothing does, with no Vimeo id). */
+    onfail?: (hasFallback: boolean) => void;
     /** Background mode: show the pause/play button. */
     pauseControl?: boolean;
     controlClass?: string;
@@ -64,11 +72,13 @@
     hash = "",
     poster = null,
     hasPoster = true,
-    title = mode === "background" ? "background video" : "Video",
+    title,
+    captions = null,
     class: className = "",
     allow = "autoplay",
     autoplay = false,
     onended,
+    onfail,
     pauseControl = true,
     controlClass = "bottom-4 right-4",
     playing = $bindable(false),
@@ -87,12 +97,21 @@
   let paused = $state(true);
   let userPaused = false;
   let inView = false;
-  // The player fetches its metadata only after hydration (see onMount).
+  // The player fetches its metadata only after hydration, near the viewport.
   let preload = $state<"none" | "metadata">("none");
+  // What the component decided, for the smoke tests (and devtools): a
+  // background clip `waiting` to come near, `reduced` (never starts), or
+  // `playing` / `paused`.
+  let motionState = $state<"waiting" | "reduced" | "playing" | "paused">("waiting");
+  // The phone file is media-gated only when a 1080p file exists to fall to.
+  const phoneMedia = $derived(mp4 ? "(max-width: 767px)" : undefined);
+  const playerName = $derived(title || "Video");
 
   function fail() {
+    if (failed) return;
     failed = true;
     playing = false;
+    onfail?.(Boolean(fallback) || hasVimeo);
   }
 
   function play() {
@@ -111,20 +130,39 @@
 
   onMount(() => {
     mounted = true;
-    // Svelte replays an `error` that fired before hydration, but a media
-    // element's own error state is cheap to check too. (Not networkState:
-    // NETWORK_NO_SOURCE is also the state it waits in while its <source>
-    // children are still being inserted, which is every client-side mount.)
+    // Svelte does not replay a media element's or a <source>'s `error` that
+    // fired before hydration (its replay list has neither), so nothing may
+    // fetch before then: the server renders preload="none", and a background
+    // clip fetches only through play(). A media element's own error state is
+    // still worth a look. (Not networkState: NETWORK_NO_SOURCE is also the
+    // state it waits in while its <source> children are being inserted.)
     if (video?.error) fail();
-    // A server-rendered <video preload="metadata"> starts fetching before
-    // hydration, and a <source> error then has no listener to hear it (Svelte
-    // does not replay it), so the fallback would never run. The server renders
-    // preload="none"; the fetch starts here, with the listeners in place. A
-    // player mounted on a click with `autoplay` is already loading.
-    if (!background && !autoplay && video) {
+  });
+
+  // A player fetches its metadata once it nears the viewport, with the error
+  // listeners in place, so a dead file falls back before anyone presses play
+  // and a page of players below the fold fetches nothing at load. A player
+  // mounted on a click with `autoplay` is already loading.
+  $effect(() => {
+    if (background || !selfHosted || autoplay) return;
+    const el = video;
+    if (!el) return;
+    const start = () => {
       preload = "metadata";
-      video.load();
-    }
+      el.load();
+    };
+    if (typeof IntersectionObserver === "undefined") return start();
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          io.disconnect();
+          start();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   });
 
   // Background: near the viewport, play; off it, pause. Reduced motion never
@@ -135,8 +173,10 @@
     if (!el) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     motionOk = !reduce?.matches;
+    if (!motionOk) motionState = "reduced";
     const onChange = (event: MediaQueryListEvent) => {
       motionOk = !event.matches;
+      if (event.matches) motionState = "reduced";
       if (event.matches) el.pause();
       else if (inView && !userPaused) play();
     };
@@ -165,7 +205,10 @@
     };
   });
 
-  function toggle() {
+  function toggle(event: MouseEvent) {
+    // Inside a linked card the button must not also follow the link.
+    event.preventDefault();
+    event.stopPropagation();
     if (paused) {
       userPaused = false;
       play();
@@ -191,15 +234,22 @@
     aria-hidden="true"
     tabindex="-1"
     data-video="self-hosted"
+    data-state={motionState}
     onplay={() => (paused = false)}
-    onplaying={() => (playing = true)}
-    onpause={() => (paused = true)}
+    onplaying={() => {
+      playing = true;
+      motionState = "playing";
+    }}
+    onpause={() => {
+      paused = true;
+      if (motionState === "playing") motionState = "paused";
+    }}
     onerror={fail}
   >
     {#if mobileMp4}<source
         src={mobileMp4}
         type="video/mp4"
-        media="(max-width: 767px)"
+        media={phoneMedia}
         onerror={mp4 ? undefined : fail}
       />{/if}
     {#if mp4}<source src={mp4} type="video/mp4" onerror={fail} />{/if}
@@ -207,8 +257,8 @@
   {#if pauseControl && mounted && motionOk}
     <button
       type="button"
-      class="video-toggle absolute z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 {controlClass}"
-      aria-label={paused ? "Play background video" : "Pause background video"}
+      class="absolute z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white {controlClass}"
+      aria-label="{paused ? 'Play' : 'Pause'} background video{title ? `: ${title}` : ''}"
       onclick={toggle}
     >
       {#if paused}
@@ -228,10 +278,12 @@
     class={className}
     controls
     playsinline
+    crossorigin="anonymous"
+    tabindex="0"
     {preload}
     {autoplay}
     poster={poster || undefined}
-    aria-label={title}
+    aria-label={playerName}
     data-video="self-hosted"
     onended={() => onended?.()}
     onerror={fail}
@@ -239,10 +291,11 @@
     {#if mobileMp4}<source
         src={mobileMp4}
         type="video/mp4"
-        media="(max-width: 767px)"
+        media={phoneMedia}
         onerror={mp4 ? undefined : fail}
       />{/if}
     {#if mp4}<source src={mp4} type="video/mp4" onerror={fail} />{/if}
+    {#if captions}<track kind="captions" srclang="en" label="English" src={captions} default />{/if}
   </video>
 {:else if fallback}
   {@render fallback()}
@@ -252,7 +305,7 @@
     {hash}
     {background}
     {hasPoster}
-    {title}
+    {...title ? { title } : {}}
     {allow}
     {autoplay}
     {onended}
