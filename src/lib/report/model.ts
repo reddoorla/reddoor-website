@@ -849,10 +849,61 @@ function stage<T>(value: unknown): T | null {
   return s.ok === true && s.data !== undefined ? (s.data as T) : null;
 }
 
-/** The registrable label of a hostname: "reddoorcreative.com" → "reddoorcreative". */
+/**
+ * Public suffixes of two labels, so "reddoorcreative.co.uk" yields
+ * "reddoorcreative" rather than "co".
+ *
+ * A short list rather than the public-suffix list: the report renders from
+ * stored JSON and has no other use for a 200 KB table, and a suffix missing
+ * here fails safe. Its own label ("co", "com") is shorter than the label floor
+ * in `findNamesake`, so a miss means no namesake, never a false one.
+ */
+const TWO_LABEL_SUFFIXES = new Set([
+  "co.uk",
+  "org.uk",
+  "ac.uk",
+  "gov.uk",
+  "com.au",
+  "net.au",
+  "org.au",
+  "co.nz",
+  "co.za",
+  "co.in",
+  "co.jp",
+  "com.br",
+  "com.mx",
+  "com.cn",
+  "com.sg",
+  "com.hk",
+]);
+
+/** The registrable label of a hostname: "reddoorcreative.com" →
+ *  "reddoorcreative", and "ca.linkedin.com" → "linkedin". It was the FIRST
+ *  label until P1-77, which read "ca.linkedin.com" as "ca", found "ca" inside
+ *  "crcascreening", and told CRCA Screening that LinkedIn was answering to its
+ *  name. */
 function domainLabel(domain: string): string {
-  const host = domain.replace(/^www\./i, "").toLowerCase();
-  return (host.split(".")[0] ?? "").replace(/[^a-z0-9]/g, "");
+  const labels = domain
+    .replace(/^www\./i, "")
+    .toLowerCase()
+    .split(".")
+    .filter(Boolean);
+  const suffix = TWO_LABEL_SUFFIXES.has(labels.slice(-2).join(".")) ? 2 : 1;
+  const registrable = labels.length > suffix ? labels[labels.length - suffix - 1] : labels[0];
+  return (registrable ?? "").replace(/[^a-z0-9]/g, "");
+}
+
+/** Below this, a domain label is a word, not a name: "ca", "en", "red". */
+const MIN_LABEL = 5;
+
+/** A government, university or military host: "dshs.texas.gov", "ox.ac.uk".
+ *  The collision block calls a namesake "a different company"; none of these
+ *  is one, and a place name ("texas") leads plenty of business names. */
+function isInstitution(domain: string): boolean {
+  const labels = domain.toLowerCase().split(".");
+  const tld = labels.at(-1) ?? "";
+  const sld = labels.at(-2) ?? "";
+  return ["gov", "edu", "mil"].includes(tld) || ["gov", "edu", "ac", "mil"].includes(sld);
 }
 
 /** Letters and digits only, so "Reddoor Creative" and "reddoorcreative.com"
@@ -876,16 +927,23 @@ function ownDomainLabel(url: string): string {
 /**
  * Find a cited domain that is trading on the prospect's own name.
  *
- * Matched on the registrable label rather than the full host, and only when one
- * side contains the other — so "reddoorcreative" matches a business called
- * "Reddoor Creative" while "clutch" does not.
+ * Matched on the registrable label rather than the full host: either the label
+ * contains the whole name, or it is the name's leading word — so "reddoor" and
+ * "reddoorcreative" match a business called "Reddoor Creative" while "clutch"
+ * does not. Leading, not anywhere: "organ" sits inside "Texas Organ Sharing
+ * Alliance" and "studio" inside "The Burbank Studios", and neither is another
+ * business by their name. A leading "the" is skipped, since nobody's domain
+ * carries it.
  *
- * A short name would match far too much ("ace" appears inside plenty of
- * domains), so a floor applies: below it, a coincidence is likelier than a
- * collision, and asserting a collision to a prospect who then checks is worse
- * than staying quiet.
+ * Short names and short labels would match far too much ("ace" appears inside
+ * plenty of domains, "ca" inside plenty of names), so a floor applies to each:
+ * below it, a coincidence is likelier than a collision, and asserting a
+ * collision to a prospect who then checks is worse than staying quiet.
  *
- * The prospect's own domain is excluded — it is not a namesake of itself.
+ * A listing site is never a namesake: a LinkedIn or Facebook page is a profile
+ * ABOUT the business, which is a different finding. Nor is a government or
+ * university site. The prospect's own domain is excluded too — it is not a
+ * namesake of itself.
  */
 export function findNamesake(
   businessName: string | null,
@@ -895,15 +953,29 @@ export function findNamesake(
   if (!businessName) return null;
   const name = normalizeName(businessName);
   if (name.length < 8) return null;
+  const bare = normalizeName(businessName.replace(/^\s*the\s+/i, ""));
 
   const own = ownDomainLabel(ownUrl);
 
   for (const entry of cited) {
+    if (isListingSite(entry.domain) || isInstitution(entry.domain)) continue;
     const label = domainLabel(entry.domain);
-    if (!label || label === own) continue;
-    if (label.includes(name) || name.includes(label)) return entry;
+    if (label.length < MIN_LABEL || label === own) continue;
+    if (label.includes(name) || name.startsWith(label) || bare.startsWith(label)) return entry;
   }
   return null;
+}
+
+/**
+ * Was the namesake cited more than every other source in the field? The
+ * collision block said so of every namesake, unchecked; CRCA's "namesake" had
+ * one citation against four for each of the most-cited sources. A tie is not
+ * "more than any other".
+ */
+export function namesakeLeads(view: ReportView): boolean {
+  const n = view.namesake;
+  if (!n) return false;
+  return view.citedDomains.every((d) => d.domain === n.domain || d.count < n.count);
 }
 
 /**

@@ -195,6 +195,117 @@ describe("the source-check section's links", () => {
   });
 });
 
+/** The all-pass report as another business, whose category answers cited
+ *  exactly these domains, one list per answer, and whose branded answer
+ *  described only itself. */
+const citing = (businessName: string, url: string, perAnswer: string[][]): AuditReport => {
+  const probes = (ALL_PASS_REPORT as { probes: { data: Record<string, unknown> } }).probes;
+  return {
+    ...ALL_PASS_REPORT,
+    url,
+    businessName,
+    probes: {
+      ok: true,
+      data: {
+        ...probes.data,
+        answers: perAnswer.map((citedDomains, i) => ({
+          engine: "claude",
+          query: `category question ${i}`,
+          kind: "category",
+          domainCited: false,
+          brandMentioned: false,
+          countedAsVisible: false,
+          citedDomains,
+          snippet: "",
+          truncated: false,
+          askedAt: "2026-10-19T20:00:00.000Z",
+        })),
+      },
+    },
+    accuracy: {
+      ok: true,
+      data: {
+        ...allPass.accuracy.data,
+        conflation: { detected: false, otherNames: [], engineQuote: null },
+      },
+    },
+  } as AuditReport;
+};
+
+const COLLISION_HEADING = "Someone else is answering to your name";
+const MORE_THAN_ANY = "more than any other source";
+
+// P1-77. The live CRCA Screening report said someone else was answering to its
+// name because "ca.linkedin.com" was read as "ca", and made "Say which CRCA
+// Screening you are" its first fix. The most-cited sources had 4 citations
+// each; the "namesake" had 1 and was printed as "more than any other source".
+describe("a name collision is claimed only when there is one", () => {
+  const crca = citing("CRCA Screening", "https://crcascreening.com/", [
+    ["ca.linkedin.com", "shrm.org", "backgroundchecks.com"],
+    ["shrm.org", "backgroundchecks.com"],
+    ["shrm.org", "backgroundchecks.com"],
+    ["shrm.org", "backgroundchecks.com"],
+  ]);
+  // The positive control: Reddoor's own situation, the one the block was
+  // written for. A Virginia agency on the same name, cited most of all.
+  const reddoor = citing("Reddoor Creative", "https://reddoorla.com/", [
+    ["reddoorcreative.com", "clutch.co"],
+    ["reddoorcreative.com", "linkedin.com"],
+    ["reddoorcreative.com"],
+  ]);
+  // A real namesake that is NOT the most-cited source.
+  const outcited = citing("Reddoor Creative", "https://reddoorla.com/", [
+    ["reddoorcreative.com", "clutch.co"],
+    ["clutch.co"],
+    ["clutch.co"],
+  ]);
+
+  it.each([
+    [
+      "the source-check section",
+      (r: AuditReport) => renderText(sourceCheck, { view: toReportView(r) }),
+    ],
+    ["the print sheet", printed],
+  ])("%s: says nothing about a namesake on CRCA's report", (_label, render) => {
+    expect(seen(render(crca))).not.toContain(COLLISION_HEADING);
+    expect(seen(render(crca))).not.toContain("ca.linkedin.com was cited");
+  });
+
+  it.each([
+    [
+      "the source-check section",
+      (r: AuditReport) => renderText(sourceCheck, { view: toReportView(r) }),
+    ],
+    ["the print sheet", printed],
+  ])("%s: still names Reddoor's namesake, and says it leads", (_label, render) => {
+    const text = seen(render(reddoor));
+    expect(text).toContain(COLLISION_HEADING);
+    expect(text).toContain("reddoorcreative.com");
+    expect(text).toContain(MORE_THAN_ANY);
+  });
+
+  it.each([
+    [
+      "the source-check section",
+      (r: AuditReport) => renderText(sourceCheck, { view: toReportView(r) }),
+    ],
+    ["the print sheet", printed],
+  ])("%s: never says a namesake leads when another source was cited more", (_label, render) => {
+    const text = seen(render(outcited));
+    expect(text).toContain("reddoorcreative.com");
+    expect(text).not.toContain(MORE_THAN_ANY);
+  });
+
+  it("makes the collision the first fix only where there is one", () => {
+    expect(allFixes(toReportView(crca)).map((f) => f.title)).not.toContainEqual(
+      expect.stringContaining("Say which"),
+    );
+    expect(allFixes(toReportView(reddoor))[0]?.title).toBe(
+      "Say which Reddoor Creative you are, in one sentence, on your own pages",
+    );
+  });
+});
+
 describe("the source-check section's own-site count", () => {
   it("says how often the assistant cited the site itself", () => {
     const view = {

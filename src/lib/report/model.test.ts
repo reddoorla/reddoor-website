@@ -4,6 +4,7 @@ import {
   openingSummary,
   ownSiteCitations,
   findNamesake,
+  namesakeLeads,
   goalVerdict,
   fieldShape,
   isListingSite,
@@ -480,6 +481,121 @@ describe("findNamesake", () => {
       domain: "reddoorcreative.com",
       count: 13,
     });
+  });
+
+  // P1-77, the live CRCA report: "ca.linkedin.com" was read as "ca", which
+  // sits inside "crcascreening", and the report told the prospect someone else
+  // was answering to their name. Nobody was.
+  it("does not read a country subdomain as a namesake", () => {
+    expect(
+      findNamesake("CRCA Screening", "https://crcascreening.com/", [
+        { domain: "ca.linkedin.com", count: 1 },
+      ]),
+    ).toBeNull();
+  });
+
+  // The other false positives the sweep of every stored audit found, each
+  // printed on a real report as "someone else is answering to your name".
+  it.each([
+    ["QTI Sensing Solutions", "https://www.qtisensing.com/", "en.wikipedia.org"],
+    ["Texas Organ Sharing Alliance", "https://www.tosa1.org/", "organ.org"],
+    ["The Burbank Studios", "https://theburbankstudios.com/", "studio.guide"],
+    ["Coyote Prosthetics", "https://www.coyote.us/", "coyoteprosthetics.ac-page.com"],
+    // Not on a stored report: the first cut of this fix produced it, by reading
+    // "dshs.texas.gov" as "texas", and the after-sweep caught it.
+    ["Texas Organ Sharing Alliance", "https://www.tosa1.org/", "dshs.texas.gov"],
+  ])("does not call %s's %s a namesake", (name, url, domain) => {
+    expect(findNamesake(name, url, [{ domain, count: 3 }])).toBeNull();
+  });
+
+  it("compares on the registrable domain, not the first label", () => {
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "blog.reddoorcreative.com", count: 2 },
+      ]),
+    ).toEqual({ domain: "blog.reddoorcreative.com", count: 2 });
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "reddoorcreative.co.uk", count: 1 },
+      ]),
+    ).toEqual({ domain: "reddoorcreative.co.uk", count: 1 });
+  });
+
+  // Reddoor's own case, the one the rule was written for: a shorter domain
+  // that is the leading word of the name.
+  it("matches a shorter domain that leads the name", () => {
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "reddoor.biz", count: 1 },
+      ]),
+    ).toEqual({ domain: "reddoor.biz", count: 1 });
+  });
+
+  it("refuses to guess from a short domain label", () => {
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [{ domain: "red.com", count: 5 }]),
+    ).toBeNull();
+  });
+
+  // A profile ON a platform is a listing about the business, not another
+  // business using its name.
+  it("never calls a listing site a namesake", () => {
+    expect(
+      findNamesake("Facebook Marketing Pros", "https://fbmarketingpros.com/", [
+        { domain: "facebook.com", count: 6 },
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe("namesakeLeads", () => {
+  const view = (cited: { domain: string; count: number }[]) =>
+    toReportView(
+      asReport({
+        url: "https://reddoorla.com/",
+        businessName: "Reddoor Creative",
+        probes: {
+          ok: true,
+          data: {
+            answers: cited.map((c, i) => ({
+              engine: "claude",
+              query: `q${i}`,
+              kind: "category",
+              domainCited: false,
+              brandMentioned: false,
+              citedDomains: Array.from({ length: c.count }, () => c.domain),
+            })),
+          },
+        },
+      }),
+    );
+
+  it("is true only when the namesake was cited more than every other source", () => {
+    const leads = view([
+      { domain: "reddoorcreative.com", count: 5 },
+      { domain: "clutch.co", count: 2 },
+    ]);
+    expect(leads.namesake?.domain).toBe("reddoorcreative.com");
+    expect(namesakeLeads(leads)).toBe(true);
+  });
+
+  it("is false when another source was cited as often or more", () => {
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 2 },
+          { domain: "clutch.co", count: 4 },
+        ]),
+      ),
+    ).toBe(false);
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 2 },
+          { domain: "clutch.co", count: 2 },
+        ]),
+      ),
+    ).toBe(false);
   });
 });
 
