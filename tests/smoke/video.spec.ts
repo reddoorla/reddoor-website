@@ -174,6 +174,8 @@ test(
     await expect(video).toHaveAttribute("controls", "");
     await expect(video).toHaveAttribute("aria-label", "Fixture player-hosted");
     await expect(video).toHaveAttribute("preload", "metadata");
+    // Its own poster, set once it is near: frame 0 would cover any still.
+    await expect(video).toHaveAttribute("poster", /pl-poster\.png/);
     expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
     await expect
       .poll(() =>
@@ -215,7 +217,7 @@ test(
   "a dead offer file with no Vimeo behind it goes back to the poster, focus on its button",
   { tag: "@smoke" },
   async ({ page }) => {
-    await serveMedia(page);
+    const asked = await serveMedia(page);
     await page.goto("/dev/a11y-fixtures", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
     const hero = page.locator('section[data-slice-type="offer_hero"]').nth(3);
@@ -223,6 +225,8 @@ test(
     await play.click();
     await expect(hero.locator("video")).toHaveCount(0, { timeout: 15_000 });
     await expect(hero.locator("iframe")).toHaveCount(0);
+    // A player did mount and ask for the file, so the button is a new one.
+    expect(asked.some((u) => u.includes("dead-offer-1080.mp4"))).toBe(true);
     await expect(play).toBeFocused();
   },
 );

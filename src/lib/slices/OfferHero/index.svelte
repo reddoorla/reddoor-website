@@ -67,7 +67,7 @@
     if (!hasFallback) playing = false;
     await tick();
     if (!hadFocus) return;
-    if (hasFallback) card?.querySelector<HTMLElement>("iframe")?.focus();
+    if (hasFallback) card?.querySelector<HTMLElement>("iframe")?.focus({ preventScroll: true });
     else card?.querySelector<HTMLElement>(".offer-play")?.focus({ preventScroll: true });
   }
 
@@ -133,7 +133,7 @@
             onended={ended}
             title={videoTitle}
             allow="autoplay; fullscreen; picture-in-picture"
-            class="absolute inset-0 h-full w-full"
+            class="absolute inset-0 h-full w-full object-cover"
           />
         {:else}
           {#if isFilled.image(slice.primary.video_poster)}

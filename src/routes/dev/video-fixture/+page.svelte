@@ -103,6 +103,7 @@
         hasPoster={false}
         title="Fixture {c.id}"
         captions={c.id === "player-hosted" ? cdn("pl.en.vtt") : null}
+        poster={c.mode === "player" ? cdn("pl-poster.png") : null}
         class="absolute inset-0 h-full w-full object-cover"
       />
     </section>

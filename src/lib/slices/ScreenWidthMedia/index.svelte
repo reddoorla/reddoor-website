@@ -1,7 +1,7 @@
 <script lang="ts">
   import { MAX_IMAGE_W } from "$lib/images";
   import { PrismicImage } from "@prismicio/svelte";
-  import { isFilled, type Content } from "@prismicio/client";
+  import { asImageSrc, isFilled, type Content } from "@prismicio/client";
   import Video from "$lib/components/Video.svelte";
   import { captionsUrl, mediaUrl } from "$lib/video/media";
   import SliceSection from "$lib/components/SliceSection.svelte";
@@ -66,6 +66,11 @@
       vimeoId={slice.primary.vimeoid}
       mode={slice.primary.loopvideo ? "background" : "player"}
       title={slice.primary.image?.alt || undefined}
+      poster={asImageSrc(slice.primary.image, {
+        w: 1920,
+        fit: "max",
+        auto: ["format", "compress"],
+      })}
       captions={captionsUrl(slice.primary.video_captions)}
       controlClass={pad.padBottom ? "bottom-16 right-4" : "bottom-4 right-4"}
       hasPoster={isFilled.image(slice.primary.image)}

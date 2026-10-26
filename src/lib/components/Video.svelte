@@ -38,7 +38,10 @@
     /** The Vimeo id (and unlisted hash) to fall back to. */
     vimeoId?: string | number | null;
     hash?: string;
-    /** A poster image URL for the player's own `poster` attribute. */
+    /** A player's poster image URL (sized). Set on the <video> only once it
+     *  nears the viewport, and needed even over a caller's own still: once
+     *  metadata loads, Chrome and Firefox paint frame 0 over whatever is
+     *  underneath, and frame 0 is often black. */
     poster?: string | null;
     /** Whether the caller renders a poster underneath (background mode):
      *  with one the video fades in over it once playing, without one it shows
@@ -176,7 +179,7 @@
     if (!motionOk) motionState = "reduced";
     const onChange = (event: MediaQueryListEvent) => {
       motionOk = !event.matches;
-      motionState = event.matches ? "reduced" : "waiting";
+      motionState = event.matches ? "reduced" : userPaused ? "paused" : "waiting";
       if (event.matches) el.pause();
       else if (inView && !userPaused) play();
     };
@@ -285,7 +288,7 @@
     tabindex="0"
     {preload}
     {autoplay}
-    poster={poster || undefined}
+    poster={preload === "metadata" || autoplay ? poster || undefined : undefined}
     aria-label={playerName}
     data-video="self-hosted"
     onended={() => onended?.()}

@@ -6,6 +6,7 @@
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
   import Video from "$lib/components/Video.svelte";
   import { captionsUrl, mediaUrl } from "$lib/video/media";
+  import { asImageSrc } from "@prismicio/client";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
   import type {
@@ -32,6 +33,11 @@
   // or the pause button would follow the link (and a button in a link is
   // invalid). The old Vimeo iframe swallowed those clicks, so a card with a
   // video keeps its link on the label, or on a visually hidden link.
+  // A player's poster, sized; Video sets it only when the player nears the
+  // viewport (frame 0 would otherwise cover the still underneath).
+  const posterSrc = (field: Parameters<typeof asImageSrc>[0]) =>
+    asImageSrc(field, { w: 1600, fit: "max", auto: ["format", "compress"] });
+
   const hasVideo = (item: { video_mp4: unknown; video_mp4_mobile: unknown }, id: unknown) =>
     Boolean(
       id ||
@@ -172,7 +178,7 @@
                 {#if item.label && hasVideo(item, item.vimeoid)}
                   <a
                     href={item.link.url}
-                    class="relative z-20 w-full border-b-1 border-dark label mb-8 cursor-pointer block"
+                    class="relative z-10 w-full border-b-1 border-dark label mb-8 cursor-pointer block"
                   >
                     {item.label}
                   </a>
@@ -203,6 +209,7 @@
                     mobileMp4={mediaUrl(item.video_mp4_mobile)}
                     vimeoId={item.vimeoid}
                     mode={item.loopvideo ? "background" : "player"}
+                    poster={posterSrc(item.image)}
                     captions={captionsUrl(item.video_captions)}
                     title={item.label || item.image?.alt || undefined}
                     hasPoster={isFilled.image(item.image)}
@@ -273,6 +280,7 @@
                   mobileMp4={mediaUrl(item.video_mp4_mobile)}
                   vimeoId={item.vimeoid}
                   mode={item.loopvideo ? "background" : "player"}
+                  poster={posterSrc(item.image)}
                   captions={captionsUrl(item.video_captions)}
                   title={item.label || item.image?.alt || undefined}
                   controlClass={slice.primary.hasGap ? "bottom-10 right-10" : "bottom-4 right-4"}
