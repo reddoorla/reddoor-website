@@ -892,7 +892,7 @@ const TWO_LABEL_SUFFIXES = new Set([
 /** The registrable label of a hostname: "reddoorcreative.com" →
  *  "reddoorcreative", and "ca.linkedin.com" → "linkedin". It was the FIRST
  *  label until P1-77, which read "ca.linkedin.com" as "ca", found "ca" inside
- *  "crcascreening", and told CRCA Screening that LinkedIn was answering to its
+ *  "abcascreening", and told that business that LinkedIn was answering to its
  *  name. */
 function domainLabel(domain: string): string {
   const labels = domain
@@ -906,7 +906,7 @@ function domainLabel(domain: string): string {
 }
 
 /** "Reddoor Creative, LLC" → "Reddoor Creative", "Acme Co., Ltd." → "Acme",
- *  "Bright Smiles Dental, PC" → "Bright Smiles Dental". A legal or
+ *  "Bright Smiles Dental, PC" (or "P.C.") → "Bright Smiles Dental". A legal or
  *  professional form is how a business registers, rarely how its domain reads.
  *  Repeated, for a stacked form, and "& Co" goes whole: stripping "Co" alone
  *  left "Johnson &", which read as "johnsonand" and matched
@@ -950,10 +950,11 @@ function ownDomainLabel(url: string): string {
  * called "Reddoor Creative", while "clutch" does not.
  *
  * Exact, because every looser rule tried in P1-77 claimed businesses that are
- * not namesakes. A label found inside the name: "ca" inside "CRCA Screening",
- * "en" inside "QTI Sensing Solutions", "organ" inside "Texas Organ Sharing
- * Alliance" (four of the nine false namesakes on the 72 stored reports; the
- * rest were the first host label read as the name). A label that leads the
+ * not namesakes. A label found inside the name: "ca" (ca.linkedin.com) inside
+ * a screening company's name, "en" (en.wikipedia.org) inside a sensor maker's,
+ * "organ" (organ.org) inside an organ-donation network's — the shape of the
+ * nine false namesakes on the 72 stored reports, with the first host label
+ * read as the name. A label that leads the
  * name: heart.org for "Heart & Vascular Institute", boston.com for "Boston
  * Scientific". A label that starts with the name: dentalgroupofmiami.com for
  * "Dental Group" — a competitor, named for its category and its city, which is
@@ -961,11 +962,11 @@ function ownDomainLabel(url: string): string {
  * tells that apart from "reddoorcreativeva", so neither counts.
  *
  * The cost is a namesake spelled longer, shorter or differently
- * ("reddoorcreativeva.com", "reddoor.biz", "burbankstudiosla.com"), which goes
+ * ("reddoorcreativeva.com", "reddoor.biz", "glendalestudiosla.com"), which goes
  * unreported; asserting a collision to a prospect who then checks is worse
  * than staying quiet. So is any namesake of a prospect whose own domain
- * spells its name: crcascreening.com's label is the name, so a cited
- * crcascreening.ca is skipped with it. That one is deliberate. Another
+ * spells its name: abcascreening.com's label is the name, so a cited
+ * abcascreening.ca is skipped with it. That one is deliberate. Another
  * country's site under the same label is as likely the prospect's own as
  * someone else's, and the block says "a different company". The match above
  * therefore works for a prospect like Reddoor, whose domain (reddoorla.com)
@@ -1001,7 +1002,7 @@ export function findNamesake(
 
 /**
  * Was the namesake cited more than every other source in the field? The
- * collision block said so of every namesake, unchecked; CRCA's "namesake" had
+ * collision block said so of every namesake, unchecked; ABCA's "namesake" had
  * one citation against four for each of the most-cited sources. A tie is not
  * "more than any other".
  */
@@ -1017,6 +1018,11 @@ export function namesakeLeads(view: ReportView): boolean {
   // The field leaves the prospect's own site out, so count it back in: a
   // namesake cited once is not "more than any other source" when the prospect
   // was cited three times.
+  //
+  // Without category answers the field is the stored list, which never counted
+  // the prospect's own site and mixes in branded answers, so there is nothing
+  // to rank against (review round 6).
+  if (view.categoryProbes.length === 0) return false;
   if (ownCitations(view, view.categoryProbes) >= n.count) return false;
   return view.citedDomains.every((d) => d.domain === n.domain || d.count < n.count);
 }

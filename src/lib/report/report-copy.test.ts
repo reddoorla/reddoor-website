@@ -235,12 +235,12 @@ const citing = (businessName: string, url: string, perAnswer: string[][]): Audit
 const COLLISION_HEADING = "Someone else is answering to your name";
 const MORE_THAN_ANY = "more than any other source";
 
-// P1-77. The live CRCA Screening report said someone else was answering to its
-// name because "ca.linkedin.com" was read as "ca", and made "Say which CRCA
+// P1-77. A live report said someone else was answering to its
+// name because "ca.linkedin.com" was read as "ca", and made "Say which ABCA
 // Screening you are" its first fix. The most-cited sources had 4 citations
 // each; the "namesake" had 1 and was printed as "more than any other source".
 describe("a name collision is claimed only when there is one", () => {
-  const crca = citing("CRCA Screening", "https://crcascreening.com/", [
+  const abca = citing("ABCA Screening", "https://abcascreening.example/", [
     ["ca.linkedin.com", "shrm.org", "backgroundchecks.com"],
     ["shrm.org", "backgroundchecks.com"],
     ["shrm.org", "backgroundchecks.com"],
@@ -285,9 +285,9 @@ describe("a name collision is claimed only when there is one", () => {
       (r: AuditReport) => renderText(sourceCheck, { view: toReportView(r) }),
     ],
     ["the print sheet", printed],
-  ])("%s: says nothing about a namesake on CRCA's report", (_label, render) => {
-    expect(seen(render(crca))).not.toContain(COLLISION_HEADING);
-    expect(seen(render(crca))).not.toContain("ca.linkedin.com was cited");
+  ])("%s: says nothing about a namesake on ABCA's report", (_label, render) => {
+    expect(seen(render(abca))).not.toContain(COLLISION_HEADING);
+    expect(seen(render(abca))).not.toContain("ca.linkedin.com was cited");
   });
 
   it.each([
@@ -318,7 +318,7 @@ describe("a name collision is claimed only when there is one", () => {
   });
 
   it("makes the collision the first fix only where there is one", () => {
-    expect(allFixes(toReportView(crca)).map((f) => f.title)).not.toContainEqual(
+    expect(allFixes(toReportView(abca)).map((f) => f.title)).not.toContainEqual(
       expect.stringContaining("Say which"),
     );
     expect(allFixes(toReportView(reddoor))[0]?.title).toContain("Say which Reddoor Creative");

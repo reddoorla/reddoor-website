@@ -483,27 +483,27 @@ describe("findNamesake", () => {
     });
   });
 
-  // P1-77, the live CRCA report: "ca.linkedin.com" was read as "ca", which
-  // sits inside "crcascreening", and the report told the prospect someone else
+  // P1-77, a live report: "ca.linkedin.com" was read as "ca", which
+  // sits inside "abcascreening", and the report told the prospect someone else
   // was answering to their name. Nobody was.
   it("does not read a country subdomain as a namesake", () => {
     expect(
-      findNamesake("CRCA Screening", "https://crcascreening.com/", [
+      findNamesake("ABCA Screening", "https://abcascreening.example/", [
         { domain: "ca.linkedin.com", count: 1 },
       ]),
     ).toBeNull();
   });
 
-  // The other false positives the sweep of every stored audit found, each
-  // printed on a real report as "someone else is answering to your name".
+  // The shapes of the other false positives the sweep of every stored audit
+  // found (names changed), each printed on a real report as "someone else is answering to your name".
   it.each([
-    ["QTI Sensing Solutions", "https://www.qtisensing.com/", "en.wikipedia.org"],
-    ["Texas Organ Sharing Alliance", "https://www.tosa1.org/", "organ.org"],
-    ["The Burbank Studios", "https://theburbankstudios.com/", "studio.guide"],
-    ["Coyote Prosthetics", "https://www.coyote.us/", "coyoteprosthetics.ac-page.com"],
+    ["Golden Sensing Solutions", "https://www.goldensensing.example/", "en.wikipedia.org"],
+    ["Florida Organ Recovery Network", "https://www.forn.example/", "organ.org"],
+    ["The Glendale Studios", "https://theglendalestudios.example/", "studio.guide"],
+    ["Falcon Prosthetics", "https://www.falcon.example/", "falconprosthetics.ac-page.com"],
     // Not on a stored report: the first cut of this fix produced it, by reading
-    // "dshs.texas.gov" as "texas", and the after-sweep caught it.
-    ["Texas Organ Sharing Alliance", "https://www.tosa1.org/", "dshs.texas.gov"],
+    // "health.florida.gov" as "florida", and the after-sweep caught it.
+    ["Florida Organ Recovery Network", "https://www.forn.example/", "health.florida.gov"],
     // A leading word that is a cause, a place or another brand, not a namesake.
     ["Heart & Vascular Institute", "https://hvi.example/", "heart.org"],
     ["Boston Scientific", "https://www.bostonscientific.com/", "boston.com"],
@@ -544,13 +544,14 @@ describe("findNamesake", () => {
     ).toEqual({ domain: "heartandvascularinstitute.com", count: 1 });
   });
 
-  it("ignores a legal form written with dots", () => {
-    expect(
-      findNamesake("Smith Dental, P.C.", "https://sd.example/", [
-        { domain: "smithdental.com", count: 1 },
-      ]),
-    ).toEqual({ domain: "smithdental.com", count: 1 });
-  });
+  it.each(["Smith Dental, P.C.", "Smith Dental, L.L.P.", "Smith Dental, P.L.L.C."])(
+    "ignores a legal form written with dots: %s",
+    (name) => {
+      expect(
+        findNamesake(name, "https://sd.example/", [{ domain: "smithdental.com", count: 1 }]),
+      ).toEqual({ domain: "smithdental.com", count: 1 });
+    },
+  );
 
   it("ignores a professional or stacked legal form", () => {
     expect(
@@ -586,8 +587,8 @@ describe("findNamesake", () => {
   // prospect's own as another company's.
   it("skips a site that shares the prospect's own label", () => {
     expect(
-      findNamesake("CRCA Screening", "https://crcascreening.com/", [
-        { domain: "crcascreening.ca", count: 2 },
+      findNamesake("ABCA Screening", "https://abcascreening.example/", [
+        { domain: "abcascreening.ca", count: 2 },
       ]),
     ).toBeNull();
   });
@@ -689,6 +690,41 @@ describe("namesakeLeads", () => {
         ]),
       ),
     ).toBe(false);
+  });
+
+  // Round 6: a tie between two of the namesake's own hosts is still a tie.
+  it("is false when another host of the namesake was cited as often", () => {
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 2 },
+          { domain: "reddoorcreative.co", count: 2 },
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  // Round 6: a report stored before per-answer citations has only the stored
+  // list, which leaves the prospect's own site out.
+  it("is false when there are no category answers to rank against", () => {
+    const stored = toReportView(
+      asReport({
+        url: "https://reddoorla.com/",
+        businessName: "Reddoor Creative",
+        probes: {
+          ok: true,
+          data: {
+            answers: [],
+            competitorsSeen: [
+              { domain: "reddoorcreative.com", count: 3 },
+              { domain: "clutch.co", count: 2 },
+            ],
+          },
+        },
+      }),
+    );
+    expect(stored.namesake?.domain).toBe("reddoorcreative.com");
+    expect(namesakeLeads(stored)).toBe(false);
   });
 
   it("is false when another source was cited as often or more", () => {
