@@ -69,6 +69,8 @@
       poster={asImageSrc(slice.primary.image, {
         auto: ["format", "compress"],
         fit: "max",
+        w: undefined,
+        h: undefined,
         width: 1920,
       })}
       captions={captionsUrl(slice.primary.video_captions)}

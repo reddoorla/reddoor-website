@@ -239,24 +239,37 @@ test(
   },
 );
 
-test(
-  "a player whose still is another shape keeps its box when play is pressed",
-  { tag: "@smoke" },
-  async ({ page }) => {
-    await gotoFixture(page);
-    const card = page.locator('[data-case="linked-cards"]');
-    await card.scrollIntoViewIfNeeded();
-    const video = card.locator(SELF_HOSTED).first();
-    await expect
-      .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState))
-      .toBeGreaterThanOrEqual(1);
-    const before = await video.evaluate((v) => v.getBoundingClientRect().height);
-    await video.evaluate((v: HTMLVideoElement) => v.play());
-    await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
-    const after = await video.evaluate((v) => v.getBoundingClientRect().height);
-    expect(Math.abs(after - before)).toBeLessThan(2);
-  },
-);
+// Scaffold tier (no @smoke tag): these two measure a box, which the gate's
+// rules keep out of `pnpm test`. Run them with `pnpm test:scaffold`.
+test("a player whose still is another shape keeps its box when play is pressed", async ({
+  page,
+}) => {
+  await gotoFixture(page);
+  const card = page.locator('[data-case="linked-cards"]');
+  await card.scrollIntoViewIfNeeded();
+  const video = card.locator(SELF_HOSTED).first();
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState))
+    .toBeGreaterThanOrEqual(1);
+  const before = await video.evaluate((v) => v.getBoundingClientRect().height);
+  await video.evaluate((v: HTMLVideoElement) => v.play());
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
+  const after = await video.evaluate((v) => v.getBoundingClientRect().height);
+  expect(Math.abs(after - before)).toBeLessThan(2);
+});
+
+test("a player whose caller names an aspect keeps it once the clip's metadata is in", async ({
+  page,
+}) => {
+  await gotoFixture(page);
+  const video = kase(page, "player-aspect").locator(SELF_HOSTED);
+  await kase(page, "player-aspect").scrollIntoViewIfNeeded();
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState))
+    .toBeGreaterThanOrEqual(1);
+  const box = await video.evaluate((v) => v.getBoundingClientRect());
+  expect(Math.abs(box.width - box.height)).toBeLessThan(2);
+});
 
 test(
   "a dead offer file with no Vimeo behind it goes back to the poster, focus on its button",

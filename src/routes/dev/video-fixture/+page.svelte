@@ -108,6 +108,17 @@
       />
     </section>
   {/each}
+  <!-- A player whose caller names its aspect (ScreenWidthMedia's editor
+       choice): a 16:9 file must not reshape this square box. -->
+  <section data-case="player-aspect" class="relative w-80">
+    <Video
+      mode="player"
+      mp4={cdn("pl-aspect-1080.mp4")}
+      vimeoId={VIMEO}
+      title="Fixture player-aspect"
+      class="relative aspect-square w-full object-cover"
+    />
+  </section>
   <div style="height: 250vh" aria-hidden="true"></div>
   <section data-case="bg-far" class="relative aspect-video w-80">
     <Video

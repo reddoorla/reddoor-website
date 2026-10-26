@@ -25,9 +25,16 @@
   // video keeps its link on the label, or on a visually hidden link.
   // A player's poster, sized; Video sets it only when the player nears the
   // viewport (frame 0 would otherwise cover the still underneath). Built as
-  // the underlay's own 1600w srcset URL, so it is usually a cache hit.
+  // the underlay's own 1600w srcset URL (an editor's crop keeps its `rect`
+  // and loses its `w`/`h`, as in the srcset), so it is often a cache hit.
   const posterSrc = (field: Parameters<typeof asImageSrc>[0]) =>
-    asImageSrc(field, { auto: ["format", "compress"], fit: "max", width: 1600 });
+    asImageSrc(field, {
+      auto: ["format", "compress"],
+      fit: "max",
+      w: undefined,
+      h: undefined,
+      width: 1600,
+    });
 
   const hasVideo = (item: { video_mp4: unknown; video_mp4_mobile: unknown }, id: unknown) =>
     Boolean(

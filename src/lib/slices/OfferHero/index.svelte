@@ -125,6 +125,8 @@
             captions={captionsUrl(slice.primary.video_captions)}
             poster={asImageSrc(slice.primary.video_poster, {
               auto: ["format", "compress"],
+              w: undefined,
+              h: undefined,
               width: 1440,
             })}
             onfail={failed}
