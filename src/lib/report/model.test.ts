@@ -565,6 +565,25 @@ describe("findNamesake", () => {
     ).toEqual({ domain: "robinson.com", count: 2 });
   });
 
+  // Round 4: "and Co" took the end of "Brand" with it.
+  it("strips 'and Co' only as a word", () => {
+    expect(
+      findNamesake("Highland Brand Co", "https://hb.example/", [
+        { domain: "highlandbrand.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "highlandbrand.com", count: 1 });
+  });
+
+  // Deliberate: a same-label site in another country is as likely the
+  // prospect's own as another company's.
+  it("skips a site that shares the prospect's own label", () => {
+    expect(
+      findNamesake("CRCA Screening", "https://crcascreening.com/", [
+        { domain: "crcascreening.ca", count: 2 },
+      ]),
+    ).toBeNull();
+  });
+
   it("refuses to guess from a short name, even on an exact domain", () => {
     expect(
       findNamesake("Apex", "https://apexroofing.example/", [{ domain: "apex.com", count: 4 }]),
@@ -648,6 +667,18 @@ describe("namesakeLeads", () => {
     ]);
     expect(leads.namesake?.domain).toBe("reddoorcreative.com");
     expect(namesakeLeads(leads)).toBe(true);
+  });
+
+  it("counts the namesake's other hosts as the namesake, not as rivals", () => {
+    expect(
+      namesakeLeads(
+        view([
+          { domain: "reddoorcreative.com", count: 3 },
+          { domain: "reddoorcreative.co", count: 3 },
+          { domain: "clutch.co", count: 4 },
+        ]),
+      ),
+    ).toBe(true);
   });
 
   it("is false when another source was cited as often or more", () => {

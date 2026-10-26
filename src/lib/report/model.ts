@@ -913,8 +913,11 @@ function domainLabel(domain: string): string {
  *  johnsonandjohnson.com in review. */
 function withoutLegalSuffix(name: string): string {
   const form =
-    /(?:[,\s]+(?:llc|l\.l\.c|inc|corp|ltd|pllc|lp|llp|plc|co|pc|pa|dds|dmd|md|gmbh)\.?|\s*(?:&|and)\s*co\.?)\s*$/i;
-  let out = name.trim();
+    /(?:[,\s]+(?:llc|l\.l\.c|inc|corp|ltd|pllc|lp|llp|plc|co|pc|pa|dds|dmd|md|gmbh)\.?|(?:\s+and|\s*&)\s*co\.?)\s*$/i;
+  // Capped, because the pattern backtracks over long runs of spaces and runs
+  // once per stacked form: a 50 000-character name took a minute to render.
+  // No business name is 200 characters long.
+  let out = name.slice(0, 200).trim();
   for (let prev = ""; prev !== out;) {
     prev = out;
     out = out.replace(form, "").trim();
@@ -929,9 +932,7 @@ function normalizeName(name: string): string {
 }
 
 /** The prospect's own registrable label, or "" when the url is unparseable —
- *  in which case nothing is excluded and every cited domain stays eligible,
- *  which is the safe direction: we would rather surface a candidate a human
- *  dismisses than silently skip the real one. */
+ *  in which case nothing is excluded and every cited domain stays eligible. */
 function ownDomainLabel(url: string): string {
   try {
     return domainLabel(new URL(url).hostname);
@@ -962,7 +963,13 @@ function ownDomainLabel(url: string): string {
  * The cost is a namesake spelled longer, shorter or differently
  * ("reddoorcreativeva.com", "reddoor.biz", "burbankstudiosla.com"), which goes
  * unreported; asserting a collision to a prospect who then checks is worse
- * than staying quiet.
+ * than staying quiet. So is any namesake of a prospect whose own domain
+ * spells its name: crcascreening.com's label is the name, so a cited
+ * crcascreening.ca is skipped with it. That one is deliberate. Another
+ * country's site under the same label is as likely the prospect's own as
+ * someone else's, and the block says "a different company". The match above
+ * therefore works for a prospect like Reddoor, whose domain (reddoorla.com)
+ * is not its name.
  *
  * A short name would still match far too much, so a floor applies to the name.
  *
@@ -1001,11 +1008,20 @@ export function findNamesake(
 export function namesakeLeads(view: ReportView): boolean {
   const n = view.namesake;
   if (!n) return false;
+  // One namesake, however many hosts: reddoorcreative.com and .co are the same
+  // business, not rivals to each other.
+  const label = domainLabel(n.domain);
+  let total = 0;
+  const rivals: number[] = [];
+  for (const d of view.citedDomains) {
+    if (domainLabel(d.domain) === label && !isListingSite(d.domain)) total += d.count;
+    else rivals.push(d.count);
+  }
   // The field leaves the prospect's own site out, so count it back in: a
   // namesake cited once is not "more than any other source" when the prospect
   // was cited three times.
-  if (ownCitations(view, view.categoryProbes) >= n.count) return false;
-  return view.citedDomains.every((d) => d.domain === n.domain || d.count < n.count);
+  if (ownCitations(view, view.categoryProbes) >= total) return false;
+  return rivals.every((c) => c < total);
 }
 
 /**
