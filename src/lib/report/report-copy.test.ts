@@ -266,6 +266,10 @@ describe("a name collision is claimed only when there is one", () => {
     ["reddoorla.com"],
     ["reddoorla.com"],
   ]);
+  // A tie with the prospect's own site is not "more than any other" either.
+  const ownTie = citing("Reddoor Creative", "https://reddoorla.com/", [
+    ["reddoorcreative.com", "reddoorla.com"],
+  ]);
 
   it.each([
     [
@@ -298,7 +302,7 @@ describe("a name collision is claimed only when there is one", () => {
     ],
     ["the print sheet", printed],
   ])("%s: never says a namesake leads when another source was cited more", (_label, render) => {
-    for (const report of [outcited, ownMore]) {
+    for (const report of [outcited, ownMore, ownTie]) {
       const text = seen(render(report));
       expect(text).toContain("reddoorcreative.com");
       expect(text).not.toContain(MORE_THAN_ANY);

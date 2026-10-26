@@ -905,6 +905,12 @@ function domainLabel(domain: string): string {
   return (registrable ?? "").replace(/[^a-z0-9]/g, "");
 }
 
+/** "Reddoor Creative, LLC" → "Reddoor Creative": nobody's domain carries the
+ *  legal form. */
+function withoutLegalSuffix(name: string): string {
+  return name.replace(/[,\s]+(llc|l\.l\.c\.|inc|corp|ltd|pllc|lp|plc|co)\.?\s*$/i, "");
+}
+
 /** Letters and digits only, so "Reddoor Creative" and "reddoorcreative.com"
  *  become comparable. */
 function normalizeName(name: string): string {
@@ -927,24 +933,28 @@ function ownDomainLabel(url: string): string {
  * Find a cited domain that is trading on the prospect's own name.
  *
  * Matched on the registrable label rather than the full host, and only when the
- * label contains the whole name (a leading "the" optional, since domains drop
- * it) — so "reddoorcreative" and "reddoorcreativeva" match a business called
- * "Reddoor Creative" while "clutch" does not.
+ * label starts with the whole name — so "reddoorcreative" and
+ * "reddoorcreativeva" match a business called "Reddoor Creative" while
+ * "clutch" does not.
  *
- * Never the other way round, a label found inside the name. That direction
- * produced every false namesake on the 72 stored reports (P1-77): "ca" inside
- * "CRCA Screening", "en" inside "QTI Sensing Solutions", "organ" inside "Texas
- * Organ Sharing Alliance", "studio" inside "The Burbank Studios". Requiring the
- * label to LEAD the name was tried and still read heart.org as a namesake of
- * "Heart & Vascular Institute" and boston.com of "Boston Scientific": a leading
- * word is as often a dictionary word or a place as a brand. The cost is a
- * namesake shorter than the name, "reddoor.biz" for "Reddoor Creative", which
- * goes unreported; asserting a collision to a prospect who then checks is
- * worse than staying quiet.
+ * Never a label found inside the name: "ca" inside "CRCA Screening", "en"
+ * inside "QTI Sensing Solutions", "organ" inside "Texas Organ Sharing
+ * Alliance" and "studio" inside "The Burbank Studios" were four of the nine
+ * false namesakes on the 72 stored reports (P1-77; the rest were the first
+ * host label read as the name). Not a label that merely LEADS the name either:
+ * heart.org is not a namesake of "Heart & Vascular Institute", nor boston.com
+ * of "Boston Scientific". And the name has to START the label, not sit
+ * anywhere in it: "smithfamilydentistry" is a competitor of "Family
+ * Dentistry", not a namesake. A leading "the" is kept for the same reason —
+ * without it "The Dental Group" matched "riversidedentalgroup".
  *
- * A short name would still match far too much ("ace" appears inside plenty of
- * domains), so a floor applies to the name; the label, containing it, is at
- * least as long.
+ * The cost is a namesake spelled shorter or differently, "reddoor.biz" or
+ * "burbankstudiosla.com", which goes unreported; asserting a collision to a
+ * prospect who then checks is worse than staying quiet.
+ *
+ * A short name would still match far too much ("ace" starts plenty of
+ * domains), so a floor applies to the name; the label, starting with it, is
+ * at least as long.
  *
  * A listing site is never a namesake: a LinkedIn or Facebook page is a profile
  * ABOUT the business, which is a different finding. The prospect's own domain
@@ -956,7 +966,7 @@ export function findNamesake(
   cited: CitedDomain[],
 ): CitedDomain | null {
   if (!businessName) return null;
-  const name = normalizeName(businessName.replace(/^\s*the\s+/i, ""));
+  const name = normalizeName(withoutLegalSuffix(businessName).replace(/&/g, "and"));
   if (name.length < 8) return null;
 
   const own = ownDomainLabel(ownUrl);
@@ -967,7 +977,7 @@ export function findNamesake(
     if (isListingSite(host)) continue;
     const label = domainLabel(host);
     if (!label || label === own) continue;
-    if (label.includes(name)) return entry;
+    if (label.startsWith(name)) return entry;
   }
   return null;
 }

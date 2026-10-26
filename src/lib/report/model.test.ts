@@ -531,17 +531,29 @@ describe("findNamesake", () => {
     ).toEqual({ domain: "reddoorcreative.co.il", count: 1 });
   });
 
-  it("drops a leading 'the', which domains do", () => {
+  it("ignores the legal form and reads '&' as 'and'", () => {
     expect(
-      findNamesake("The Burbank Studios", "https://theburbankstudios.com/", [
-        { domain: "burbankstudiosla.com", count: 1 },
+      findNamesake("Reddoor Creative, LLC", "https://reddoorla.com/", [
+        { domain: "reddoorcreative.com", count: 1 },
       ]),
-    ).toEqual({ domain: "burbankstudiosla.com", count: 1 });
+    ).toEqual({ domain: "reddoorcreative.com", count: 1 });
+    expect(
+      findNamesake("Heart & Vascular Institute", "https://hvi.example/", [
+        { domain: "heartandvascularinstitute.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "heartandvascularinstitute.com", count: 1 });
   });
 
-  // The price of never matching a label found inside the name: a namesake
-  // shorter than the name goes unreported. A leading word is as often heart.org
-  // or boston.com as it is a brand.
+  // A generic name inside a competitor's domain is a competitor, not a namesake.
+  it.each([
+    ["The Dental Group", "riversidedentalgroup.com"],
+    ["The Dental Group", "dentalgroupofmiami.com"],
+    ["The Wellness Center", "oakwellnesscenter.com"],
+    ["Family Dentistry", "smithfamilydentistry.com"],
+  ])("does not call %s's competitor %s a namesake", (name, domain) => {
+    expect(findNamesake(name, "https://own.example/", [{ domain, count: 2 }])).toBeNull();
+  });
+
   it("does not match a domain shorter than the name", () => {
     expect(
       findNamesake("Reddoor Creative", "https://reddoorla.com/", [
@@ -550,14 +562,6 @@ describe("findNamesake", () => {
     ).toBeNull();
   });
 
-  it("refuses to guess from a short domain label", () => {
-    expect(
-      findNamesake("Reddoor Creative", "https://reddoorla.com/", [{ domain: "red.com", count: 5 }]),
-    ).toBeNull();
-  });
-
-  // A profile ON a platform is a listing about the business, not another
-  // business using its name.
   it("never calls a listing site a namesake", () => {
     expect(
       findNamesake("Patient Connect", "https://patientconnectclinic.example/", [
