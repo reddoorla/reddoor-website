@@ -2062,6 +2062,26 @@ export interface CaseStudySliceDefaultPrimary {
 	vimeo_id: prismic.KeyTextField;
 	
 	/**
+	 * video file (mp4, 1080p) — plays instead of Vimeo field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -1080.mp4 from the media library. Leave empty to play the Vimeo video.
+	 * - **API ID Path**: case_study.default.primary.video_mp4
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video file (mp4, phone 720p) field in *CaseStudy → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -phone-720.mp4 from the media library. Optional; phones play it at 767px and below.
+	 * - **API ID Path**: case_study.default.primary.video_mp4_mobile
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
 	 * link (optional — makes the whole band clickable) field in *CaseStudy → Default → Primary*
 	 *
 	 * - **Field Type**: Link
@@ -2172,6 +2192,36 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
 	 * - **Documentation**: https://prismic.io/docs/fields/text
 	 */
 	vimeoid: prismic.KeyTextField;
+	
+	/**
+	 * video file (mp4, 1080p) — plays instead of Vimeo field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -1080.mp4 from the media library. Leave empty to play the Vimeo video.
+	 * - **API ID Path**: content_width_image.default.primary.images[].video_mp4
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video file (mp4, phone 720p) field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -phone-720.mp4 from the media library. Optional; phones play it at 767px and below.
+	 * - **API ID Path**: content_width_image.default.primary.images[].video_mp4_mobile
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video captions (WebVTT) field in *ContentWidthMedia → Default → Primary → images*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: content_width_image.default.primary.images[].video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
 	
 	/**
 	 * loopVideo field in *ContentWidthMedia → Default → Primary → images*
@@ -3128,6 +3178,36 @@ export interface OfferHeroSliceDefaultPrimary {
 	vimeo_video: prismic.KeyTextField;
 	
 	/**
+	 * video file (mp4, 1080p) — plays instead of Vimeo field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -1080.mp4 from the media library. Leave empty to play the Vimeo video.
+	 * - **API ID Path**: offer_hero.default.primary.video_mp4
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video file (mp4, phone 720p) field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -phone-720.mp4 from the media library. Optional; phones play it at 767px and below.
+	 * - **API ID Path**: offer_hero.default.primary.video_mp4_mobile
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video captions (WebVTT) field in *OfferHero → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: offer_hero.default.primary.video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
 	 * video title (read to screen readers) field in *OfferHero → Default → Primary*
 	 *
 	 * - **Field Type**: Text
@@ -3372,6 +3452,36 @@ export interface ScreenWidthColumnsSliceDefaultPrimaryMediaItem {
 	vimeoId: prismic.KeyTextField;
 	
 	/**
+	 * video file (mp4, 1080p) — plays instead of Vimeo field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -1080.mp4 from the media library. Leave empty to play the Vimeo video.
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].video_mp4
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video file (mp4, phone 720p) field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -phone-720.mp4 from the media library. Optional; phones play it at 767px and below.
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].video_mp4_mobile
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video captions (WebVTT) field in *ScreenWidthColumns → Default → Primary → media*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: screen_width_columns.default.primary.media[].video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
 	 * loopVideo field in *ScreenWidthColumns → Default → Primary → media*
 	 *
 	 * - **Field Type**: Boolean
@@ -3542,6 +3652,36 @@ export interface ScreenWidthImageSliceDefaultPrimary {
 	 * - **Documentation**: https://prismic.io/docs/fields/text
 	 */
 	vimeoid: prismic.KeyTextField;
+	
+	/**
+	 * video file (mp4, 1080p) — plays instead of Vimeo field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -1080.mp4 from the media library. Leave empty to play the Vimeo video.
+	 * - **API ID Path**: screen_width_image.default.primary.video_mp4
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video file (mp4, phone 720p) field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -phone-720.mp4 from the media library. Optional; phones play it at 767px and below.
+	 * - **API ID Path**: screen_width_image.default.primary.video_mp4_mobile
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * video captions (WebVTT) field in *ScreenWidthMedia → Default → Primary*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **API ID Path**: screen_width_image.default.primary.video_captions
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
 	
 	/**
 	 * loopVideo field in *ScreenWidthMedia → Default → Primary*

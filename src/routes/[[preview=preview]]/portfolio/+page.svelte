@@ -5,6 +5,9 @@
   import Img from "$lib/components/Img.svelte";
   import RevogenBanner from "$lib/components/RevogenHero/RevogenBanner.svelte";
   import VimeoBanner from "$lib/components/RevogenHero/VimeoBanner.svelte";
+  import { hostedVideo } from "$lib/video/hosted";
+  const RZL_VIMEO = "1205996665";
+  const rzlVideo = hostedVideo(RZL_VIMEO);
   // Featured-project imagery — exported from Figma, delivered via the ?as=run
   // (vite-imagetools) responsive pipeline. See the featured sequence in markup.
   import rubrikHero from "$lib/assets/images/rubrikHero.jpg?as=run";
@@ -662,7 +665,9 @@
   })}
   <div class="col-start-1 row-start-1 min-w-0">
     <VimeoBanner
-      vimeoId="1205996665"
+      vimeoId={RZL_VIMEO}
+      mp4={rzlVideo.mp4}
+      mobileMp4={rzlVideo.mobileMp4}
       poster={rubrikHero}
       alt="Rubrik Zero Labs — a glowing data sphere above a city at night"
     />

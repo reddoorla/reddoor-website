@@ -59,6 +59,10 @@
 # it → the whole pragmatica family fell back to system sans-serif in prod. This
 # @import fires before any securitypolicyviolation listener can attach, which is
 # why the promotion crawl missed it — verified live via render-level font probe.
+# media-src names this site's Prismic media hosts (its CDN, and the S3 host
+# older link-to-media urls carry): the self-hosted videos (P1-74). Without it
+# a <video> falls back to default-src 'self' and is blocked silently.
+#
 # frame-src includes app.netlify.com only for the deploy-preview banner Netlify
 # injects into deploy-preview-*.netlify.app (never production); without it the
 # banner's frame trips errors-in-console and tanks the Lighthouse BP gate on
@@ -72,4 +76,4 @@
         Referrer-Policy = "strict-origin-when-cross-origin"
         Strict-Transport-Security = "max-age=31536000; includeSubDomains"
         Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=()"
-        Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://use.typekit.net https://p.typekit.net https://fonts.googleapis.com; font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com https://app.netlify.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net"
+        Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://use.typekit.net https://p.typekit.net https://fonts.googleapis.com; font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com https://app.netlify.com; media-src 'self' https://reddoor-la.cdn.prismic.io https://prismic-io.s3.amazonaws.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net"

@@ -17,6 +17,9 @@
   // megaphone note). Still next-gen, so Lighthouse modern-formats stays green.
   import pencil from "$lib/assets/icons/RD_TakeAction-02.png?as=run:0&format=webp;png&lossless=true";
   import ScreenWidthImage from "$lib/components/ScreenWidth/ScreenWidthImage.svelte";
+  import { hostedVideo } from "$lib/video/hosted";
+  const HOME_VIMEO = "1082293395";
+  const homeVideo = hostedVideo(HOME_VIMEO);
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -132,7 +135,9 @@
     </div>
   </ContentWidth>
   <ScreenWidthImage
-    vimeoId="1082293395"
+    vimeoId={HOME_VIMEO}
+    mp4={homeVideo.mp4}
+    mobileMp4={homeVideo.mobileMp4}
     altText="sonder brand drawing"
     class="mix-blend-multiply opacity-60 pointer-events-none"
   ></ScreenWidthImage>

@@ -94,6 +94,33 @@
                   "placeholder": ""
                 }
               },
+              "video_mp4": {
+                "type": "Link",
+                "config": {
+                  "label": "video file (mp4, 1080p) — plays instead of Vimeo",
+                  "placeholder": "Pick the -1080.mp4 from the media library. Leave empty to play the Vimeo video.",
+                  "select": "media",
+                  "allowTargetBlank": false
+                }
+              },
+              "video_mp4_mobile": {
+                "type": "Link",
+                "config": {
+                  "label": "video file (mp4, phone 720p)",
+                  "placeholder": "Pick the -phone-720.mp4 from the media library. Optional; phones play it at 767px and below.",
+                  "select": "media",
+                  "allowTargetBlank": false
+                }
+              },
+              "video_captions": {
+                "type": "Link",
+                "config": {
+                  "label": "video captions (WebVTT)",
+                  "placeholder": "Pick the .vtt captions file from the media library. Shown by default when the video file plays.",
+                  "select": "media",
+                  "allowTargetBlank": false
+                }
+              },
               "loopvideo": {
                 "type": "Boolean",
                 "config": {

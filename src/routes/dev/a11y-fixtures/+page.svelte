@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Content, RichTextField } from "@prismicio/client";
+  import type { Content, LinkToMediaField, RichTextField } from "@prismicio/client";
   import { onMount } from "svelte";
   import LeadText from "$lib/slices/LeadText/index.svelte";
   import TextColumns from "$lib/slices/TextColumns/index.svelte";
@@ -182,6 +182,21 @@
   // Unfilled counterpart: same `{}` the API returns, typed to carry the thumbnail.
   const emptyBg = {} as RolloverBackground;
 
+  // Link-to-media fields: empty (Vimeo plays), or a self-hosted file. The
+  // file urls are on Prismic's CDN host and never exist: the smoke specs
+  // answer them with a fixture clip (or a 404) through page.route.
+  const noMedia = () =>
+    ({ link_type: "Any" }) as unknown as LinkToMediaField<"filled" | "empty", never>;
+  const media = (name: string) =>
+    ({
+      link_type: "Media",
+      kind: "file",
+      id: `fixture-${name}`,
+      name,
+      url: `https://reddoor-la.cdn.prismic.io/reddoor-la/${name}`,
+      size: "1",
+    }) as unknown as LinkToMediaField<"filled" | "empty", never>;
+
   const link = (text?: string) =>
     ({ link_type: "Web", url: "https://example.com", text }) as unknown as NonNullable<
       Content.FeaturedProjectSlice["primary"]["link"]
@@ -329,6 +344,8 @@
       after_images: [{ image: img("Revogen brand system") }, { image: img("Revogen mobile site") }],
       before_image: {} as unknown as Content.CaseStudySlice["primary"]["before_image"],
       vimeo_id: "",
+      video_mp4: noMedia(),
+      video_mp4_mobile: noMedia(),
       link: link(),
       hasTopPadding: false,
       hasBottomPadding: false,
@@ -492,7 +509,11 @@
   // The offer landing page's hero (/brand-friction-audit). Two instances: one
   // with a Vimeo link, so the play button and the player's accessible name are
   // reachable, and one before the video exists, where the card is a still.
-  const offerHero = (id: string, vimeo: string): Content.OfferHeroSlice => ({
+  const offerHero = (
+    id: string,
+    vimeo: string,
+    file?: { mp4: string; mobile: string },
+  ): Content.OfferHeroSlice => ({
     id,
     slice_type: "offer_hero",
     slice_label: null,
@@ -510,6 +531,9 @@
       subhead: "If you don’t like the plan, you don’t pay!",
       video_poster: img("Brand Friction Audit"),
       vimeo_video: vimeo,
+      video_mp4: file ? media(file.mp4) : noMedia(),
+      video_mp4_mobile: file ? media(file.mobile) : noMedia(),
+      video_captions: file ? media("fixture-offer.en.vtt") : noMedia(),
       video_title: "Brand Friction Audit",
       cta_heading: "Think this a good fit for you?",
       cta_body: "Fill out a short questionnaire and find out.",
@@ -521,6 +545,16 @@
   });
   const offerHeroWithVideo = offerHero("fixture-offer-hero", "https://vimeo.com/76979871");
   const offerHeroNoVideo = offerHero("fixture-offer-hero-still", "");
+  // Self-hosted, with Vimeo as its fallback (P1-74).
+  const offerHeroHosted = offerHero("fixture-offer-hero-hosted", "https://vimeo.com/76979871", {
+    mp4: "fixture-offer-1080.mp4",
+    mobile: "fixture-offer-phone-720.mp4",
+  });
+  // A file that 404s with no Vimeo id behind it: the card must come back.
+  const offerHeroDead = offerHero("fixture-offer-hero-dead", "", {
+    mp4: "dead-offer-1080.mp4",
+    mobile: "dead-offer-phone-720.mp4",
+  });
 
   const ctaBanner: Content.CtaBannerSlice = {
     id: "fixture-cta-banner",
@@ -616,6 +650,8 @@
        the unkeyed InquiryModal below answers it. -->
   <OfferHero slice={offerHeroWithVideo} />
   <OfferHero slice={offerHeroNoVideo} />
+  <OfferHero slice={offerHeroHosted} />
+  <OfferHero slice={offerHeroDead} />
 
   <!-- Inquiry modal (industry pages). The live /medtech document still points
        its CTAs at /contact until the content migration runs, so the trigger has

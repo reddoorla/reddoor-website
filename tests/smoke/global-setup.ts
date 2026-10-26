@@ -55,6 +55,7 @@ const ROUTES = [
   "/calendar/AAAAAAAAAAAA",
   "/dev/audit-report",
   "/dev/audit-report/print",
+  "/dev/video-fixture",
 ];
 
 export default async function globalSetup() {

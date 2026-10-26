@@ -1,10 +1,11 @@
 <script lang="ts">
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
-  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
+  import Video from "$lib/components/Video.svelte";
+  import { captionsUrl, mediaUrl } from "$lib/video/media";
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import type { RichTextComponents } from "@prismicio/svelte";
-  import { isFilled, type Content } from "@prismicio/client";
+  import { asImageSrc, isFilled, type Content } from "@prismicio/client";
   import { tick } from "svelte";
   import { parseVimeo } from "./vimeo";
   import playDisc from "$lib/assets/offer/play-disc.svg";
@@ -24,7 +25,12 @@
     heading1: { class: "type-hero m-0 max-w-242.5 text-white" },
   };
 
-  const video = $derived(parseVimeo(slice.primary.vimeo_video));
+  const vimeo = $derived(parseVimeo(slice.primary.vimeo_video));
+  // The self-hosted file plays first; Vimeo is the fallback when it is not set
+  // or fails to load (see Video.svelte).
+  const mp4 = $derived(mediaUrl(slice.primary.video_mp4));
+  const mobileMp4 = $derived(mediaUrl(slice.primary.video_mp4_mobile));
+  const video = $derived(Boolean(vimeo || mp4 || mobileMp4));
   const videoTitle = $derived(slice.primary.video_title?.trim() || "Video");
   let playing = $state(false);
   let card = $state<HTMLElement>();
@@ -34,7 +40,7 @@
   async function play() {
     playing = true;
     await tick();
-    card?.querySelector("iframe")?.focus();
+    card?.querySelector<HTMLElement>("video, iframe")?.focus();
   }
 
   // At the end the player comes down and the card is its poster and play
@@ -48,6 +54,21 @@
     playing = false;
     await tick();
     if (hadFocus) card?.querySelector<HTMLElement>(".offer-play")?.focus({ preventScroll: true });
+  }
+
+  // The file failed. With Vimeo behind it the player is swapped in place, and
+  // focus, which was on the removed <video>, goes to the new player. With
+  // nothing behind it the card goes back to its poster, rather than a blank
+  // box with no way back.
+  async function failed(hasFallback: boolean) {
+    // As at the end: focus follows only if it was in the card (or nowhere).
+    const active = document.activeElement;
+    const hadFocus = !active || active === document.body || !!card?.contains(active);
+    if (!hasFallback) playing = false;
+    await tick();
+    if (!hadFocus) return;
+    if (hasFallback) card?.querySelector<HTMLElement>("iframe")?.focus({ preventScroll: true });
+    else card?.querySelector<HTMLElement>(".offer-play")?.focus({ preventScroll: true });
   }
 
   // With no video and no alt text on the poster asset, the card's copy (which
@@ -95,14 +116,25 @@
         class="offer-card relative mt-10 aspect-video w-full overflow-hidden rounded-[9px] bg-white shadow-[0_4px_11.5px_rgba(0,0,0,0.11)] md:mt-12"
       >
         {#if video && playing}
-          <VimeoEmbed
-            vimeoId={video.id}
-            hash={video.hash}
+          <Video
+            mode="player"
+            {mp4}
+            {mobileMp4}
+            vimeoId={vimeo?.id}
+            hash={vimeo?.hash}
+            captions={captionsUrl(slice.primary.video_captions)}
+            poster={asImageSrc(slice.primary.video_poster, {
+              auto: ["format", "compress"],
+              w: undefined,
+              h: undefined,
+              width: 1440,
+            })}
+            onfail={failed}
             autoplay
             onended={ended}
             title={videoTitle}
             allow="autoplay; fullscreen; picture-in-picture"
-            class="absolute inset-0 h-full w-full"
+            class="absolute inset-0 h-full w-full object-cover"
           />
         {:else}
           {#if isFilled.image(slice.primary.video_poster)}

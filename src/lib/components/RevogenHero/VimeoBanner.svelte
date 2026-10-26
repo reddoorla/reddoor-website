@@ -7,14 +7,17 @@
   // lives in the shared VimeoEmbed — this component originated that logic and
   // now just supplies the frame and poster.
   import Img from "$lib/components/Img.svelte";
-  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
+  import Video from "$lib/components/Video.svelte";
 
   interface Props {
     vimeoId: string;
     poster: unknown; // ?as=run import
     alt: string;
+    /** Self-hosted renditions; Vimeo plays when neither is set or they fail. */
+    mp4?: string | null;
+    mobileMp4?: string | null;
   }
-  let { vimeoId, poster, alt }: Props = $props();
+  let { vimeoId, poster, alt, mp4 = null, mobileMp4 = null }: Props = $props();
 </script>
 
 <section class="w-screen aspect-video relative overflow-hidden bg-black">
@@ -29,9 +32,11 @@
 
   <!-- The 16:9 embed fills the 16:9 frame exactly, so the video keeps its
        native aspect ratio with no cropping on any breakpoint. -->
-  <VimeoEmbed
+  <Video
+    {mp4}
+    {mobileMp4}
     {vimeoId}
-    background
+    mode="background"
     title={alt}
     allow="autoplay; fullscreen; picture-in-picture"
     class="absolute inset-0 h-full w-full"

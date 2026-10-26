@@ -1720,3 +1720,32 @@ The operator, 9:00am PT: later audits were inheriting the framing of Reddoor's o
 **A mistake of mine.** The first verification fetch of the screening company's report, at 9:07am PT, went without the edit cookie and overwrote its `opened_at` read receipt; the earlier value is lost. Every later fetch sent the cookie. A read-only check showed the cookie leaves the receipt alone, both on production and on this PR's deploy preview. A second one: the first PR body and test fixtures named the audited prospects in this public repository. They were renamed to invented businesses of the same shape, but #292's earlier commits and its first body still carry the names.
 
 **Not changed, listed:** `SourceCheck.svelte` labels maintenance's `theirs` verdict "someone else's site", where maintenance's `ownership.ts` documents `theirs` as only "no connection we could find". The chart shows the top 8, so a low-count namesake can be named in the block with no "Not you" row above it.
+
+## 2026-10-26 — Every video goes through one component, self-hosted first with Vimeo as the fallback (P1-74, #295)
+
+**Why.** The operator widened P1-74 on the morning of 10-26: the offer video self-hosted from the 115x cut, and every other video on the site on the same pattern, with Vimeo as the fallback. `Video.svelte` does it with two modes. `player` has controls, captions and a poster, and OfferHero still ends on its poster. `background` is a muted loop that plays near the viewport and pauses off it, keeps a visitor's pause, and never starts under Reduce Motion. A 1080p mp4 plays, plus a 720p phone mp4 behind `<source media>` (Williamson's pattern). The Vimeo embed renders when no file is set, or when the file fails: `error` on the video or its last source, or `NotSupportedError` from `play()`. The models gained 13 fields, all additive. With nothing filled, the deploy preview matched production on six pages: the same embeds, no `<video>`, 0 CSP violations, and one extra iframe that was Netlify's drawer.
+
+**Beliefs corrected on contact.**
+
+- _"Svelte replays a pre-hydration `error`."_ It does not replay one on a `<video>` or a `<source>`; its replay list has neither. A server-rendered `preload="metadata"` fetched before hydration, a 404 then had no listener, and the fallback never ran. A bogus `networkState` check hid this at first, and the player-dead smoke case caught it once that check came out. Now nothing fetches before hydration: background clips fetch through `play()`, and players load their metadata near the viewport.
+- _"The still underneath is the poster."_ It is not. Once metadata loads, Chrome and Firefox paint frame 0 over it, and frame 0 is often black.
+- _"A poster sizes nothing."_ While a `<video>` shows its poster, its intrinsic size is the poster's. A square still on a 16:9 clip sized the card until play, then jumped 215px under the cursor. Round 4 pinned `aspect-ratio` to the clip. Round 5 reproduced that the pin overrode an editor's aspect class: ScreenWidthMedia went from 1280x1280 to 1280x720, and a 9/16 box collapsed 1556px. It now pins only when the caller names no aspect.
+- _"The CSP covers it."_ There was no `media-src`, so a Prismic file fell back to `default-src 'self'` and was blocked silently. Video then played Vimeo, so nothing would have looked wrong.
+
+**Measured.**
+
+- **Offer encode** (the 115x master, 269.07s, the same cut as Vimeo's 269s): 1080p 112.9 MB at 3.36 Mb/s and phone 42.5 MB at 1.26 Mb/s, both with AAC. The `video` command strips audio, so the player encode used its flags plus `-c:a aac`. Captions are Vimeo's auto-generated English track, 83 cues; that track is on by default on Vimeo, and a self-hosted player without a `<track>` would have dropped it.
+- **Other clips:** 13 encoded, each phone file at or under 1.55 MB per 10s. 18 stay on Vimeo:
+  - 13 have no master in Dropbox.
+  - Emotion Love's master is a different cut, 33.1s against 22s.
+  - The scfai bottle and piggy bank masters are a lighter colour round than Vimeo's frames.
+  - 2 Strategy Advantage clips have no master and appear on two pages.
+- **Mutations:** all six of the brief's turned a gate test red, against a 25/25 baseline.
+
+**The layout's scroll-to-top.** `+layout.svelte`'s `afterNavigate` scrolls to 0 600ms after any load without a hash, the first load included. It threw the off-screen clip test back to the top in 4 of 12 runs under four workers. It is also the whole cause of offer-hero's "does not scroll" flake: a logged run jumped 11534 to 0 with focus in the player, and the test fails 1 in 16 on `staging` too. The video fixture now loads at `#cases` (104 of 104). The cause is filed as #296.
+
+**Review.** Five rounds, every one dirty, then the stop. The operator chose to land round 5's fix, `fc4eedc`, without a sixth (decision file `2026-10-26-2046-p1-74-video-self-host-review-stop.md`, 1:50pm PT). Each round is in that file. The minors are #296, #297 and #298.
+
+**A mistake of mine.** I edited the worktree while the mutation runner was live. Its OfferHero mutation was in the file I edited, and I had to stop the run and put `onended={ended}` back by hand, checking the diff against HEAD. Later mutation runs used a separate worktree.
+
+**Not done here.** The fields reach Prismic when the promotion merges. After that come the upload (`prismic-media-upload.yml`), one release filling 14 clips, and the `hosted.ts` URLs for home, portfolio and 20 for 20. The encodes are in Dropbox: `/Marketing/RD_Brand_credibility_framework/RD_Offer_video/web-encodes-2026-10-26/` and `/Marketing/RD_website_design/RD_web_2026/web-video-encodes-2026-10-26/`.
