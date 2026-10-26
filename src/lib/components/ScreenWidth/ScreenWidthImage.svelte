@@ -3,7 +3,7 @@
   import placeholder from "../../assets/images/background_placeholder.svg";
   import { PrismicImage } from "@prismicio/svelte";
   import Img from "$lib/components/Img.svelte";
-  import VimeoEmbed from "$lib/components/VimeoEmbed.svelte";
+  import Video from "$lib/components/Video.svelte";
   import type { Snippet } from "svelte";
   import { isFilled, type ImageField } from "@prismicio/client";
 
@@ -14,6 +14,9 @@
     altText?: string;
     placeholderSide?: string;
     vimeoId?: string;
+    /** Self-hosted renditions; Vimeo plays when neither is set or they fail. */
+    mp4?: string | null;
+    mobileMp4?: string | null;
     darken?: boolean;
     backdrop?: boolean;
     alt?: string;
@@ -28,6 +31,8 @@
     altText = "background image",
     placeholderSide = "right",
     vimeoId = "",
+    mp4 = null,
+    mobileMp4 = null,
     darken = false,
     backdrop = false,
     alt = "",
@@ -80,14 +85,17 @@
       />
     {/if}
 
-    {#if vimeoId}
+    {#if vimeoId || mp4 || mobileMp4}
       <!-- hasPoster mirrors the fallback-image branches above: img, bare src,
            or a filled Prismic field. The home hero passes none of these, so it
            is poster-less: VimeoEmbed still engagement-gates the src (no cookie),
            but reveals on mount instead of over a poster. -->
-      <VimeoEmbed
+      <Video
+        {mp4}
+        {mobileMp4}
         {vimeoId}
-        background
+        mode="background"
+        pauseControl={false}
         hasPoster={!!img || (!field && !!src) || isFilled.image(field)}
         allow="autoplay; fullscreen"
         class="aspect-video absolute {viewportHeight * 16 > viewportWidth * 9
