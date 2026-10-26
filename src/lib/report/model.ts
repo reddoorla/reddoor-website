@@ -466,6 +466,11 @@ const bareHost = (d: string): string =>
  * never names it. Subdomains count; a look-alike domain never does.
  */
 export function ownSiteCitations(view: ReportView): number {
+  return ownCitations(view, view.brandedProbes);
+}
+
+/** How many times these answers cited the site itself. */
+function ownCitations(view: ReportView, probes: ProbeAnswer[]): number {
   let own: string;
   try {
     own = bareHost(new URL(view.url).hostname);
@@ -476,7 +481,7 @@ export function ownSiteCitations(view: ReportView): number {
     const h = bareHost(d);
     return h === own || h.endsWith(`.${own}`);
   };
-  return view.brandedProbes.reduce((n, p) => n + p.citedDomains.filter(isOwn).length, 0);
+  return probes.reduce((n, p) => n + p.citedDomains.filter(isOwn).length, 0);
 }
 
 const LISTING_SITES = [
@@ -855,8 +860,9 @@ function stage<T>(value: unknown): T | null {
  *
  * A short list rather than the public-suffix list: the report renders from
  * stored JSON and has no other use for a 200 KB table, and a suffix missing
- * here fails safe. Its own label ("co", "com") is shorter than the label floor
- * in `findNamesake`, so a miss means no namesake, never a false one.
+ * here fails safe: the label read instead is the suffix's own ("co", "com"),
+ * which never contains a business name, so a miss means no namesake, never a
+ * false one.
  */
 const TWO_LABEL_SUFFIXES = new Set([
   "co.uk",
@@ -875,6 +881,12 @@ const TWO_LABEL_SUFFIXES = new Set([
   "com.cn",
   "com.sg",
   "com.hk",
+  "com.tr",
+  "com.ar",
+  "co.il",
+  "co.kr",
+  "ltd.uk",
+  "plc.uk",
 ]);
 
 /** The registrable label of a hostname: "reddoorcreative.com" →
@@ -891,19 +903,6 @@ function domainLabel(domain: string): string {
   const suffix = TWO_LABEL_SUFFIXES.has(labels.slice(-2).join(".")) ? 2 : 1;
   const registrable = labels.length > suffix ? labels[labels.length - suffix - 1] : labels[0];
   return (registrable ?? "").replace(/[^a-z0-9]/g, "");
-}
-
-/** Below this, a domain label is a word, not a name: "ca", "en", "red". */
-const MIN_LABEL = 5;
-
-/** A government, university or military host: "dshs.texas.gov", "ox.ac.uk".
- *  The collision block calls a namesake "a different company"; none of these
- *  is one, and a place name ("texas") leads plenty of business names. */
-function isInstitution(domain: string): boolean {
-  const labels = domain.toLowerCase().split(".");
-  const tld = labels.at(-1) ?? "";
-  const sld = labels.at(-2) ?? "";
-  return ["gov", "edu", "mil"].includes(tld) || ["gov", "edu", "ac", "mil"].includes(sld);
 }
 
 /** Letters and digits only, so "Reddoor Creative" and "reddoorcreative.com"
@@ -927,23 +926,29 @@ function ownDomainLabel(url: string): string {
 /**
  * Find a cited domain that is trading on the prospect's own name.
  *
- * Matched on the registrable label rather than the full host: either the label
- * contains the whole name, or it is the name's leading word — so "reddoor" and
- * "reddoorcreative" match a business called "Reddoor Creative" while "clutch"
- * does not. Leading, not anywhere: "organ" sits inside "Texas Organ Sharing
- * Alliance" and "studio" inside "The Burbank Studios", and neither is another
- * business by their name. A leading "the" is skipped, since nobody's domain
- * carries it.
+ * Matched on the registrable label rather than the full host, and only when the
+ * label contains the whole name (a leading "the" optional, since domains drop
+ * it) — so "reddoorcreative" and "reddoorcreativeva" match a business called
+ * "Reddoor Creative" while "clutch" does not.
  *
- * Short names and short labels would match far too much ("ace" appears inside
- * plenty of domains, "ca" inside plenty of names), so a floor applies to each:
- * below it, a coincidence is likelier than a collision, and asserting a
- * collision to a prospect who then checks is worse than staying quiet.
+ * Never the other way round, a label found inside the name. That direction
+ * produced every false namesake on the 72 stored reports (P1-77): "ca" inside
+ * "CRCA Screening", "en" inside "QTI Sensing Solutions", "organ" inside "Texas
+ * Organ Sharing Alliance", "studio" inside "The Burbank Studios". Requiring the
+ * label to LEAD the name was tried and still read heart.org as a namesake of
+ * "Heart & Vascular Institute" and boston.com of "Boston Scientific": a leading
+ * word is as often a dictionary word or a place as a brand. The cost is a
+ * namesake shorter than the name, "reddoor.biz" for "Reddoor Creative", which
+ * goes unreported; asserting a collision to a prospect who then checks is
+ * worse than staying quiet.
+ *
+ * A short name would still match far too much ("ace" appears inside plenty of
+ * domains), so a floor applies to the name; the label, containing it, is at
+ * least as long.
  *
  * A listing site is never a namesake: a LinkedIn or Facebook page is a profile
- * ABOUT the business, which is a different finding. Nor is a government or
- * university site. The prospect's own domain is excluded too — it is not a
- * namesake of itself.
+ * ABOUT the business, which is a different finding. The prospect's own domain
+ * is excluded too — it is not a namesake of itself.
  */
 export function findNamesake(
   businessName: string | null,
@@ -951,17 +956,18 @@ export function findNamesake(
   cited: CitedDomain[],
 ): CitedDomain | null {
   if (!businessName) return null;
-  const name = normalizeName(businessName);
+  const name = normalizeName(businessName.replace(/^\s*the\s+/i, ""));
   if (name.length < 8) return null;
-  const bare = normalizeName(businessName.replace(/^\s*the\s+/i, ""));
 
   const own = ownDomainLabel(ownUrl);
 
   for (const entry of cited) {
-    if (isListingSite(entry.domain) || isInstitution(entry.domain)) continue;
-    const label = domainLabel(entry.domain);
-    if (label.length < MIN_LABEL || label === own) continue;
-    if (label.includes(name) || name.startsWith(label) || bare.startsWith(label)) return entry;
+    // A port or a trailing dot would slip past the listing-site match.
+    const host = entry.domain.replace(/:\d+$/, "").replace(/\.$/, "");
+    if (isListingSite(host)) continue;
+    const label = domainLabel(host);
+    if (!label || label === own) continue;
+    if (label.includes(name)) return entry;
   }
   return null;
 }
@@ -975,6 +981,10 @@ export function findNamesake(
 export function namesakeLeads(view: ReportView): boolean {
   const n = view.namesake;
   if (!n) return false;
+  // The field leaves the prospect's own site out, so count it back in: a
+  // namesake cited once is not "more than any other source" when the prospect
+  // was cited three times.
+  if (ownCitations(view, view.categoryProbes) >= n.count) return false;
   return view.citedDomains.every((d) => d.domain === n.domain || d.count < n.count);
 }
 

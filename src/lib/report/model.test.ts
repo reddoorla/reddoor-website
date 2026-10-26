@@ -504,6 +504,11 @@ describe("findNamesake", () => {
     // Not on a stored report: the first cut of this fix produced it, by reading
     // "dshs.texas.gov" as "texas", and the after-sweep caught it.
     ["Texas Organ Sharing Alliance", "https://www.tosa1.org/", "dshs.texas.gov"],
+    // A leading word that is a cause, a place or another brand, not a namesake.
+    ["Heart & Vascular Institute", "https://hvi.example/", "heart.org"],
+    ["Boston Scientific", "https://www.bostonscientific.com/", "boston.com"],
+    ["MedTech Diversified", "https://medtechdiversified.example/", "medtechdive.com"],
+    ["Amazonia Landscaping", "https://amazonia.example/", "amazon.com"],
   ])("does not call %s's %s a namesake", (name, url, domain) => {
     expect(findNamesake(name, url, [{ domain, count: 3 }])).toBeNull();
   });
@@ -519,16 +524,30 @@ describe("findNamesake", () => {
         { domain: "reddoorcreative.co.uk", count: 1 },
       ]),
     ).toEqual({ domain: "reddoorcreative.co.uk", count: 1 });
+    expect(
+      findNamesake("Reddoor Creative", "https://reddoorla.com/", [
+        { domain: "reddoorcreative.co.il", count: 1 },
+      ]),
+    ).toEqual({ domain: "reddoorcreative.co.il", count: 1 });
   });
 
-  // Reddoor's own case, the one the rule was written for: a shorter domain
-  // that is the leading word of the name.
-  it("matches a shorter domain that leads the name", () => {
+  it("drops a leading 'the', which domains do", () => {
+    expect(
+      findNamesake("The Burbank Studios", "https://theburbankstudios.com/", [
+        { domain: "burbankstudiosla.com", count: 1 },
+      ]),
+    ).toEqual({ domain: "burbankstudiosla.com", count: 1 });
+  });
+
+  // The price of never matching a label found inside the name: a namesake
+  // shorter than the name goes unreported. A leading word is as often heart.org
+  // or boston.com as it is a brand.
+  it("does not match a domain shorter than the name", () => {
     expect(
       findNamesake("Reddoor Creative", "https://reddoorla.com/", [
         { domain: "reddoor.biz", count: 1 },
       ]),
-    ).toEqual({ domain: "reddoor.biz", count: 1 });
+    ).toBeNull();
   });
 
   it("refuses to guess from a short domain label", () => {
@@ -541,8 +560,17 @@ describe("findNamesake", () => {
   // business using its name.
   it("never calls a listing site a namesake", () => {
     expect(
-      findNamesake("Facebook Marketing Pros", "https://fbmarketingpros.com/", [
-        { domain: "facebook.com", count: 6 },
+      findNamesake("Patient Connect", "https://patientconnectclinic.example/", [
+        { domain: "patientconnect365.com", count: 6 },
+      ]),
+    ).toBeNull();
+  });
+
+  it("knows a listing site written with a port or a trailing dot", () => {
+    expect(
+      findNamesake("Patient Connect", "https://patientconnectclinic.example/", [
+        { domain: "patientconnect365.com:443", count: 2 },
+        { domain: "patientconnect365.com.", count: 1 },
       ]),
     ).toBeNull();
   });

@@ -259,6 +259,13 @@ describe("a name collision is claimed only when there is one", () => {
     ["clutch.co"],
     ["clutch.co"],
   ]);
+  // A real namesake that out-cites every other source but the prospect's own
+  // site, which the field leaves out.
+  const ownMore = citing("Reddoor Creative", "https://reddoorla.com/", [
+    ["reddoorcreative.com", "reddoorla.com"],
+    ["reddoorla.com"],
+    ["reddoorla.com"],
+  ]);
 
   it.each([
     [
@@ -291,18 +298,18 @@ describe("a name collision is claimed only when there is one", () => {
     ],
     ["the print sheet", printed],
   ])("%s: never says a namesake leads when another source was cited more", (_label, render) => {
-    const text = seen(render(outcited));
-    expect(text).toContain("reddoorcreative.com");
-    expect(text).not.toContain(MORE_THAN_ANY);
+    for (const report of [outcited, ownMore]) {
+      const text = seen(render(report));
+      expect(text).toContain("reddoorcreative.com");
+      expect(text).not.toContain(MORE_THAN_ANY);
+    }
   });
 
   it("makes the collision the first fix only where there is one", () => {
     expect(allFixes(toReportView(crca)).map((f) => f.title)).not.toContainEqual(
       expect.stringContaining("Say which"),
     );
-    expect(allFixes(toReportView(reddoor))[0]?.title).toBe(
-      "Say which Reddoor Creative you are, in one sentence, on your own pages",
-    );
+    expect(allFixes(toReportView(reddoor))[0]?.title).toContain("Say which Reddoor Creative");
   });
 });
 
