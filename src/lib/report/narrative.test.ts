@@ -1053,6 +1053,13 @@ describe("tocEntries", () => {
     expect(tocEntries([]).map((e) => e.id)).not.toContain("fixes");
     // A clean report still leads to the booking call.
     expect(tocEntries([]).map((e) => e.id)).toContain(TOC_TARGETS.talk);
+    // Every other section still renders on a clean report, so it keeps its
+    // link: the no-fixes list is the with-fixes list minus What to fix.
+    expect(tocEntries([]).map((e) => e.id)).toEqual(
+      tocEntries(oneFix)
+        .map((e) => e.id)
+        .filter((id) => id !== TOC_TARGETS.fixes),
+    );
     // The all-pass fixture is NOT that case. Every check passes, but its
     // analyze stage carries two recommendations, so the page renders "2 things
     // to fix" and the list has that entry. Wired through allFixes here so a

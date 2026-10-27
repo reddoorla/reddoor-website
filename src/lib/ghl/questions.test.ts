@@ -87,11 +87,20 @@ describe("the digital question set", () => {
     expect(questions[1].tag).toBe("website");
   });
 
-  it("asks the main-job question as a single choice, as its CRM field stores it", () => {
-    // LF7fDBprx9TnmuuE0r3Z is a single-choice picklist in GHL. A checkbox
-    // would submit an array the field drops or misfiles.
-    const goal = questions.find((q) => q.tag === "LF7fDBprx9TnmuuE0r3Z");
-    expect(goal?.kind).toBe("radio");
+  it("asks each question the way its CRM field stores it", () => {
+    // The main job, stakeholders and budget fields are single-choice
+    // picklists in GHL: a checkbox would submit an array the field drops or
+    // misfiles. Needs is a multi-select, and website is free text. Keyed by
+    // field, so a question can move or be added without touching this.
+    const kindByField: Record<string, string> = {
+      "6ADqYeIoiuoZYjNOVe65": "checkbox",
+      website: "text",
+      LF7fDBprx9TnmuuE0r3Z: "radio",
+      hFMs3VYZALF59mloih9F: "radio",
+      "2gNEfoXr5XwltWMFhaxS": "radio",
+    };
+    for (const q of questions)
+      if (q.tag in kindByField) expect(q.kind, q.tag).toBe(kindByField[q.tag]);
   });
 
   it("writes only to the fields read back from GHL", () => {
