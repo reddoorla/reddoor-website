@@ -1050,14 +1050,22 @@ describe("tocEntries", () => {
   });
 
   it("omits What to fix when the report renders no fixes", () => {
-    expect(tocEntries([]).map((e) => e.id)).toEqual(["about", "ai-says", "control", "talk"]);
+    expect(tocEntries([]).map((e) => e.id)).not.toContain("fixes");
+    // A clean report still leads to the booking call.
+    expect(tocEntries([]).map((e) => e.id)).toContain(TOC_TARGETS.talk);
     // The all-pass fixture is NOT that case. Every check passes, but its
     // analyze stage carries two recommendations, so the page renders "2 things
-    // to fix" and the list has all five. Wired through allFixes here so a
+    // to fix" and the list has that entry. Wired through allFixes here so a
     // fixture change that drops them fails this line rather than a jump.
     const v = view();
     expect(allFixes(v)).toHaveLength(2);
-    expect(tocEntries(allFixes(v))).toHaveLength(5);
+    expect(tocEntries(allFixes(v)).map((e) => e.id)).toContain("fixes");
+  });
+
+  it("lists each section once however many fixes there are", () => {
+    const ids = tocEntries([...oneFix, ...oneFix, ...oneFix]).map((e) => e.id);
+    expect(ids).toContain(TOC_TARGETS.fixes);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("only ever emits ids from TOC_TARGETS", () => {

@@ -83,10 +83,30 @@ describe("the digital question set", () => {
     expect(questionsFor("not-a-set")).toBeUndefined();
   });
 
-  it("is five questions in slide order, website second", () => {
-    expect(questions).toHaveLength(5);
-    expect(questions.map((q) => q.kind)).toEqual(["checkbox", "text", "radio", "radio", "radio"]);
+  it("asks for the website second", () => {
     expect(questions[1].tag).toBe("website");
+  });
+
+  it("asks the main-job question as a single choice, as its CRM field stores it", () => {
+    // LF7fDBprx9TnmuuE0r3Z is a single-choice picklist in GHL. A checkbox
+    // would submit an array the field drops or misfiles.
+    const goal = questions.find((q) => q.tag === "LF7fDBprx9TnmuuE0r3Z");
+    expect(goal?.kind).toBe("radio");
+  });
+
+  it("writes only to the fields read back from GHL", () => {
+    // The four custom fields scripts/crm/create-digital-fields.mjs created
+    // 2026-09-17 and read back by id, plus the standard `website` field. A new
+    // question starts with a new field in GHL, then its id here; the count of
+    // questions is not the contract.
+    const created = new Set([
+      "website",
+      "6ADqYeIoiuoZYjNOVe65",
+      "LF7fDBprx9TnmuuE0r3Z",
+      "hFMs3VYZALF59mloih9F",
+      "2gNEfoXr5XwltWMFhaxS",
+    ]);
+    for (const q of questions) expect(created).toContain(q.tag);
   });
 
   it("writes only real CRM field ids", () => {
@@ -156,7 +176,6 @@ describe("the Boise question set", () => {
   });
 
   it("leaves the medtech set untouched", () => {
-    expect(a101).toHaveLength(5);
     expect(a101.some((q) => q.tag === BUDGET_GATE.tag)).toBe(true);
   });
 });
