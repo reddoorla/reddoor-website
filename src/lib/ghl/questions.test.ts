@@ -121,6 +121,9 @@ describe("the digital question set", () => {
       "2gNEfoXr5XwltWMFhaxS",
     ]);
     for (const q of questions) expect(created).toContain(q.tag);
+    // And every created field is asked: a question dropped from the form
+    // leaves its CRM field unfilled.
+    expect(new Set(questions.map((q) => q.tag))).toEqual(created);
   });
 
   it("writes only real CRM field ids", () => {

@@ -1066,13 +1066,14 @@ describe("tocEntries", () => {
     // fixture change that drops them fails this line rather than a jump.
     const v = view();
     expect(allFixes(v)).toHaveLength(2);
-    expect(tocEntries(allFixes(v)).map((e) => e.id)).toContain("fixes");
+    expect(tocEntries(allFixes(v)).map((e) => e.id)).toEqual(tocEntries(oneFix).map((e) => e.id));
   });
 
   it("lists each section once however many fixes there are", () => {
+    // The fix count decides only whether What to fix appears: two or three
+    // fixes give the same contents as one, each section listed once.
     const ids = tocEntries([...oneFix, ...oneFix, ...oneFix]).map((e) => e.id);
-    expect(ids).toContain(TOC_TARGETS.fixes);
-    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(tocEntries(oneFix).map((e) => e.id));
   });
 
   it("only ever emits ids from TOC_TARGETS", () => {
