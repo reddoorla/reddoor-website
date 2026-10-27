@@ -1766,7 +1766,7 @@ The operator, 9:00am PT: later audits were inheriting the framing of Reddoor's o
 
 **Captions served as `text/plain`.** Prismic serves the `.vtt` as `text/plain`. Chromium and Firefox both load all 83 cues anyway (tested against the real CDN files). The Linux WebKit build loads no default track even when the file is served as `text/vtt`, so it says nothing about Safari, which is untested.
 
-## 2026-10-27 — The /digital and report-contents count pins become the contracts they stood for (#TBD)
+## 2026-10-27 — The /digital and report-contents count pins become the contracts they stood for (#303)
 
 The fleet test audit (`reddoorla/reddoor-workspace` `audits/2026-10-26-fleet-test-audit/report.md`) flagged four assertions here as pins on an exact list: the /digital question set's `toHaveLength(5)` and its five-element `kind` list, the Boise block's `a101` `toHaveLength(5)`, and two `tocEntries` checks, an exact `toEqual` on the no-fix contents and a `toHaveLength(5)` on the all-pass fixture's. Each says "exactly this many, in this order", which a legitimate new question or contents entry would trip. The audit's removal agent loosened them, and a reviewer who saw only that diff wrote five mutants against it. Run at main and on the loosened branch, one (`a101-drops-stakeholders`) was still caught by the A-101 block's exact tag list, so that `toHaveLength(5)` added nothing and goes. The other four were caught at main and by nothing left, and all four are real bugs, not design values: none of this repo's losses were classed design-value or invisible.
 
