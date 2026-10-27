@@ -87,6 +87,11 @@ describe("the digital question set", () => {
     expect(questions[1].tag).toBe("website");
   });
 
+  it("asks each question once", () => {
+    const tags = questions.map((q) => q.tag);
+    expect(new Set(tags).size).toBe(tags.length);
+  });
+
   it("asks each question the way its CRM field stores it", () => {
     // The main job, stakeholders and budget fields are single-choice
     // picklists in GHL: a checkbox would submit an array the field drops or
