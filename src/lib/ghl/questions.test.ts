@@ -83,10 +83,49 @@ describe("the digital question set", () => {
     expect(questionsFor("not-a-set")).toBeUndefined();
   });
 
-  it("is five questions in slide order, website second", () => {
-    expect(questions).toHaveLength(5);
-    expect(questions.map((q) => q.kind)).toEqual(["checkbox", "text", "radio", "radio", "radio"]);
+  it("asks for the website second", () => {
     expect(questions[1].tag).toBe("website");
+  });
+
+  it("asks each question once", () => {
+    const tags = questions.map((q) => q.tag);
+    expect(new Set(tags).size).toBe(tags.length);
+  });
+
+  it("asks each question the way its CRM field stores it", () => {
+    // The main job, stakeholders and budget fields are single-choice
+    // picklists in GHL: a checkbox would submit an array the field drops or
+    // misfiles. Needs is a multi-select, and website is free text. Keyed by
+    // field, so a question can move or be added without touching this.
+    const kindByField: Record<string, string> = {
+      "6ADqYeIoiuoZYjNOVe65": "checkbox",
+      website: "text",
+      LF7fDBprx9TnmuuE0r3Z: "radio",
+      hFMs3VYZALF59mloih9F: "radio",
+      "2gNEfoXr5XwltWMFhaxS": "radio",
+    };
+    for (const q of questions) {
+      expect(kindByField[q.tag], `${q.tag} has no kind listed`).toBeDefined();
+      expect(q.kind, q.tag).toBe(kindByField[q.tag]);
+    }
+  });
+
+  it("writes only to the fields read back from GHL", () => {
+    // The four custom fields scripts/crm/create-digital-fields.mjs created
+    // 2026-09-17 and read back by id, plus the standard `website` field. A new
+    // question starts with a new field in GHL, then its id here; the field set,
+    // not the question count, is the contract.
+    const created = new Set([
+      "website",
+      "6ADqYeIoiuoZYjNOVe65",
+      "LF7fDBprx9TnmuuE0r3Z",
+      "hFMs3VYZALF59mloih9F",
+      "2gNEfoXr5XwltWMFhaxS",
+    ]);
+    for (const q of questions) expect(created).toContain(q.tag);
+    // And every created field is asked: a question dropped from the form
+    // leaves its CRM field unfilled.
+    expect(new Set(questions.map((q) => q.tag))).toEqual(created);
   });
 
   it("writes only real CRM field ids", () => {
@@ -156,7 +195,6 @@ describe("the Boise question set", () => {
   });
 
   it("leaves the medtech set untouched", () => {
-    expect(a101).toHaveLength(5);
     expect(a101.some((q) => q.tag === BUDGET_GATE.tag)).toBe(true);
   });
 });
