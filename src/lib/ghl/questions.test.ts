@@ -104,15 +104,17 @@ describe("the digital question set", () => {
       hFMs3VYZALF59mloih9F: "radio",
       "2gNEfoXr5XwltWMFhaxS": "radio",
     };
-    for (const q of questions)
-      if (q.tag in kindByField) expect(q.kind, q.tag).toBe(kindByField[q.tag]);
+    for (const q of questions) {
+      expect(kindByField[q.tag], `${q.tag} has no kind listed`).toBeDefined();
+      expect(q.kind, q.tag).toBe(kindByField[q.tag]);
+    }
   });
 
   it("writes only to the fields read back from GHL", () => {
     // The four custom fields scripts/crm/create-digital-fields.mjs created
     // 2026-09-17 and read back by id, plus the standard `website` field. A new
-    // question starts with a new field in GHL, then its id here; the count of
-    // questions is not the contract.
+    // question starts with a new field in GHL, then its id here; the field set,
+    // not the question count, is the contract.
     const created = new Set([
       "website",
       "6ADqYeIoiuoZYjNOVe65",
