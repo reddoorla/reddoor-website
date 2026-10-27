@@ -129,7 +129,7 @@ describe("typographic marks on the read path", () => {
       visibility.show = show;
       const client = createClient({ fetch: documentFetch as typeof fetch });
 
-      // get(): the path every getAll*/getBy*s method routes through.
+      // get(): the path getByIDs/getByType/getByTag route through.
       const query = await client.get();
       const viaGet = asFixture(query.results[0]);
       expect(viaGet.data.meta_title).toBe(`Reddoor${RSQ}s MedTech page`);
@@ -141,6 +141,12 @@ describe("typographic marks on the read path", () => {
       // NOT call get(), so it needs its own override.
       const viaFirst = asFixture(await client.getFirst());
       expect(viaFirst.data.meta_title).toBe(`Reddoor${RSQ}s MedTech page`);
+
+      // dangerouslyGetAll(): the path getAllByType/getAllByTag route through.
+      // Since @prismicio/client 7.22.3 it calls the private #internalGet, not
+      // get(), so it needs its own override too (/twenty-for-twenty, P1-80).
+      const viaAll = asFixture((await client.getAllByType("industry"))[0]);
+      expect(viaAll.data.meta_title).toBe(`Reddoor${RSQ}s MedTech page`);
 
       // The envelope is an address book, not copy.
       expect(viaGet.uid).toBe("medtech");

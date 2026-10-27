@@ -1779,3 +1779,13 @@ Each keep was proved with its reviewer mutant through maintenance's `scripts/mut
 The fresh `fix/p1-77-false-namesake` branch belongs to another session and touches the report model, `SourceCheck.svelte` and the audit print page; nothing here touches those files, though both branches append to this journal.
 
 One surprise in checking it: `svelte-check` from a worktree whose `node_modules` is a symlink reports 155 errors (`Cannot find module './$types'`) in files this change never touched. Kit 3 writes its generated tsconfig into `node_modules/$app/tsconfig.json`, whose `rootDirs` (`../..`) resolve through the symlink to the main checkout's stale `.svelte-kit/types`. Pointed at the worktree's own generated types it is 0 errors over 4,900 files. A real checkout does not hit this.
+
+## 2026-10-27 — `getAllByType` reads through the smart-quote client again, so Renovate's #288 can go green (P1-80)
+
+Renovate's all-minor-patch PR (#288) failed `ci / ci` on one `@smoke` test: `/twenty-for-twenty` painted straight apostrophes in five card bodies ("it's the core of what a business is"). Staging, on the same commit with the old lockfile, was green at 8:14pm PT the evening before. The cause is the `@prismicio/client` patch in that PR, 7.22.1 → 7.22.3: its `dangerouslyGetAll` now calls the private `#internalGet` directly, where 7.22.1 called `this.get`. `TypographicClient` overrode only `get` and `getFirst`, measured against 7.21.8 as the only two seams, so every `getAllBy*` read stopped being corrected. `/twenty-for-twenty` is the one page that reads through `getAllByType`, which is why only it went red.
+
+The fix overrides `dangerouslyGetAll` as a third seam; the transform is idempotent, so it is harmless on 7.22.1. The hide filter was never at risk: `#internalGet` still builds its URL through the public `buildQueryURL`, which `HiddenContentFilteredClient` overrides.
+
+The proof, on #288's exact lockfile: the unit test's new `getAllByType` assertion is red without the override (`Received: "Reddoor's MedTech page"`) and green with it; the real smoke (`typography.spec.ts --grep twenty-for-twenty`, chromium, no retries) fails without the override and passes with it. On staging's lockfile (7.22.1) the unit file is green both ways.
+
+Belief corrected: a patch release can change which public method a private call sits behind, so "the only two seams" was true of one version, not of the client. The unit test now pins all three paths.
