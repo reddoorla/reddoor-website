@@ -55,13 +55,16 @@ const routes: prismic.ClientConfig["routes"] = [
  * `<meta>` tag and every OG card route is corrected at once — they all read
  * through this client — and so is anything typed into Prismic tomorrow.
  *
- * `get` and `getFirst` are the only two seams needed. Measured against
- * @prismicio/client 7.21.8: they are the two methods that call the private
- * `#internalGet`, and every other document-returning method routes through one
- * of them — `dangerouslyGetAll`, `getByIDs`, `getByType`, `getByTag` and
- * friends call `this.get`; `getByID`, `getByUID` and `getSingle` call
- * `this.getFirst`; `getAllBy*` call `dangerouslyGetAll`. The transform is
- * idempotent, so the paths that pass through both cost nothing.
+ * The seams are the public methods that call the private `#internalGet`:
+ * `get`, `getFirst` and, since @prismicio/client 7.22.3, `dangerouslyGetAll`
+ * (it stopped calling `this.get` there, and /twenty-for-twenty, the one page
+ * reading through `getAllByType`, painted straight quotes again). Every other
+ * document-returning method routes through one of them — `getByIDs`,
+ * `getByType`, `getByTag` and friends call `this.get`; `getByID`, `getByUID`
+ * and `getSingle` call `this.getFirst`; `getAllBy*` call `dangerouslyGetAll`.
+ * The transform is idempotent, so a path that passes through two costs
+ * nothing, and the override is harmless on a client that still routes
+ * `dangerouslyGetAll` through `get`.
  */
 class TypographicClient extends prismic.Client<AllDocumentTypes> {
   override async get<TDocument extends AllDocumentTypes>(
@@ -75,6 +78,12 @@ class TypographicClient extends prismic.Client<AllDocumentTypes> {
     params?: Parameters<prismic.Client<AllDocumentTypes>["getFirst"]>[0],
   ): Promise<TDocument> {
     return smartQuoteDocument(await super.getFirst<TDocument>(params));
+  }
+
+  override async dangerouslyGetAll<TDocument extends AllDocumentTypes>(
+    params?: Parameters<prismic.Client<AllDocumentTypes>["dangerouslyGetAll"]>[0],
+  ): Promise<TDocument[]> {
+    return (await super.dangerouslyGetAll<TDocument>(params)).map(smartQuoteDocument);
   }
 }
 
