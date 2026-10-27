@@ -92,8 +92,9 @@ class TypographicClient extends prismic.Client<AllDocumentTypes> {
  *
  * This is the only seam that catches everything: every typed method
  * (`getByUID`, `getByID`, `getAllByType`, `getSingle`, …) adds its own
- * `filters` and ends in `get()`, which calls `this.buildQueryURL(params)`,
- * and `buildQueryURL` spreads the call's params over `defaultParams`, so a
+ * `filters` and ends in the private `#internalGet` (through `get`,
+ * `getFirst` or `dangerouslyGetAll`), which calls `this.buildQueryURL(params)`
+ * (measured on @prismicio/client 7.22.3), and `buildQueryURL` spreads the call's params over `defaultParams`, so a
  * filter set as a client default is REPLACED by any method's own. Measured
  * 2026-09-14: with only `defaultParams.filters` set, `getByUID`,
  * `getAllByType` and `getByID` all returned hidden documents.
