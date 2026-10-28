@@ -37,7 +37,7 @@
       "schedule_booked_kicker": {
         "type": "Text",
         "config": {
-          "label": "Side label — once booked",
+          "label": "Side label — once booked (no longer shown: the booked page is now the “Booked page” tab)",
           "placeholder": "Leave empty to keep the site’s current wording"
         }
       },
@@ -60,7 +60,7 @@
       "schedule_booked_body": {
         "type": "StructuredText",
         "config": {
-          "label": "Confirmation text — once booked (write {email} for their address)",
+          "label": "Confirmation text — once booked (no longer shown: the booked page is now the “Booked page” tab)",
           "placeholder": "Write {email} where the visitor’s email address should appear. The booked time shows above this text on its own. Leave empty to keep the site’s current wording",
           "multi": "paragraph,strong,em,hyperlink"
         }
@@ -79,6 +79,217 @@
           "label": "Tim’s photo (under the side label; set its alt text on the image)",
           "constraint": {},
           "thumbnails": []
+        }
+      }
+    },
+    "Booked page": {
+      "booked_subhead": {
+        "type": "Text",
+        "config": {
+          "label": "Line under the heading",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_date_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Date and Time” label (the booked time shows under it on its own)",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_duration_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Duration” label (the call’s length shows under it on its own)",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_google_label": {
+        "type": "Text",
+        "config": {
+          "label": "Google Calendar button",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_ical_label": {
+        "type": "Text",
+        "config": {
+          "label": "iCal / Outlook button",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_outlook_label": {
+        "type": "Text",
+        "config": {
+          "label": "Outlook.com button",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_reschedule_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Reschedule” link",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_cancel_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Cancel” link",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_vimeo_video": {
+        "type": "Text",
+        "config": {
+          "label": "Video — Vimeo link or id",
+          "placeholder": "Leave the Vimeo link and both files empty to keep the Brand Friction Audit video. Setting any of them replaces it."
+        }
+      },
+      "booked_video_mp4": {
+        "type": "Link",
+        "config": {
+          "label": "Video — file (mp4, 1080p), plays instead of Vimeo",
+          "placeholder": "Pick the -1080.mp4 from the media library.",
+          "select": "media",
+          "allowTargetBlank": false
+        }
+      },
+      "booked_video_mp4_mobile": {
+        "type": "Link",
+        "config": {
+          "label": "Video — phone file (mp4, 720p)",
+          "placeholder": "Pick the -phone-720.mp4 from the media library.",
+          "select": "media",
+          "allowTargetBlank": false
+        }
+      },
+      "booked_video_captions": {
+        "type": "Link",
+        "config": {
+          "label": "Video — captions (WebVTT)",
+          "placeholder": "Pick the .vtt captions file from the media library.",
+          "select": "media",
+          "allowTargetBlank": false
+        }
+      },
+      "booked_video_poster": {
+        "type": "Image",
+        "config": {
+          "label": "Video — poster (the still before it plays; set on its own, it replaces the default still)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "booked_video_title": {
+        "type": "Text",
+        "config": {
+          "label": "Video — title (read to screen readers)",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_prepare_heading": {
+        "type": "Text",
+        "config": {
+          "label": "“How to Prepare” heading",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_steps": {
+        "type": "Group",
+        "config": {
+          "label": "How to prepare — steps (numbered 01, 02, 03… in order; leave empty to keep the design’s three)",
+          "repeat": true,
+          "fields": {
+            "text": {
+              "type": "Text",
+              "config": {
+                "label": "Step",
+                "placeholder": "e.g. Check your inbox for the call invite and add it to your calendar."
+              }
+            }
+          }
+        }
+      },
+      "booked_work_label": {
+        "type": "Text",
+        "config": {
+          "label": "“Check out Our Work” label",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_projects": {
+        "type": "Group",
+        "config": {
+          "label": "Our work — projects shown (leave empty to keep Revogen, MSOT, Rubrik Zero Labs and TOSA)",
+          "repeat": true,
+          "fields": {
+            "project": {
+              "type": "Link",
+              "config": {
+                "label": "Project",
+                "select": "document",
+                "customtypes": ["project"]
+              }
+            }
+          }
+        }
+      },
+      "booked_quote_label": {
+        "type": "Text",
+        "config": {
+          "label": "Quote — side label",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_quote": {
+        "type": "Text",
+        "config": {
+          "label": "Quote — text (no quote marks; the page adds them)",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_quote_name": {
+        "type": "Text",
+        "config": {
+          "label": "Quote — name",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_quote_role": {
+        "type": "Text",
+        "config": {
+          "label": "Quote — role",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_quote_photo": {
+        "type": "Image",
+        "config": {
+          "label": "Quote — photo (leave empty to keep Albert’s; set its alt text on the image)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "booked_cta_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Closing banner — heading",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_cta_button": {
+        "type": "Text",
+        "config": {
+          "label": "Closing banner — button",
+          "placeholder": "Leave empty to keep the wording on the design"
+        }
+      },
+      "booked_cta_link": {
+        "type": "Text",
+        "config": {
+          "label": "Closing banner — button link (a path such as /contact, or a full URL)",
+          "placeholder": "Leave empty to keep the wording on the design"
         }
       }
     },

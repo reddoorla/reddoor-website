@@ -133,15 +133,17 @@ test.describe("in Los Angeles", () => {
 
       await expect(page.getByRole("heading", { level: 1 })).toContainText("You’re on the calendar");
       await expect(page.getByText("Wednesday, August 19 at 9:00 AM PDT")).toBeVisible();
-      await expect(page.getByText("Duration: 30 minutes")).toBeVisible();
+      // The length is the CRM's start to end, not a number on the page.
+      const details = page.getByRole("status");
+      await expect(details).toContainText("Duration");
+      await expect(details).toContainText("30 minutes");
       await expect(page.getByRole("link", { name: "Add to Google Calendar" })).toHaveAttribute(
         "href",
         "/calendar/appt_Booked123/google",
       );
-      await expect(page.getByRole("link", { name: "Add to iCal / Outlook" })).toHaveAttribute(
-        "href",
-        "/calendar/appt_Booked123/event.ics",
-      );
+      await expect(
+        page.getByRole("link", { name: "Add to iCal/Outlook Calendar" }),
+      ).toHaveAttribute("href", "/calendar/appt_Booked123/event.ics");
       await expect(page.getByRole("link", { name: "Add to Outlook.com" })).toHaveAttribute(
         "href",
         "/calendar/appt_Booked123/outlook",
@@ -150,7 +152,7 @@ test.describe("in Los Angeles", () => {
         "href",
         "/reschedule/appt_Booked123",
       );
-      await expect(page.getByRole("link", { name: "cancel", exact: true })).toHaveAttribute(
+      await expect(page.getByRole("link", { name: "Cancel", exact: true })).toHaveAttribute(
         "href",
         "/cancel/appt_Booked123",
       );
@@ -174,8 +176,8 @@ test.describe("in Los Angeles", () => {
       // By text, not role: an anchor with no href is not a link, so a role
       // query would also pass if dead buttons were drawn.
       await expect(page.getByText("Add to Google Calendar")).toHaveCount(0);
-      await expect(page.getByText("Need to change it?")).toHaveCount(0);
-      await expect(page.getByText(/^Duration:/)).toHaveCount(0);
+      await expect(page.getByText("Reschedule", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("Duration", { exact: true })).toHaveCount(0);
     },
   );
 
@@ -557,6 +559,43 @@ test.describe("in Los Angeles", () => {
     await expect(page.getByRole("alert")).toContainText("couldn’t load");
     await page.getByRole("button", { name: "Try again" }).click();
     await expect(page.getByRole("button", { name: "8:00 AM", exact: true })).toBeVisible();
+  });
+
+  test("has no accessibility violations, once booked", { tag: "@smoke" }, async ({ page }) => {
+    await stubApi(page, {
+      bookBody: {
+        success: true,
+        startTime: "2026-08-19T09:30:00-06:00",
+        endTime: "2026-08-19T10:00:00-06:00",
+        eventId: "appt_Booked123",
+      },
+    });
+    // As in the picker test below: reduced motion asked for here, and <main>'s
+    // fade waited out, or every colour is measured mid-blend.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await gotoHydrated(page);
+    await page.getByRole("button", { name: "8:30 AM", exact: true }).click();
+    await page.locator("#book-name").fill("Pat Buyer");
+    await page.locator("#book-email").fill("buyer@example.com");
+    await page.getByRole("button", { name: "Confirm this time" }).click();
+    await expect(page.getByRole("link", { name: "Add to Google Calendar" })).toBeVisible();
+    await expect
+      .poll(
+        () =>
+          page
+            .locator("[data-page-transition]")
+            .last()
+            .evaluate((el) => Number(getComputedStyle(el).opacity)),
+        { timeout: 15_000 },
+      )
+      .toBe(1);
+    // The sections below the fold animate in as they are scrolled to.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await settleAnimations(page);
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(results.violations).toEqual([]);
   });
 
   test("has no accessibility violations, picker open", { tag: "@smoke" }, async ({ page }) => {

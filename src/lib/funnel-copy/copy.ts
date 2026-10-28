@@ -10,6 +10,7 @@ import {
 } from "@prismicio/client";
 import type { FunnelCopyDocumentData } from "../../../prismicio-types";
 import { FUNNEL_COPY_DEFAULTS } from "./defaults";
+import { resolveBooked, type BookedExtras } from "./booked";
 
 type Defaults = typeof FUNNEL_COPY_DEFAULTS;
 export type FunnelCopyKey = keyof Defaults;
@@ -23,6 +24,8 @@ export type FunnelCopy = {
 } & {
   /** Null until a photo is uploaded; the pages then render exactly as before. */
   tim_photo: FilledImageFieldImage | null;
+  /** The booked page's steps, projects, video and quote photo. */
+  booked: BookedExtras;
 };
 
 /**
@@ -46,6 +49,7 @@ export function resolveFunnelCopy(
   }
   const photo = data?.tim_photo;
   out.tim_photo = photo && isFilled.image(photo) ? photo : null;
+  out.booked = resolveBooked(data);
   return out as FunnelCopy;
 }
 
@@ -76,7 +80,17 @@ export function localHref(url: string): string {
  * `javascript:` URL typed into a Prismic Web link would run; it renders as
  * plain text instead.
  */
-const SAFE_HREF = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
+export const SAFE_HREF = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
+
+/**
+ * A link typed into a plain text field, as a link the page may draw: the
+ * site's own origin dropped (`localHref`), and anything but the schemes above
+ * replaced by `fallback`.
+ */
+export function safeHref(url: string, fallback: string): string {
+  const href = localHref(url.trim());
+  return SAFE_HREF.test(href) ? href : fallback;
+}
 
 /**
  * Values the page inserts into the copy. The editor writes the token, e.g.
