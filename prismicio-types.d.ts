@@ -120,6 +120,36 @@ interface FormRepliesDocumentData {
 export type FormRepliesDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<Simplify<FormRepliesDocumentData>, "form_replies", Lang>;
 
 /**
+ * Item in *Booking pages copy → How to prepare — steps (numbered 01, 02, 03… in order; leave empty to keep the design’s three)*
+ */
+export interface FunnelCopyDocumentDataBookedStepsItem {
+	/**
+	 * Step field in *Booking pages copy → How to prepare — steps (numbered 01, 02, 03… in order; leave empty to keep the design’s three)*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: e.g. Check your inbox for the call invite and add it to your calendar.
+	 * - **API ID Path**: funnel_copy.booked_steps[].text
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	text: prismic.KeyTextField;
+}
+
+/**
+ * Item in *Booking pages copy → Our work — projects shown (leave empty to keep Revogen, MSOT, Rubrik Zero Labs and TOSA)*
+ */
+export interface FunnelCopyDocumentDataBookedProjectsItem {
+	/**
+	 * Project field in *Booking pages copy → Our work — projects shown (leave empty to keep Revogen, MSOT, Rubrik Zero Labs and TOSA)*
+	 *
+	 * - **Field Type**: Content Relationship
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: funnel_copy.booked_projects[].project
+	 * - **Documentation**: https://prismic.io/docs/fields/content-relationship
+	 */
+	project: prismic.ContentRelationshipField<"project">;
+}
+
+/**
  * Content for Booking pages copy documents
  */
 interface FunnelCopyDocumentData {
@@ -168,7 +198,7 @@ interface FunnelCopyDocumentData {
 	schedule_kicker: prismic.KeyTextField;
 	
 	/**
-	 * Side label — once booked field in *Booking pages copy*
+	 * Side label — once booked (no longer shown: the booked page is now the “Booked page” tab) field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Text
 	 * - **Placeholder**: Leave empty to keep the site’s current wording
@@ -201,7 +231,7 @@ interface FunnelCopyDocumentData {
 	schedule_applied_lede: prismic.RichTextField;
 	
 	/**
-	 * Confirmation text — once booked (write {email} for their address) field in *Booking pages copy*
+	 * Confirmation text — once booked (no longer shown: the booked page is now the “Booked page” tab) field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Rich Text
 	 * - **Placeholder**: Write {email} where the visitor’s email address should appear. The booked time shows above this text on its own. Leave empty to keep the site’s current wording
@@ -232,6 +262,290 @@ interface FunnelCopyDocumentData {
 	 * - **Documentation**: https://prismic.io/docs/fields/image
 	 */
 	tim_photo: prismic.ImageField<never>;/**
+	 * Line under the heading field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_subhead
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_subhead: prismic.KeyTextField;
+	
+	/**
+	 * “Date and Time” label (the booked time shows under it on its own) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_date_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_date_label: prismic.KeyTextField;
+	
+	/**
+	 * “Duration” label (the call’s length shows under it on its own) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_duration_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_duration_label: prismic.KeyTextField;
+	
+	/**
+	 * Google Calendar button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_google_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_google_label: prismic.KeyTextField;
+	
+	/**
+	 * iCal / Outlook button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_ical_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_ical_label: prismic.KeyTextField;
+	
+	/**
+	 * Outlook.com button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_outlook_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_outlook_label: prismic.KeyTextField;
+	
+	/**
+	 * “Reschedule” link field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_reschedule_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_reschedule_label: prismic.KeyTextField;
+	
+	/**
+	 * “Cancel” link field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_cancel_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_cancel_label: prismic.KeyTextField;
+	
+	/**
+	 * Video — Vimeo link or id field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave every video field empty to keep the Brand Friction Audit video. Setting any of them replaces it.
+	 * - **API ID Path**: funnel_copy.booked_vimeo_video
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_vimeo_video: prismic.KeyTextField;
+	
+	/**
+	 * Video — file (mp4, 1080p), plays instead of Vimeo field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -1080.mp4 from the media library.
+	 * - **API ID Path**: funnel_copy.booked_video_mp4
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	booked_video_mp4: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * Video — phone file (mp4, 720p) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the -phone-720.mp4 from the media library.
+	 * - **API ID Path**: funnel_copy.booked_video_mp4_mobile
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	booked_video_mp4_mobile: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * Video — captions (WebVTT) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Link to Media
+	 * - **Placeholder**: Pick the .vtt captions file from the media library.
+	 * - **API ID Path**: funnel_copy.booked_video_captions
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
+	 */
+	booked_video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
+	
+	/**
+	 * Video — poster (the still before it plays) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: funnel_copy.booked_video_poster
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	booked_video_poster: prismic.ImageField<never>;
+	
+	/**
+	 * Video — title (read to screen readers) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_video_title
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_video_title: prismic.KeyTextField;
+	
+	/**
+	 * “How to Prepare” heading field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_prepare_heading
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_prepare_heading: prismic.KeyTextField;
+	
+	/**
+	 * How to prepare — steps (numbered 01, 02, 03… in order; leave empty to keep the design’s three) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: funnel_copy.booked_steps[]
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	booked_steps: prismic.GroupField<Simplify<FunnelCopyDocumentDataBookedStepsItem>>;
+	
+	/**
+	 * “Check out Our Work” label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_work_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_work_label: prismic.KeyTextField;
+	
+	/**
+	 * Our work — projects shown (leave empty to keep Revogen, MSOT, Rubrik Zero Labs and TOSA) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Group
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: funnel_copy.booked_projects[]
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
+	 */
+	booked_projects: prismic.GroupField<Simplify<FunnelCopyDocumentDataBookedProjectsItem>>;
+	
+	/**
+	 * Quote — side label field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_quote_label
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_quote_label: prismic.KeyTextField;
+	
+	/**
+	 * Quote — text (no quote marks; the page adds them) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_quote
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_quote: prismic.KeyTextField;
+	
+	/**
+	 * Quote — name field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_quote_name
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_quote_name: prismic.KeyTextField;
+	
+	/**
+	 * Quote — role field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_quote_role
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_quote_role: prismic.KeyTextField;
+	
+	/**
+	 * Quote — photo (leave empty to keep Albert’s; set its alt text on the image) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: funnel_copy.booked_quote_photo
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	booked_quote_photo: prismic.ImageField<never>;
+	
+	/**
+	 * Closing banner — heading field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_cta_heading
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_cta_heading: prismic.KeyTextField;
+	
+	/**
+	 * Closing banner — button field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_cta_button
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_cta_button: prismic.KeyTextField;
+	
+	/**
+	 * Closing banner — button link (a path such as /contact, or a full URL) field in *Booking pages copy*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: Leave empty to keep the wording on the design
+	 * - **API ID Path**: funnel_copy.booked_cta_link
+	 * - **Tab**: Booked page
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	booked_cta_link: prismic.KeyTextField;/**
 	 * “Your time” label field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Text
@@ -4607,6 +4921,8 @@ declare module "@prismicio/client" {
 			FormRepliesDocumentDataRepliesItem,
 			FunnelCopyDocument,
 			FunnelCopyDocumentData,
+			FunnelCopyDocumentDataBookedStepsItem,
+			FunnelCopyDocumentDataBookedProjectsItem,
 			GalleryDocument,
 			GalleryDocumentData,
 			GalleryDocumentDataImagesItem,

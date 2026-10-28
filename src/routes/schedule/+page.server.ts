@@ -1,4 +1,4 @@
-import { loadFunnelCopy } from "$lib/server/funnel-copy";
+import { loadBookedProjects, loadFunnelCopy } from "$lib/server/funnel-copy";
 import type { PageServerLoad } from "./$types";
 
 /**
@@ -7,6 +7,8 @@ import type { PageServerLoad } from "./$types";
  * build hook. No cookies are read, which is what keeps it prerenderable;
  * /preview/funnel is where a preview session sees a release.
  */
-export const load: PageServerLoad = async ({ fetch }) => ({
-  copy: await loadFunnelCopy({ fetch }),
-});
+export const load: PageServerLoad = async ({ fetch }) => {
+  const copy = await loadFunnelCopy({ fetch });
+  // The booked state's "Check out Our Work", read at build time with the copy.
+  return { copy, projects: await loadBookedProjects({ fetch }, copy.booked.projectUids) };
+};

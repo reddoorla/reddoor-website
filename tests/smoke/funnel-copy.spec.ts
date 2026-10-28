@@ -25,18 +25,33 @@ async function countFunnelCalls(page: Page): Promise<string[]> {
 
 test.describe("/preview/funnel", () => {
   test(
-    "shows the booked state with the sample email in place of the {email} token",
+    "shows the booked page: the time, the calendar links, and the board's sections",
     { tag: "@smoke" },
     async ({ page }) => {
       await page.goto("/preview/funnel");
       await expect(
         page.getByRole("heading", { level: 1, name: "You’re on the calendar." }),
       ).toBeVisible();
-      const booked = page.getByRole("status").filter({ hasText: "We’ve sent a confirmation to" });
-      await expect(booked).toContainText(
-        "We’ve sent a confirmation to sample.visitor@example.com, and the Zoom link is in the calendar invite.",
+      await expect(
+        page.getByText("Check your email and watch the video below for more details"),
+      ).toBeVisible();
+      await expect(page.getByRole("status").filter({ hasText: "Date and Time" })).toBeVisible();
+      await expect(page.getByText("Add to Google Calendar")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Play video: Brand Friction Audit" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "How to Prepare for This 1:1 Call" }),
+      ).toBeVisible();
+      // Numbered by position: the board's third step reads "02".
+      await expect(
+        page.getByRole("listitem").filter({ hasText: "Be in quiet place" }),
+      ).toContainText("03");
+      await expect(page.getByRole("figure").filter({ hasText: "Albert Turgon" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Meet with us", exact: true })).toHaveAttribute(
+        "href",
+        "/contact",
       );
-      await expect(page.locator("body")).not.toContainText("{email}");
     },
   );
 

@@ -10,6 +10,7 @@ import {
 } from "@prismicio/client";
 import type { FunnelCopyDocumentData } from "../../../prismicio-types";
 import { FUNNEL_COPY_DEFAULTS } from "./defaults";
+import { resolveBooked, type BookedExtras } from "./booked";
 
 type Defaults = typeof FUNNEL_COPY_DEFAULTS;
 export type FunnelCopyKey = keyof Defaults;
@@ -23,6 +24,8 @@ export type FunnelCopy = {
 } & {
   /** Null until a photo is uploaded; the pages then render exactly as before. */
   tim_photo: FilledImageFieldImage | null;
+  /** The booked page's steps, projects, video and quote photo. */
+  booked: BookedExtras;
 };
 
 /**
@@ -46,6 +49,7 @@ export function resolveFunnelCopy(
   }
   const photo = data?.tim_photo;
   out.tim_photo = photo && isFilled.image(photo) ? photo : null;
+  out.booked = resolveBooked(data);
   return out as FunnelCopy;
 }
 
