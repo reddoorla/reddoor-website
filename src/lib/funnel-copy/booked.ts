@@ -14,6 +14,10 @@ export type BookedExtras = {
   /** UIDs of `project` documents, in the order the page shows them. */
   projectUids: string[];
   video: {
+    /** The player's name when it is not the default video's own: the
+     *  default's title ("Brand Friction Audit") must not name another film.
+     *  Null means the page's `booked_video_title` line applies. */
+    title: string | null;
     vimeo: string;
     mp4: string | null;
     mobileMp4: string | null;
@@ -51,6 +55,7 @@ export const BOOKED_DEFAULTS: BookedExtras = {
   // The board's still is the offer video on /brand-friction-audit; these are
   // that offer_hero slice's own files.
   video: {
+    title: null,
     vimeo: "https://vimeo.com/1238093596",
     mp4: `${CDN}/68VseVXFh5HebH-f_brand-friction-offer-115x-1080.mp4`,
     mobileMp4: `${CDN}/UbwlVDScalYl__h8_brand-friction-offer-115x-phone-720.mp4`,
@@ -75,6 +80,7 @@ type BookedData = Pick<
   FunnelCopyDocumentData,
   | "booked_steps"
   | "booked_vimeo_video"
+  | "booked_video_title"
   | "booked_projects"
   | "booked_video_mp4"
   | "booked_video_mp4_mobile"
@@ -118,6 +124,9 @@ export function resolveBooked(data: Partial<BookedData> | null | undefined): Boo
     projectUids: projectUids.length ? projectUids : BOOKED_DEFAULTS.projectUids,
     video: ownVideo
       ? {
+          title:
+            (typeof data?.booked_video_title === "string" && data.booked_video_title.trim()) ||
+            "Video",
           vimeo,
           mp4,
           mobileMp4,

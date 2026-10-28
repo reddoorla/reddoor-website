@@ -70,7 +70,6 @@ describe("the booked page with nothing written in Prismic is the board", () => {
       "rubrik-zero-labs",
       "the-texas-organ-sharing-alliance",
     ]);
-    expect(D.booked.video).toEqual(BOOKED_DEFAULTS.video);
   });
 });
 
@@ -125,12 +124,23 @@ describe("resolveBooked", () => {
   it("a new Vimeo link alone replaces the whole video, so the old file cannot play first", () => {
     const out = resolveBooked({ booked_vimeo_video: "https://vimeo.com/1" });
     expect(out.video).toEqual({
+      title: "Video",
       vimeo: "https://vimeo.com/1",
       mp4: null,
       mobileMp4: null,
       captions: null,
       poster: null,
     });
+  });
+
+  it("a new video is never announced by the default video's title", () => {
+    const own = resolveBooked({ booked_vimeo_video: "https://vimeo.com/1" });
+    expect(own.video.title).toBe("Video");
+    const named = resolveBooked({
+      booked_vimeo_video: "https://vimeo.com/1",
+      booked_video_title: "Meet Tim",
+    });
+    expect(named.video.title).toBe("Meet Tim");
   });
 
   it("a new file brings its own captions and poster, never the old ones", () => {

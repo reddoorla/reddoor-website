@@ -59,25 +59,28 @@
   <div class="absolute inset-x-0 top-0 hidden h-28.25 bg-paper lg:block" aria-hidden="true"></div>
   <ContentWidth class="relative">
     <div class="flex flex-col gap-10 pt-12 pb-10 lg:grid lg:grid-cols-5 lg:gap-5 lg:pt-8.75">
-      <!-- role="status" alone would not announce: the element is inserted
-           already holding its text, and a live region only speaks for text
-           added after it exists. Focus is moved here as well. -->
-      <div
-        class="booked-details flex flex-col gap-5 lg:pt-31.75"
-        role="status"
-        tabindex="-1"
-        bind:this={statusEl}
-      >
-        <div class="detail">
-          <p class="detail-label">{copy.booked_date_label}</p>
-          <p class="detail-value">{when}</p>
-        </div>
-        {#if duration}
+      <div class="flex flex-col gap-5 lg:pt-31.75">
+        <!-- role="status" alone would not announce: the element is inserted
+             already holding its text, and a live region only speaks for text
+             added after it exists. Focus is moved here as well. Only the time
+             and length, so the five links are not read out in the same breath. -->
+        <div
+          class="booked-details flex flex-col gap-5"
+          role="status"
+          tabindex="-1"
+          bind:this={statusEl}
+        >
           <div class="detail">
-            <p class="detail-label">{copy.booked_duration_label}</p>
-            <p class="detail-value">{duration}</p>
+            <p class="detail-label">{copy.booked_date_label}</p>
+            <p class="detail-value">{when}</p>
           </div>
-        {/if}
+          {#if duration}
+            <div class="detail">
+              <p class="detail-label">{copy.booked_duration_label}</p>
+              <p class="detail-value">{duration}</p>
+            </div>
+          {/if}
+        </div>
 
         {#if links}
           <!-- The routes the confirmation email links to. They build the
@@ -112,7 +115,7 @@
           mobileMp4={video.mobileMp4}
           captions={video.captions}
           poster={video.poster}
-          title={copy.booked_video_title}
+          title={video.title ?? copy.booked_video_title}
           sizes="(min-width: 1024px) 74vw, 92vw"
           class="bg-paper"
         />
@@ -124,7 +127,8 @@
 <div class="w-screen bg-white py-12.5">
   <RailRow>
     <h2 class="type-lede prepare-heading m-0 text-primary">{copy.booked_prepare_heading}</h2>
-    <ol class="prepare-steps mt-6.75 grid gap-6 pt-6.75 md:grid-cols-3 md:gap-5.75">
+    <!-- role="list": Safari drops list semantics from an unstyled list. -->
+    <ol role="list" class="prepare-steps mt-6.75 grid gap-6 pt-6.75 md:grid-cols-3 md:gap-5.75">
       {#each copy.booked.steps as step, i (i)}
         <li class="flex flex-col gap-2.5">
           <span class="step-number" aria-hidden="true">{stepNumber(i)}</span>

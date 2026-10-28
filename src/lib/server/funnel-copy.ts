@@ -48,11 +48,12 @@ export async function loadBookedProjects(
   if (!uids.length) return [];
   try {
     const client = createClient({ fetch: event.fetch, cookies: event.cookies });
-    const docs = await client.getByUIDs("project", uids);
+    const docs = await client.getByUIDs("project", uids, { pageSize: 100 });
     const byUid = new Map(docs.results.map((d) => [d.uid, d]));
     return uids.flatMap((uid) => {
       const doc = byUid.get(uid);
-      if (!doc) return [];
+      // A card with no hero would be a broken image.
+      if (!doc?.data.hero?.url) return [];
       return [
         {
           uid,
