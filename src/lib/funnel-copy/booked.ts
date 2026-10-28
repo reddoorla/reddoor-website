@@ -1,6 +1,7 @@
 import { isFilled, type FilledImageFieldImage, type LinkToMediaField } from "@prismicio/client";
 import type { FunnelCopyDocumentData } from "../../../prismicio-types";
 import { captionsUrl, mediaUrl } from "$lib/video/media";
+import { parseVimeo } from "$lib/slices/OfferHero/vimeo";
 
 /**
  * The parts of the "You're on the calendar" page that are not one line of
@@ -90,12 +91,14 @@ export function resolveBooked(data: Partial<BookedData> | null | undefined): Boo
     .map((item) => (typeof item?.text === "string" ? item.text.trim() : ""))
     .filter(Boolean);
 
+  // Once each: the page keys its cards by UID, and a repeated key throws as
+  // the booked state mounts, after the CRM has already taken the booking.
   const projectUids = (data?.booked_projects ?? [])
     .map((item) => {
       const link = item?.project;
       return link && isFilled.contentRelationship(link) && link.uid ? link.uid : "";
     })
-    .filter(Boolean);
+    .filter((uid, i, all) => uid && all.indexOf(uid) === i);
 
   // The video's fields go together: a new Vimeo link would otherwise still
   // play the old mp4 (the file plays first), and a new mp4 would show the old
@@ -104,7 +107,11 @@ export function resolveBooked(data: Partial<BookedData> | null | undefined): Boo
   const vimeo = typeof data?.booked_vimeo_video === "string" ? data.booked_vimeo_video.trim() : "";
   const mp4 = mediaUrl(media(data?.booked_video_mp4));
   const mobileMp4 = mediaUrl(media(data?.booked_video_mp4_mobile));
-  const ownVideo = Boolean(vimeo || mp4 || mobileMp4);
+  // Only a paste that names a Vimeo video counts: "tbd" or a YouTube link
+  // would otherwise swap the working default for a box that plays nothing.
+  const ownVideo = Boolean(parseVimeo(vimeo) || mp4 || mobileMp4);
+  // A poster alone is a new still for whichever video plays.
+  const poster = filledImage(data?.booked_video_poster);
 
   return {
     steps: steps.length ? steps : BOOKED_DEFAULTS.steps,
@@ -115,9 +122,9 @@ export function resolveBooked(data: Partial<BookedData> | null | undefined): Boo
           mp4,
           mobileMp4,
           captions: captionsUrl(media(data?.booked_video_captions)),
-          poster: filledImage(data?.booked_video_poster),
+          poster,
         }
-      : BOOKED_DEFAULTS.video,
+      : { ...BOOKED_DEFAULTS.video, poster: poster ?? BOOKED_DEFAULTS.video.poster },
     quotePhoto: filledImage(data?.booked_quote_photo) ?? BOOKED_DEFAULTS.quotePhoto,
   };
 }

@@ -80,7 +80,17 @@ export function localHref(url: string): string {
  * `javascript:` URL typed into a Prismic Web link would run; it renders as
  * plain text instead.
  */
-const SAFE_HREF = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
+export const SAFE_HREF = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
+
+/**
+ * A link typed into a plain text field, as a link the page may draw: the
+ * site's own origin dropped (`localHref`), and anything but the schemes above
+ * replaced by `fallback`.
+ */
+export function safeHref(url: string, fallback: string): string {
+  const href = localHref(url.trim());
+  return SAFE_HREF.test(href) ? href : fallback;
+}
 
 /**
  * Values the page inserts into the copy. The editor writes the token, e.g.

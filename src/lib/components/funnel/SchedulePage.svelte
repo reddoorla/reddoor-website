@@ -289,7 +289,11 @@
       // this tab with "your application is in" long after it stopped being news.
       clearHandoff();
       await tick();
-      bookedEl?.focus();
+      // The booked page is a new page: it starts at its heading, not at the
+      // scroll position the form was left at. Focus still moves to the
+      // details so they are announced, without scrolling back down.
+      window.scrollTo({ top: 0 });
+      bookedEl?.focus({ preventScroll: true });
     } catch {
       formError = "Something went wrong. Please try again or email info@reddoorla.com.";
     } finally {

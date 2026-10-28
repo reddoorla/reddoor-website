@@ -353,7 +353,7 @@ interface FunnelCopyDocumentData {
 	 * Video — Vimeo link or id field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Text
-	 * - **Placeholder**: Leave every video field empty to keep the Brand Friction Audit video. Setting any of them replaces it.
+	 * - **Placeholder**: Leave the Vimeo link and both files empty to keep the Brand Friction Audit video. Setting any of them replaces it.
 	 * - **API ID Path**: funnel_copy.booked_vimeo_video
 	 * - **Tab**: Booked page
 	 * - **Documentation**: https://prismic.io/docs/fields/text
@@ -394,7 +394,7 @@ interface FunnelCopyDocumentData {
 	booked_video_captions: prismic.LinkToMediaField<prismic.FieldState, never>;
 	
 	/**
-	 * Video — poster (the still before it plays) field in *Booking pages copy*
+	 * Video — poster (the still before it plays; set on its own, it replaces the default still) field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Image
 	 * - **Placeholder**: *None*

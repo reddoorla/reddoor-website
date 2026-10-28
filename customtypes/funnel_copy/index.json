@@ -143,7 +143,7 @@
         "type": "Text",
         "config": {
           "label": "Video — Vimeo link or id",
-          "placeholder": "Leave every video field empty to keep the Brand Friction Audit video. Setting any of them replaces it."
+          "placeholder": "Leave the Vimeo link and both files empty to keep the Brand Friction Audit video. Setting any of them replaces it."
         }
       },
       "booked_video_mp4": {
@@ -176,7 +176,7 @@
       "booked_video_poster": {
         "type": "Image",
         "config": {
-          "label": "Video — poster (the still before it plays)",
+          "label": "Video — poster (the still before it plays; set on its own, it replaces the default still)",
           "constraint": {},
           "thumbnails": []
         }

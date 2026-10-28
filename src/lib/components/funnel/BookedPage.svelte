@@ -6,8 +6,8 @@
   import Testimonial from "$lib/slices/Testimonial/index.svelte";
   import CtaBanner from "$lib/slices/CtaBanner/index.svelte";
   import { stepNumber } from "$lib/slices/TextColumns/stepNumber";
-  import type { Content } from "@prismicio/client";
   import type { FunnelCopy } from "$lib/funnel-copy/copy";
+  import { bookedCtaSlice, bookedQuoteSlice } from "$lib/funnel-copy/booked-slices";
   import type { BookedProject } from "$lib/server/funnel-copy";
   import rescheduleIcon from "$lib/assets/icons/booked/reschedule.svg";
   import cancelIcon from "$lib/assets/icons/booked/cancel.svg";
@@ -49,44 +49,8 @@
 
   // The two landing-page slices, fed from this page's own fields so the band
   // and the banner are the ones /medtech shows, not look-alikes.
-  const quoteSlice = $derived({
-    id: "booked-quote",
-    slice_type: "testimonial",
-    slice_label: null,
-    variation: "default",
-    version: "initial",
-    primary: {
-      label: copy.booked_quote_label,
-      quote: copy.booked_quote,
-      name: copy.booked_quote_name,
-      role: copy.booked_quote_role,
-      avatar: copy.booked.quotePhoto ?? {},
-      hasTopPadding: true,
-      hasBottomPadding: true,
-      isAnimated: true,
-      hide: false,
-    },
-    items: [],
-  } as unknown as Content.TestimonialSlice);
-
-  const ctaSlice = $derived({
-    id: "booked-cta",
-    slice_type: "cta_banner",
-    slice_label: null,
-    variation: "default",
-    version: "initial",
-    primary: {
-      heading: [{ type: "heading2", text: copy.booked_cta_heading, spans: [] }],
-      buttonLabel: copy.booked_cta_button,
-      buttonLink: { link_type: "Web", url: copy.booked_cta_link },
-      background: "paper-red",
-      hasTopPadding: true,
-      hasBottomPadding: true,
-      isAnimated: true,
-      hide: false,
-    },
-    items: [],
-  } as unknown as Content.CtaBannerSlice);
+  const quoteSlice = $derived(bookedQuoteSlice(copy));
+  const ctaSlice = $derived(bookedCtaSlice(copy));
 </script>
 
 <!-- The board's paper runs 113px into this band and the video starts 35px
