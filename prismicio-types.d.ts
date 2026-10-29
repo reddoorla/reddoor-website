@@ -512,40 +512,7 @@ interface FunnelCopyDocumentData {
 	 * - **Tab**: Booked page
 	 * - **Documentation**: https://prismic.io/docs/fields/image
 	 */
-	booked_quote_photo: prismic.ImageField<never>;
-	
-	/**
-	 * Closing banner — heading field in *Booking pages copy*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: Leave empty to keep the wording on the design
-	 * - **API ID Path**: funnel_copy.booked_cta_heading
-	 * - **Tab**: Booked page
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	booked_cta_heading: prismic.KeyTextField;
-	
-	/**
-	 * Closing banner — button field in *Booking pages copy*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: Leave empty to keep the wording on the design
-	 * - **API ID Path**: funnel_copy.booked_cta_button
-	 * - **Tab**: Booked page
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	booked_cta_button: prismic.KeyTextField;
-	
-	/**
-	 * Closing banner — button link (a path such as /contact, or a full URL) field in *Booking pages copy*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: Leave empty to keep the wording on the design
-	 * - **API ID Path**: funnel_copy.booked_cta_link
-	 * - **Tab**: Booked page
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	booked_cta_link: prismic.KeyTextField;/**
+	booked_quote_photo: prismic.ImageField<never>;/**
 	 * “Your time” label field in *Booking pages copy*
 	 *
 	 * - **Field Type**: Text

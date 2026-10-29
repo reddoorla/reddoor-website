@@ -68,7 +68,7 @@ export const FUNNEL_COPY_DEFAULTS = {
   booked_outlook_label: "Add to Outlook.com",
   booked_reschedule_label: "Reschedule",
   booked_cancel_label: "Cancel",
-  booked_video_title: "Brand Friction Audit",
+  booked_video_title: "Preparing for Our Call",
   booked_prepare_heading: "How to Prepare for This 1:1 Call",
   booked_work_label: "Check out Our Work",
   // Tim, Figma comment 2026-10-28: for now the band repeats the MSOT quote the
@@ -78,9 +78,6 @@ export const FUNNEL_COPY_DEFAULTS = {
     "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
   booked_quote_name: "Albert Turgon",
   booked_quote_role: "COO of MSOT (Medical Solutions of Texas)",
-  booked_cta_heading: "It’s time to arm your brand with a clear story and compelling design.",
-  booked_cta_button: "Meet with us",
-  booked_cta_link: "/contact",
 
   // The /schedule form
   form_time_label: "Your time",

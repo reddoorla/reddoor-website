@@ -4,10 +4,9 @@
   import VideoCard from "$lib/components/VideoCard.svelte";
   import ProjectCard from "$lib/components/ProjectCard.svelte";
   import Testimonial from "$lib/slices/Testimonial/index.svelte";
-  import CtaBanner from "$lib/slices/CtaBanner/index.svelte";
   import { stepNumber } from "$lib/slices/TextColumns/stepNumber";
   import type { FunnelCopy } from "$lib/funnel-copy/copy";
-  import { bookedCtaSlice, bookedQuoteSlice } from "$lib/funnel-copy/booked-slices";
+  import { bookedQuoteSlice } from "$lib/funnel-copy/booked-slices";
   import type { BookedProject } from "$lib/server/funnel-copy";
   import rescheduleIcon from "$lib/assets/icons/booked/reschedule.svg";
   import cancelIcon from "$lib/assets/icons/booked/cancel.svg";
@@ -47,10 +46,9 @@
 
   const video = $derived(copy.booked.video);
 
-  // The two landing-page slices, fed from this page's own fields so the band
-  // and the banner are the ones /medtech shows, not look-alikes.
+  // The landing pages' testimonial slice, fed from this page's own fields so
+  // the band is the one /medtech shows, not a look-alike.
   const quoteSlice = $derived(bookedQuoteSlice(copy));
-  const ctaSlice = $derived(bookedCtaSlice(copy));
 </script>
 
 <!-- The board's paper runs 113px into this band and the video starts 35px
@@ -107,7 +105,8 @@
         {/if}
       </div>
 
-      <!-- Tim, Figma comment 2026-10-28: "make this 16:9". -->
+      <!-- Tim, Figma comment 2026-10-28: "make this 16:9"; Discord 2026-10-29:
+           the offer card's radius and drop shadow (OfferHero). -->
       <div class="lg:col-span-4">
         <VideoCard
           vimeo={video.vimeo}
@@ -117,7 +116,7 @@
           poster={video.poster}
           title={video.title ?? copy.booked_video_title}
           sizes="(min-width: 1024px) 74vw, 92vw"
-          class="bg-paper"
+          class="rounded-[9px] bg-paper shadow-[0_4px_11.5px_rgba(0,0,0,0.11)]"
         />
       </div>
     </div>
@@ -159,8 +158,9 @@
   </div>
 {/if}
 
+<!-- No closing banner: Tim, Discord 2026-10-29, "just have the reddoor
+     footer under it". -->
 <Testimonial slice={quoteSlice} />
-<CtaBanner slice={ctaSlice} />
 
 <style>
   /* #d71920 primary, #aa1419 primary-dark, #6e6f72 muted (4.6:1 on white),

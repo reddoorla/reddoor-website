@@ -1,11 +1,12 @@
 import type { Content } from "@prismicio/client";
-import { safeHref, type FunnelCopy } from "./copy";
+import type { FunnelCopy } from "./copy";
 
 /**
- * The booked page's testimonial band and closing banner are the Testimonial
- * and CtaBanner slices themselves, given slice objects built from the page's
- * own `funnel_copy` fields, so they are the ones /medtech shows rather than
- * look-alikes. Each object carries only what its component reads.
+ * The booked page's testimonial band is the Testimonial slice itself, given a
+ * slice object built from the page's own `funnel_copy` fields, so it is the
+ * one /medtech shows rather than a look-alike. The object carries only what
+ * the component reads. (The closing CtaBanner went on 2026-10-29: Tim asked
+ * for the site footer straight under the testimonial.)
  */
 export function bookedQuoteSlice(copy: FunnelCopy): Content.TestimonialSlice {
   return {
@@ -27,27 +28,4 @@ export function bookedQuoteSlice(copy: FunnelCopy): Content.TestimonialSlice {
     },
     items: [],
   } as unknown as Content.TestimonialSlice;
-}
-
-export function bookedCtaSlice(copy: FunnelCopy): Content.CtaBannerSlice {
-  return {
-    id: "booked-cta",
-    slice_type: "cta_banner",
-    slice_label: null,
-    variation: "default",
-    version: "initial",
-    primary: {
-      heading: [{ type: "heading2", text: copy.booked_cta_heading, spans: [] }],
-      buttonLabel: copy.booked_cta_button,
-      // A text field, so the scheme is checked here: the CSP allows inline
-      // script, and a `javascript:` URL would otherwise be a live link.
-      buttonLink: { link_type: "Web", url: safeHref(copy.booked_cta_link, "/contact") },
-      background: "paper-red",
-      hasTopPadding: true,
-      hasBottomPadding: true,
-      isAnimated: true,
-      hide: false,
-    },
-    items: [],
-  } as unknown as Content.CtaBannerSlice;
 }

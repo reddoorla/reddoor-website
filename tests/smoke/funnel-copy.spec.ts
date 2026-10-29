@@ -38,7 +38,7 @@ test.describe("/preview/funnel", () => {
       await expect(page.getByRole("status").filter({ hasText: "Date and Time" })).toBeVisible();
       await expect(page.getByText("Add to Google Calendar")).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Play video: Brand Friction Audit" }),
+        page.getByRole("button", { name: "Play video: Preparing for Our Call" }),
       ).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "How to Prepare for This 1:1 Call" }),
@@ -48,10 +48,6 @@ test.describe("/preview/funnel", () => {
         page.getByRole("listitem").filter({ hasText: "Be in quiet place" }),
       ).toContainText("03");
       await expect(page.getByRole("figure").filter({ hasText: "Albert Turgon" })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Meet with us", exact: true })).toHaveAttribute(
-        "href",
-        "/contact",
-      );
     },
   );
 

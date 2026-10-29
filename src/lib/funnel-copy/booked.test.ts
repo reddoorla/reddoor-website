@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { asLink } from "@prismicio/client";
-import { bookedCtaSlice, bookedQuoteSlice } from "./booked-slices";
+import { bookedQuoteSlice } from "./booked-slices";
 import { BOOKED_DEFAULTS, resolveBooked } from "./booked";
 import { DEFAULT_FUNNEL_COPY, resolveFunnelCopy, safeHref } from "./copy";
 
@@ -39,8 +38,6 @@ describe("the booked page with nothing written in Prismic is the board", () => {
       D.booked_cancel_label,
       D.booked_prepare_heading,
       D.booked_work_label,
-      D.booked_cta_heading,
-      D.booked_cta_button,
     ]).toEqual([
       "You’re on the calendar.",
       "Check your email and watch the video below for more details",
@@ -52,8 +49,6 @@ describe("the booked page with nothing written in Prismic is the board", () => {
       "Cancel",
       "How to Prepare for This 1:1 Call",
       "Check out Our Work",
-      "It’s time to arm your brand with a clear story and compelling design.",
-      "Meet with us",
     ]);
   });
 
@@ -173,19 +168,6 @@ describe("safeHref, for the closing banner's link", () => {
     expect(safeHref("https://reddoorla.com/contact", "/contact")).toBe("/contact");
     expect(safeHref("/schedule", "/contact")).toBe("/schedule");
     expect(safeHref("https://example.com/x", "/contact")).toBe("https://example.com/x");
-  });
-});
-
-describe("the closing banner", () => {
-  it("goes to /contact when the link field holds a script URL", () => {
-    const copy = { ...DEFAULT_FUNNEL_COPY, booked_cta_link: "javascript:alert(1)" };
-    expect(asLink(bookedCtaSlice(copy).primary.buttonLink)).toBe("/contact");
-  });
-
-  it("carries the board's heading and button", () => {
-    const slice = bookedCtaSlice(DEFAULT_FUNNEL_COPY);
-    expect(slice.primary.buttonLabel).toBe(DEFAULT_FUNNEL_COPY.booked_cta_button);
-    expect(asLink(slice.primary.buttonLink)).toBe("/contact");
   });
 });
 
