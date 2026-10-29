@@ -1853,3 +1853,15 @@ Three minors were folded in: an unparseable Vimeo paste keeps the default video,
 `pnpm test` passed 905 unit and 236 `@smoke` tests before the last fold-ins.
 
 **Not done here.** The model reaches Prismic on the promotion, which is the operator's to merge. After that, Tim's edits go in a release.
+
+## 2026-10-29 — The booked page plays Tim's "Preparing for Our Call" video, and loses its closing banner (#309)
+
+**Why.** Tim sent the video and cover for the booked page in #rd-clients-by-design (11:46am PT). Over the next hour he asked for two more things: drop the red CTA banner so "just the reddoor footer" sits under the testimonial, and give the video the offer card's rounded corners and drop shadow. The operator folded the banner into this task mid-session. The layout itself was already done: Tim's 12:23pm mockup is the page the operator built on 10-28, with the offer film's still in the video slot.
+
+**The video.** The master is 457 MB: 3:10 at 1080p and 19 Mb/s. The web encodes follow the 10-26 offer recipe, sized to stay under Prismic's ~100 MB upload cap. The 1080p file is H.264 High, crf 23, maxrate 2600k, with 128k AAC: 64.2 MB at 2.70 Mb/s. The 720p Main phone file is 28.2 MB. Both went into the reddoor-la media library via `upload_asset` from a Dropbox temporary link, the route the 10-26 entry found, and came back byte-identical by md5. They also sit beside the master in Dropbox under `RD_Offer_video/web-encodes-2026-10-29/`. They are the code default in `BOOKED_DEFAULTS.video`, so no content release is needed. The player's name comes from the cover's own title, "Preparing for Our Call", not the file name.
+
+**A belief corrected on contact.** The cover JPEG uploaded through the connector came back as `kind: "document"` on the plain CDN, which looked like it would skip imgix. images.prismic.io serves the same id anyway: 70 KB at 1200 wide against the 689 KB original. So `PrismicImage`'s srcset works on it.
+
+**The banner.** It went together with its three `funnel_copy` fields, `bookedCtaSlice`, and the tests that pinned its words and its `/contact` link. Keeping the fields would have left editable copy that renders nowhere. The model change rides the next promotion to `main`.
+
+**Not done.** There is no captions file and no Vimeo copy, so both slots are empty rather than borrowed from the offer film. A `.vtt` needs a transcript.

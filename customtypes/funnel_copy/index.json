@@ -270,27 +270,6 @@
           "constraint": {},
           "thumbnails": []
         }
-      },
-      "booked_cta_heading": {
-        "type": "Text",
-        "config": {
-          "label": "Closing banner — heading",
-          "placeholder": "Leave empty to keep the wording on the design"
-        }
-      },
-      "booked_cta_button": {
-        "type": "Text",
-        "config": {
-          "label": "Closing banner — button",
-          "placeholder": "Leave empty to keep the wording on the design"
-        }
-      },
-      "booked_cta_link": {
-        "type": "Text",
-        "config": {
-          "label": "Closing banner — button link (a path such as /contact, or a full URL)",
-          "placeholder": "Leave empty to keep the wording on the design"
-        }
       }
     },
     "Booking form": {

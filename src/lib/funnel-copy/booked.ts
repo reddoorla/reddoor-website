@@ -52,18 +52,21 @@ export const BOOKED_DEFAULTS: BookedExtras = {
   ],
   // The board's four cards: Revogen, MSOT, Rubrik Zero Labs, TOSA.
   projectUids: ["revogen", "msot", "rubrik-zero-labs", "the-texas-organ-sharing-alliance"],
-  // The board's still is the offer video on /brand-friction-audit; these are
-  // that offer_hero slice's own files.
+  // Tim's "Thank you for booking" video (Discord, 2026-10-29), which replaced
+  // the offer video the board's still showed. Web encodes of his 1080p master,
+  // as the offer's were (crf 23, maxrate 2600k; the phone file 720p Main), in
+  // Dropbox beside it under RD_Offer_video/web-encodes-2026-10-29/. No Vimeo
+  // copy and no captions file exist yet; both slots are empty, not borrowed.
   video: {
     title: null,
-    vimeo: "https://vimeo.com/1238093596",
-    mp4: `${CDN}/68VseVXFh5HebH-f_brand-friction-offer-115x-1080.mp4`,
-    mobileMp4: `${CDN}/UbwlVDScalYl__h8_brand-friction-offer-115x-phone-720.mp4`,
-    captions: `${CDN}/Q0Xl7YhjosTN0VYs_brand-friction-offer-115x.en.vtt`,
+    vimeo: "",
+    mp4: `${CDN}/YVYhbnV8APfyz6aX_thank-you-for-booking-1080.mp4`,
+    mobileMp4: `${CDN}/Xs8KOT_1XwKqu8HC_thank-you-for-booking-phone-720.mp4`,
+    captions: null,
     poster: image(
-      "https://images.prismic.io/reddoor-la/9rax62WJ7Arsmr_-_Screenshot2026-10-21at2.57.45PM.png?auto=format,compress",
-      3294,
-      1852,
+      "https://images.prismic.io/reddoor-la/1a8yeMSokJJVmLlL_thank-you-for-booking-cover.jpg?auto=format,compress",
+      2594,
+      1460,
       "",
     ),
   },
