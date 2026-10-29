@@ -56,13 +56,17 @@
 {/snippet}
 
 {@render band("schedule")}
-<SchedulePage copy={data.copy} preview={{ ...v, state: "default" }} />
+<SchedulePage copy={data.copy} projects={data.projects} preview={{ ...v, state: "default" }} />
 {@render band("schedule-applied")}
-<SchedulePage copy={data.copy} preview={{ ...v, state: "applied" }} />
+<SchedulePage copy={data.copy} projects={data.projects} preview={{ ...v, state: "applied" }} />
 {@render band("schedule-booked")}
-<SchedulePage copy={data.copy} preview={{ ...v, state: "booked" }} />
+<SchedulePage copy={data.copy} projects={data.projects} preview={{ ...v, state: "booked" }} />
 {@render band("schedule-no-times")}
-<SchedulePage copy={data.copy} preview={{ ...v, slots: [], state: "default" }} />
+<SchedulePage
+  copy={data.copy}
+  projects={data.projects}
+  preview={{ ...v, slots: [], state: "default" }}
+/>
 {@render band("not-a-fit")}
 <NotAFitPage copy={data.copy} />
 {@render band("cancel")}

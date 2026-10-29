@@ -55,6 +55,30 @@ export const FUNNEL_COPY_DEFAULTS = {
     `There’s nothing open in the next couple of weeks. Email ${MAIL} and we’ll find you a time.`,
   ),
 
+  // /schedule once booked: the "You're on the calendar" page (Figma
+  // RD-Sales-Funnel-LP 5314:75, Nicole, 2026-10-25). Unlike the lines above,
+  // these are the board's words rather than words the page already said.
+  booked_subhead: "Check your email and watch the video below for more details",
+  booked_date_label: "Date and Time",
+  booked_duration_label: "Duration",
+  booked_google_label: "Add to Google Calendar",
+  booked_ical_label: "Add to iCal/Outlook Calendar",
+  // Not on the board: #285 added it because Outlook on the web cannot open an
+  // .ics download.
+  booked_outlook_label: "Add to Outlook.com",
+  booked_reschedule_label: "Reschedule",
+  booked_cancel_label: "Cancel",
+  booked_video_title: "Preparing for Our Call",
+  booked_prepare_heading: "How to Prepare for This 1:1 Call",
+  booked_work_label: "Check out Our Work",
+  // Tim, Figma comment 2026-10-28: for now the band repeats the MSOT quote the
+  // landing pages carry (the Testimonial slice on /medtech), photo included.
+  booked_quote_label: "What Our Clients are Saying",
+  booked_quote:
+    "We needed to look credible against the biggest players in our industry. While I know what I like, I had no idea how to get our brand there. That's where Reddoor came in, their branding and web work took MSOT to the next level, putting us in position to win multi-million government supply contracts.",
+  booked_quote_name: "Albert Turgon",
+  booked_quote_role: "COO of MSOT (Medical Solutions of Texas)",
+
   // The /schedule form
   form_time_label: "Your time",
   form_booking_as: "Booking as",

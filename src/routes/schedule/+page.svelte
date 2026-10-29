@@ -5,4 +5,4 @@
   let { data }: PageProps = $props();
 </script>
 
-<SchedulePage copy={data.copy} />
+<SchedulePage copy={data.copy} projects={data.projects} />

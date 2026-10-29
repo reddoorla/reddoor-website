@@ -3,6 +3,7 @@
   import { animateIn as anim } from "$lib/actions/animateIn";
   import arrowButton from "$lib/assets/icons/arrowButton.svg";
   import Img from "$lib/components/Img.svelte";
+  import ProjectCard from "$lib/components/ProjectCard.svelte";
   import RevogenBanner from "$lib/components/RevogenHero/RevogenBanner.svelte";
   import VimeoBanner from "$lib/components/RevogenHero/VimeoBanner.svelte";
   import { hostedVideo } from "$lib/video/hosted";
@@ -26,7 +27,6 @@
   import DefaultButton from "$lib/components/Buttons/DefaultButton.svelte";
   import type { PageData } from "./$types";
   import { mediumString, toSearchRecord } from "$lib/utils/projectServices";
-  import { imgixSrc, imgixSrcset } from "$lib/utils/imgix";
   import { ArrowDown, ChevronDown, Minus, Search, X } from "@lucide/svelte";
 
   let { data }: { data: PageData } = $props();
@@ -1105,35 +1105,12 @@
             ? ''
             : 'hidden'}"
         >
-          <a
-            href={"/portfolio/" + project.uid}
-            class="h-full w-full flex flex-col justify-end relative"
-          >
-            <img
-              src={imgixSrc(project.data.hero.url)}
-              srcset={imgixSrcset(project.data.hero.url)}
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              alt={project.data.title + " Hero Image"}
-              class="absolute w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-              fetchpriority="low"
-            />
-            <div
-              class="w-full h-full absolute top-0 left-0 hover:opacity-60 transition-opacity duration-700"
-              style="background: linear-gradient(180deg, rgba(12, 19, 35, 0.15) 0%, rgba(12, 19, 35, 0.80) 81.09%) 50% / cover no-repeat;"
-            ></div>
-
-            <div class="w-full flex flex-row justify-between p-6 z-10">
-              <div>
-                <p class="text-white uppercase">{project.data.title}</p>
-                <p class="text-light">{mediumString(project) || ""}</p>
-              </div>
-              <span class="brightness-200 hover:brightness-50 transition bump" aria-hidden="true">
-                <img src={arrowButton} alt="" class="h-full" />
-              </span>
-            </div>
-          </a>
+          <ProjectCard
+            uid={project.uid}
+            title={project.data.title ?? ""}
+            heroUrl={project.data.hero.url}
+            services={mediumString(project) || ""}
+          />
         </div>
       {/each}
     </div>

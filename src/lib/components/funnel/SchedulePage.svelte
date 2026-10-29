@@ -13,6 +13,8 @@
   import { readHandoff, clearHandoff } from "$lib/schedule/handoff";
   import SlotPicker from "$lib/components/SlotPicker.svelte";
   import SendingDots from "$lib/components/SendingDots.svelte";
+  import BookedPage from "./BookedPage.svelte";
+  import type { BookedProject } from "$lib/server/funnel-copy";
   import { asImageSrc } from "@prismicio/client";
   import { photoAlt, richHTML, type FunnelCopy } from "$lib/funnel-copy/copy";
   import type { SchedulePreview } from "$lib/funnel-copy/preview";
@@ -32,7 +34,11 @@
    * shipped wording as the fallback. `preview` renders one state from sample
    * data for /preview/funnel and turns every network call off.
    */
-  let { copy, preview }: { copy: FunnelCopy; preview?: SchedulePreview } = $props();
+  let {
+    copy,
+    projects = [],
+    preview,
+  }: { copy: FunnelCopy; projects?: BookedProject[]; preview?: SchedulePreview } = $props();
   // A preview is fixed for the life of the component: it picks the starting
   // state, it is never toggled.
   // svelte-ignore state_referenced_locally
@@ -103,6 +109,19 @@
     bookedId && /^[A-Za-z0-9_-]{10,64}$/.test(bookedId)
       ? `/calendar/${encodeURIComponent(bookedId)}`
       : null,
+  );
+  const bookedLinks = $derived(
+    bookedBase && bookedId
+      ? {
+          google: `${bookedBase}/google`,
+          ics: `${bookedBase}/event.ics`,
+          outlook: `${bookedBase}/outlook`,
+          reschedule: `/reschedule/${encodeURIComponent(bookedId)}`,
+          cancel: `/cancel/${encodeURIComponent(bookedId)}`,
+        }
+      : sample
+        ? {}
+        : null,
   );
 
   let nameEl = $state<HTMLInputElement>();
@@ -270,7 +289,11 @@
       // this tab with "your application is in" long after it stopped being news.
       clearHandoff();
       await tick();
-      bookedEl?.focus();
+      // The booked page is a new page: it starts at its heading, not at the
+      // scroll position the form was left at. Focus still moves to the
+      // details so they are announced, without scrolling back down.
+      window.scrollTo({ top: 0 });
+      bookedEl?.focus({ preventScroll: true });
     } catch {
       formError = "Something went wrong. Please try again or email info@reddoorla.com.";
     } finally {
@@ -280,103 +303,69 @@
 </script>
 
 {#snippet kicker()}
-  {booked ? copy.schedule_booked_kicker : copy.schedule_kicker}
+  {copy.schedule_kicker}
 {/snippet}
 
 <div class="w-screen h-[50vh] max-h-96 relative bg-paper">
   <ContentWidth class="h-full flex flex-col justify-evenly items-start">
     <div class="h-32"></div>
-    <h1 class="type-hero text-primary z-10 md:ml-[20%]">
+    <div class="z-10 md:ml-[20%]">
+      <h1 class="type-hero text-primary">
+        {#if booked}
+          {copy.schedule_booked_heading}
+        {:else if applied}
+          {copy.schedule_applied_heading}
+        {:else}
+          {copy.schedule_heading}
+        {/if}
+      </h1>
       {#if booked}
-        {copy.schedule_booked_heading}
-      {:else if applied}
-        {copy.schedule_applied_heading}
-      {:else}
-        {copy.schedule_heading}
+        <p class="booked-subhead m-0 mt-2.5 text-black">{copy.booked_subhead}</p>
       {/if}
-    </h1>
+    </div>
   </ContentWidth>
 </div>
 
-<div class="w-screen bg-white py-16">
-  <!-- No gap on desktop: the body starts on the 20% line the headline above
+{#if booked}
+  <BookedPage
+    {copy}
+    {projects}
+    when={formatFullSlot(booked, timeZone)}
+    duration={bookedDuration}
+    links={bookedLinks}
+    bind:statusEl={bookedEl}
+  />
+{:else}
+  <div class="w-screen bg-white py-16">
+    <!-- No gap on desktop: the body starts on the 20% line the headline above
        sits on (as /contact does); the kicker keeps clear with its own pr-4. -->
-  <ContentWidth class="flex flex-col md:flex-row gap-8 md:gap-0 mb-32">
-    {#if copy.tim_photo}
-      <!-- The Testimonial slice's headshot, the site's one portrait pattern:
+    <ContentWidth class="flex flex-col md:flex-row gap-8 md:gap-0 mb-32">
+      {#if copy.tim_photo}
+        <!-- The Testimonial slice's headshot, the site's one portrait pattern:
            round, 72px then 100px. It sits under the kicker because that
            column is empty below it on desktop, so the form keeps its place;
            with no photo the markup is exactly what it was before. -->
-      <div class="md:w-1/5 md:pr-4 shrink-0 flex flex-col gap-4">
-        <h2 class="type-kicker text-primary">{@render kicker()}</h2>
-        <img
-          src={asImageSrc(copy.tim_photo, {
-            w: 200,
-            h: 200,
-            fit: "crop",
-            crop: ["faces"],
-            auto: ["format", "compress"],
-          })}
-          alt={photoAlt(copy.tim_photo)}
-          width="100"
-          height="100"
-          class="h-[72px] w-[72px] rounded-full object-cover md:h-[100px] md:w-[100px]"
-        />
-      </div>
-    {:else}
-      <h2 class="type-kicker md:w-1/5 md:pr-4 text-primary shrink-0">{@render kicker()}</h2>
-    {/if}
-
-    <div class="funnel-body w-full md:w-4/5 max-w-2xl">
-      {#if booked}
-        <!-- role="status" alone would not announce: the element is inserted
-             already holding its text, and a live region only speaks for text
-             added after it exists. Focus is moved here as well. -->
-        <div class="booked" role="status" tabindex="-1" bind:this={bookedEl}>
-          <p class="booked-when">{formatFullSlot(booked, timeZone)}</p>
-          {#if bookedDuration}
-            <p class="booked-duration">Duration: {bookedDuration}</p>
-          {/if}
-          <!-- CMS copy, rendered from the editor's own document; the email is
-               the visitor's, escaped in richHTML. -->
-          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-          {@html richHTML(copy.schedule_booked_body, "booked-body", { email })}
+        <div class="md:w-1/5 md:pr-4 shrink-0 flex flex-col gap-4">
+          <h2 class="type-kicker text-primary">{@render kicker()}</h2>
+          <img
+            src={asImageSrc(copy.tim_photo, {
+              w: 200,
+              h: 200,
+              fit: "crop",
+              crop: ["faces"],
+              auto: ["format", "compress"],
+            })}
+            alt={photoAlt(copy.tim_photo)}
+            width="100"
+            height="100"
+            class="h-[72px] w-[72px] rounded-full object-cover md:h-[100px] md:w-[100px]"
+          />
         </div>
-        {#if bookedBase || sample}
-          <!-- The routes the confirmation email links to, by the same id. They
-               build the calendar hand-offs server-side, so the Zoom link never
-               reaches this page's source. -->
-          <div class="options">
-            <a class="option" href={bookedBase ? `${bookedBase}/google` : undefined}
-              >Add to Google Calendar</a
-            >
-            <!-- No `download`: the server sets Content-Disposition. -->
-            <a class="option" href={bookedBase ? `${bookedBase}/event.ics` : undefined}
-              >Add to iCal / Outlook</a
-            >
-            <!-- Outlook on the web cannot open an .ics download; this hands it
-                 the event the way the calendar page does. -->
-            <a class="option" href={bookedBase ? `${bookedBase}/outlook` : undefined}
-              >Add to Outlook.com</a
-            >
-          </div>
-          <p class="aside">
-            Need to change it?
-            <a
-              class="text-primary underline"
-              href={bookedId && bookedBase
-                ? `/reschedule/${encodeURIComponent(bookedId)}`
-                : undefined}>Reschedule</a
-            >
-            or
-            <a
-              class="text-primary underline"
-              href={bookedId && bookedBase ? `/cancel/${encodeURIComponent(bookedId)}` : undefined}
-              >cancel</a
-            >.
-          </p>
-        {/if}
       {:else}
+        <h2 class="type-kicker md:w-1/5 md:pr-4 text-primary shrink-0">{@render kicker()}</h2>
+      {/if}
+
+      <div class="funnel-body w-full md:w-4/5 max-w-2xl">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html richHTML(applied ? copy.schedule_applied_lede : copy.schedule_lede, "lede")}
 
@@ -517,10 +506,10 @@
             </form>
           {/if}
         {/if}
-      {/if}
-    </div>
-  </ContentWidth>
-</div>
+      </div>
+    </ContentWidth>
+  </div>
+{/if}
 
 <style>
   /* Values, not tokens, matching InquiryModal — this page is the frame after
@@ -726,69 +715,18 @@
     overflow: hidden;
   }
 
-  .booked-when {
-    margin: 0 0 18px;
-    font-family: "Besley", serif;
-    font-size: 28px;
-    font-weight: 400;
-    line-height: 1.3;
-    color: #d71920;
-  }
-  .funnel-body :global(.booked-body) {
-    margin: 0 0 14px;
+  /* Pragmatica Light 21/30 (18/26 on a phone), the board's Body 1, as the
+     offer page's subhead. */
+  .booked-subhead {
+    font-family: pragmatica, helvetica, sans-serif;
     font-size: 18px;
-    font-weight: 200;
-    line-height: 1.6;
-    color: #000;
+    font-weight: 300;
+    line-height: 26px;
   }
-  .booked:focus {
-    outline: none;
-  }
-  .booked:focus-visible {
-    outline: 2px solid #d71920;
-    outline-offset: 4px;
-  }
-  .booked-duration {
-    margin: -10px 0 18px;
-    font-size: 18px;
-    font-weight: 200;
-    color: #000;
-  }
-
-  /* The calendar page's buttons (/calendar/[eventId]), the same flow later on. */
-  .options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 10px;
-  }
-  .option {
-    padding: 12px 22px;
-    border: 1px solid #bbbdbf;
-    border-radius: 4px;
-    background: #fff;
-    color: #000;
-    font-size: 15px;
-    line-height: 1;
-    text-decoration: none;
-    transition: border-color 300ms;
-  }
-  .option:hover {
-    border-color: #6e6f72;
-  }
-  .option:focus-visible {
-    outline: 2px solid #d71920;
-    outline-offset: 1px;
-  }
-  .aside {
-    margin: 28px 0 0;
-    font-size: 15px;
-    font-weight: 200;
-    color: #6e6f72;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .option {
-      transition: none;
+  @media (min-width: 768px) {
+    .booked-subhead {
+      font-size: 21px;
+      line-height: 30px;
     }
   }
 </style>

@@ -1,4 +1,4 @@
-import { loadFunnelCopy } from "$lib/server/funnel-copy";
+import { loadBookedProjects, loadFunnelCopy } from "$lib/server/funnel-copy";
 import { sampleVisitor } from "$lib/funnel-copy/preview";
 import type { PageServerLoad } from "./$types";
 
@@ -14,11 +14,15 @@ import type { PageServerLoad } from "./$types";
  */
 export const prerender = false;
 
-export const load: PageServerLoad = async ({ fetch, cookies }) => ({
-  copy: await loadFunnelCopy({ fetch, cookies }),
-  visitor: sampleVisitor(new Date()),
-  title: "Booking Pages Preview | Reddoor Creative",
-  meta_title: "Booking Pages Preview | Reddoor Creative",
-  meta_description: "Every state of the booking pages, with sample data.",
-  meta_robots: "noindex, nofollow",
-});
+export const load: PageServerLoad = async ({ fetch, cookies }) => {
+  const copy = await loadFunnelCopy({ fetch, cookies });
+  return {
+    copy,
+    projects: await loadBookedProjects({ fetch, cookies }, copy.booked.projectUids),
+    visitor: sampleVisitor(new Date()),
+    title: "Booking Pages Preview | Reddoor Creative",
+    meta_title: "Booking Pages Preview | Reddoor Creative",
+    meta_description: "Every state of the booking pages, with sample data.",
+    meta_robots: "noindex, nofollow",
+  };
+};

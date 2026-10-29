@@ -1789,3 +1789,79 @@ The fix overrides `dangerouslyGetAll` as a third seam; the transform is idempote
 The proof, on #288's exact lockfile: the unit test's new `getAllByType` assertion is red without the override (`Received: "Reddoor's MedTech page"`) and green with it; the real smoke (`typography.spec.ts --grep twenty-for-twenty`, chromium, no retries) fails without the override and passes with it. On staging's lockfile (7.22.1) the unit file is green both ways.
 
 Belief corrected: a patch release can change which public method a private call sits behind, so "the only two seams" was true of one version, not of the client. The unit test now pins all three paths.
+
+## 2026-10-28 — "You're on the calendar" becomes the booked page from the board (P1-89, #307)
+
+Tim asked at 2:23pm PT for the call-booked page Nicole drew on 10-25 (Figma RD-Sales-Funnel-LP `5314:75`), so he could submit it for approval. He also left two Figma comments at 2:19 and 2:21pm PT: the video is 16:9, and for now the logo band repeats "what we used on the landing page already from MSOT". The page is the booked state of /schedule, not a new route. The booking is the site's own (the CRM through `/api/book`), and #285 already returned the appointment's start, end and id. So the brief's stop condition, a booking tool that cannot pass the time to the page, never arose.
+
+**The board is RailRow's grid.** The frame's numbers are the five-column "Sales Funnel v2" grid in the same Figma file, which RailRow already encodes:
+
+- the details column, 236px at 1440, is column 1 (240);
+- the video, 1025px at 342, is columns 2 to 5 (1020);
+- the steps, 762px, are columns 2 to 4 (760);
+- the work grid, 1020px, has its label in the rail.
+
+So nothing on this page carries a px from the comp except the 113px paper strip and the 35px the video straddles it by.
+
+**Reused, not redrawn.** The board's video card is the offer hero's, so it became `VideoCard`, and `OfferHero` now uses it. Its focus handling at the end and on a failed file moved over verbatim, and the offer-hero smoke specs still pass against it. The project tile is /portfolio's, so it became `ProjectCard`. The testimonial band and the closing banner are the Testimonial and CtaBanner slices themselves, fed slice objects built from this page's fields (`booked-slices.ts`). The quote is the one on /medtech: Albert Turgon's, with his photo.
+
+**Copy in Prismic, complete without it.** A new "Booked page" tab on `funnel_copy` holds every line, a steps group, a projects group (links to `project` documents), the video's fields, and the quote and its photo. Every field falls back to the board, so the page is whole before the model reaches Prismic, which happens only on the staging→main promotion. The video's fields fall back together. A new Vimeo link alone would otherwise still play the default mp4 first, because the file plays before Vimeo.
+
+**Where it departs from the board:**
+
+- The board's `#ababab` values and `#8b8c8d` links fail AA on white, so they take the muted `#6e6f72`. A new gate axe test on the booked state turns red with the board's grey; that was its positive control.
+- The third step reads 03; the board says 02.
+- #285's "Add to Outlook.com" button stays, because Outlook on the web cannot open an `.ics`.
+- The duration is the booking's 30 minutes, not the board's sample 45.
+- The board's logo row is not drawn, since Tim's comment makes the band the quote.
+
+**Real bookings.** I made two bookings on the deploy preview and cancelled both:
+
+- The first was 14:30 Mountain (UTC−7) on 2026-11-06. It showed "Friday, November 6 at 1:30 PM PST" and "30 minutes", which is right: Mountain had already left daylight time. Google and Outlook answered 302 to the provider and `event.ics` 200. The page also opened scrolled to where the form had been, with the new heading out of view. That is a defect the old in-place booked state could not have had.
+- The second, after the fix, opened at scroll 0 with the heading in view.
+
+Each cancel waited 10s before pressing (the bot screen fakes success on a fast click, per #285), and the appointment read back `cancelled` both times.
+
+**Review.** Round 1 was dirty, with two majors:
+
+- A `javascript:` URL in the CTA link text field rendered as a live link, because the CSP allows inline script. The link now goes through the rich-text links' allowlist, with the site's origin dropped, and falls back to /contact.
+- Picking a project twice made Svelte throw `each_key_duplicate` as the booked state mounted, after the CRM had taken the booking. Projects are now shown once each.
+
+Three minors were folded in: an unparseable Vimeo paste keeps the default video, a lone poster replaces only the still, and the scroll-to-top. Round 2 was minors only, and these were folded in too:
+
+- a new video is not announced by the default's title;
+- the status region holds only the time and length;
+- `role="list"` on the steps;
+- a project with no hero is skipped;
+- `getByUIDs` gets `pageSize: 100`.
+
+**Beliefs corrected on contact.**
+
+- The brief said the MSOT testimonial was on /brand-friction-audit. That document holds only the offer hero and a CTA banner; the MSOT quote is on /medtech (and /boise).
+- I wrote a phone-width smoke test for the scroll-to-top and ran its mutation before trusting it. With the fix removed, the stubbed page still ended at scroll 0, so the test could not fail, and it was deleted. The real booking was the instrument that showed the defect, and it is the one that shows the fix.
+
+**Mutations.** Each turned a test red:
+
+- dropping the booked time (the brief's);
+- the board's grey on the values;
+- a Vimeo link alone keeping the old files;
+- the third step reading 02;
+- links drawn with no booking id;
+- dropping `safeHref`;
+- dropping the de-duplication.
+
+`pnpm test` passed 905 unit and 236 `@smoke` tests before the last fold-ins.
+
+**Not done here.** The model reaches Prismic on the promotion, which is the operator's to merge. After that, Tim's edits go in a release.
+
+## 2026-10-29 — The booked page plays Tim's "Preparing for Our Call" video, and loses its closing banner (#309)
+
+**Why.** Tim sent the video and cover for the booked page in #rd-clients-by-design (11:46am PT). Over the next hour he asked for two more things: drop the red CTA banner so "just the reddoor footer" sits under the testimonial, and give the video the offer card's rounded corners and drop shadow. The operator folded the banner into this task mid-session. The layout itself was already done: Tim's 12:23pm mockup is the page the operator built on 10-28, with the offer film's still in the video slot.
+
+**The video.** The master is 457 MB: 3:10 at 1080p and 19 Mb/s. The web encodes follow the 10-26 offer recipe, sized to stay under Prismic's ~100 MB upload cap. The 1080p file is H.264 High, crf 23, maxrate 2600k, with 128k AAC: 64.2 MB at 2.70 Mb/s. The 720p Main phone file is 28.2 MB. Both went into the reddoor-la media library via `upload_asset` from a Dropbox temporary link, the route the 10-26 entry found, and came back byte-identical by md5. They also sit beside the master in Dropbox under `RD_Offer_video/web-encodes-2026-10-29/`. They are the code default in `BOOKED_DEFAULTS.video`, so no content release is needed. The player's name comes from the cover's own title, "Preparing for Our Call", not the file name.
+
+**A belief corrected on contact.** The cover JPEG uploaded through the connector came back as `kind: "document"` on the plain CDN, which looked like it would skip imgix. images.prismic.io serves the same id anyway: 70 KB at 1200 wide against the 689 KB original. So `PrismicImage`'s srcset works on it.
+
+**The banner.** It went together with its three `funnel_copy` fields, `bookedCtaSlice`, and the tests that pinned its words and its `/contact` link. Keeping the fields would have left editable copy that renders nowhere. The model change rides the next promotion to `main`.
+
+**Not done.** There is no captions file and no Vimeo copy, so both slots are empty rather than borrowed from the offer film. A `.vtt` needs a transcript.
