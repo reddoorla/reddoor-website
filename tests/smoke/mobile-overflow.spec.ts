@@ -15,8 +15,10 @@ import { test, expect, type Page } from "@playwright/test";
 // ancestor clips away entirely, as the sr-only pattern does (a 1px box).
 //
 // It asserts what a visitor sees, not a design value: no px, class or size of
-// the design's appears here, so it sits in the gate.
-// Routes global-setup.ts already compiles, so none is cold inside a test.
+// the design's appears here, so it sits in the gate. It reads geometry only to
+// compare it with the screen's own edge, which no design change can move; that
+// is the one use of rects the "@smoke is earned" rule leaves open.
+// Every route here is also in global-setup.ts, so none is cold inside a test.
 const ROUTES = [
   "/",
   "/about",
@@ -26,8 +28,10 @@ const ROUTES = [
   "/medtech",
   "/twenty-for-twenty",
   "/schedule",
+  "/boise",
+  "/brand-friction-audit",
 ];
-const WIDTHS = [320, 390, 768, 820, 1024];
+const WIDTHS = [320, 390, 768, 820, 1024, 1440];
 
 async function gotoLoaded(page: Page, path: string) {
   const res = await page.goto(path, { waitUntil: "load" });
@@ -40,12 +44,12 @@ function measure(page: Page) {
   return page.evaluate(() => {
     const vw = document.documentElement.clientWidth;
     const cut: string[] = [];
-    // True when an ancestor clips the text away entirely on an axis it clips:
+    // True when the text's element or an ancestor clips it away entirely on an axis it clips:
     // the sr-only pattern (1px, overflow hidden) or a collapsed panel. An
     // ancestor that clips only x while 0px tall still paints the text, so the
     // axes are checked separately; display: contents boxes have no rect.
     const clippedAway = (el: Element) => {
-      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+      for (let a: Element | null = el; a && a !== document.body; a = a.parentElement) {
         const cs = getComputedStyle(a);
         if (cs.display === "contents") continue;
         const b = a.getBoundingClientRect();

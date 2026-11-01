@@ -43,6 +43,8 @@ const ROUTES = [
   "/portfolio",
   "/portfolio/rubrik-zero-labs",
   "/medtech",
+  "/boise",
+  "/brand-friction-audit",
   "/twenty-for-twenty",
   "/schedule",
   "/not-a-fit",
