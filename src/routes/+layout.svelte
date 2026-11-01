@@ -503,8 +503,12 @@
                 <div>29027 Dapper Dan Dr.</div>
                 <div>Fair Oaks Ranch, TX 78015</div>
               </div>
-              <div class="label text-nowrap">
-                {"© Reddoor Creative 2006-" + new Date().getFullYear() + ", All Rights Reserved"}
+              <!-- Wraps between words: as one nowrap line (about 335px) it was
+                   wider than its column at every width, and every page scrolled
+                   sideways (348px at 320, 1130px at 1024). The years stay together. -->
+              <div class="label">
+                © Reddoor Creative <span class="text-nowrap">2006-{new Date().getFullYear()},</span> All
+                Rights Reserved
               </div>
             </div>
           </ContentWidth>
