@@ -1865,3 +1865,17 @@ Three minors were folded in: an unparseable Vimeo paste keeps the default video,
 **The banner.** It went together with its three `funnel_copy` fields, `bookedCtaSlice`, and the tests that pinned its words and its `/contact` link. Keeping the fields would have left editable copy that renders nowhere. The model change rides the next promotion to `main`.
 
 **Not done.** There is no captions file and no Vimeo copy, so both slots are empty rather than borrowed from the offer film. A `.vtt` needs a transcript.
+
+## 2026-11-01 — Five high vulns cleared on staging; Renovate had held both direct fixes for weeks (#310, `2efe931`; promotion #311)
+
+**Why.** The team dashboard had Reddoor at Attention since 10-24: "5 critical/high vulns — Renovate has not fixed it since 2026-10-20". The operator asked to clear the dashboard's reds. Before trusting the dashboard, `pnpm audit` on `main` (`e888d46`) was run as a second source. It agreed exactly: 5 high, 8 moderate, 2 low, the same counts Turso holds.
+
+**What they were.** Two were direct dependencies: `sharp` 0.35.4 (GHSA-wq5f-xc86-pv6w) and `vite` 8.3.2 (GHSA-587h-7wmj-h5pm). Three were in-range transitives: `brace-expansion` 5.0.9 (two advisories, via `@reddoorla/maintenance` › eslint › minimatch) and `source-map-js` 1.2.1 (via postcss).
+
+**Why Renovate hadn't fixed them.** Neither PR was stuck by accident. #261 (`sharp`) has been open and green since 10-06, and the org preset's never-automerge rule for packages that reshape the graph (`sharp`, `@reddoorla/maintenance`, the imagetools chain) holds it for "a human + a green Netlify deploy preview". The 10-19 fleet `sharp` sweep fixed 14 production sites but left this repo's `staging` copy alone. #269 (`vite`) has been open and green since 10-21. This repo extends only `renovate-config` with `baseBranchPatterns: ["staging"]`, not the staging-flow preset, so every fix lands on `staging` and reaches production only through a promotion.
+
+**One PR instead of two.** Merging #261 and then #269 would have conflicted their lockfiles (the 10-19 pairs did exactly that) and still left the three transitives. #310 bumps the `sharp` override to `0.35.5`, then runs `pnpm update vite brace-expansion source-map-js`. That moves `vite` to `^8.3.5` and brings rolldown, postcss and nanoid along with it. Locally, lint, check (0 errors), unit and build passed. On the PR, `ci / ci`, lighthouse and both Netlify deploy previews were green on head `ccd7b44`. It landed into `staging` with `land-prs.mjs --base staging`. `pnpm audit` on `staging` at `2efe931` gives 0 critical, 0 high (1 low, 3 moderate).
+
+**A belief corrected on contact.** The first audit of "staging" after the merge still said 5 high. A `--depth=1 origin staging` fetch had not moved `refs/remotes/origin/staging`, so the audit read `f30455c`, the pre-merge tip. An explicit `+refs/heads/staging:refs/remotes/origin/staging` refspec gave `2efe931` and the clean result. Check the SHA you audited before believing a post-merge audit.
+
+**Not done here.** The dashboard red clears on the first nightly after the operator merges promotion #311. After that, Renovate should close #261 and #269 as no longer needed.
