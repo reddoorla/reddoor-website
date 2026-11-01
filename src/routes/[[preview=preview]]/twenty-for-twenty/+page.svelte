@@ -286,7 +286,7 @@
         >
       </p>
     </div>
-    <div class="md:w-1/2 flex flex-col text-primary items-center">
+    <div class="lockup md:w-1/2 flex flex-col text-primary items-center">
       <div class="flex flex-col text-primary items-center relative">
         <!-- Decorative typographic lockups (main's MED-7 fix): the only real
              heading is the sr-only h1 above; these are aria-hidden so the video
@@ -486,6 +486,18 @@
     font-style: normal;
     font-weight: 700;
     line-height: 100%;
+  }
+
+  /* The visible "20" sizes against its column on a narrow phone: at 240px it
+     is about 312px wide, so in a 294px column (a 320px screen) it widened the
+     lockup, and the lockup's scaled sketch below made the page 332px wide. 75cqi
+     keeps 240px wherever the column is at least 320px wide. */
+  .lockup {
+    container-type: inline-size;
+  }
+
+  .lockup .type-20 {
+    font-size: min(240px, 75cqi);
   }
 
   .type-for {
