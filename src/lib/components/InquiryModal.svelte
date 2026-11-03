@@ -174,7 +174,11 @@
   // Cloudflare wants a click, in which case it shows where the visitor is.
   //
   // Fail-open like /contact: if api.js never loads or the challenge errors, the
-  // submit goes up without a token rather than hanging the modal.
+  // submit goes up without a token rather than hanging the modal. Two waits are
+  // NOT failed open, because a tokenless send is a lost lead here: a challenge
+  // the visitor has been asked to click is waited on for as long as it shows
+  // (and scrolled into view), and a dialog closed mid-wait abandons the submit
+  // with a retry message instead of sending it tokenless.
   const siteKey = $derived(turnstileSiteKey.trim());
   let turnstileEl = $state<HTMLDivElement>();
   // Plain, not $state: none of these is rendered.
@@ -183,14 +187,18 @@
   let turnstileWidget: string | undefined;
   /** The widget cannot mint a token right now; a submit should not wait. */
   let turnstileDown = false;
+  /** Cloudflare is showing the visitor a challenge to click. */
+  let turnstileInteractive = false;
+  /** Bumped when the widget is torn down, so a wait can tell it outlived it. */
+  let turnstileGeneration = 0;
   let tokenWaiters: Array<() => void> = [];
   function wakeTokenWaiters() {
     const waiting = tokenWaiters;
     tokenWaiters = [];
     for (const wake of waiting) wake();
   }
-  /** Long enough for a visitor to answer an interactive challenge; a submit
-   *  that outlasts it goes up tokenless, as it would with no widget at all. */
+  /** How long a submit waits on a widget that is neither minting nor asking for
+   *  a click (a stalled api.js); past it the submit goes up tokenless. */
   const TOKEN_WAIT_MS = 15_000;
 
   $effect(() => {
@@ -206,10 +214,22 @@
         id = turnstile.render(el, {
           sitekey: key,
           appearance: "interaction-only",
+          // A 320px phone leaves the dialog 272px: "flexible" still has a
+          // 300px floor, so a narrower mount gets the 150px compact widget.
+          size: el.clientWidth < 300 ? "compact" : "flexible",
           callback: (token) => {
             turnstileToken = token;
             turnstileDown = false;
+            turnstileInteractive = false;
             wakeTokenWaiters();
+          },
+          "before-interactive-callback": () => {
+            turnstileInteractive = true;
+            // It renders below the frames; on a phone that is below the fold.
+            el.scrollIntoView({ block: "nearest" });
+          },
+          "after-interactive-callback": () => {
+            turnstileInteractive = false;
           },
           "expired-callback": () => {
             turnstileToken = "";
@@ -235,33 +255,48 @@
       });
     return () => {
       cancelled = true;
-      if (id !== undefined) window.turnstile?.remove(id);
       turnstileWidget = undefined;
       turnstileToken = "";
+      turnstileDown = false;
+      turnstileInteractive = false;
+      turnstileGeneration++;
       wakeTokenWaiters();
+      try {
+        if (id !== undefined) window.turnstile?.remove(id);
+      } catch {
+        // Widget already torn down; nothing to clean up.
+      }
     };
   });
 
   /**
    * The token for the submit about to go up, waiting for one if the widget is
    * still minting it. A token is spent the moment it is taken, and the widget is
-   * reset so the next submit gets a fresh one.
+   * reset so the next submit gets a fresh one. `undefined` sends tokenless (no
+   * sitekey, or a widget that cannot mint); `null` means the dialog closed
+   * while waiting, and the submit must not go up at all.
    */
-  async function takeTurnstileToken(): Promise<string | undefined> {
+  async function takeTurnstileToken(): Promise<string | undefined | null> {
     if (!siteKey) return undefined;
-    if (!turnstileToken && !turnstileDown) {
-      await new Promise<void>((resolve) => {
+    const generation = turnstileGeneration;
+    while (!turnstileToken && !turnstileDown && generation === turnstileGeneration) {
+      const timedOut = await new Promise<boolean>((resolve) => {
         const wake = () => {
           clearTimeout(timer);
-          resolve();
+          resolve(false);
         };
         const timer = setTimeout(() => {
           tokenWaiters = tokenWaiters.filter((w) => w !== wake);
-          resolve();
+          resolve(true);
         }, TOKEN_WAIT_MS);
         tokenWaiters.push(wake);
       });
+      // A challenge on screen is the visitor's to answer: keep waiting. Anything
+      // else that outlasts the wait counts as down, so the next submit does not
+      // wait it out again.
+      if (timedOut && !turnstileInteractive) turnstileDown = true;
     }
+    if (generation !== turnstileGeneration && !turnstileToken) return null;
     const token = turnstileToken;
     if (!token) return undefined;
     turnstileToken = "";
@@ -506,6 +541,9 @@
     payload: Record<string, unknown>,
   ): Promise<{ ok: true } | { ok: false; error: string }> {
     const turnstileTokenForPost = await takeTurnstileToken();
+    if (turnstileTokenForPost === null) {
+      return { ok: false, error: "The security check was interrupted. Please try again." };
+    }
     try {
       const res = await fetch("/api/inquiry", {
         method: "POST",

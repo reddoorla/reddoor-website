@@ -1042,3 +1042,34 @@ test("an inquiry still submits when Turnstile cannot load", { tag: "@smoke" }, a
   expect(calls[0]).not.toHaveProperty("turnstileToken");
   expect(calls[1]).not.toHaveProperty("turnstileToken");
 });
+
+test(
+  "closing the modal while it waits for a token sends nothing tokenless",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // A widget that never mints: the submit waits on it. Closing the dialog then
+    // tears the widget down; a tokenless send at that point is a lost lead on a
+    // gated site, so the submit must be abandoned, not sent.
+    await page.addInitScript(() => {
+      (window as unknown as { turnstile: unknown }).turnstile = {
+        render: () => "w1",
+        reset: () => {},
+        remove: () => {},
+      };
+    });
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+
+    await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+    await page.locator("#inquiry-email").fill("turnstile-smoke@example.test");
+    await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
+    // Past the 2.5s minimum fill time, so the submit is now waiting on the widget.
+    await page.clock.runFor(3_000);
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Past the 15s token wait too: nothing may have gone up.
+    await page.clock.runFor(20_000);
+    expect(calls).toEqual([]);
+  },
+);

@@ -34,6 +34,13 @@ export type TurnstileApi = {
       // "interaction-only" keeps the widget out of the layout unless Cloudflare
       // decides the visitor must click it; the token is minted either way.
       appearance?: "always" | "execute" | "interaction-only";
+      // "flexible" fills its container's width (with a 300px floor); "compact"
+      // is the 150px-wide form.
+      size?: "normal" | "flexible" | "compact";
+      // Fired when the widget is about to ask the visitor to click it, and when
+      // that interaction is done.
+      "before-interactive-callback"?: () => void;
+      "after-interactive-callback"?: () => void;
     },
   ) => string | undefined;
   remove: (widgetId: string) => void;
