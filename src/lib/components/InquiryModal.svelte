@@ -18,6 +18,8 @@
   import { stripQueryParams } from "$lib/url/stripQueryParams";
   import SendingDots from "$lib/components/SendingDots.svelte";
   import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
+  import * as publicEnv from "$app/env/public";
+  import { loadTurnstile } from "$lib/turnstile";
 
   export type InquiryStep = {
     title: string;
@@ -56,6 +58,11 @@
      *  which is every CTA in the site's content today. Only the fixtures route
      *  mounts more than one. */
     triggerKey?: string;
+    /** Cloudflare Turnstile sitekey. Defaults to the site's
+     *  PUBLIC_TURNSTILE_SITE_KEY, the same one /contact renders; blank renders
+     *  no widget. A prop only so the fixtures route can mount an instance with
+     *  a key where the test server has none. */
+    turnstileSiteKey?: string;
   }
 
   let {
@@ -68,6 +75,7 @@
     campaign = "",
     class: className = "",
     triggerKey = "",
+    turnstileSiteKey = publicEnv.PUBLIC_TURNSTILE_SITE_KEY ?? "",
   }: Props = $props();
 
   let open = $state(false);
@@ -151,6 +159,115 @@
    * to /api/inquiry, which this flow deliberately leaves alone.
    */
   const MIN_SUBMIT_AFTER_OPEN_MS = 2500;
+
+  // ---- Turnstile ------------------------------------------------------------
+  // The reddoor site row has `require_turnstile` on, so central ingest stores a
+  // submission with no token as spam and emails nobody, while the visitor still
+  // sees success. Until 2026-11-03 this modal sent none, and every /medtech and
+  // /boise inquiry (41, 11 of them from production) was lost that way.
+  //
+  // The widget is rendered when the dialog opens and stays mounted across its
+  // frames, because the flow submits TWICE (the email, then the application)
+  // and siteverify accepts a token once: each submit takes the current token
+  // and resets the widget, so the next one is minted while the visitor answers
+  // the questions. "interaction-only" keeps it out of the layout unless
+  // Cloudflare wants a click, in which case it shows where the visitor is.
+  //
+  // Fail-open like /contact: if api.js never loads or the challenge errors, the
+  // submit goes up without a token rather than hanging the modal.
+  const siteKey = $derived(turnstileSiteKey.trim());
+  let turnstileEl = $state<HTMLDivElement>();
+  // Plain, not $state: none of these is rendered.
+  /** The unspent token, "" while none is minted (or it expired). */
+  let turnstileToken = "";
+  let turnstileWidget: string | undefined;
+  /** The widget cannot mint a token right now; a submit should not wait. */
+  let turnstileDown = false;
+  let tokenWaiters: Array<() => void> = [];
+  function wakeTokenWaiters() {
+    const waiting = tokenWaiters;
+    tokenWaiters = [];
+    for (const wake of waiting) wake();
+  }
+  /** Long enough for a visitor to answer an interactive challenge; a submit
+   *  that outlasts it goes up tokenless, as it would with no widget at all. */
+  const TOKEN_WAIT_MS = 15_000;
+
+  $effect(() => {
+    const el = turnstileEl;
+    const key = siteKey;
+    if (!key || !el) return;
+    let cancelled = false;
+    let id: string | undefined;
+    turnstileDown = false;
+    loadTurnstile()
+      .then((turnstile) => {
+        if (cancelled) return;
+        id = turnstile.render(el, {
+          sitekey: key,
+          appearance: "interaction-only",
+          callback: (token) => {
+            turnstileToken = token;
+            turnstileDown = false;
+            wakeTokenWaiters();
+          },
+          "expired-callback": () => {
+            turnstileToken = "";
+          },
+          "error-callback": () => {
+            turnstileToken = "";
+            turnstileDown = true;
+            wakeTokenWaiters();
+          },
+        });
+        turnstileWidget = id;
+        if (id === undefined) {
+          turnstileDown = true;
+          wakeTokenWaiters();
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Same words as /contact's warning, which maintenance's form-e2e reads.
+        console.warn("[turnstile] widget did not render:", err);
+        turnstileDown = true;
+        wakeTokenWaiters();
+      });
+    return () => {
+      cancelled = true;
+      if (id !== undefined) window.turnstile?.remove(id);
+      turnstileWidget = undefined;
+      turnstileToken = "";
+      wakeTokenWaiters();
+    };
+  });
+
+  /**
+   * The token for the submit about to go up, waiting for one if the widget is
+   * still minting it. A token is spent the moment it is taken, and the widget is
+   * reset so the next submit gets a fresh one.
+   */
+  async function takeTurnstileToken(): Promise<string | undefined> {
+    if (!siteKey) return undefined;
+    if (!turnstileToken && !turnstileDown) {
+      await new Promise<void>((resolve) => {
+        const wake = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        const timer = setTimeout(() => {
+          tokenWaiters = tokenWaiters.filter((w) => w !== wake);
+          resolve();
+        }, TOKEN_WAIT_MS);
+        tokenWaiters.push(wake);
+      });
+    }
+    const token = turnstileToken;
+    if (!token) return undefined;
+    turnstileToken = "";
+    if (turnstileWidget !== undefined) window.turnstile?.reset(turnstileWidget);
+    return token;
+  }
 
   function show(step?: string, prefillEmail?: string, startedAt?: number) {
     // A visitor who closed the modal mid-questions resumes where they were:
@@ -388,6 +505,7 @@
   async function postIngest(
     payload: Record<string, unknown>,
   ): Promise<{ ok: true } | { ok: false; error: string }> {
+    const turnstileTokenForPost = await takeTurnstileToken();
     try {
       const res = await fetch("/api/inquiry", {
         method: "POST",
@@ -406,6 +524,7 @@
           // quotes a time — not just the booking confirmation — renders in the
           // visitor's zone instead of the location's Mountain.
           timezone: resolveTimeZone(),
+          ...(turnstileTokenForPost ? { turnstileToken: turnstileTokenForPost } : {}),
           ...payload,
         }),
       });
@@ -920,6 +1039,14 @@
           </form>
         {/if}
       </div>
+
+      {#if siteKey}
+        <!-- Cloudflare Turnstile mount point, outside the frames so one widget
+             serves both submits. Empty unless Cloudflare wants a click. The
+             `cf-turnstile` class is what /contact's mount carries and what
+             maintenance's form-e2e looks for. -->
+        <div class="cf-turnstile" bind:this={turnstileEl}></div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -1361,7 +1488,6 @@
     border-color: #000;
   }
 
-  /* Zero-footprint mount for the invisible CRM Turnstile. */
   @media (prefers-reduced-motion: reduce) {
     .inquiry-close,
     .inquiry-submit,

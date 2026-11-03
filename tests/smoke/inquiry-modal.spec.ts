@@ -960,3 +960,85 @@ test(
     expect(strayCrmCalls).toEqual([]);
   },
 );
+
+// ── Turnstile ───────────────────────────────────────────────────────────────
+//
+// The reddoor site row requires Turnstile, so central ingest stores any
+// submission without a token as spam and emails nobody, while the visitor sees
+// success. Until 2026-11-03 this modal sent none, and every /medtech and /boise
+// inquiry was lost that way (workspace reports/2026-11-03-forms-spam-review).
+// The flow submits twice and a token verifies once, so each submit must carry
+// its OWN token. Driven on the fixture instance that has a sitekey; the
+// Cloudflare API is a stub that mints tok-1, tok-2, … on render and on reset.
+
+async function stubTurnstile(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    let minted = 0;
+    const widgets = new Map<string, { callback?: (t: string) => void }>();
+    const mint = (id: string) =>
+      setTimeout(() => widgets.get(id)?.callback?.(`tok-${++minted}`), 50);
+    (window as unknown as { turnstile: unknown }).turnstile = {
+      render(el: HTMLElement, opts: { sitekey: string; callback?: (t: string) => void }) {
+        const id = `w${widgets.size + 1}`;
+        widgets.set(id, opts);
+        el.dataset.stubSitekey = opts.sitekey;
+        mint(id);
+        return id;
+      },
+      reset: (id: string) => mint(id),
+      remove: (id: string) => widgets.delete(id),
+    };
+  });
+}
+
+async function throughTurnstileFlow(page: import("@playwright/test").Page) {
+  await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+  const dialog = page.getByRole("dialog");
+  await page.locator("#inquiry-email").fill("turnstile-smoke@example.test");
+  await dialog.getByRole("button", { name: "Inquire Now" }).click();
+  // The digital questions are all optional; skip straight to the contact frame.
+  for (let i = 0; i < 5; i++) {
+    await dialog.getByRole("button", { name: "Next" }).click();
+  }
+  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+  await page.locator("#inquiry-name").fill("Turnstile Smoke");
+  await page.locator("#inquiry-phone").fill("(310) 555-0103");
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+  await dialog.getByRole("button", { name: "Submit Application" }).click();
+  await expect(page).toHaveURL(/\/schedule$/);
+  return dialog;
+}
+
+test("each inquiry submit carries its own Turnstile token", { tag: "@smoke" }, async ({ page }) => {
+  await stubTurnstile(page);
+  const { calls } = await stubInquiry(page);
+  await gotoHydrated(page);
+
+  await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+  // The widget is mounted inside the dialog with the instance's sitekey.
+  await expect(page.getByRole("dialog").locator(".cf-turnstile")).toHaveAttribute(
+    "data-stub-sitekey",
+    "1x00000000000000000000AA",
+  );
+  await page.getByRole("button", { name: "Close" }).click();
+
+  await throughTurnstileFlow(page);
+  await expect.poll(() => calls.length).toBe(2);
+  // Two real tokens, and not the same one twice: the second would fail
+  // siteverify as a duplicate. (The open and close above minted one too, so
+  // the numbers themselves are not the point.)
+  expect(calls[0].turnstileToken).toMatch(/^tok-\d+$/);
+  expect(calls[1].turnstileToken).toMatch(/^tok-\d+$/);
+  expect(calls[1].turnstileToken).not.toBe(calls[0].turnstileToken);
+});
+
+test("an inquiry still submits when Turnstile cannot load", { tag: "@smoke" }, async ({ page }) => {
+  // No stub: stubInquiry aborts challenges.cloudflare.com, so api.js fails.
+  const { calls } = await stubInquiry(page);
+  await gotoHydrated(page);
+
+  await throughTurnstileFlow(page);
+  await expect.poll(() => calls.length).toBe(2);
+  expect(calls[0]).not.toHaveProperty("turnstileToken");
+  expect(calls[1]).not.toHaveProperty("turnstileToken");
+});

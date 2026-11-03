@@ -28,6 +28,12 @@ export type TurnstileApi = {
       // this hostname, which is a live possibility for the GHL sitekey the
       // inquiry flow borrows. Returning true suppresses Turnstile's own retry.
       "error-callback"?: (code?: string) => boolean | void;
+      // A token is good for 300s and one siteverify. Fired when it lapses
+      // unused, so a caller holding it knows to stop sending it.
+      "expired-callback"?: () => void;
+      // "interaction-only" keeps the widget out of the layout unless Cloudflare
+      // decides the visitor must click it; the token is minted either way.
+      appearance?: "always" | "execute" | "interaction-only";
     },
   ) => string | undefined;
   remove: (widgetId: string) => void;
