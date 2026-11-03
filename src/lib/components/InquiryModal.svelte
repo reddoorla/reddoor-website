@@ -200,6 +200,10 @@
   /** How long a submit waits on a widget that is neither minting nor asking for
    *  a click (a stalled api.js); past it the submit goes up tokenless. */
   const TOKEN_WAIT_MS = 15_000;
+  /** However the challenge behaves, a submit never shows "Sending" longer than
+   *  this: past it, it stops with the retry message rather than going up
+   *  tokenless or spinning on. */
+  const TOKEN_WAIT_CAP_MS = 180_000;
 
   $effect(() => {
     const el = turnstileEl;
@@ -239,6 +243,15 @@
           // decides when to give up.
           "error-callback": () => {
             turnstileToken = "";
+            turnstileInteractive = false;
+          },
+          "timeout-callback": () => {
+            turnstileInteractive = false;
+            try {
+              if (id !== undefined) turnstile.reset(id);
+            } catch {
+              // Torn down meanwhile; the wait ends on the generation.
+            }
           },
         });
         turnstileWidget = id;
@@ -283,7 +296,9 @@
     // widget is already gone and nothing would ever wake this wait.
     if (!open) return null;
     const generation = turnstileGeneration;
+    const startedWaiting = Date.now();
     while (!turnstileToken && !turnstileDown && generation === turnstileGeneration) {
+      if (Date.now() - startedWaiting >= TOKEN_WAIT_CAP_MS) return null;
       const timedOut = await new Promise<boolean>((resolve) => {
         const wake = () => {
           clearTimeout(timer);
@@ -300,6 +315,8 @@
       // wait it out again.
       if (timedOut && !turnstileInteractive) turnstileDown = true;
     }
+    // After a teardown the cleanup has already cleared any token, so this is
+    // exactly "the widget went away before it minted one".
     if (generation !== turnstileGeneration && !turnstileToken) return null;
     const token = turnstileToken;
     if (!token) return undefined;
@@ -336,7 +353,8 @@
     const abandoned = status === "error" && error === INTERRUPTED ? email : null;
     resetSession(step);
     if (abandoned !== null) {
-      email = abandoned;
+      // An address freshly typed into the page wins over the abandoned one.
+      email = prefillEmail?.trim() || abandoned;
       status = "error";
       error = INTERRUPTED;
       openedAt = Date.now();

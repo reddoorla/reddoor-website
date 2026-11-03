@@ -1082,3 +1082,74 @@ for (const [when, beforeClose] of [
     expect(calls).toEqual([]);
   });
 }
+
+// A widget that asks the visitor to click and has not been answered yet. The
+// submit waits for as long as the challenge shows (never tokenless at 15s);
+// an unanswered challenge times out and the widget is reset to mint again; and
+// nothing ever spins on "Sending" past the 3-minute cap.
+async function stubInteractiveTurnstile(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    type Opts = Record<string, ((t?: string) => void) | undefined>;
+    const w = window as unknown as { turnstile: unknown; __widget?: Opts };
+    w.turnstile = {
+      render(_el: HTMLElement, opts: Opts) {
+        w.__widget = opts;
+        opts["before-interactive-callback"]?.();
+        return "w1";
+      },
+      reset: () => setTimeout(() => w.__widget?.callback?.("tok-after-reset"), 50),
+      remove: () => {},
+    };
+  });
+}
+
+async function submitStepOne(page: import("@playwright/test").Page) {
+  await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+  await page.locator("#inquiry-email").fill("turnstile-smoke@example.test");
+  await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
+}
+
+test(
+  "a challenge on screen is waited out, and a timed-out one is reset and retried",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInteractiveTurnstile(page);
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+
+    // Well past the 15s that fails a non-interactive wait open: still waiting.
+    await page.clock.runFor(20_000);
+    await expect(page.getByRole("dialog").getByRole("button", { name: /Sending/ })).toBeVisible();
+    expect(calls).toEqual([]);
+
+    // The visitor never clicks; Cloudflare times the challenge out.
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Record<string, () => void> }).__widget[
+        "timeout-callback"
+      ](),
+    );
+    await page.clock.runFor(1_000);
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0].turnstileToken).toBe("tok-after-reset");
+  },
+);
+
+test(
+  "an unanswered challenge stops at the cap with a retry message, sending nothing",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInteractiveTurnstile(page);
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+
+    await page.clock.runFor(200_000);
+    await expect(
+      page.getByRole("dialog").getByText(/security check was interrupted/),
+    ).toBeVisible();
+    expect(calls).toEqual([]);
+  },
+);

@@ -41,6 +41,9 @@ export type TurnstileApi = {
       // that interaction is done.
       "before-interactive-callback"?: () => void;
       "after-interactive-callback"?: () => void;
+      // Fired when an interactive challenge goes unanswered; the widget does
+      // not retry on its own after it, so the caller resets it.
+      "timeout-callback"?: () => void;
     },
   ) => string | undefined;
   remove: (widgetId: string) => void;
