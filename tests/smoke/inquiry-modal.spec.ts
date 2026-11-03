@@ -1153,3 +1153,32 @@ test(
     expect(calls).toEqual([]);
   },
 );
+
+test(
+  "a challenge the visitor has clicked is waited on until its token arrives",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // Turnstile fires after-interactive on the click, BEFORE verification mints
+    // the token. A wait that treated that as "no challenge" would fail open at
+    // its next 15s boundary and send tokenless, after the visitor did as asked.
+    await stubInteractiveTurnstile(page);
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+
+    type Widget = Record<string, (t?: string) => void>;
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget["after-interactive-callback"](),
+    );
+    await page.clock.runFor(40_000);
+    await expect(page.getByRole("dialog").getByRole("button", { name: /Sending/ })).toBeVisible();
+    expect(calls).toEqual([]);
+
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget.callback("tok-solved"),
+    );
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0].turnstileToken).toBe("tok-solved");
+  },
+);

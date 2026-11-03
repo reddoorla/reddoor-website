@@ -187,8 +187,11 @@
   let turnstileWidget: string | undefined;
   /** The widget cannot mint a token right now; a submit should not wait. */
   let turnstileDown = false;
-  /** Cloudflare is showing the visitor a challenge to click. */
-  let turnstileInteractive = false;
+  /** Cloudflare has asked the visitor to click, and no token has come since.
+   *  Stays set through the click, an error and a timeout (each of which is
+   *  followed by a retry), so a wait never fails open in the gap between the
+   *  visitor doing what was asked and the token arriving. */
+  let turnstileChallenged = false;
   /** Bumped when the widget is torn down, so a wait can tell it outlived it. */
   let turnstileGeneration = 0;
   let tokenWaiters: Array<() => void> = [];
@@ -224,17 +227,17 @@
           callback: (token) => {
             turnstileToken = token;
             turnstileDown = false;
-            turnstileInteractive = false;
+            turnstileChallenged = false;
             wakeTokenWaiters();
           },
           "before-interactive-callback": () => {
-            turnstileInteractive = true;
+            turnstileChallenged = true;
             // It renders below the frames; on a phone that is below the fold.
             el.scrollIntoView({ block: "nearest" });
           },
-          "after-interactive-callback": () => {
-            turnstileInteractive = false;
-          },
+          // The visitor's click is not yet a token; the wait stays on
+          // until one arrives (see turnstileChallenged).
+          "after-interactive-callback": () => {},
           "expired-callback": () => {
             turnstileToken = "";
           },
@@ -243,10 +246,8 @@
           // decides when to give up.
           "error-callback": () => {
             turnstileToken = "";
-            turnstileInteractive = false;
           },
           "timeout-callback": () => {
-            turnstileInteractive = false;
             try {
               if (id !== undefined) turnstile.reset(id);
             } catch {
@@ -272,7 +273,7 @@
       turnstileWidget = undefined;
       turnstileToken = "";
       turnstileDown = false;
-      turnstileInteractive = false;
+      turnstileChallenged = false;
       turnstileGeneration++;
       wakeTokenWaiters();
       try {
@@ -304,16 +305,19 @@
           clearTimeout(timer);
           resolve(false);
         };
-        const timer = setTimeout(() => {
-          tokenWaiters = tokenWaiters.filter((w) => w !== wake);
-          resolve(true);
-        }, TOKEN_WAIT_MS);
+        const timer = setTimeout(
+          () => {
+            tokenWaiters = tokenWaiters.filter((w) => w !== wake);
+            resolve(true);
+          },
+          Math.min(TOKEN_WAIT_MS, TOKEN_WAIT_CAP_MS - (Date.now() - startedWaiting)),
+        );
         tokenWaiters.push(wake);
       });
       // A challenge on screen is the visitor's to answer: keep waiting. Anything
       // else that outlasts the wait counts as down, so the next submit does not
       // wait it out again.
-      if (timedOut && !turnstileInteractive) turnstileDown = true;
+      if (timedOut && !turnstileChallenged) turnstileDown = true;
     }
     // After a teardown the cleanup has already cleared any token, so this is
     // exactly "the widget went away before it minted one".
@@ -321,7 +325,11 @@
     const token = turnstileToken;
     if (!token) return undefined;
     turnstileToken = "";
-    if (turnstileWidget !== undefined) window.turnstile?.reset(turnstileWidget);
+    try {
+      if (turnstileWidget !== undefined) window.turnstile?.reset(turnstileWidget);
+    } catch {
+      // The next submit waits for a fresh token or falls through as down.
+    }
     return token;
   }
 

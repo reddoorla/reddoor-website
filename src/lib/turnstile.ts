@@ -10,9 +10,10 @@
  * SPA nav included.
  *
  * Verification is central (the maintenance dashboard holds `TURNSTILE_SECRET_KEY`);
- * a site needs only the public sitekey, and `loadTurnstile` rejecting (offline /
- * blocked / CSP) is safe — central ingest is fail-open, so a missing token
- * degrades to the honeypot + timing + heuristic screen rather than dropping the lead.
+ * a site needs only the public sitekey. Central ingest is fail-open only where the
+ * site row leaves `require_turnstile` off: reddoorla.com has it ON, so there a
+ * missing token stores the lead as spam and emails nobody (the 2026-11-03 forms
+ * review). A form here must render the widget and forward its token.
  */
 
 /** The slice of Cloudflare's global `turnstile` API we use. */
