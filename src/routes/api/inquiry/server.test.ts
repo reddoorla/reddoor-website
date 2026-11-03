@@ -216,13 +216,54 @@ describe("POST /api/inquiry", () => {
   // A step title is the page's own text, the same for every visitor. If it were
   // counted as typed, a title of 40+ characters would make every lead on that
   // page an exact duplicate of the last (review round 2).
+  // Prismic holds every live title with a trailing colon ("The Diagnosis:"), and
+  // the modal sends it without (InquiryModal's stepLabel). Round 3 found the
+  // check compared the two raw and so never matched production content.
   it("leaves a step that is one of the page's own step titles out of visitorText", async () => {
     const title = "Diagnose what is really holding your brand back";
-    getByUID.mockResolvedValue(industryDoc([title, "The Rollout"]));
+    getByUID.mockResolvedValue(industryDoc([`${title}:`, "The Rollout:"]));
     await call({ email: "a@b.com", step: title, campaign: "medtech", ts: OLD_TS() });
     expect(getByUID).toHaveBeenCalledWith("industry", "medtech");
     expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("");
     expect(String(lastPayload().message)).toContain(title);
+  });
+
+  it("leaves the production step titles out of visitorText, colon or not", async () => {
+    getByUID.mockResolvedValue(industryDoc(["The Diagnosis:", "The Rebuild:", "The Rollout:"]));
+    for (const step of ["The Diagnosis", "The Rebuild:", " The Rollout "]) {
+      await call({ email: "a@b.com", step, campaign: "medtech", ts: OLD_TS() });
+      expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("");
+    }
+  });
+
+  it("reads step titles only from the icon-columns slice", async () => {
+    getByUID.mockResolvedValue({
+      data: {
+        slices: [
+          {
+            slice_type: "text_columns",
+            variation: "default",
+            primary: { columns: [{ title: "Buy backlinks now:" }] },
+          },
+        ],
+      },
+    });
+    await call({ email: "a@b.com", step: "Buy backlinks now", campaign: "medtech", ts: OLD_TS() });
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Buy backlinks now");
+  });
+
+  it("puts no blank line in visitorText for an unanswered question", async () => {
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      surveyId: "no-such-survey",
+      answers: [
+        { label: "Q1", value: "" },
+        { label: "Q2", value: ["", "A"] },
+      ],
+      ts: OLD_TS(),
+    });
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Q1\nQ2\nA");
   });
 
   it("counts a step the page does not have as typed", async () => {

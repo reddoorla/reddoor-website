@@ -112,6 +112,15 @@ function readFields(raw: unknown): Record<string, string | string[]> | null {
  * Empty on any failure or for a page with no steps, which only means `step`
  * counts as typed: a real step name is short and falls under ingest's floors.
  */
+/** A step title as the modal sends it: trimmed, with the trailing colon the
+ * page's titles carry ("The Diagnosis:") dropped, as InquiryModal's
+ * `stepLabel` does. Both sides of the known-step check go through this, so the
+ * check matches what production content actually holds (review round 3: every
+ * live title ends in a colon, and the raw set never matched). */
+function stepTitle(t: string): string {
+  return t.trim().replace(/:$/, "").trim();
+}
+
 async function knownSteps(
   campaign: string,
   fetchFn: typeof fetch,
@@ -124,7 +133,7 @@ async function knownSteps(
       (s) => s.slice_type === "text_columns" && s.variation === "iconColumns",
     ) as Extract<Content.TextColumnsSlice, { variation: "iconColumns" }> | undefined;
     return new Set(
-      (slice?.primary.columns ?? []).map((c) => (c.title ?? "").trim()).filter(Boolean),
+      (slice?.primary.columns ?? []).map((c) => stepTitle(c.title ?? "")).filter(Boolean),
     );
   } catch {
     return new Set();
@@ -150,7 +159,7 @@ function visitorTextOf(
   const questions = questionsFor(surveyId) ?? [];
   const headings = new Set(questions.map((q) => q.heading));
   const options = new Set(questions.flatMap((q) => (q.kind === "text" ? [] : q.options)));
-  const typed: string[] = step && !steps.has(step) ? [step] : [];
+  const typed: string[] = step && !steps.has(stepTitle(step)) ? [step] : [];
   for (const { label, value } of answers) {
     if (label && !headings.has(label)) typed.push(label);
     for (const v of Array.isArray(value) ? value : [value]) {
