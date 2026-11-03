@@ -4,6 +4,7 @@ import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { syncInquiryToCrm, syncApplicationToCrm } from "$lib/ghl/client";
 import { normalizeZone } from "$lib/schedule/timezone";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
+import { questionsFor } from "$lib/ghl/questions";
 import type { RequestHandler } from "./$types";
 
 // The industry landing pages are prerendered (root layout sets `prerender =
@@ -100,6 +101,32 @@ function readFields(raw: unknown): Record<string, string | string[]> | null {
     }
   }
   return out;
+}
+
+/**
+ * The part of the composed message the visitor actually typed, for central
+ * ingest's duplicate scan (`extra.visitorText`). The message repeats the
+ * survey's headings and option strings for every applicant, so ingest skips the
+ * whole-message scan for it; this is what it scans instead, so a pitch typed
+ * into an answer is still caught as a spray. Everything that came from the
+ * browser and is not on the survey's own question list goes in: free-text
+ * answers, any label or option the survey does not have (a forgery), and
+ * `step`, which is Prismic content this endpoint has no list of. A genuine
+ * value is short (a step name, a URL) and falls under ingest's length and
+ * token floors, so two real leads never collide on it.
+ */
+function visitorTextOf(step: string, answers: AnswerLine[], surveyId: string): string {
+  const questions = questionsFor(surveyId) ?? [];
+  const headings = new Set(questions.map((q) => q.heading));
+  const options = new Set(questions.flatMap((q) => (q.kind === "text" ? [] : q.options)));
+  const typed: string[] = step ? [step] : [];
+  for (const { label, value } of answers) {
+    if (label && !headings.has(label)) typed.push(label);
+    for (const v of Array.isArray(value) ? value : [value]) {
+      if (v && !options.has(v)) typed.push(v);
+    }
+  }
+  return typed.join("\n");
 }
 
 export const POST: RequestHandler = async ({ request, fetch, url, getClientAddress }) => {
@@ -252,10 +279,13 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
       // application repeats the same question labels, so ingest's fleet
       // duplicate-body scan stored every lead after the first in 30 days as
       // spam (2026-11-03). Ingest honours the flag only on a site that requires
-      // Turnstile and only with a passing token, so it is no bypass for a bot.
-      extra: isApplication
-        ? { answers, smsConsent, composedMessage: true }
-        : { composedMessage: true },
+      // Turnstile and only with a passing token, and then scans `visitorText`
+      // (see visitorTextOf) instead of the whole message.
+      extra: {
+        ...(isApplication ? { answers, smsConsent } : {}),
+        composedMessage: true,
+        visitorText: visitorTextOf(step, answers, surveyId),
+      },
       // Synthetic end-to-end probe marker (the fleet `form-e2e` audit): forwarded
       // ONLY when the submission carries testMode=true. Central ingest routes
       // those away from every real sink.

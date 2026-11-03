@@ -18,6 +18,8 @@ vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
 });
 
 const { POST } = await import("./+server");
+const { questionsFor } = await import("$lib/ghl/questions");
+const { DEFAULT_INQUIRY_SURVEY_ID } = await import("$lib/ghl/constants");
 
 type Body = Record<string, unknown>;
 // Comfortably past the min-fill timing screen, so timing never masks the thing
@@ -123,6 +125,7 @@ describe("POST /api/inquiry", () => {
       ],
       smsConsent: true,
       composedMessage: true,
+      visitorText: expect.any(String),
     });
     const message = String(p.message);
     expect(message).toContain("Problems");
@@ -149,6 +152,58 @@ describe("POST /api/inquiry", () => {
     });
     expect((lastPayload().extra as Record<string, unknown>).composedMessage).toBe(true);
     expect(submitToIngest).toHaveBeenCalledTimes(2);
+  });
+
+  // On the verified path ingest scans only what the visitor typed, so this is
+  // the spray check's whole input: the survey's own headings and options must
+  // stay out of it (they repeat for everyone), everything else must be in it.
+  it("sends what the visitor typed as visitorText, never the survey's own wording", async () => {
+    const q = questionsFor(DEFAULT_INQUIRY_SURVEY_ID)!;
+    const problems = q.find((x) => x.kind === "checkbox")!;
+    const website = q.find((x) => x.kind === "text")!;
+    const option = problems.kind === "checkbox" ? problems.options[0]! : "";
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      phone: "5551234567",
+      step: "The Diagnosis",
+      answers: [
+        { label: problems.heading, value: [option] },
+        { label: website.heading, value: "https://ada.example" },
+      ],
+      ts: OLD_TS(),
+    });
+    const visitorText = String((lastPayload().extra as Record<string, unknown>).visitorText);
+    expect(visitorText.split("\n")).toEqual(["The Diagnosis", "https://ada.example"]);
+    expect(String(lastPayload().message)).toContain(option);
+  });
+
+  it("puts a forged label or option into visitorText, where ingest scans it", async () => {
+    const q = questionsFor(DEFAULT_INQUIRY_SURVEY_ID)!;
+    await call({
+      email: "a@b.com",
+      name: "Bot",
+      answers: [
+        { label: q[0]!.heading, value: ["Buy ten thousand backlinks today"] },
+        { label: "Cheap SEO, reply now", value: "x" },
+      ],
+      ts: OLD_TS(),
+    });
+    const visitorText = String((lastPayload().extra as Record<string, unknown>).visitorText);
+    expect(visitorText).toContain("Buy ten thousand backlinks today");
+    expect(visitorText).toContain("Cheap SEO, reply now");
+  });
+
+  it("counts every answer as typed when the survey id has no question list", async () => {
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      surveyId: "no-such-survey",
+      answers: [{ label: "What problems are you experiencing?", value: "Outdated materials" }],
+      ts: OLD_TS(),
+    });
+    const visitorText = String((lastPayload().extra as Record<string, unknown>).visitorText);
+    expect(visitorText).toBe("What problems are you experiencing?\nOutdated materials");
   });
 
   it("cannot be tricked into forging a consent line via a newline in an answer", async () => {
