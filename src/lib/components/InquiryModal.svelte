@@ -234,10 +234,11 @@
           "expired-callback": () => {
             turnstileToken = "";
           },
+          // Returning nothing lets Turnstile retry on its own, so a waiting
+          // submit keeps waiting for the retry's token; the wait's own timer
+          // decides when to give up.
           "error-callback": () => {
             turnstileToken = "";
-            turnstileDown = true;
-            wakeTokenWaiters();
           },
         });
         turnstileWidget = id;
@@ -278,6 +279,9 @@
    */
   async function takeTurnstileToken(): Promise<string | undefined | null> {
     if (!siteKey) return undefined;
+    // Closed before the wait began (inside the 2.5s minimum fill time): the
+    // widget is already gone and nothing would ever wake this wait.
+    if (!open) return null;
     const generation = turnstileGeneration;
     while (!turnstileToken && !turnstileDown && generation === turnstileGeneration) {
       const timedOut = await new Promise<boolean>((resolve) => {
@@ -304,6 +308,10 @@
     return token;
   }
 
+  /** What a submit abandoned by a mid-wait close says; kept on reopen so the
+   *  visitor knows it did not go through. */
+  const INTERRUPTED = "The security check was interrupted. Please try again.";
+
   function show(step?: string, prefillEmail?: string, startedAt?: number) {
     // A visitor who closed the modal mid-questions resumes where they were:
     // their email is already captured and re-asking five answered questions is
@@ -315,14 +323,26 @@
     if (frame === "question" || frame === "contact") {
       // Resuming — but never clear a still-in-flight submit, or its guard drops
       // and the visitor could fire a second one on reopen.
-      if (status !== "sending") {
+      if (status !== "sending" && error !== INTERRUPTED) {
         status = "idle";
         error = "";
       }
       open = true;
       return;
     }
+    // A step one abandoned by a close comes back as it was, address and all,
+    // with the message saying it was not sent, never as an empty frame that
+    // reads as "done". No auto-submit: the visitor presses Inquire Now again.
+    const abandoned = status === "error" && error === INTERRUPTED ? email : null;
     resetSession(step);
+    if (abandoned !== null) {
+      email = abandoned;
+      status = "error";
+      error = INTERRUPTED;
+      openedAt = Date.now();
+      open = true;
+      return;
+    }
     // An address the visitor already typed into the page (the offer hero's
     // email field) fills frame one rather than being asked for twice. It is
     // only a prefill: nothing reaches ingest until they submit the frame, so
@@ -542,7 +562,7 @@
   ): Promise<{ ok: true } | { ok: false; error: string }> {
     const turnstileTokenForPost = await takeTurnstileToken();
     if (turnstileTokenForPost === null) {
-      return { ok: false, error: "The security check was interrupted. Please try again." };
+      return { ok: false, error: INTERRUPTED };
     }
     try {
       const res = await fetch("/api/inquiry", {

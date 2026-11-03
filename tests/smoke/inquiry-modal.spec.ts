@@ -1043,13 +1043,14 @@ test("an inquiry still submits when Turnstile cannot load", { tag: "@smoke" }, a
   expect(calls[1]).not.toHaveProperty("turnstileToken");
 });
 
-test(
-  "closing the modal while it waits for a token sends nothing tokenless",
-  { tag: "@smoke" },
-  async ({ page }) => {
-    // A widget that never mints: the submit waits on it. Closing the dialog then
-    // tears the widget down; a tokenless send at that point is a lost lead on a
-    // gated site, so the submit must be abandoned, not sent.
+// A widget that never mints: a submit waits on it. Closing the dialog tears the
+// widget down; a tokenless send at that point is a lost lead on a gated site, so
+// the submit must be abandoned, and say so when the visitor comes back.
+for (const [when, beforeClose] of [
+  ["while it waits for a token", 3_000],
+  ["inside the minimum fill time, before the wait starts", 0],
+] as const) {
+  test(`closing the modal ${when} sends nothing tokenless`, { tag: "@smoke" }, async ({ page }) => {
     await page.addInitScript(() => {
       (window as unknown as { turnstile: unknown }).turnstile = {
         render: () => "w1",
@@ -1061,15 +1062,23 @@ test(
     await page.clock.install();
     await gotoHydrated(page);
 
-    await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+    const open = page.getByRole("button", { name: "Open the Turnstile inquiry" });
+    await open.click();
     await page.locator("#inquiry-email").fill("turnstile-smoke@example.test");
     await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
-    // Past the 2.5s minimum fill time, so the submit is now waiting on the widget.
-    await page.clock.runFor(3_000);
+    if (beforeClose) await page.clock.runFor(beforeClose);
     await page.getByRole("button", { name: "Close" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    // Past the 15s token wait too: nothing may have gone up.
+    // Past the 2.5s minimum and the 15s token wait.
     await page.clock.runFor(20_000);
+
+    // Positive evidence the abandon path ran (a tokenless send would have shown
+    // no message), and the address is still there to retry with.
+    await open.click();
+    await expect(
+      page.getByRole("dialog").getByText(/security check was interrupted/),
+    ).toBeVisible();
+    await expect(page.locator("#inquiry-email")).toHaveValue("turnstile-smoke@example.test");
     expect(calls).toEqual([]);
-  },
-);
+  });
+}
