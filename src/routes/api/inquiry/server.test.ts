@@ -169,4 +169,37 @@ describe("POST /api/inquiry", () => {
     expect(status).toBe(502);
     expect(String(json.error)).toMatch(/something went wrong/i);
   });
+
+  // The reddoor site row requires Turnstile, so central ingest stores a
+  // submission with no token as spam and emails nobody. /contact forwards its
+  // token in `_meta`; this endpoint must do the same or every landing-page lead
+  // is lost while the visitor sees success (2026-11-03 forms review).
+  it("forwards the Turnstile token in _meta, as /contact does", async () => {
+    await call({ email: "a@b.com", turnstileToken: "  0.tok-abc  ", ts: OLD_TS() });
+    expect(lastPayload()._meta).toEqual({
+      turnstileToken: "0.tok-abc",
+      clientIp: "203.0.113.7",
+      userAgent: "vitest",
+    });
+  });
+
+  it("forwards the token on the completed application too", async () => {
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      phone: "5551234567",
+      answers: [{ label: "Q", value: "A" }],
+      turnstileToken: "0.tok-second",
+      ts: OLD_TS(),
+    });
+    expect((lastPayload()._meta as Record<string, unknown>).turnstileToken).toBe("0.tok-second");
+  });
+
+  it("sends no token key when there is none, or when it is absurdly long", async () => {
+    await call({ email: "a@b.com", ts: OLD_TS() });
+    expect(lastPayload()._meta).not.toHaveProperty("turnstileToken");
+    await call({ email: "a@b.com", turnstileToken: "x".repeat(2049), ts: OLD_TS() });
+    expect(submitToIngest).toHaveBeenCalledTimes(2);
+    expect(lastPayload()._meta).not.toHaveProperty("turnstileToken");
+  });
 });

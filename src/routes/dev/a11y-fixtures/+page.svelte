@@ -683,6 +683,16 @@
   </button>
   <InquiryModal surveyId="digital" triggerKey="digital" />
 
+  <!-- A third instance WITH a Turnstile sitekey, which the test server does not
+       set. The key is Cloudflare's documented always-pass test key; the smoke
+       spec stubs `window.turnstile`, so no Cloudflare call is ever made. -->
+  <button type="button" data-inquire="turnstile">Open the Turnstile inquiry</button>
+  <InquiryModal
+    surveyId="digital"
+    triggerKey="turnstile"
+    turnstileSiteKey="1x00000000000000000000AA"
+  />
+
   <!-- A RailRow on the red band — the exact combination that shipped invisible
        text. RailRow's rail label defaults to the board's red kicker, so placed
        here without `labelClass` it draws #D71920 on #D71920.

@@ -1889,3 +1889,23 @@ With the footer fixed, one case remained: `/twenty-for-twenty` at 320 was 332px 
 `tests/smoke/mobile-overflow.spec.ts` is ported from medical-solutions-of-texas#100 and tagged `@smoke`: it asserts what a visitor sees, holds no design value and has no fixed sleep. It covers the eight routes `global-setup.ts` already compiles, at 320/390/768/820/1024px. It fails on `scrollWidth > clientWidth`, or on painted text straddling the right edge, and skips text an ancestor clips to nothing on an axis it clips (the sr-only pattern). Before the fix it failed 32 of 40. Each fix reverted alone, run twice: footer, 32 red; lockup, 1 red (`/twenty-for-twenty` at 320).
 
 Usage: recorded in the workspace journal entry for this session.
+
+## 2026-11-03 — The landing-page inquiry modal renders Turnstile and forwards its token (#316)
+
+**Why.** The reddoor site row in Turso has `require_turnstile = 1`, so central ingest stores any submission without a Turnstile token as `spam_auto` (`turnstile-required-absent`) and emails nobody, while the visitor still sees success. `/contact` rendered the widget. The inquiry modal did not, and `/api/inquiry` forwarded no token. That modal opens on `/medtech` and `/boise`, and on `/brand-friction-audit` through its offer hero. All 41 landing-page inquiries on record were lost that way: production, staging, previews and localhost, 11 of them from production (workspace `reports/2026-11-03-forms-spam-review`). `/brand-friction-audit` was not in the report. The maintenance coverage check found it (reddoorla/reddoor-maintenance#1898).
+
+**The design.** The flow posts twice, the email and then the application, and siteverify accepts a token once. So the widget is mounted when the dialog opens, outside the frames, and stays mounted across them. Each submit takes the current token and resets the widget, so the next token is minted while the visitor answers the questions. It renders `interaction-only`: it takes no space unless Cloudflare wants a click. It uses the `compact` size under 300px wide, because `flexible` has a 300px floor and a 320px phone leaves the dialog 272px. `/api/inquiry` forwards the token in `_meta`, exactly as the `/contact` action does.
+
+**What review kept finding.** All five review rounds (Opus) found a real defect, every one in the wait for a token, never in the widget itself:
+
+1. Closing the dialog mid-wait sent the submit tokenless, and an interactive challenge failed open at 15s.
+2. A close inside the 2.5s minimum fill time started its wait after the widget was gone, so it went up tokenless 15s later. The retry message was also wiped on reopen.
+3. An unanswered challenge fires `timeout-callback`, the widget does not retry after it, and the submit sat on "Sending" forever.
+4. `after-interactive-callback` fires on the click, before the token exists. A 15s timer landing in that gap failed open.
+5. A challenge that appeared only after a 15s wait had given up left the widget marked down, so the application skipped the wait while the challenge was on screen.
+
+The rule it converged on: a submit goes up tokenless only when there is no sitekey, or the widget truly cannot mint (api.js fails, render fails, or 15s pass with no challenge ever shown). Once a challenge has shown, only a token, a close or the 3-minute cap ends the wait. A close abandons the submit and brings it back with "The security check was interrupted. Please try again." The operator chose to land at the five-round stop without a sixth round (workspace `decisions/2026-11-03-1945-website-316-turnstile-fifth-round.md`).
+
+**Tests.** `server.test.ts` has three new cases for the token forwarding. `inquiry-modal.spec.ts` has nine new `@smoke` specs on a fixture instance carrying Cloudflare's always-pass test key and a stubbed `window.turnstile`. Several use Playwright's clock, so the 15s waits and the 3-minute cap run without a real sleep. Every spec was shown to fail with its fix removed, or on the head before its round. Two first drafts asserted things that could not fail and were rebuilt: the token numbers, and a "nothing sent" check that a late route handler could pass.
+
+**Belief corrected.** The brief asked for proof from "a test-mode submission whose stored turnstile outcome is pass". A `testMode` payload skips the Turnstile check and stores nothing, and `submissions` has no Turnstile column. The proof has to be a real staging submission.

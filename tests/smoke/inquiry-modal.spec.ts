@@ -960,3 +960,274 @@ test(
     expect(strayCrmCalls).toEqual([]);
   },
 );
+
+// ── Turnstile ───────────────────────────────────────────────────────────────
+//
+// The reddoor site row requires Turnstile, so central ingest stores any
+// submission without a token as spam and emails nobody, while the visitor sees
+// success. Until 2026-11-03 this modal sent none, and every /medtech and /boise
+// inquiry was lost that way (workspace reports/2026-11-03-forms-spam-review).
+// The flow submits twice and a token verifies once, so each submit must carry
+// its OWN token. Driven on the fixture instance that has a sitekey; the
+// Cloudflare API is a stub that mints tok-1, tok-2, … on render and on reset.
+
+async function stubTurnstile(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    let minted = 0;
+    const widgets = new Map<string, { callback?: (t: string) => void }>();
+    const mint = (id: string) =>
+      setTimeout(() => widgets.get(id)?.callback?.(`tok-${++minted}`), 50);
+    (window as unknown as { turnstile: unknown }).turnstile = {
+      render(el: HTMLElement, opts: { sitekey: string; callback?: (t: string) => void }) {
+        const id = `w${widgets.size + 1}`;
+        widgets.set(id, opts);
+        el.dataset.stubSitekey = opts.sitekey;
+        mint(id);
+        return id;
+      },
+      reset: (id: string) => mint(id),
+      remove: (id: string) => widgets.delete(id),
+    };
+  });
+}
+
+async function throughTurnstileFlow(page: import("@playwright/test").Page) {
+  await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+  const dialog = page.getByRole("dialog");
+  await page.locator("#inquiry-email").fill("turnstile-smoke@example.test");
+  await dialog.getByRole("button", { name: "Inquire Now" }).click();
+  // The digital questions are all optional; skip straight to the contact frame.
+  for (let i = 0; i < 5; i++) {
+    await dialog.getByRole("button", { name: "Next" }).click();
+  }
+  await expect(dialog.getByRole("heading", { name: /how do we reach you/ })).toBeVisible();
+  await page.locator("#inquiry-name").fill("Turnstile Smoke");
+  await page.locator("#inquiry-phone").fill("(310) 555-0103");
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+  await dialog.getByRole("button", { name: "Submit Application" }).click();
+  await expect(page).toHaveURL(/\/schedule$/);
+  return dialog;
+}
+
+test("each inquiry submit carries its own Turnstile token", { tag: "@smoke" }, async ({ page }) => {
+  await stubTurnstile(page);
+  const { calls } = await stubInquiry(page);
+  await gotoHydrated(page);
+
+  await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+  // The widget is mounted inside the dialog with the instance's sitekey.
+  await expect(page.getByRole("dialog").locator(".cf-turnstile")).toHaveAttribute(
+    "data-stub-sitekey",
+    "1x00000000000000000000AA",
+  );
+  await page.getByRole("button", { name: "Close" }).click();
+
+  await throughTurnstileFlow(page);
+  await expect.poll(() => calls.length).toBe(2);
+  // Two real tokens, and not the same one twice: the second would fail
+  // siteverify as a duplicate. (The open and close above minted one too, so
+  // the numbers themselves are not the point.)
+  expect(calls[0].turnstileToken).toMatch(/^tok-\d+$/);
+  expect(calls[1].turnstileToken).toMatch(/^tok-\d+$/);
+  expect(calls[1].turnstileToken).not.toBe(calls[0].turnstileToken);
+});
+
+test("an inquiry still submits when Turnstile cannot load", { tag: "@smoke" }, async ({ page }) => {
+  // No stub: stubInquiry aborts challenges.cloudflare.com, so api.js fails.
+  const { calls } = await stubInquiry(page);
+  await gotoHydrated(page);
+
+  await throughTurnstileFlow(page);
+  await expect.poll(() => calls.length).toBe(2);
+  expect(calls[0]).not.toHaveProperty("turnstileToken");
+  expect(calls[1]).not.toHaveProperty("turnstileToken");
+});
+
+// A widget that never mints: a submit waits on it. Closing the dialog tears the
+// widget down; a tokenless send at that point is a lost lead on a gated site, so
+// the submit must be abandoned, and say so when the visitor comes back.
+for (const [when, beforeClose] of [
+  ["while it waits for a token", 3_000],
+  ["inside the minimum fill time, before the wait starts", 0],
+] as const) {
+  test(`closing the modal ${when} sends nothing tokenless`, { tag: "@smoke" }, async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { turnstile: unknown }).turnstile = {
+        render: () => "w1",
+        reset: () => {},
+        remove: () => {},
+      };
+    });
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+
+    const open = page.getByRole("button", { name: "Open the Turnstile inquiry" });
+    await open.click();
+    await page.locator("#inquiry-email").fill("turnstile-smoke@example.test");
+    await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
+    if (beforeClose) await page.clock.runFor(beforeClose);
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Past the 2.5s minimum and the 15s token wait.
+    await page.clock.runFor(20_000);
+
+    // Positive evidence the abandon path ran (a tokenless send would have shown
+    // no message), and the address is still there to retry with.
+    await open.click();
+    await expect(
+      page.getByRole("dialog").getByText(/security check was interrupted/),
+    ).toBeVisible();
+    await expect(page.locator("#inquiry-email")).toHaveValue("turnstile-smoke@example.test");
+    expect(calls).toEqual([]);
+  });
+}
+
+// A widget that asks the visitor to click and has not been answered yet. The
+// submit waits for as long as the challenge shows (never tokenless at 15s);
+// an unanswered challenge times out and the widget is reset to mint again; and
+// nothing ever spins on "Sending" past the 3-minute cap.
+async function stubInteractiveTurnstile(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    type Opts = Record<string, ((t?: string) => void) | undefined>;
+    const w = window as unknown as { turnstile: unknown; __widget?: Opts };
+    w.turnstile = {
+      render(_el: HTMLElement, opts: Opts) {
+        w.__widget = opts;
+        opts["before-interactive-callback"]?.();
+        return "w1";
+      },
+      reset: () => setTimeout(() => w.__widget?.callback?.("tok-after-reset"), 50),
+      remove: () => {},
+    };
+  });
+}
+
+async function submitStepOne(page: import("@playwright/test").Page) {
+  await page.getByRole("button", { name: "Open the Turnstile inquiry" }).click();
+  await page.locator("#inquiry-email").fill("turnstile-smoke@example.test");
+  await page.getByRole("dialog").getByRole("button", { name: "Inquire Now" }).click();
+}
+
+test(
+  "a challenge on screen is waited out, and a timed-out one is reset and retried",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInteractiveTurnstile(page);
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+
+    // Well past the 15s that fails a non-interactive wait open: still waiting.
+    await page.clock.runFor(20_000);
+    await expect(page.getByRole("dialog").getByRole("button", { name: /Sending/ })).toBeVisible();
+    expect(calls).toEqual([]);
+
+    // The visitor never clicks; Cloudflare times the challenge out.
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Record<string, () => void> }).__widget[
+        "timeout-callback"
+      ](),
+    );
+    await page.clock.runFor(1_000);
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0].turnstileToken).toBe("tok-after-reset");
+  },
+);
+
+test(
+  "an unanswered challenge stops at the cap with a retry message, sending nothing",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await stubInteractiveTurnstile(page);
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+
+    await page.clock.runFor(200_000);
+    await expect(
+      page.getByRole("dialog").getByText(/security check was interrupted/),
+    ).toBeVisible();
+    expect(calls).toEqual([]);
+  },
+);
+
+test(
+  "a challenge the visitor has clicked is waited on until its token arrives",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // Turnstile fires after-interactive on the click, BEFORE verification mints
+    // the token. A wait that treated that as "no challenge" would fail open at
+    // its next 15s boundary and send tokenless, after the visitor did as asked.
+    await stubInteractiveTurnstile(page);
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+
+    type Widget = Record<string, (t?: string) => void>;
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget["after-interactive-callback"](),
+    );
+    await page.clock.runFor(40_000);
+    await expect(page.getByRole("dialog").getByRole("button", { name: /Sending/ })).toBeVisible();
+    expect(calls).toEqual([]);
+
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget.callback("tok-solved"),
+    );
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0].turnstileToken).toBe("tok-solved");
+  },
+);
+
+test(
+  "a challenge that shows after a wait gave up is waited on by the next submit",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // The email step waits 15s with no challenge and goes up tokenless (the
+    // widget looked down). Cloudflare then shows a challenge. The application
+    // must wait for it, not post tokenless while it is on screen.
+    await page.addInitScript(() => {
+      type Opts = Record<string, ((t?: string) => void) | undefined>;
+      const w = window as unknown as { turnstile: unknown; __widget?: Opts };
+      w.turnstile = {
+        render(_el: HTMLElement, opts: Opts) {
+          w.__widget = opts;
+          return "w1";
+        },
+        reset: () => {},
+        remove: () => {},
+      };
+    });
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+    await page.clock.runFor(20_000);
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0]).not.toHaveProperty("turnstileToken");
+
+    type Widget = Record<string, (t?: string) => void>;
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget["before-interactive-callback"](),
+    );
+    const dialog = page.getByRole("dialog");
+    for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#inquiry-name").fill("Turnstile Smoke");
+    await page.locator("#inquiry-phone").fill("(310) 555-0103");
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
+    await page.clock.runFor(40_000);
+    await expect(dialog.getByRole("button", { name: /Sending/ })).toBeVisible();
+    expect(calls).toHaveLength(1);
+
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget.callback("tok-x"),
+    );
+    await expect.poll(() => calls.length).toBe(2);
+    expect(calls[1].turnstileToken).toBe("tok-x");
+  },
+);
