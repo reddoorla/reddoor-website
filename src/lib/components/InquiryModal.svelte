@@ -232,6 +232,9 @@
           },
           "before-interactive-callback": () => {
             turnstileChallenged = true;
+            // A challenge after an earlier wait gave up means the widget can
+            // mint after all: the next submit must wait for it, not skip it.
+            turnstileDown = false;
             // It renders below the frames; on a phone that is below the fold.
             el.scrollIntoView({ block: "nearest" });
           },

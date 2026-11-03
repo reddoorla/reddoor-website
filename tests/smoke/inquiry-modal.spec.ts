@@ -1182,3 +1182,52 @@ test(
     expect(calls[0].turnstileToken).toBe("tok-solved");
   },
 );
+
+test(
+  "a challenge that shows after a wait gave up is waited on by the next submit",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // The email step waits 15s with no challenge and goes up tokenless (the
+    // widget looked down). Cloudflare then shows a challenge. The application
+    // must wait for it, not post tokenless while it is on screen.
+    await page.addInitScript(() => {
+      type Opts = Record<string, ((t?: string) => void) | undefined>;
+      const w = window as unknown as { turnstile: unknown; __widget?: Opts };
+      w.turnstile = {
+        render(_el: HTMLElement, opts: Opts) {
+          w.__widget = opts;
+          return "w1";
+        },
+        reset: () => {},
+        remove: () => {},
+      };
+    });
+    const { calls } = await stubInquiry(page);
+    await page.clock.install();
+    await gotoHydrated(page);
+    await submitStepOne(page);
+    await page.clock.runFor(20_000);
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0]).not.toHaveProperty("turnstileToken");
+
+    type Widget = Record<string, (t?: string) => void>;
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget["before-interactive-callback"](),
+    );
+    const dialog = page.getByRole("dialog");
+    for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
+    await page.locator("#inquiry-name").fill("Turnstile Smoke");
+    await page.locator("#inquiry-phone").fill("(310) 555-0103");
+    await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
+    await page.clock.runFor(40_000);
+    await expect(dialog.getByRole("button", { name: /Sending/ })).toBeVisible();
+    expect(calls).toHaveLength(1);
+
+    await page.evaluate(() =>
+      (window as unknown as { __widget: Widget }).__widget.callback("tok-x"),
+    );
+    await expect.poll(() => calls.length).toBe(2);
+    expect(calls[1].turnstileToken).toBe("tok-x");
+  },
+);
