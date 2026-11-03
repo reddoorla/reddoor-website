@@ -229,7 +229,8 @@ describe("POST /api/inquiry", () => {
   });
 
   it("leaves the production step titles out of visitorText, colon or not", async () => {
-    getByUID.mockResolvedValue(industryDoc(["The Diagnosis:", "The Rebuild:", "The Rollout:"]));
+    // "The Rollout: " — a stray space after the colon, as a content edit leaves it.
+    getByUID.mockResolvedValue(industryDoc(["The Diagnosis:", "The Rebuild:", "The Rollout: "]));
     for (const step of ["The Diagnosis", "The Rebuild:", " The Rollout "]) {
       await call({ email: "a@b.com", step, campaign: "medtech", ts: OLD_TS() });
       expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("");

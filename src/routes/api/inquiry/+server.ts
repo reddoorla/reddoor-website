@@ -319,7 +319,8 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
       // application repeats the same question labels, so ingest's fleet
       // duplicate-body scan stored every lead after the first in 30 days as
       // spam (2026-11-03). Ingest honours the flag only on a site that requires
-      // Turnstile and only with a passing token, and then scans `visitorText`
+      // Turnstile, with a token that passed on this site's host or could not be
+      // verified for a reason other than a replay, and then scans `visitorText`
       // (see visitorTextOf) instead of the whole message.
       extra: {
         ...(isApplication ? { answers, smsConsent } : {}),
