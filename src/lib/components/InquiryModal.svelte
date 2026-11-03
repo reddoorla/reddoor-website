@@ -18,6 +18,8 @@
   import { stripQueryParams } from "$lib/url/stripQueryParams";
   import SendingDots from "$lib/components/SendingDots.svelte";
   import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
+  import * as publicEnv from "$app/env/public";
+  import { loadTurnstile } from "$lib/turnstile";
 
   export type InquiryStep = {
     title: string;
@@ -56,6 +58,11 @@
      *  which is every CTA in the site's content today. Only the fixtures route
      *  mounts more than one. */
     triggerKey?: string;
+    /** Cloudflare Turnstile sitekey. Defaults to the site's
+     *  PUBLIC_TURNSTILE_SITE_KEY, the same one /contact renders; blank renders
+     *  no widget. A prop only so the fixtures route can mount an instance with
+     *  a key where the test server has none. */
+    turnstileSiteKey?: string;
   }
 
   let {
@@ -68,6 +75,7 @@
     campaign = "",
     class: className = "",
     triggerKey = "",
+    turnstileSiteKey = publicEnv.PUBLIC_TURNSTILE_SITE_KEY ?? "",
   }: Props = $props();
 
   let open = $state(false);
@@ -152,6 +160,186 @@
    */
   const MIN_SUBMIT_AFTER_OPEN_MS = 2500;
 
+  // ---- Turnstile ------------------------------------------------------------
+  // The reddoor site row has `require_turnstile` on, so central ingest stores a
+  // submission with no token as spam and emails nobody, while the visitor still
+  // sees success. Until 2026-11-03 this modal sent none, and every /medtech and
+  // /boise inquiry (41, 11 of them from production) was lost that way.
+  //
+  // The widget is rendered when the dialog opens and stays mounted across its
+  // frames, because the flow submits TWICE (the email, then the application)
+  // and siteverify accepts a token once: each submit takes the current token
+  // and resets the widget, so the next one is minted while the visitor answers
+  // the questions. "interaction-only" keeps it out of the layout unless
+  // Cloudflare wants a click, in which case it shows where the visitor is.
+  //
+  // Fail-open like /contact: if api.js never loads or the challenge errors, the
+  // submit goes up without a token rather than hanging the modal. Two waits are
+  // NOT failed open, because a tokenless send is a lost lead here: a challenge
+  // the visitor has been asked to click is waited on for as long as it shows
+  // (and scrolled into view), and a dialog closed mid-wait abandons the submit
+  // with a retry message instead of sending it tokenless.
+  const siteKey = $derived(turnstileSiteKey.trim());
+  let turnstileEl = $state<HTMLDivElement>();
+  // Plain, not $state: none of these is rendered.
+  /** The unspent token, "" while none is minted (or it expired). */
+  let turnstileToken = "";
+  let turnstileWidget: string | undefined;
+  /** The widget cannot mint a token right now; a submit should not wait. */
+  let turnstileDown = false;
+  /** Cloudflare has asked the visitor to click, and no token has come since.
+   *  Stays set through the click, an error and a timeout (each of which is
+   *  followed by a retry), so a wait never fails open in the gap between the
+   *  visitor doing what was asked and the token arriving. */
+  let turnstileChallenged = false;
+  /** Bumped when the widget is torn down, so a wait can tell it outlived it. */
+  let turnstileGeneration = 0;
+  let tokenWaiters: Array<() => void> = [];
+  function wakeTokenWaiters() {
+    const waiting = tokenWaiters;
+    tokenWaiters = [];
+    for (const wake of waiting) wake();
+  }
+  /** How long a submit waits on a widget that is neither minting nor asking for
+   *  a click (a stalled api.js); past it the submit goes up tokenless. */
+  const TOKEN_WAIT_MS = 15_000;
+  /** However the challenge behaves, a submit never shows "Sending" longer than
+   *  this: past it, it stops with the retry message rather than going up
+   *  tokenless or spinning on. */
+  const TOKEN_WAIT_CAP_MS = 180_000;
+
+  $effect(() => {
+    const el = turnstileEl;
+    const key = siteKey;
+    if (!key || !el) return;
+    let cancelled = false;
+    let id: string | undefined;
+    turnstileDown = false;
+    loadTurnstile()
+      .then((turnstile) => {
+        if (cancelled) return;
+        id = turnstile.render(el, {
+          sitekey: key,
+          appearance: "interaction-only",
+          // A 320px phone leaves the dialog 272px: "flexible" still has a
+          // 300px floor, so a narrower mount gets the 150px compact widget.
+          size: el.clientWidth < 300 ? "compact" : "flexible",
+          callback: (token) => {
+            turnstileToken = token;
+            turnstileDown = false;
+            turnstileChallenged = false;
+            wakeTokenWaiters();
+          },
+          "before-interactive-callback": () => {
+            turnstileChallenged = true;
+            // A challenge after an earlier wait gave up means the widget can
+            // mint after all: the next submit must wait for it, not skip it.
+            turnstileDown = false;
+            // It renders below the frames; on a phone that is below the fold.
+            el.scrollIntoView({ block: "nearest" });
+          },
+          // The visitor's click is not yet a token; the wait stays on
+          // until one arrives (see turnstileChallenged).
+          "after-interactive-callback": () => {},
+          "expired-callback": () => {
+            turnstileToken = "";
+          },
+          // Returning nothing lets Turnstile retry on its own, so a waiting
+          // submit keeps waiting for the retry's token; the wait's own timer
+          // decides when to give up.
+          "error-callback": () => {
+            turnstileToken = "";
+          },
+          "timeout-callback": () => {
+            try {
+              if (id !== undefined) turnstile.reset(id);
+            } catch {
+              // Torn down meanwhile; the wait ends on the generation.
+            }
+          },
+        });
+        turnstileWidget = id;
+        if (id === undefined) {
+          turnstileDown = true;
+          wakeTokenWaiters();
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Same words as /contact's warning, which maintenance's form-e2e reads.
+        console.warn("[turnstile] widget did not render:", err);
+        turnstileDown = true;
+        wakeTokenWaiters();
+      });
+    return () => {
+      cancelled = true;
+      turnstileWidget = undefined;
+      turnstileToken = "";
+      turnstileDown = false;
+      turnstileChallenged = false;
+      turnstileGeneration++;
+      wakeTokenWaiters();
+      try {
+        if (id !== undefined) window.turnstile?.remove(id);
+      } catch {
+        // Widget already torn down; nothing to clean up.
+      }
+    };
+  });
+
+  /**
+   * The token for the submit about to go up, waiting for one if the widget is
+   * still minting it. A token is spent the moment it is taken, and the widget is
+   * reset so the next submit gets a fresh one. `undefined` sends tokenless (no
+   * sitekey, or a widget that cannot mint); `null` means the dialog closed
+   * while waiting, and the submit must not go up at all.
+   */
+  async function takeTurnstileToken(): Promise<string | undefined | null> {
+    if (!siteKey) return undefined;
+    // Closed before the wait began (inside the 2.5s minimum fill time): the
+    // widget is already gone and nothing would ever wake this wait.
+    if (!open) return null;
+    const generation = turnstileGeneration;
+    const startedWaiting = Date.now();
+    while (!turnstileToken && !turnstileDown && generation === turnstileGeneration) {
+      if (Date.now() - startedWaiting >= TOKEN_WAIT_CAP_MS) return null;
+      const timedOut = await new Promise<boolean>((resolve) => {
+        const wake = () => {
+          clearTimeout(timer);
+          resolve(false);
+        };
+        const timer = setTimeout(
+          () => {
+            tokenWaiters = tokenWaiters.filter((w) => w !== wake);
+            resolve(true);
+          },
+          Math.min(TOKEN_WAIT_MS, TOKEN_WAIT_CAP_MS - (Date.now() - startedWaiting)),
+        );
+        tokenWaiters.push(wake);
+      });
+      // A challenge on screen is the visitor's to answer: keep waiting. Anything
+      // else that outlasts the wait counts as down, so the next submit does not
+      // wait it out again.
+      if (timedOut && !turnstileChallenged) turnstileDown = true;
+    }
+    // After a teardown the cleanup has already cleared any token, so this is
+    // exactly "the widget went away before it minted one".
+    if (generation !== turnstileGeneration && !turnstileToken) return null;
+    const token = turnstileToken;
+    if (!token) return undefined;
+    turnstileToken = "";
+    try {
+      if (turnstileWidget !== undefined) window.turnstile?.reset(turnstileWidget);
+    } catch {
+      // The next submit waits for a fresh token or falls through as down.
+    }
+    return token;
+  }
+
+  /** What a submit abandoned by a mid-wait close says; kept on reopen so the
+   *  visitor knows it did not go through. */
+  const INTERRUPTED = "The security check was interrupted. Please try again.";
+
   function show(step?: string, prefillEmail?: string, startedAt?: number) {
     // A visitor who closed the modal mid-questions resumes where they were:
     // their email is already captured and re-asking five answered questions is
@@ -163,14 +351,27 @@
     if (frame === "question" || frame === "contact") {
       // Resuming — but never clear a still-in-flight submit, or its guard drops
       // and the visitor could fire a second one on reopen.
-      if (status !== "sending") {
+      if (status !== "sending" && error !== INTERRUPTED) {
         status = "idle";
         error = "";
       }
       open = true;
       return;
     }
+    // A step one abandoned by a close comes back as it was, address and all,
+    // with the message saying it was not sent, never as an empty frame that
+    // reads as "done". No auto-submit: the visitor presses Inquire Now again.
+    const abandoned = status === "error" && error === INTERRUPTED ? email : null;
     resetSession(step);
+    if (abandoned !== null) {
+      // An address freshly typed into the page wins over the abandoned one.
+      email = prefillEmail?.trim() || abandoned;
+      status = "error";
+      error = INTERRUPTED;
+      openedAt = Date.now();
+      open = true;
+      return;
+    }
     // An address the visitor already typed into the page (the offer hero's
     // email field) fills frame one rather than being asked for twice. It is
     // only a prefill: nothing reaches ingest until they submit the frame, so
@@ -388,6 +589,10 @@
   async function postIngest(
     payload: Record<string, unknown>,
   ): Promise<{ ok: true } | { ok: false; error: string }> {
+    const turnstileTokenForPost = await takeTurnstileToken();
+    if (turnstileTokenForPost === null) {
+      return { ok: false, error: INTERRUPTED };
+    }
     try {
       const res = await fetch("/api/inquiry", {
         method: "POST",
@@ -406,6 +611,7 @@
           // quotes a time — not just the booking confirmation — renders in the
           // visitor's zone instead of the location's Mountain.
           timezone: resolveTimeZone(),
+          ...(turnstileTokenForPost ? { turnstileToken: turnstileTokenForPost } : {}),
           ...payload,
         }),
       });
@@ -920,6 +1126,14 @@
           </form>
         {/if}
       </div>
+
+      {#if siteKey}
+        <!-- Cloudflare Turnstile mount point, outside the frames so one widget
+             serves both submits. Empty unless Cloudflare wants a click. The
+             `cf-turnstile` class is what /contact's mount carries and what
+             maintenance's form-e2e looks for. -->
+        <div class="cf-turnstile" bind:this={turnstileEl}></div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -1361,7 +1575,6 @@
     border-color: #000;
   }
 
-  /* Zero-footprint mount for the invisible CRM Turnstile. */
   @media (prefers-reduced-motion: reduce) {
     .inquiry-close,
     .inquiry-submit,

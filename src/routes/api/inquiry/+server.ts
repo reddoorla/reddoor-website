@@ -26,6 +26,8 @@ const MAX_LEN = {
   surveyId: 64,
   referrer: 500,
   campaign: 100,
+  // Cloudflare documents a token as at most 2048 characters.
+  turnstileToken: 2048,
 };
 
 // The completed application carries the wizard's answers as display-shaped
@@ -185,11 +187,18 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     );
   }
 
-  // Transient `_meta` envelope for central ingest — IP/UA used only for scoring,
-  // none of it persisted. No Turnstile token here: this modal is a single email
-  // field rather than /contact's full form, so it leans on the honeypot + timing
-  // screen above and central verification stays fail-open, as it already is for
-  // any submission that arrives without a token.
+  // Transient `_meta` envelope for central ingest — the Turnstile token, IP and
+  // UA are used only for verification and scoring, none of it persisted. The
+  // token is forwarded exactly as /contact's action forwards its
+  // `cf-turnstile-response`. It is not optional in practice: the reddoor site
+  // row has `require_turnstile` on, so central ingest stores a tokenless
+  // submission as `spam_auto` (`turnstile-required-absent`) and emails nobody,
+  // while the visitor still sees success. Every /medtech and /boise inquiry was
+  // lost that way until 2026-11-03, when this endpoint forwarded no token. An
+  // over-long value is dropped rather than rejected: a visitor cannot fix it.
+  const rawToken = str(body.turnstileToken);
+  const turnstileToken =
+    rawToken && rawToken.length <= MAX_LEN.turnstileToken ? rawToken : undefined;
   const userAgent = request.headers.get("user-agent")?.trim();
   let clientIp: string | undefined;
   try {
@@ -198,6 +207,7 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     // Some adapters expose no client address — drop it silently.
   }
   const meta = {
+    ...(turnstileToken ? { turnstileToken } : {}),
     ...(clientIp ? { clientIp } : {}),
     ...(userAgent ? { userAgent } : {}),
   };

@@ -10,9 +10,10 @@
  * SPA nav included.
  *
  * Verification is central (the maintenance dashboard holds `TURNSTILE_SECRET_KEY`);
- * a site needs only the public sitekey, and `loadTurnstile` rejecting (offline /
- * blocked / CSP) is safe — central ingest is fail-open, so a missing token
- * degrades to the honeypot + timing + heuristic screen rather than dropping the lead.
+ * a site needs only the public sitekey. Central ingest is fail-open only where the
+ * site row leaves `require_turnstile` off: reddoorla.com has it ON, so there a
+ * missing token stores the lead as spam and emails nobody (the 2026-11-03 forms
+ * review). A form here must render the widget and forward its token.
  */
 
 /** The slice of Cloudflare's global `turnstile` API we use. */
@@ -28,6 +29,22 @@ export type TurnstileApi = {
       // this hostname, which is a live possibility for the GHL sitekey the
       // inquiry flow borrows. Returning true suppresses Turnstile's own retry.
       "error-callback"?: (code?: string) => boolean | void;
+      // A token is good for 300s and one siteverify. Fired when it lapses
+      // unused, so a caller holding it knows to stop sending it.
+      "expired-callback"?: () => void;
+      // "interaction-only" keeps the widget out of the layout unless Cloudflare
+      // decides the visitor must click it; the token is minted either way.
+      appearance?: "always" | "execute" | "interaction-only";
+      // "flexible" fills its container's width (with a 300px floor); "compact"
+      // is the 150px-wide form.
+      size?: "normal" | "flexible" | "compact";
+      // Fired when the widget is about to ask the visitor to click it, and when
+      // that interaction is done.
+      "before-interactive-callback"?: () => void;
+      "after-interactive-callback"?: () => void;
+      // Fired when an interactive challenge goes unanswered; the widget does
+      // not retry on its own after it, so the caller resets it.
+      "timeout-callback"?: () => void;
     },
   ) => string | undefined;
   remove: (widgetId: string) => void;
