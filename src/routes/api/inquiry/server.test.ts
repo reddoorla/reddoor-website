@@ -92,10 +92,10 @@ describe("POST /api/inquiry", () => {
     expect(p.formType).toBe("inquiry");
     expect(p.email).toBe("buyer@example.com");
     // Ingest requires a name (submissions.name is NOT NULL); an email-only step
-    // one falls back to the email so the row inserts. No phone or answer envelope.
+    // one falls back to the email so the row inserts. No phone or answers.
     expect(p.name).toBe("buyer@example.com");
     expect(p.phone).toBeUndefined();
-    expect(p.extra).toBeUndefined();
+    expect(p.extra).not.toHaveProperty("answers");
     expect(String(p.message)).toContain("The Diagnosis");
   });
 
@@ -122,6 +122,7 @@ describe("POST /api/inquiry", () => {
         { label: "Website", value: "https://x.test" },
       ],
       smsConsent: true,
+      composedMessage: true,
     });
     const message = String(p.message);
     expect(message).toContain("Problems");
@@ -129,6 +130,25 @@ describe("POST /api/inquiry", () => {
     expect(message.split("\n").filter((l) => l.startsWith("SMS consent:"))).toEqual([
       "SMS consent: yes",
     ]);
+  });
+
+  // Step one is the same sentence for every visitor and every application
+  // repeats the same question labels, so central ingest's fleet duplicate-body
+  // scan read every lead after the first in 30 days as a spray. The flag says
+  // the message is this endpoint's template; ingest honours it only on a
+  // Turnstile-gated site with a passing token (2026-11-03).
+  it("marks both submits' message as site-composed, so ingest skips the duplicate scan", async () => {
+    await call({ email: "a@b.com", step: "The Diagnosis", ts: OLD_TS() });
+    expect((lastPayload().extra as Record<string, unknown>).composedMessage).toBe(true);
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      phone: "5551234567",
+      answers: [{ label: "Q", value: "A" }],
+      ts: OLD_TS(),
+    });
+    expect((lastPayload().extra as Record<string, unknown>).composedMessage).toBe(true);
+    expect(submitToIngest).toHaveBeenCalledTimes(2);
   });
 
   it("cannot be tricked into forging a consent line via a newline in an answer", async () => {

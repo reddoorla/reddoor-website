@@ -246,8 +246,16 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
       message,
       sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,
       // Structured copy of the same answers, for anything downstream that
-      // would rather not parse the message back apart.
-      ...(isApplication ? { extra: { answers, smsConsent } } : {}),
+      // would rather not parse the message back apart. `composedMessage` tells
+      // central ingest that this endpoint wrote `message` from a template, not
+      // the visitor: step one is the same sentence for everyone and every
+      // application repeats the same question labels, so ingest's fleet
+      // duplicate-body scan stored every lead after the first in 30 days as
+      // spam (2026-11-03). Ingest honours the flag only on a site that requires
+      // Turnstile and only with a passing token, so it is no bypass for a bot.
+      extra: isApplication
+        ? { answers, smsConsent, composedMessage: true }
+        : { composedMessage: true },
       // Synthetic end-to-end probe marker (the fleet `form-e2e` audit): forwarded
       // ONLY when the submission carries testMode=true. Central ingest routes
       // those away from every real sink.
