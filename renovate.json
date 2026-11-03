@@ -1,5 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>reddoorla/.github:renovate-config"],
-  "baseBranchPatterns": ["staging"]
+  "baseBranchPatterns": ["staging"],
+  "packageRules": [
+    {
+      "description": "satori 0.35.1 and 0.35.2 reference __dirname in their ESM build and break the OG-card prerender (2026-11-03, #314); 0.35.0 is pinned until a fixed release",
+      "matchPackageNames": ["satori"],
+      "allowedVersions": "!/^0\\.35\\.[12]$/"
+    }
+  ]
 }
