@@ -231,5 +231,8 @@ const QUESTION_SETS: Record<string, readonly InquiryQuestion[]> = {
 };
 
 export function questionsFor(surveyId: string): readonly InquiryQuestion[] | undefined {
-  return QUESTION_SETS[surveyId];
+  // Own keys only: the id arrives from the browser, and `QUESTION_SETS` is an
+  // object literal, so "constructor" or "__proto__" would otherwise return
+  // Object's own members and throw where a question list is expected.
+  return Object.hasOwn(QUESTION_SETS, surveyId) ? QUESTION_SETS[surveyId] : undefined;
 }

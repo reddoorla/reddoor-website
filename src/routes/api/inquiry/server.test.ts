@@ -17,6 +17,22 @@ vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
   return { ...actual, submitToIngest: (opts: unknown) => submitToIngest(opts) };
 });
 
+// The page's step titles, as Prismic serves them. A rejected lookup stands in
+// for an outage, a `page`-type campaign, or an unknown uid.
+const getByUID = vi.fn();
+vi.mock("$lib/prismicio", () => ({ createClient: () => ({ getByUID }) }));
+const industryDoc = (titles: string[]) => ({
+  data: {
+    slices: [
+      {
+        slice_type: "text_columns",
+        variation: "iconColumns",
+        primary: { columns: titles.map((title) => ({ title })) },
+      },
+    ],
+  },
+});
+
 const { POST } = await import("./+server");
 const { questionsFor } = await import("$lib/ghl/questions");
 const { DEFAULT_INQUIRY_SURVEY_ID } = await import("$lib/ghl/constants");
@@ -36,6 +52,7 @@ function call(body: Body) {
     fetch: globalThis.fetch,
     url: new URL("https://site.test/api/inquiry"),
     getClientAddress: () => "203.0.113.7",
+    cookies: { get: () => undefined },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   return Promise.resolve(POST(event)).then(async (res: Response) => ({
@@ -49,6 +66,8 @@ const lastPayload = () =>
   (submitToIngest.mock.calls.at(-1)?.[0] as any).payload as Record<string, unknown>;
 
 beforeEach(() => {
+  getByUID.mockReset();
+  getByUID.mockRejectedValue(new Error("no such document"));
   submitToIngest.mockReset();
   submitToIngest.mockResolvedValue({ ok: true, id: "sub_1" });
 });
@@ -192,6 +211,44 @@ describe("POST /api/inquiry", () => {
     const visitorText = String((lastPayload().extra as Record<string, unknown>).visitorText);
     expect(visitorText).toContain("Buy ten thousand backlinks today");
     expect(visitorText).toContain("Cheap SEO, reply now");
+  });
+
+  // A step title is the page's own text, the same for every visitor. If it were
+  // counted as typed, a title of 40+ characters would make every lead on that
+  // page an exact duplicate of the last (review round 2).
+  it("leaves a step that is one of the page's own step titles out of visitorText", async () => {
+    const title = "Diagnose what is really holding your brand back";
+    getByUID.mockResolvedValue(industryDoc([title, "The Rollout"]));
+    await call({ email: "a@b.com", step: title, campaign: "medtech", ts: OLD_TS() });
+    expect(getByUID).toHaveBeenCalledWith("industry", "medtech");
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("");
+    expect(String(lastPayload().message)).toContain(title);
+  });
+
+  it("counts a step the page does not have as typed", async () => {
+    getByUID.mockResolvedValue(industryDoc(["The Diagnosis"]));
+    await call({ email: "a@b.com", step: "Buy backlinks now", campaign: "medtech", ts: OLD_TS() });
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Buy backlinks now");
+  });
+
+  it("counts the step as typed when the page's steps cannot be read, and still forwards the lead", async () => {
+    await call({ email: "a@b.com", step: "The Diagnosis", campaign: "medtech", ts: OLD_TS() });
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("The Diagnosis");
+  });
+
+  it("forwards a lead whose surveyId is an Object prototype key, instead of a 500", async () => {
+    for (const surveyId of ["constructor", "__proto__", "toString"]) {
+      const { status } = await call({
+        email: "a@b.com",
+        name: "Ada",
+        surveyId,
+        answers: [{ label: "Q", value: "A" }],
+        ts: OLD_TS(),
+      });
+      expect(status).toBe(200);
+      expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Q\nA");
+    }
   });
 
   it("counts every answer as typed when the survey id has no question list", async () => {
