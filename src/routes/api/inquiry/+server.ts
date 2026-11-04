@@ -1,9 +1,12 @@
-import { json } from "@sveltejs/kit";
+import { json, type Cookies } from "@sveltejs/kit";
 import * as env from "$app/env/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { syncInquiryToCrm, syncApplicationToCrm } from "$lib/ghl/client";
 import { normalizeZone } from "$lib/schedule/timezone";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
+import { questionsFor } from "$lib/ghl/questions";
+import { createClient } from "$lib/prismicio";
+import type { Content } from "@prismicio/client";
 import type { RequestHandler } from "./$types";
 
 // The industry landing pages are prerendered (root layout sets `prerender =
@@ -102,7 +105,71 @@ function readFields(raw: unknown): Record<string, string | string[]> | null {
   return out;
 }
 
-export const POST: RequestHandler = async ({ request, fetch, url, getClientAddress }) => {
+/**
+ * The framework step titles of the industry page `campaign` names, read the way
+ * the page reads them (the icon-columns slice; see [uid]/+page.svelte). A step
+ * the visitor sent that is one of these is the page's own text, not theirs.
+ * Empty on any failure or for a page with no steps, which only means `step`
+ * counts as typed: a real step name is short and falls under ingest's floors.
+ */
+/** A step title as the modal sends it: trimmed, with the trailing colon the
+ * page's titles carry ("The Diagnosis:") dropped, as InquiryModal's
+ * `stepLabel` does. Both sides of the known-step check go through this, so the
+ * check matches what production content actually holds (review round 3: every
+ * live title ends in a colon, and the raw set never matched). */
+function stepTitle(t: string): string {
+  return t.trim().replace(/:$/, "").trim();
+}
+
+async function knownSteps(
+  campaign: string,
+  fetchFn: typeof fetch,
+  cookies: Cookies,
+): Promise<Set<string>> {
+  if (!campaign) return new Set();
+  try {
+    const doc = await createClient({ fetch: fetchFn, cookies }).getByUID("industry", campaign);
+    const slice = doc.data.slices.find(
+      (s) => s.slice_type === "text_columns" && s.variation === "iconColumns",
+    ) as Extract<Content.TextColumnsSlice, { variation: "iconColumns" }> | undefined;
+    return new Set(
+      (slice?.primary.columns ?? []).map((c) => stepTitle(c.title ?? "")).filter(Boolean),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * The part of the composed message the visitor actually typed, for central
+ * ingest's duplicate scan (`extra.visitorText`). The message repeats the
+ * survey's headings and option strings and the page's step title for every
+ * applicant, so ingest never matches it on the message; this is what it scans
+ * instead, so a pitch typed into an answer is still caught as a spray.
+ * Everything that came from the browser and is not the site's own text goes
+ * in: free-text answers, any label or option the survey does not have (a
+ * forgery), and a `step` that is not one of the page's step titles.
+ */
+function visitorTextOf(
+  step: string,
+  steps: Set<string>,
+  answers: AnswerLine[],
+  surveyId: string,
+): string {
+  const questions = questionsFor(surveyId) ?? [];
+  const headings = new Set(questions.map((q) => q.heading));
+  const options = new Set(questions.flatMap((q) => (q.kind === "text" ? [] : q.options)));
+  const typed: string[] = step && !steps.has(stepTitle(step)) ? [step] : [];
+  for (const { label, value } of answers) {
+    if (label && !headings.has(label)) typed.push(label);
+    for (const v of Array.isArray(value) ? value : [value]) {
+      if (v && !options.has(v)) typed.push(v);
+    }
+  }
+  return typed.join("\n");
+}
+
+export const POST: RequestHandler = async ({ request, fetch, url, getClientAddress, cookies }) => {
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -246,8 +313,24 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
       message,
       sourceUrl: sourceUrl || `${url.origin}${url.pathname}`,
       // Structured copy of the same answers, for anything downstream that
-      // would rather not parse the message back apart.
-      ...(isApplication ? { extra: { answers, smsConsent } } : {}),
+      // would rather not parse the message back apart. `composedMessage` tells
+      // central ingest that this endpoint wrote `message` from a template, not
+      // the visitor: step one is the same sentence for everyone and every
+      // application repeats the same question labels, so ingest's fleet
+      // duplicate-body scan stored every lead after the first in 30 days as
+      // spam (2026-11-03). Ingest honours the flag only on a site that requires
+      // Turnstile, with a token that passed on this site's own host, and then
+      // scans `visitorText` (see visitorTextOf) instead of the whole message.
+      extra: {
+        ...(isApplication ? { answers, smsConsent } : {}),
+        composedMessage: true,
+        visitorText: visitorTextOf(
+          step,
+          step ? await knownSteps(campaign, fetch, cookies) : new Set(),
+          answers,
+          surveyId,
+        ),
+      },
       // Synthetic end-to-end probe marker (the fleet `form-e2e` audit): forwarded
       // ONLY when the submission carries testMode=true. Central ingest routes
       // those away from every real sink.
