@@ -17,7 +17,25 @@ vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
   return { ...actual, submitToIngest: (opts: unknown) => submitToIngest(opts) };
 });
 
+// The page's step titles, as Prismic serves them. A rejected lookup stands in
+// for an outage, a `page`-type campaign, or an unknown uid.
+const getByUID = vi.fn();
+vi.mock("$lib/prismicio", () => ({ createClient: () => ({ getByUID }) }));
+const industryDoc = (titles: string[]) => ({
+  data: {
+    slices: [
+      {
+        slice_type: "text_columns",
+        variation: "iconColumns",
+        primary: { columns: titles.map((title) => ({ title })) },
+      },
+    ],
+  },
+});
+
 const { POST } = await import("./+server");
+const { questionsFor } = await import("$lib/ghl/questions");
+const { DEFAULT_INQUIRY_SURVEY_ID } = await import("$lib/ghl/constants");
 
 type Body = Record<string, unknown>;
 // Comfortably past the min-fill timing screen, so timing never masks the thing
@@ -34,6 +52,7 @@ function call(body: Body) {
     fetch: globalThis.fetch,
     url: new URL("https://site.test/api/inquiry"),
     getClientAddress: () => "203.0.113.7",
+    cookies: { get: () => undefined },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   return Promise.resolve(POST(event)).then(async (res: Response) => ({
@@ -47,6 +66,8 @@ const lastPayload = () =>
   (submitToIngest.mock.calls.at(-1)?.[0] as any).payload as Record<string, unknown>;
 
 beforeEach(() => {
+  getByUID.mockReset();
+  getByUID.mockRejectedValue(new Error("no such document"));
   submitToIngest.mockReset();
   submitToIngest.mockResolvedValue({ ok: true, id: "sub_1" });
 });
@@ -92,10 +113,10 @@ describe("POST /api/inquiry", () => {
     expect(p.formType).toBe("inquiry");
     expect(p.email).toBe("buyer@example.com");
     // Ingest requires a name (submissions.name is NOT NULL); an email-only step
-    // one falls back to the email so the row inserts. No phone or answer envelope.
+    // one falls back to the email so the row inserts. No phone or answers.
     expect(p.name).toBe("buyer@example.com");
     expect(p.phone).toBeUndefined();
-    expect(p.extra).toBeUndefined();
+    expect(p.extra).not.toHaveProperty("answers");
     expect(String(p.message)).toContain("The Diagnosis");
   });
 
@@ -122,6 +143,8 @@ describe("POST /api/inquiry", () => {
         { label: "Website", value: "https://x.test" },
       ],
       smsConsent: true,
+      composedMessage: true,
+      visitorText: expect.any(String),
     });
     const message = String(p.message);
     expect(message).toContain("Problems");
@@ -129,6 +152,157 @@ describe("POST /api/inquiry", () => {
     expect(message.split("\n").filter((l) => l.startsWith("SMS consent:"))).toEqual([
       "SMS consent: yes",
     ]);
+  });
+
+  // Step one is the same sentence for every visitor and every application
+  // repeats the same question labels, so central ingest's fleet duplicate-body
+  // scan read every lead after the first in 30 days as a spray. The flag says
+  // the message is this endpoint's template; ingest honours it only on a
+  // Turnstile-gated site with a passing token (2026-11-03).
+  it("marks both submits' message as site-composed, so ingest skips the duplicate scan", async () => {
+    await call({ email: "a@b.com", step: "The Diagnosis", ts: OLD_TS() });
+    expect((lastPayload().extra as Record<string, unknown>).composedMessage).toBe(true);
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      phone: "5551234567",
+      answers: [{ label: "Q", value: "A" }],
+      ts: OLD_TS(),
+    });
+    expect((lastPayload().extra as Record<string, unknown>).composedMessage).toBe(true);
+    expect(submitToIngest).toHaveBeenCalledTimes(2);
+  });
+
+  // On the verified path ingest scans only what the visitor typed, so this is
+  // the spray check's whole input: the survey's own headings and options must
+  // stay out of it (they repeat for everyone), everything else must be in it.
+  it("sends what the visitor typed as visitorText, never the survey's own wording", async () => {
+    const q = questionsFor(DEFAULT_INQUIRY_SURVEY_ID)!;
+    const problems = q.find((x) => x.kind === "checkbox")!;
+    const website = q.find((x) => x.kind === "text")!;
+    const option = problems.kind === "checkbox" ? problems.options[0]! : "";
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      phone: "5551234567",
+      step: "The Diagnosis",
+      answers: [
+        { label: problems.heading, value: [option] },
+        { label: website.heading, value: "https://ada.example" },
+      ],
+      ts: OLD_TS(),
+    });
+    const visitorText = String((lastPayload().extra as Record<string, unknown>).visitorText);
+    expect(visitorText.split("\n")).toEqual(["The Diagnosis", "https://ada.example"]);
+    expect(String(lastPayload().message)).toContain(option);
+  });
+
+  it("puts a forged label or option into visitorText, where ingest scans it", async () => {
+    const q = questionsFor(DEFAULT_INQUIRY_SURVEY_ID)!;
+    await call({
+      email: "a@b.com",
+      name: "Bot",
+      answers: [
+        { label: q[0]!.heading, value: ["Buy ten thousand backlinks today"] },
+        { label: "Cheap SEO, reply now", value: "x" },
+      ],
+      ts: OLD_TS(),
+    });
+    const visitorText = String((lastPayload().extra as Record<string, unknown>).visitorText);
+    expect(visitorText).toContain("Buy ten thousand backlinks today");
+    expect(visitorText).toContain("Cheap SEO, reply now");
+  });
+
+  // A step title is the page's own text, the same for every visitor. If it were
+  // counted as typed, a title of 40+ characters would make every lead on that
+  // page an exact duplicate of the last (review round 2).
+  // Prismic holds every live title with a trailing colon ("The Diagnosis:"), and
+  // the modal sends it without (InquiryModal's stepLabel). Round 3 found the
+  // check compared the two raw and so never matched production content.
+  it("leaves a step that is one of the page's own step titles out of visitorText", async () => {
+    const title = "Diagnose what is really holding your brand back";
+    getByUID.mockResolvedValue(industryDoc([`${title}:`, "The Rollout:"]));
+    await call({ email: "a@b.com", step: title, campaign: "medtech", ts: OLD_TS() });
+    expect(getByUID).toHaveBeenCalledWith("industry", "medtech");
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("");
+    expect(String(lastPayload().message)).toContain(title);
+  });
+
+  it("leaves the production step titles out of visitorText, colon or not", async () => {
+    // "The Rollout: " — a stray space after the colon, as a content edit leaves it.
+    getByUID.mockResolvedValue(industryDoc(["The Diagnosis:", "The Rebuild:", "The Rollout: "]));
+    for (const step of ["The Diagnosis", "The Rebuild:", " The Rollout "]) {
+      await call({ email: "a@b.com", step, campaign: "medtech", ts: OLD_TS() });
+      expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("");
+    }
+  });
+
+  it("reads step titles only from the icon-columns slice", async () => {
+    getByUID.mockResolvedValue({
+      data: {
+        slices: [
+          {
+            slice_type: "text_columns",
+            variation: "default",
+            primary: { columns: [{ title: "Buy backlinks now:" }] },
+          },
+        ],
+      },
+    });
+    await call({ email: "a@b.com", step: "Buy backlinks now", campaign: "medtech", ts: OLD_TS() });
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Buy backlinks now");
+  });
+
+  it("puts no blank line in visitorText for an unanswered question", async () => {
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      surveyId: "no-such-survey",
+      answers: [
+        { label: "Q1", value: "" },
+        { label: "Q2", value: ["", "A"] },
+      ],
+      ts: OLD_TS(),
+    });
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Q1\nQ2\nA");
+  });
+
+  it("counts a step the page does not have as typed", async () => {
+    getByUID.mockResolvedValue(industryDoc(["The Diagnosis"]));
+    await call({ email: "a@b.com", step: "Buy backlinks now", campaign: "medtech", ts: OLD_TS() });
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Buy backlinks now");
+  });
+
+  it("counts the step as typed when the page's steps cannot be read, and still forwards the lead", async () => {
+    await call({ email: "a@b.com", step: "The Diagnosis", campaign: "medtech", ts: OLD_TS() });
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("The Diagnosis");
+  });
+
+  it("forwards a lead whose surveyId is an Object prototype key, instead of a 500", async () => {
+    for (const surveyId of ["constructor", "__proto__", "toString"]) {
+      const { status } = await call({
+        email: "a@b.com",
+        name: "Ada",
+        surveyId,
+        answers: [{ label: "Q", value: "A" }],
+        ts: OLD_TS(),
+      });
+      expect(status).toBe(200);
+      expect((lastPayload().extra as Record<string, unknown>).visitorText).toBe("Q\nA");
+    }
+  });
+
+  it("counts every answer as typed when the survey id has no question list", async () => {
+    await call({
+      email: "a@b.com",
+      name: "Ada",
+      surveyId: "no-such-survey",
+      answers: [{ label: "What problems are you experiencing?", value: "Outdated materials" }],
+      ts: OLD_TS(),
+    });
+    const visitorText = String((lastPayload().extra as Record<string, unknown>).visitorText);
+    expect(visitorText).toBe("What problems are you experiencing?\nOutdated materials");
   });
 
   it("cannot be tricked into forging a consent line via a newline in an answer", async () => {
