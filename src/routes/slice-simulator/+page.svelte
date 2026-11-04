@@ -3,6 +3,8 @@
   import { components } from "$lib/slices";
 </script>
 
-<SliceSimulator let:slices>
-  <SliceZone {slices} {components} />
+<SliceSimulator>
+  {#snippet children({ slices })}
+    <SliceZone {slices} {components} />
+  {/snippet}
 </SliceSimulator>
