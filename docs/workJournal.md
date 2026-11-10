@@ -2009,18 +2009,56 @@ The view now carries `failedStages`: a stage is `{ok:false}` with an error that 
 
 Usage: not readable (`get_session` carries no usage figures in this session).
 
-## 2026-11-10 — Meta `Lead` on a completed MedTech application, browser and Conversions API (branch `claude/medtech-capi-lead`, not pushed)
+## 2026-11-10 — The MedTech pixel's PageView gets its Conversions API copy (#337, `2cb6fa9`)
 
-The operator's decision: a completed inquiry application on the MedTech funnel fires Meta `Lead`, with hashed email and phone on the server copy. The browser fires it once the application is in, including for a budget "No", because a Lead is a submitted application. Step one (the email capture) fires nothing, so the server gates on `isApplication` as well as on the tag.
+Tim needed Meta's Conversions API (CAPI) alongside the browser pixel from #332. The server sends the same event the browser sends, with the same id. The browser gives each PageView a fresh `eventID`, then posts that id to `/api/meta-event`. The endpoint forwards the event to Graph v27.0, so Meta keeps one of the pair. It does nothing until the operator sets `META_CAPI_ACCESS_TOKEN` on the production site. The token, and the one-time Test Events check after it is set, are his and Tim's (steps in reddoorla/reddoor-workspace `drafts/2026-11-10-medtech-capi/tim-steps.md`).
 
-The browser and the server share one event id. `prepareLead` mints it before the post, the post carries it as `metaLead`, and `trackLead` puts it on the pixel as `eventID` after a 200. The server checks the tag again (consent accepted, id shape `[A-Za-z0-9-]{8,64}`), the source page (same origin, a funnel path), and a user agent. A bad tag is ignored, never a 400: the visitor cannot fix it, and a 400 would tell a bot which of its payloads reached validation. Every failure on the server path still answers `{success: true}`, because the application is already in ingest.
+**Why only PageView.** #332 tracks nothing else. The brief expected a `Lead` with hashed email and phone. The hashing exists in `$lib/server/metaCapi`, but no form sends it: a form event would hand Meta a lead's contact details, and reddoorla.com has no privacy page. That is the operator's call.
 
-The cookie helpers moved from the PageView endpoint into `metaCapi.ts` as `metaCookies`, so both endpoints read `_fbp` and `_fbc` one way. The PageView endpoint's own tests pass unedited.
+**Beliefs corrected on contact.**
 
-**Red before green.** Eleven new tests failed before implementation: the four `metaCookies` cases, the three `prepareLead`/`trackLead` cases, and four inquiry cases (the Lead send, Graph refused or thrown, the `_fbp`/`_fbc` forwarding, the test event code). The negative cases ("sends nothing when ...", a malformed event id, step one, test mode) passed before any code existed, so they guard the gate but do not prove it; the positive case beside them is what proves the instrument.
+- _"Wait for fbevents.js to load, and the cookies will be there."_ False. On the deploy preview with the real fbevents.js, the first build posted 53ms after Accept with no `_fb` cookie. Even the load-gated build posted before Meta's pixel config arrived (1754ms against 2100ms cold, 427ms against 436ms warm). fbevents writes `_fbp` and `_fbc` only after the config. The shipped build waits for `_fbp` (every 100ms, up to 2s) and posted at 905ms, carrying `_fbp` and `_fbc=fb.2.<ms>.<fbclid>`.
+- _Playwright's `request.headers()` shows the cookies._ It doesn't; `allHeaders()` does. My first reading of "no cookies" proved nothing until the probe switched. The timing argument held on its own.
+- _Graph's version._ Meta's example says v27.0, and its changelog page said v26.0 was the latest. Graph itself answered v26.0 and v27.0 and called v28.0 unknown, so v27.0 it is. A bogus `access_token` in the JSON body answers code 190 (invalid), so Graph reads the token there, and it stays out of the URL.
 
-**Belief corrected on contact.** A fresh clone's `vitest run` fails with `Tsconfig not found` for `$app/tsconfig` until `svelte-kit sync` has generated `.svelte-kit/`. That reads like a broken test file, and it is not one.
+**Defects the review caught.** Three Opus lenses per round. Round 1 had three majors:
 
-**Honest accounting.** `pnpm lint` failed on the untracked `.lead-plan.md` (a planning file, not part of the change). It was moved out of the tree for the lint run and put back; it is not committed. The three prettier failures on changed files were formatting only.
+- `event_source_url` was the full href. CRM links land on `/schedule?first_name=…&email=…&phone=…`, and the browser posts before `stripQueryParams` runs. Meta now gets origin and path only, and the client sends only origin, path and `fbclid`.
+- The post went out before fbevents could write any cookie.
+- Two smoke tests clicked Accept against the real endpoint, so a developer's own token would have sent test PageViews to Tim's pixel.
 
-Usage: $4.896359415, 3925/58784 tokens, 15942149/320638 cache, rate limit allowed
+Round 2's one major was the config-timing gap above. Round 3 was minors only, filed as #344–#347. Also filed:
+
+- #338: no rate limit on the public endpoint;
+- #339: a visitor leaving during the wait loses the server copy;
+- #343: #332's browser pixel keeps a CRM link's details out of its page URL (`dl`) only because the strip wins a race. That margin measured 55ms warm, and no leak was observed.
+
+**Mutations.** 19, each red: consent ignored on either side; the server minting its own id; email hashed raw; a throw or a send without the token; the full URL to Meta; no fbclid fallback; no `_fbp` wait; the token back in the URL; and the rest in #337's table.
+
+**Process notes.** #335, named in the brief as the pixel PR, was a history-only bring-main; the pixel was #332. The operator had already merged the promotion #336 (10:37am PT) before #337 landed, so a fresh bring-main (#348) and promotion follow. The container's pinned Playwright has no browser installed, so the smoke spec ran through a throwaway config pointing at `/opt/pw-browsers/chromium`.
+
+## 2026-11-10 — Meta `Lead` on a completed MedTech application, browser and Conversions API, with in-site guards and a disclosure at the submit button (branch `claude/medtech-capi-lead`)
+
+The operator chose (11:49am PT) to send a `Lead`, with hashed email and phone, for a completed inquiry application on the MedTech funnel, and then (about 12:05pm PT) how far to guard it: in-site guards now, with the real fix filed as reddoorla/reddoor-maintenance#2027, and one line of disclosure at the submit button. Both decisions are in reddoorla/reddoor-workspace `decisions/` (`2026-11-10-1947-…` and `2026-11-10-2000-…`). This entry replaces the unmerged one that the first implementer wrote on this branch; that one said "not pushed" and carried its own session's usage.
+
+**What it does.** The browser and the server share one event id per wizard session. `decideLead` takes it as the contact frame opens, a retry after a lost response reuses it, and `resetSession` clears it. The application post carries it as `metaLead`, and `trackLead` puts it on the pixel as `eventID` after a 200. The server copy goes out from `/api/inquiry` only for a completed application (step one is an email capture and sends none), not in test mode, with a well-formed accepted tag, a user agent, a Turnstile token string, a same-origin funnel `sourceUrl`, and a valid `_fbp` cookie. Last comes a limit of 3 Leads per client per 10 minutes. It starts beside the CRM sync, not after it, and the response waits for both. Every failure on that path still answers success, because the application is already in ingest. A budget "No" counts as a Lead on purpose: a Lead is a submitted application. The line "We share a hashed copy of your email and phone with Meta to measure our ads." shows under Submit Application only when `leadTag` is set, so the notice and the Lead are one decision.
+
+**Why the guards are weak, and what was accepted.** Consent lives in the visitor's `localStorage`, so the server takes `consent: "accepted"` on trust, and ingest's client returns `{ok, id}` with no spam verdict. A forger can fake the token and the `_fbp` strings. The `_fbp` check also costs every visitor whose blocker stops fbevents.js their Lead: the server sends none either, which is the case a server copy usually exists for. The Meta-contract reviewer argued for dropping `_fbp`. The decision file had named this cost and the operator chose it, so it stands. The limit is in memory per function instance. A Netlify instance serves one request at a time, so parallel posts land on fresh maps: it bounds a sequential run, not a burst.
+
+**Defects the reviews found, named.** Three Opus rounds of three lenses ran. Round 1 was dirty (before this session; see the PR): the retry minted a new id, the modal glue had no test, and the Lead ran after the CRM sync. Round 2 was dirty with one reproduced major: the limit keyed on the full address, so one IPv6 client could use a fresh address in its /64 for every post. `reddoorla.netlify.app` answers on AAAA records, and its own origin passes the same-origin check. It now keys IPv6 by /64 (`limitKey`) and IPv4 by address. Round 3 found no behaviour defect.
+
+**Tests that tested less than their names.** This is the most useful lesson of the arc. Each new guard silently masked an older test that posted without what the guard needs:
+
+- the token guard made the step-one test pass for the wrong reason: mutation 5, found again by the final mutation run;
+- the `_fbp` guard did the same to the malformed-event-id test;
+- the concurrency test passed with `await leadSent` deleted, because the stubbed Graph finished in microtasks before the response; it now ends on a timer after the CRM has ended.
+
+All three were found by mutating the code, not by reading the tests. After any new early-return guard, re-run the mutation table.
+
+**Mutations.** 26 on the final head, each red: consent ignored on either side; the server minting its own id; email not normalised; a throw without the token; Lead on step one; the full URL to Meta; off the funnel (server and browser); test mode; another browser id; malformed `_fbp` forwarded; phone unhashed; a bad id accepted; cross-origin; no user agent; a Lead on ingest failure; `_fbp` not required; no limit; the limit before the other checks; IPv6 by full address; the response not waiting; Lead then CRM serially; the disclosure always or never shown; a new id on retry.
+
+**Measured.** The disclosure's `#6e6f72` on the white panel is 5.0:1 by the WCAG formula; the round 1b plan said 4.6:1, and that figure was wrong. On staging at 12:31pm PT the PageView check passed: 0 Facebook requests before Accept, one `/api/meta-event` post 490ms after it with `_fbp` and `_fbc`, answered 204. Playwright reports that keepalive post as `ERR_ABORTED`; Chromium moves keepalive requests to the browser process. Only routing it (`route.fetch()`) shows the 204. A check that waits on `requestfinished` reports a working endpoint as silent.
+
+**Filed.** reddoorla/reddoor-website#353–#362, among them: no `external_id`; `fbc` built with the current time; deploy previews if the token ever leaves Production; a declined-then-accepted visitor getting no Lead; the browser Lead on a honeypot accept; the disclosure naming only email and phone; Meta's health-site event restrictions. Also reddoorla/reddoor-maintenance#2027 for the ingest verdict.
+
+Usage: $12.92, 3542/200395 tokens, 36649219/1259609 cache, rate limit allowed (this session only; the implementer's own session, before this one, is not counted)
