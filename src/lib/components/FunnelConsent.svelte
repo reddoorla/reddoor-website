@@ -16,6 +16,10 @@
   // not a modal: these are conversion pages, and a gate that blocks the offer
   // until the visitor deals with cookies costs exactly the leads the pixel is
   // there to count. Nothing loads from Facebook until Accept.
+  //
+  // z-[25]: above the page and its nav (z-20), below the menu overlay (z-30),
+  // which is an aria-modal focus trap. Above it, the bar's buttons would show
+  // over the menu but be out of reach of Tab and hidden from screen readers.
 
   let consent = $state<Consent>(null);
   let ready = $state(false);
@@ -25,8 +29,12 @@
   const pathname = $derived(page.url.pathname);
   const onFunnel = $derived(isFunnelPath(pathname));
 
+  // Svelte's JS transitions ignore prefers-reduced-motion; the bar honours it.
+  let reduceMotion = $state(false);
+
   $effect(() => {
-    consent = readConsent(localStorage);
+    reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    consent = readConsent(() => localStorage);
     ready = true;
   });
 
@@ -41,7 +49,7 @@
   });
 
   function answer(accepted: boolean) {
-    saveConsent(localStorage, accepted);
+    saveConsent(() => localStorage, accepted);
     consent = accepted ? "accepted" : "rejected";
   }
 </script>
@@ -51,8 +59,8 @@
     role="region"
     aria-label="Cookie consent"
     data-funnel-consent
-    class="fixed inset-x-0 bottom-0 z-40 bg-black text-white"
-    transition:fly={{ y: 64 }}
+    class="fixed inset-x-0 bottom-0 z-[25] bg-black text-white"
+    transition:fly={{ y: 64, duration: reduceMotion ? 0 : 400 }}
   >
     <ContentWidth
       class="flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between md:gap-10"

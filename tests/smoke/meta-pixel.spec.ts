@@ -34,7 +34,23 @@ const consentBar = (page: Page) => page.getByRole("region", { name: "Cookie cons
 const fbqCalls = (page: Page) =>
   page.evaluate(() => (window as unknown as { fbq?: { queue: unknown[][] } }).fbq?.queue ?? null);
 
-for (const path of ["/medtech", "/not-a-fit"]) {
+/** How many PageViews the page has queued. Exact, so a double-fire is red. */
+const pageViews = async (page: Page) =>
+  ((await fbqCalls(page)) ?? []).filter((c) => c[0] === "track" && c[1] === "PageView").length;
+
+/** A client-side navigation: SvelteKit's router takes any same-origin link click. */
+async function clientNavigate(page: Page, path: string) {
+  await page.evaluate((href) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = "test navigation";
+    document.body.appendChild(a);
+    a.click();
+  }, path);
+  await page.waitForURL((u) => u.pathname === path);
+}
+
+for (const path of ["/medtech", "/brand-friction-audit", "/schedule", "/not-a-fit"]) {
   test(
     `${path}: nothing reaches Facebook before Accept; after it, Tim's pixel gets a PageView`,
     { tag: "@smoke" },
@@ -49,17 +65,39 @@ for (const path of ["/medtech", "/not-a-fit"]) {
       await consentBar(page).getByRole("button", { name: "Accept" }).click();
       await expect(consentBar(page)).toBeHidden();
       await expect.poll(() => requests).toContain("https://connect.facebook.net/en_US/fbevents.js");
-      const calls = await fbqCalls(page);
-      expect(calls).toContainEqual(["init", PIXEL_ID]);
-      expect(calls).toContainEqual(["track", "PageView"]);
+      expect(await fbqCalls(page)).toContainEqual(["init", PIXEL_ID]);
+      expect(await pageViews(page)).toBe(1);
 
       // Remembered: the next visit loads the pixel without asking again.
       await gotoHydrated(page, path);
       await expect(consentBar(page)).toBeHidden();
-      await expect.poll(() => fbqCalls(page)).toContainEqual(["track", "PageView"]);
+      await expect.poll(() => pageViews(page)).toBe(1);
     },
   );
 }
+
+test(
+  "client-side navigation: one PageView per funnel page, none after leaving the funnel",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    await gotoHydrated(page, "/medtech");
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect.poll(() => pageViews(page)).toBe(1);
+
+    // The inquiry hands over to /schedule with goto(): a SPA arrival.
+    await clientNavigate(page, "/schedule");
+    await expect.poll(() => pageViews(page)).toBe(2);
+
+    // A hash change on a funnel page is not a new page.
+    await page.evaluate(() => (location.hash = "inquire"));
+    await clientNavigate(page, "/");
+    await clientNavigate(page, "/about");
+    // Give a stray effect time to fire before asserting it did not.
+    await page.waitForTimeout(1000);
+    expect(await pageViews(page)).toBe(2);
+  },
+);
 
 test(
   "Reject on the funnel loads nothing, then or on the next visit",

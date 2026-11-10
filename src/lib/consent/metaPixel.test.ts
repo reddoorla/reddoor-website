@@ -38,10 +38,10 @@ function memoryStorage(seed: Record<string, string> = {}) {
 
 describe("consent storage", () => {
   it("reads unanswered, accepted and rejected", () => {
-    expect(readConsent(memoryStorage())).toBe(null);
-    expect(readConsent(memoryStorage({ [CONSENT_KEY]: "true" }))).toBe("accepted");
-    expect(readConsent(memoryStorage({ [CONSENT_KEY]: "false" }))).toBe("rejected");
-    expect(readConsent(memoryStorage({ [CONSENT_KEY]: "yes" }))).toBe(null);
+    expect(readConsent(() => memoryStorage())).toBe(null);
+    expect(readConsent(() => memoryStorage({ [CONSENT_KEY]: "true" }))).toBe("accepted");
+    expect(readConsent(() => memoryStorage({ [CONSENT_KEY]: "false" }))).toBe("rejected");
+    expect(readConsent(() => memoryStorage({ [CONSENT_KEY]: "yes" }))).toBe(null);
   });
 
   it("treats storage that throws as unanswered, and saving to it as harmless", () => {
@@ -53,16 +53,25 @@ describe("consent storage", () => {
         throw new Error("QuotaExceededError");
       },
     };
-    expect(readConsent(broken)).toBe(null);
-    expect(() => saveConsent(broken, true)).not.toThrow();
+    expect(readConsent(() => broken)).toBe(null);
+    expect(() => saveConsent(() => broken, true)).not.toThrow();
+  });
+
+  it("treats storage that cannot even be reached as unanswered", () => {
+    // Blocked site data: reading `window.localStorage` itself throws.
+    const unreachable = () => {
+      throw new DOMException("The operation is insecure.", "SecurityError");
+    };
+    expect(readConsent(unreachable)).toBe(null);
+    expect(() => saveConsent(unreachable, true)).not.toThrow();
   });
 
   it("round-trips an answer", () => {
     const s = memoryStorage();
-    saveConsent(s, true, new Date("2026-11-10T00:00:00Z"));
-    expect(readConsent(s)).toBe("accepted");
-    saveConsent(s, false);
-    expect(readConsent(s)).toBe("rejected");
+    saveConsent(() => s, true, new Date("2026-11-10T00:00:00Z"));
+    expect(readConsent(() => s)).toBe("accepted");
+    saveConsent(() => s, false);
+    expect(readConsent(() => s)).toBe("rejected");
   });
 });
 

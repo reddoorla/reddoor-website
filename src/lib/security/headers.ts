@@ -44,7 +44,7 @@ export const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data: https:",
   "frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com https://app.netlify.com",
   "media-src 'self' https://reddoor-la.cdn.prismic.io https://prismic-io.s3.amazonaws.com",
-  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net https://connect.facebook.net https://www.facebook.com",
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net https://www.facebook.com",
 ].join("; ");
 
 /**

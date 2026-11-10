@@ -50,10 +50,15 @@ export const CONSENT_DATE_KEY = "cookieConsentDate";
 
 export type Consent = "accepted" | "rejected" | null;
 
-/** Storage can throw (private mode, blocked site data); unreadable means unanswered. */
-export function readConsent(storage: Pick<Storage, "getItem">): Consent {
+/**
+ * Storage can throw (private mode, blocked site data); unreadable means
+ * unanswered. It is passed as a getter because with site data blocked even
+ * READING `window.localStorage` throws, so the access itself has to sit inside
+ * the try (the same failure $lib/schedule/handoff.ts guards for sessionStorage).
+ */
+export function readConsent(storage: () => Pick<Storage, "getItem">): Consent {
   try {
-    const v = storage.getItem(CONSENT_KEY);
+    const v = storage().getItem(CONSENT_KEY);
     if (v === "true") return "accepted";
     if (v === "false") return "rejected";
     return null;
@@ -63,13 +68,14 @@ export function readConsent(storage: Pick<Storage, "getItem">): Consent {
 }
 
 export function saveConsent(
-  storage: Pick<Storage, "setItem">,
+  storage: () => Pick<Storage, "setItem">,
   accepted: boolean,
   now: Date = new Date(),
 ): void {
   try {
-    storage.setItem(CONSENT_KEY, String(accepted));
-    storage.setItem(CONSENT_DATE_KEY, now.toISOString());
+    const s = storage();
+    s.setItem(CONSENT_KEY, String(accepted));
+    s.setItem(CONSENT_DATE_KEY, now.toISOString());
   } catch {
     // The answer still applies for this page view; it just won't be remembered.
   }
