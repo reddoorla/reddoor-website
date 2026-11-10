@@ -23,6 +23,16 @@ async function watchFacebook(page: Page) {
   return requests;
 }
 
+/** The bodies the page posts to /api/meta-event (the Conversions API copy). */
+async function watchServerEvents(page: Page) {
+  const bodies: Record<string, unknown>[] = [];
+  await page.route("**/api/meta-event", (route) => {
+    bodies.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({ status: 204 });
+  });
+  return bodies;
+}
+
 async function gotoHydrated(page: Page, path: string) {
   await page.goto(path, { waitUntil: "domcontentloaded" });
   await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
@@ -107,6 +117,7 @@ test(
   { tag: "@smoke" },
   async ({ page }) => {
     const requests = await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
     await gotoHydrated(page, "/not-a-fit");
     await consentBar(page).getByRole("button", { name: "Reject" }).click();
     await expect(consentBar(page)).toBeHidden();
@@ -115,6 +126,35 @@ test(
     await expect(consentBar(page)).toBeHidden();
     expect(await fbqCalls(page)).toBeNull();
     expect(requests).toEqual([]);
+    expect(serverEvents).toEqual([]);
+  },
+);
+
+test(
+  "after Accept, the server copy of the PageView carries the browser's eventID",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
+    await gotoHydrated(page, "/brand-friction-audit");
+    expect(serverEvents).toEqual([]);
+
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect.poll(() => serverEvents.length).toBe(1);
+
+    const track = ((await fbqCalls(page)) ?? []).find(
+      (c) => c[0] === "track" && c[1] === "PageView",
+    );
+    const eventID = (track?.[3] as { eventID?: string } | undefined)?.eventID;
+    expect(eventID).toBeTruthy();
+    expect(serverEvents[0]).toMatchObject({
+      event_name: "PageView",
+      event_id: eventID,
+      consent: "accepted",
+    });
+    expect(new URL(String(serverEvents[0].event_source_url)).pathname).toBe(
+      "/brand-friction-audit",
+    );
   },
 );
 
@@ -123,6 +163,7 @@ test(
   { tag: "@smoke" },
   async ({ page }) => {
     const requests = await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
     await page.addInitScript(() => localStorage.setItem("cookieConsent", "true"));
 
     for (const path of ["/", "/boise", "/about"]) {
@@ -131,5 +172,6 @@ test(
       expect(await fbqCalls(page), path).toBeNull();
     }
     expect(requests).toEqual([]);
+    expect(serverEvents).toEqual([]);
   },
 );

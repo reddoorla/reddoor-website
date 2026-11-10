@@ -122,7 +122,55 @@ export function ensureMetaPixel(win: PixelWindow, doc: Document): FbqFn {
   return fbq;
 }
 
-/** One PageView for the funnel page now showing. */
-export function trackFunnelPageView(win: PixelWindow, doc: Document): void {
-  ensureMetaPixel(win, doc)("track", "PageView");
+/** What the browser posts to /api/meta-event for the Conversions API copy. */
+export type ServerEventBody = {
+  event_name: string;
+  event_id: string;
+  event_source_url: string;
+  consent: "accepted";
+};
+
+export const SERVER_EVENT_ENDPOINT = "/api/meta-event";
+
+/**
+ * One id per event, shared by the pixel (`eventID`) and the server
+ * (`event_id`), so Meta keeps one of the pair. Funnel pages are https (and
+ * localhost in dev), where randomUUID always exists.
+ */
+const newEventId = () => crypto.randomUUID();
+
+/** Fire-and-forget; `keepalive` lets it finish if the visitor leaves. */
+function postServerEvent(body: ServerEventBody): void {
+  try {
+    void fetch(SERVER_EVENT_ENDPOINT, {
+      method: "POST",
+      keepalive: true,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => {});
+  } catch {
+    // Measurement never breaks the page.
+  }
+}
+
+/**
+ * One PageView for the funnel page now showing, in the browser and (with the
+ * same event id) on the server. Only an "accepted" answer sends either: the
+ * server endpoint checks the same value again.
+ */
+export function trackFunnelPageView(
+  win: PixelWindow,
+  doc: Document,
+  consent: Consent,
+  send: (body: ServerEventBody) => void = postServerEvent,
+): void {
+  if (consent !== "accepted") return;
+  const eventId = newEventId();
+  ensureMetaPixel(win, doc)("track", "PageView", {}, { eventID: eventId });
+  send({
+    event_name: "PageView",
+    event_id: eventId,
+    event_source_url: doc.location.href,
+    consent,
+  });
 }

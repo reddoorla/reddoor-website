@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   CONSENT_KEY,
   META_PIXEL_ID,
@@ -8,6 +8,7 @@ import {
   readConsent,
   saveConsent,
   trackFunnelPageView,
+  type Consent,
 } from "./metaPixel";
 
 describe("isFunnelPath", () => {
@@ -75,11 +76,12 @@ describe("consent storage", () => {
   });
 });
 
-function fakeDocument() {
+function fakeDocument(href = "https://reddoorla.com/medtech") {
   const appended: { src: string; async: boolean }[] = [];
   const doc = {
     createElement: () => ({ src: "", async: false }),
     head: { appendChild: (el: { src: string; async: boolean }) => void appended.push(el) },
+    location: { href },
   };
   return { doc: doc as unknown as Document, appended };
 }
@@ -98,12 +100,51 @@ describe("the pixel loader", () => {
       ["init", META_PIXEL_ID],
     ]);
 
-    trackFunnelPageView(win, doc);
-    trackFunnelPageView(win, doc);
+    const send = vi.fn();
+    trackFunnelPageView(win, doc, "accepted", send);
+    trackFunnelPageView(win, doc, "accepted", send);
     expect(appended).toHaveLength(1);
-    expect(fbq.queue.filter((c) => c[0] === "track")).toEqual([
-      ["track", "PageView"],
-      ["track", "PageView"],
-    ]);
+    const tracks = fbq.queue.filter((c) => c[0] === "track");
+    expect(tracks).toHaveLength(2);
+    for (const t of tracks) expect(t.slice(0, 2)).toEqual(["track", "PageView"]);
   });
+});
+
+describe("the server copy of each event (Conversions API)", () => {
+  it("posts each PageView with the same event_id the browser pixel got as eventID", () => {
+    const win: Parameters<typeof ensureMetaPixel>[0] = {};
+    const { doc } = fakeDocument("https://reddoorla.com/brand-friction-audit");
+    const send = vi.fn();
+
+    trackFunnelPageView(win, doc, "accepted", send);
+    trackFunnelPageView(win, doc, "accepted", send);
+
+    const tracks = win.fbq!.queue.filter((c) => c[0] === "track");
+    expect(send).toHaveBeenCalledTimes(2);
+    tracks.forEach((t, i) => {
+      const eventID = (t[3] as { eventID: string }).eventID;
+      expect(eventID).toMatch(/^[A-Za-z0-9-]{8,64}$/);
+      expect(send.mock.calls[i][0]).toEqual({
+        event_name: "PageView",
+        event_id: eventID,
+        event_source_url: "https://reddoorla.com/brand-friction-audit",
+        consent: "accepted",
+      });
+    });
+    // A fresh id per event, or Meta would drop the second PageView as a duplicate.
+    expect(send.mock.calls[0][0].event_id).not.toBe(send.mock.calls[1][0].event_id);
+  });
+
+  it.each<[Consent]>([["rejected"], [null]])(
+    "with consent %j, neither the pixel nor the server hears anything",
+    (consent) => {
+      const win: Parameters<typeof ensureMetaPixel>[0] = {};
+      const { doc, appended } = fakeDocument();
+      const send = vi.fn();
+      trackFunnelPageView(win, doc, consent, send);
+      expect(send).not.toHaveBeenCalled();
+      expect(win.fbq).toBeUndefined();
+      expect(appended).toHaveLength(0);
+    },
+  );
 });
