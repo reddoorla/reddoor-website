@@ -467,7 +467,21 @@ describe("Meta Lead (Conversions API)", () => {
   });
 
   it("sends no Lead for a step-one email capture, even with a valid metaLead", async () => {
-    await call({ email: "buyer@example.com", step: "The Diagnosis", metaLead, ts: OLD_TS() });
+    // From a funnel page, so the funnel check passes and only the step-one rule
+    // stands between this post and a Lead.
+    await call({
+      email: "buyer@example.com",
+      step: "The Diagnosis",
+      sourceUrl: SOURCE,
+      metaLead,
+      ts: OLD_TS(),
+    });
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead without a user agent, which Meta requires for website events", async () => {
+    await call(application(), { userAgent: null });
     expect(submitToIngest).toHaveBeenCalledTimes(1);
     expect(graphCalls()).toHaveLength(0);
   });
