@@ -153,12 +153,38 @@ describe("POST /api/meta-event", () => {
     expect(graph).not.toHaveBeenCalled();
   });
 
-  it("prefers the _fbc cookie over the URL's fbclid", async () => {
+  it("keeps the _fbc cookie when it is for the same click as the URL's fbclid", async () => {
     await call(
-      { ...good(), event_source_url: `${ORIGIN}/medtech?fbclid=fromUrl` },
-      { _fbc: "fb.1.1794000000000.fromCookie" },
+      { ...good(), event_source_url: `${ORIGIN}/medtech?fbclid=sameClick` },
+      { _fbc: "fb.1.1794000000000.sameClick" },
     );
-    expect(sentEvent().user_data.fbc).toBe("fb.1.1794000000000.fromCookie");
+    expect(sentEvent().user_data.fbc).toBe("fb.1.1794000000000.sameClick");
+  });
+
+  it("uses a fresh fbclid over an older ad click's _fbc cookie", async () => {
+    await call(
+      { ...good(), event_source_url: `${ORIGIN}/medtech?fbclid=newClick` },
+      { _fbc: "fb.1.1794000000000.lastWeeksClick" },
+    );
+    expect(sentEvent().user_data.fbc).toMatch(/^fb\.1\.\d{13}\.newClick$/);
+  });
+
+  it("sends nothing without a user agent, which Meta requires for website events", async () => {
+    const event = {
+      request: new Request(`${ORIGIN}/api/meta-event`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(good()),
+      }),
+      url: new URL(`${ORIGIN}/api/meta-event`),
+      fetch: graph,
+      getClientAddress: () => "203.0.113.7",
+      cookies: { get: () => undefined },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+    const res = await POST(event);
+    expect(res.status).toBe(204);
+    expect(graph).not.toHaveBeenCalled();
   });
 
   it("drops a cookie that is not Meta's format instead of forwarding it", async () => {

@@ -89,7 +89,7 @@ type FbqFn = ((...args: unknown[]) => void) & {
   version: string;
   disablePushState?: boolean;
   /** Resolves once fbevents.js has loaded or failed (blocked, offline). */
-  settled?: Promise<void>;
+  settled?: Promise<"load" | "error">;
 };
 
 export type PixelWindow = { fbq?: FbqFn; _fbq?: FbqFn };
@@ -117,9 +117,9 @@ export function ensureMetaPixel(win: PixelWindow, doc: Document): FbqFn {
   const script = doc.createElement("script");
   script.async = true;
   script.src = META_PIXEL_SRC;
-  fbq.settled = new Promise<void>((resolve) => {
-    script.addEventListener("load", () => resolve());
-    script.addEventListener("error", () => resolve());
+  fbq.settled = new Promise((resolve) => {
+    script.addEventListener("load", () => resolve("load"));
+    script.addEventListener("error", () => resolve("error"));
   });
   doc.head.appendChild(script);
 
@@ -180,14 +180,38 @@ export function trackFunnelPageView(
   const eventId = newEventId();
   const fbq = ensureMetaPixel(win, doc);
   fbq("track", "PageView", {}, { eventID: eventId });
+  // Meta gets origin and path; the click id is the one query value the server
+  // needs (for fbc). A CRM link's name, email and phone never leave the page.
+  const here = new URL(doc.location.href);
+  const fbclid = here.searchParams.get("fbclid");
   const body: ServerEventBody = {
     event_name: "PageView",
     event_id: eventId,
-    event_source_url: doc.location.href,
+    event_source_url:
+      here.origin + here.pathname + (fbclid ? `?fbclid=${encodeURIComponent(fbclid)}` : ""),
     consent,
   };
-  // Post once fbevents.js has run: it is what writes the _fbp/_fbc cookies the
-  // server forwards, and on a full page load it has not run yet. A blocked
-  // script settles too, so the server copy still goes.
-  void (fbq.settled ?? Promise.resolve()).then(() => send(body));
+  void whenCookiesWritten(doc, fbq.settled).then(() => send(body));
+}
+
+const FBP_WAIT_STEP_MS = 100;
+const FBP_WAIT_MAX_MS = 2000;
+const hasFbp = (doc: Document) => /(?:^|;\s*)_fbp=/.test(doc.cookie ?? "");
+
+/**
+ * The server copy should carry Meta's _fbp/_fbc cookies, and fbevents.js
+ * writes them only after it has loaded AND fetched the pixel's config: on the
+ * deploy preview (2026-11-10, real fbevents.js) a post sent at load time went
+ * 53ms after Accept with no _fb cookie, while both existed seconds later. So
+ * after a load, wait (bounded) for _fbp; after a blocked script, no cookie is
+ * coming and it posts at once.
+ */
+async function whenCookiesWritten(
+  doc: Document,
+  settled: Promise<"load" | "error"> | undefined,
+): Promise<void> {
+  if ((await settled) !== "load") return;
+  for (let waited = 0; waited < FBP_WAIT_MAX_MS && !hasFbp(doc); waited += FBP_WAIT_STEP_MS) {
+    await new Promise((r) => setTimeout(r, FBP_WAIT_STEP_MS));
+  }
 }

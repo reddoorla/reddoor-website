@@ -98,6 +98,7 @@ function fakeDocument(href = "https://reddoorla.com/medtech") {
     createElement,
     head: { appendChild: (el: FakeScript) => void appended.push(el) },
     location: { href },
+    cookie: "",
   };
   return { doc: doc as unknown as Document, appended };
 }
@@ -133,6 +134,7 @@ describe("the server copy of each event (Conversions API)", () => {
 
     trackFunnelPageView(win, doc, "accepted", send);
     trackFunnelPageView(win, doc, "accepted", send);
+    (doc as unknown as { cookie: string }).cookie = "_fbp=fb.1.1794000000000.42";
     appended[0].fire("load");
 
     await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2));
@@ -151,21 +153,68 @@ describe("the server copy of each event (Conversions API)", () => {
     expect(send.mock.calls[0][0].event_id).not.toBe(send.mock.calls[1][0].event_id);
   });
 
-  it.each<["load" | "error"]>([["load"], ["error"]])(
-    "waits for fbevents.js to settle (%s) before posting, so Meta's _fbp/_fbc cookies can ride along",
-    async (outcome) => {
+  it("after fbevents.js loads, waits for it to write _fbp so the cookie rides along", async () => {
+    vi.useFakeTimers();
+    try {
       const win: Parameters<typeof ensureMetaPixel>[0] = {};
       const { doc, appended } = fakeDocument();
       const send = vi.fn();
 
       trackFunnelPageView(win, doc, "accepted", send);
-      await Promise.resolve();
+      appended[0].fire("load");
+      await vi.advanceTimersByTimeAsync(300);
       expect(send).not.toHaveBeenCalled();
 
-      appended[0].fire(outcome);
-      await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
-    },
-  );
+      // fbevents.js writes its cookies once the pixel's config has arrived.
+      (doc as unknown as { cookie: string }).cookie = "a=1; _fbp=fb.1.1794000000000.42";
+      await vi.advanceTimersByTimeAsync(150);
+      expect(send).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("posts anyway once the wait for _fbp runs out", async () => {
+    vi.useFakeTimers();
+    try {
+      const win: Parameters<typeof ensureMetaPixel>[0] = {};
+      const { doc, appended } = fakeDocument();
+      const send = vi.fn();
+      trackFunnelPageView(win, doc, "accepted", send);
+      appended[0].fire("load");
+      await vi.advanceTimersByTimeAsync(1_500);
+      expect(send).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(send).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends only origin, path and fbclid: a CRM link's name, email and phone stay on the page", async () => {
+    const win: Parameters<typeof ensureMetaPixel>[0] = {};
+    const { doc, appended } = fakeDocument(
+      "https://reddoorla.com/schedule?first_name=Ann&email=ann%40x.com&phone=3105550142&fbclid=IwAR9#x",
+    );
+    const send = vi.fn();
+    trackFunnelPageView(win, doc, "accepted", send);
+    appended[0].fire("error");
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    expect(send.mock.calls[0][0].event_source_url).toBe(
+      "https://reddoorla.com/schedule?fbclid=IwAR9",
+    );
+  });
+
+  it("posts without waiting when fbevents.js is blocked: no cookie is coming", async () => {
+    const win: Parameters<typeof ensureMetaPixel>[0] = {};
+    const { doc, appended } = fakeDocument();
+    const send = vi.fn();
+    trackFunnelPageView(win, doc, "accepted", send);
+    await Promise.resolve();
+    expect(send).not.toHaveBeenCalled();
+    appended[0].fire("error");
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+  });
 
   it.each<[Consent]>([["rejected"], [null]])(
     "with consent %j, neither the pixel nor the server hears anything",

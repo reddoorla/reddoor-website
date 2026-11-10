@@ -153,4 +153,27 @@ describe("sendMetaEvent", () => {
     expect(log.error).toHaveBeenCalledTimes(2);
     expect(JSON.stringify(log.error.mock.calls)).not.toContain("tkn");
   });
+
+  it("logs Meta's error codes, never its message text, which can quote personal data", async () => {
+    const { sendMetaEvent } = await load();
+    const refused = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              message: "Invalid parameter client_ip_address 203.0.113.7",
+              code: 100,
+              error_subcode: 2804003,
+              fbtrace_id: "AbC123",
+            },
+          }),
+          { status: 400 },
+        ),
+    );
+    await sendMetaEvent(EVENT, { fetch: refused, token: "tkn", log });
+    const line = String(log.error.mock.calls[0][0]);
+    expect(line).toContain("code=100");
+    expect(line).toContain("AbC123");
+    expect(line).not.toContain("203.0.113.7");
+  });
 });

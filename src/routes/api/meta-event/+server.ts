@@ -22,6 +22,16 @@ const FB_COOKIE = /^fb\.\d+\.\d{10,16}\.[\x21-\x7e]{1,500}$/;
 const FBCLID = /^[\x21-\x7e]{1,500}$/;
 
 /**
+ * The cookie, unless the URL carries a different (newer) ad click than the one
+ * it records: fbevents.js would rewrite it for that click too.
+ */
+function freshFbc(cookieFbc: string | undefined, source: URL): string | undefined {
+  const id = source.searchParams.get("fbclid");
+  if (cookieFbc && (!id || cookieFbc.endsWith(`.${id}`))) return cookieFbc;
+  return fbcFromClickId(source) ?? cookieFbc;
+}
+
+/**
  * A visitor arriving from an ad carries `fbclid` in the URL before fbevents.js
  * has turned it into `_fbc`. Meta documents building fbc from it:
  * `fb.1.{creation time in ms}.{fbclid}`.
@@ -39,7 +49,9 @@ const bad = () => new Response(null, { status: 400 });
 export const POST: RequestHandler = async ({ request, url, cookies, getClientAddress, fetch }) => {
   let body: Record<string, unknown>;
   try {
-    // A real body is ~250 bytes; refuse anything far past that unread.
+    // A real body is ~250 bytes. Refuse a declared-large one unread; the
+    // length check after reading catches one that does not declare it.
+    if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) return bad();
     const text = await request.text();
     if (text.length > MAX_BODY) return bad();
     const parsed: unknown = JSON.parse(text);
@@ -66,6 +78,11 @@ export const POST: RequestHandler = async ({ request, url, cookies, getClientAdd
   }
   if (source.origin !== url.origin || !isFunnelPath(source.pathname)) return bad();
 
+  // Meta requires client_user_agent on a website event and rejects one
+  // without it; a request with none is not a browser's.
+  const userAgent = request.headers.get("user-agent");
+  if (!userAgent) return noContent();
+
   const cookie = (name: string) => {
     const v = cookies.get(name);
     return v && FB_COOKIE.test(v) ? v : undefined;
@@ -89,9 +106,9 @@ export const POST: RequestHandler = async ({ request, url, cookies, getClientAdd
       // never see them. fbclid is read from the full URL above, first.
       eventSourceUrl: source.origin + source.pathname,
       ip,
-      userAgent: request.headers.get("user-agent") ?? undefined,
+      userAgent,
       fbp: cookie("_fbp"),
-      fbc: cookie("_fbc") ?? fbcFromClickId(source),
+      fbc: freshFbc(cookie("_fbc"), source),
     },
     {
       fetch,

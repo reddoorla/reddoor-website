@@ -120,10 +120,13 @@ export async function sendMetaEvent(
       signal: AbortSignal.timeout(GRAPH_TIMEOUT_MS),
     });
     if (res.ok) return "sent";
-    // Meta's error body names the problem (bad token, stale event_time); it
-    // never echoes the token.
-    const detail = (await res.text().catch(() => "")).slice(0, 500);
-    log.error(`[meta-capi] ${ev.eventName} refused: HTTP ${res.status} ${detail}`);
+    // Codes only: Meta's message text can quote what it rejected (an IP, a
+    // user agent, fbc), which is personal data and does not belong in logs.
+    const err = ((await res.json().catch(() => null)) as { error?: Record<string, unknown> } | null)
+      ?.error;
+    log.error(
+      `[meta-capi] ${ev.eventName} refused: HTTP ${res.status} code=${err?.code ?? "?"} subcode=${err?.error_subcode ?? "-"} trace=${err?.fbtrace_id ?? "-"}`,
+    );
     return "failed";
   } catch (err) {
     log.error(`[meta-capi] ${ev.eventName} not sent: ${(err as Error)?.message ?? err}`);

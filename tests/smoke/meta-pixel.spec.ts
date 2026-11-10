@@ -14,7 +14,12 @@ async function watchFacebook(page: Page) {
   const requests: string[] = [];
   await page.route(FACEBOOK, (route) => {
     requests.push(route.request().url());
-    return route.fulfill({ status: 200, contentType: "text/javascript", body: "" });
+    // Like the real fbevents.js, the stand-in writes Meta's _fbp cookie, which
+    // the page waits for before posting the server copy.
+    const body = route.request().url().endsWith("/fbevents.js")
+      ? 'document.cookie = "_fbp=fb.1.1794000000000.1; path=/";'
+      : "";
+    return route.fulfill({ status: 200, contentType: "text/javascript", body });
   });
   // The server copy of each event: answered here so that a developer's own
   // META_CAPI_ACCESS_TOKEN never sends a test PageView to Tim's pixel.
@@ -110,6 +115,8 @@ test(
     await page.evaluate(() => (location.hash = "inquire"));
     await clientNavigate(page, "/");
     await clientNavigate(page, "/about");
+    expect(await pageViews(page)).toBe(2);
+    expect(serverEvents.length).toBe(2);
     // Back onto the funnel, no sleep: its PageView lands in the same flush as
     // the arrival, so a stray fire on / or /about would already have made it 4.
     await clientNavigate(page, "/not-a-fit");
