@@ -1,0 +1,72 @@
+# Encodes a Prismic video master to R2 (media.reddoorla.com), then rebuilds the
+# site so its slices play the R2 files. Dispatched by netlify/functions/
+# prismic-video.mts (repository_dispatch) when an editor publishes a video, or
+# by hand (workflow_dispatch) for a Prismic file URL. The shared library is
+# @reddoorla/maintenance/video-pipeline.
+name: video-encode
+
+on:
+  repository_dispatch:
+    types: [video-encode]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Prismic file URL of the master"
+        required: true
+        type: string
+      class:
+        description: "background or player"
+        required: true
+        type: choice
+        options: [background, player]
+
+concurrency:
+  group: video-encode-${{ github.event.client_payload.key || inputs.url }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  encode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Encode and upload to R2
+        env:
+          URL: ${{ github.event.client_payload.url || inputs.url }}
+          CLASS: ${{ github.event.client_payload.class || inputs.class }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
+        run: pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website
+
+      - name: Rebuild the site
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: |
+          : "${NETLIFY_BUILD_HOOK:?NETLIFY_BUILD_HOOK is not set}"
+          curl -fsS -X POST -d '{}' "$NETLIFY_BUILD_HOOK" > /dev/null && echo "build hook called"
+
+      - name: Stuck check
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: pnpm exec reddoor-maint video-pipeline stuck --site reddoor-website --repo "$REPO" --prismic reddoor-la --media-base https://media.reddoorla.com --rules src/lib/video/pipeline-rules.json --open-issue || true

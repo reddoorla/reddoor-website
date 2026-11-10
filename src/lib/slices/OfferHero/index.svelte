@@ -2,7 +2,8 @@
   import SliceSection from "$lib/components/SliceSection.svelte";
   import ContentWidth from "$lib/components/ContentWidth/ContentWidth.svelte";
   import VideoCard from "$lib/components/VideoCard.svelte";
-  import { captionsUrl, mediaUrl } from "$lib/video/media";
+  import { videoFor } from "$lib/video/media";
+  import { page } from "$app/state";
   import { PrismicRichText } from "@prismicio/svelte";
   import type { RichTextComponents } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
@@ -23,6 +24,15 @@
 
   // The self-hosted file plays first; Vimeo is the fallback when it is not set
   // or fails to load (see Video.svelte and VideoCard.svelte).
+  // The R2 renditions when the build encoded this video, else the Prismic files.
+  const video = $derived(
+    videoFor(
+      slice.primary.video_mp4,
+      slice.primary.video_mp4_mobile,
+      slice.primary.video_captions,
+      page.data.videos,
+    ),
+  );
   const videoTitle = $derived(slice.primary.video_title?.trim() || "Video");
 
   // The visitor's address, handed to the modal on the trigger itself
@@ -63,9 +73,9 @@
 
       <VideoCard
         vimeo={slice.primary.vimeo_video}
-        mp4={mediaUrl(slice.primary.video_mp4)}
-        mobileMp4={mediaUrl(slice.primary.video_mp4_mobile)}
-        captions={captionsUrl(slice.primary.video_captions)}
+        mp4={video.mp4}
+        mobileMp4={video.mobileMp4}
+        captions={video.captions}
         poster={slice.primary.video_poster}
         title={videoTitle}
         class="offer-card mt-10 max-w-256 rounded-[9px] bg-white shadow-[0_4px_11.5px_rgba(0,0,0,0.11)] md:mt-12"

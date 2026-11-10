@@ -1,5 +1,6 @@
 import { createClient } from "$lib/prismicio";
 import { ogCardPath } from "$lib/og/url";
+import { loadVideoRenditions } from "$lib/server/video-renditions";
 import type { LayoutServerLoad } from "./$types";
 
 export const prerender = "auto";
@@ -57,6 +58,9 @@ export const load: LayoutServerLoad = async ({ url, fetch, cookies, setHeaders }
     pathname,
     latestFourProjects,
     isPreviewSession,
+    // The R2 renditions of this site's videos, resolved once per build (see
+    // video-renditions.ts). A slice plays its R2 file when one is listed here.
+    videos: await loadVideoRenditions(client, fetch),
     // Base share image. Page loads override it; every route that returns
     // nothing (404, /showcase, /dev/*, whatever comes next) inherits a real
     // 1200×630 card instead of no og:image at all.

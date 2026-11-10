@@ -5,7 +5,8 @@
   import { isFilled } from "@prismicio/client";
   import { animateIn as anim } from "$lib/actions/animateIn";
   import Video from "$lib/components/Video.svelte";
-  import { captionsUrl, mediaUrl } from "$lib/video/media";
+  import { videoFor } from "$lib/video/media";
+  import { page } from "$app/state";
   import { asImageSrc } from "@prismicio/client";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
@@ -36,12 +37,27 @@
       width: 1600,
     });
 
-  const hasVideo = (item: { video_mp4: unknown; video_mp4_mobile: unknown }, id: unknown) =>
-    Boolean(
-      id ||
-      mediaUrl(item.video_mp4 as Parameters<typeof mediaUrl>[0]) ||
-      mediaUrl(item.video_mp4_mobile as Parameters<typeof mediaUrl>[0]),
+  // What an item plays: its R2 renditions when the build encoded it, else its
+  // Prismic files. A video is one that plays either way.
+  const itemVideo = (item: {
+    video_mp4: unknown;
+    video_mp4_mobile: unknown;
+    video_captions: unknown;
+  }) =>
+    videoFor(
+      item.video_mp4 as Parameters<typeof videoFor>[0],
+      item.video_mp4_mobile as Parameters<typeof videoFor>[1],
+      item.video_captions as Parameters<typeof videoFor>[2],
+      page.data.videos,
     );
+
+  const hasVideo = (
+    item: { video_mp4: unknown; video_mp4_mobile: unknown; video_captions: unknown },
+    id: unknown,
+  ) => {
+    const v = itemVideo(item);
+    return Boolean(id || v.mp4 || v.mobileMp4);
+  };
 </script>
 
 <SliceSection
@@ -51,6 +67,7 @@
     : ''} {pad.padBottom ? 'pb-12' : ''} {backgroundColorString}"
 >
   {#each slice.primary.media as item, i (i)}
+    {@const v = itemVideo(item)}
     {#if isFilled.link(item.link)}
       <div
         use:anim={{ enabled: animationEnabled }}
@@ -100,7 +117,7 @@
               >{item.image.alt || "View linked media"}</a
             >
           {/if}
-          {#if item.vimeoId || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
+          {#if item.vimeoId || v.mp4 || v.mobileMp4}
             <PrismicImage
               class="w-full h-full object-cover absolute top-0 left-0"
               field={item.image}
@@ -112,12 +129,12 @@
             />
 
             <Video
-              mp4={mediaUrl(item.video_mp4)}
-              mobileMp4={mediaUrl(item.video_mp4_mobile)}
+              mp4={v.mp4}
+              mobileMp4={v.mobileMp4}
               vimeoId={item.vimeoId}
               mode={item.loopvideo ? "background" : "player"}
-              poster={posterSrc(item.image)}
-              captions={captionsUrl(item.video_captions)}
+              poster={posterSrc(item.image) ?? v.poster}
+              captions={v.captions}
               title={item.label || item.image?.alt || undefined}
               hasPoster={isFilled.image(item.image)}
               class="object-cover {item.aspect !== 'free'
@@ -166,7 +183,7 @@
             {item.label}
           </div>
         {/if}
-        {#if item.vimeoId || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
+        {#if item.vimeoId || v.mp4 || v.mobileMp4}
           <PrismicImage
             class="w-full h-full object-cover absolute top-0 left-0"
             field={item.image}
@@ -178,12 +195,12 @@
           />
 
           <Video
-            mp4={mediaUrl(item.video_mp4)}
-            mobileMp4={mediaUrl(item.video_mp4_mobile)}
+            mp4={v.mp4}
+            mobileMp4={v.mobileMp4}
             vimeoId={item.vimeoId}
             mode={item.loopvideo ? "background" : "player"}
-            poster={posterSrc(item.image)}
-            captions={captionsUrl(item.video_captions)}
+            poster={posterSrc(item.image) ?? v.poster}
+            captions={v.captions}
             title={item.label || item.image?.alt || undefined}
             hasPoster={isFilled.image(item.image)}
             class="object-cover {item.aspect !== 'free'

@@ -8,6 +8,7 @@
   import type { FunnelCopy } from "$lib/funnel-copy/copy";
   import { bookedQuoteSlice } from "$lib/funnel-copy/booked-slices";
   import type { BookedProject } from "$lib/server/funnel-copy";
+  import { page } from "$app/state";
   import rescheduleIcon from "$lib/assets/icons/booked/reschedule.svg";
   import cancelIcon from "$lib/assets/icons/booked/cancel.svg";
 
@@ -45,6 +46,9 @@
   let { copy, projects, when, duration, links, statusEl = $bindable() }: Props = $props();
 
   const video = $derived(copy.booked.video);
+  // The R2 renditions of the booked video, when the build encoded its Prismic
+  // file. The copy's own url is the key; the default video is never a key.
+  const rendition = $derived(video.mp4 ? page.data.videos?.[video.mp4] : undefined);
 
   // The landing pages' testimonial slice, fed from this page's own fields so
   // the band is the one /medtech shows, not a look-alike.
@@ -110,9 +114,9 @@
       <div class="lg:col-span-4">
         <VideoCard
           vimeo={video.vimeo}
-          mp4={video.mp4}
-          mobileMp4={video.mobileMp4}
-          captions={video.captions}
+          mp4={rendition?.mp4 ?? video.mp4}
+          mobileMp4={rendition?.mobileMp4 ?? video.mobileMp4}
+          captions={video.captions ?? rendition?.captions ?? null}
           poster={video.poster}
           title={video.title ?? copy.booked_video_title}
           sizes="(min-width: 1024px) 74vw, 92vw"
