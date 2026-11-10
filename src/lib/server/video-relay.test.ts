@@ -112,4 +112,34 @@ describe("the relay through buildRelayConfig", () => {
     expect(fetchFn).not.toHaveBeenCalled();
     expect(getDocuments).not.toHaveBeenCalled();
   });
+
+  it("still answers and dispatches when the manifest read never settles", async () => {
+    // A read that only ends when its signal aborts, as a stalled connection does.
+    const seen: (AbortSignal | undefined)[] = [];
+    const stalledFetch = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      if (String(input).startsWith("https://api.github.com/")) {
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      seen.push(init?.signal ?? undefined);
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    }) as unknown as typeof fetch;
+    const getDocuments = vi.fn(async () => [offerDoc]);
+    const cfg = buildRelayConfig(env, {
+      fetch: stalledFetch,
+      getDocuments,
+      fetchTimeoutMs: 20,
+    });
+
+    const result = await handlePrismicWebhook({ method: "POST", body: webhook() }, cfg);
+
+    expect(result.status).toBe(200);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((signal) => signal instanceof AbortSignal)).toBe(true);
+    const dispatches = vi
+      .mocked(stalledFetch)
+      .mock.calls.filter(([input]) => String(input).startsWith("https://api.github.com/"));
+    expect(dispatches).toHaveLength(1);
+  });
 });

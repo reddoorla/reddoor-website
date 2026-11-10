@@ -243,4 +243,58 @@ describe("loadVideoRenditions", () => {
     await loadVideoRenditions(client, fakeFetch(), NOW);
     expect(dangerouslyGetAll).toHaveBeenCalledTimes(2);
   });
+
+  it("does not keep a build whose manifest read answered 503", async () => {
+    const ok = fakeFetch();
+    let calls = 0;
+    const flaky = vi.fn((input: string | URL | Request) => {
+      calls += 1;
+      if (calls === 1) return Promise.resolve(new Response(null, { status: 503 }));
+      return ok(input);
+    }) as unknown as typeof fetch;
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const first = await loadVideoRenditions(client, flaky, NOW);
+    expect(first).toEqual({});
+
+    const second = await loadVideoRenditions(client, flaky, NOW);
+    expect(Object.keys(second)).toEqual([ALPHA]);
+  });
+
+  it("does not keep a build whose manifest read timed out", async () => {
+    const ok = fakeFetch();
+    let calls = 0;
+    const slowThenOk = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      calls += 1;
+      if (calls > 1) return ok(input);
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    }) as unknown as typeof fetch;
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const first = await loadVideoRenditions(client, slowThenOk, NOW, { fetchTimeoutMs: 20 });
+    expect(first).toEqual({});
+
+    const second = await loadVideoRenditions(client, slowThenOk, NOW);
+    expect(Object.keys(second)).toEqual([ALPHA]);
+  });
+
+  it("keeps a build whose manifest is a 404, so the second call does not fetch again", async () => {
+    const notEncoded = vi.fn(async () => new Response(null, { status: 404 }));
+    const fetchFn = notEncoded as unknown as typeof fetch;
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const first = await loadVideoRenditions(client, fetchFn, NOW);
+    expect(first).toEqual({});
+
+    await loadVideoRenditions(client, fetchFn, NOW);
+    expect(notEncoded).toHaveBeenCalledTimes(1);
+  });
 });

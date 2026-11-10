@@ -28,9 +28,11 @@ on:
         type: boolean
         default: false
 
-# Every run of one video shares a group, whatever started it.
+# One group per video and class, whatever started the run. GitHub keeps one
+# pending run per group, so a re-published background run would replace a
+# pending player run (the one a visitor is waiting for) if they shared a group.
 concurrency:
-  group: video-encode-${{ inputs.url }}
+  group: video-encode-${{ inputs.url }}-${{ inputs.class }}
   cancel-in-progress: false
 
 permissions:
@@ -76,6 +78,25 @@ jobs:
           pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website ${KEY:+--key "$KEY"} ${FORCE:+--force} | tee "$log"
           # encode skips a run whose class the existing R2 manifest already covers (unless force), and prints `SKIP <key>: ...`; nothing changed, so no rebuild.
           if grep -q '^SKIP ' "$log"; then echo "rebuild=false" >> "$GITHUB_OUTPUT"; fi
+          # The manifest the encode wrote (`MANIFEST <site>/<stem>-<hash>/manifest.json`), read back from R2 by the CORS check.
+          manifest="$(awk '/^MANIFEST /{print $2; exit}' "$log")"
+          if [ -n "$manifest" ]; then echo "manifest=$manifest" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Check the R2 bucket serves CORS
+        # The player is <video crossorigin="anonymous">, which R2 refuses without a
+        # bucket CORS rule for https://reddoorla.com (the operator sets the rule). A
+        # missing rule shows up only as players that never load, so fail the run here.
+        if: steps.encode.outputs.rebuild != 'false'
+        env:
+          MANIFEST: ${{ steps.encode.outputs.manifest }}
+        run: |
+          : "${MANIFEST:?the encode step printed no MANIFEST line, so there is nothing to check}"
+          headers="$(curl -sSI -H 'Origin: https://reddoorla.com' "https://media.reddoorla.com/$MANIFEST")"
+          if ! grep -qi '^access-control-allow-origin:' <<<"$headers"; then
+            echo "::error::media.reddoorla.com sends no Access-Control-Allow-Origin for https://reddoorla.com: add the R2 bucket CORS rule for that origin, or every player on the site fails to load"
+            exit 1
+          fi
+          echo "CORS ok for $MANIFEST"
 
       - name: Rebuild the site
         if: steps.encode.outputs.rebuild != 'false'
