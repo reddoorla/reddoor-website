@@ -177,3 +177,39 @@ describe("sendMetaEvent", () => {
     expect(line).not.toContain("203.0.113.7");
   });
 });
+
+describe("metaCookies (the browser's _fbp and _fbc, as Meta would read them)", () => {
+  const cookies = (jar: Record<string, string>) => (name: string) => jar[name];
+  const FBP = "fb.1.1794000000000.123456789";
+
+  it("keeps a well-formed _fbp and a matching _fbc", async () => {
+    const { metaCookies } = await load();
+    const source = new URL("https://reddoorla.com/medtech");
+    expect(metaCookies(cookies({ _fbp: FBP, _fbc: "fb.1.1794000000000.AbCdEf" }), source)).toEqual({
+      fbp: FBP,
+      fbc: "fb.1.1794000000000.AbCdEf",
+    });
+    expect(metaCookies(cookies({}), source)).toEqual({});
+  });
+
+  it("drops a malformed _fbp and _fbc", async () => {
+    const { metaCookies } = await load();
+    const source = new URL("https://reddoorla.com/medtech");
+    expect(metaCookies(cookies({ _fbp: "garbage", _fbc: "fb.x.y" }), source)).toEqual({});
+  });
+
+  it("a fresh fbclid in the URL beats an older _fbc cookie", async () => {
+    const { metaCookies } = await load();
+    const source = new URL("https://reddoorla.com/medtech?fbclid=NEWCLICK");
+    const { fbc } = metaCookies(cookies({ _fbc: "fb.1.1794000000000.OLDCLICK" }), source);
+    expect(fbc).toMatch(/^fb\.1\.\d+\.NEWCLICK$/);
+  });
+
+  it("keeps _fbc when it already records the fbclid in the URL", async () => {
+    const { metaCookies } = await load();
+    const source = new URL("https://reddoorla.com/medtech?fbclid=SAMECLICK");
+    expect(metaCookies(cookies({ _fbc: "fb.1.1794000000000.SAMECLICK" }), source).fbc).toBe(
+      "fb.1.1794000000000.SAMECLICK",
+    );
+  });
+});

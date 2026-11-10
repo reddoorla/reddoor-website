@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // The e2e suite stubs /api/inquiry wholesale, so the handler's own logic —
@@ -6,11 +7,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // payloads and drive success/failure; screenSubmission stays REAL so the
 // honeypot/timing contract is the true one.
 const submitToIngest = vi.fn();
+// Mutable per test: the Conversions API token and test code are read at call
+// time through getters, so a test can unset the token without re-mocking.
+const metaEnv = vi.hoisted(() => ({
+  META_CAPI_ACCESS_TOKEN: "test-token" as string | undefined,
+  META_CAPI_TEST_EVENT_CODE: undefined as string | undefined,
+}));
 vi.mock("$app/env/private", () => ({
   FORMS_INGEST_URL: "https://ingest.test/api/forms/reddoor",
   FORMS_INGEST_TOKEN: "test-token",
   // Unset, as it was under $env/dynamic: the CRM sync stays off in this suite.
   CRM_FUNNEL_ACTIVE_TOKEN: undefined,
+  get META_CAPI_ACCESS_TOKEN() {
+    return metaEnv.META_CAPI_ACCESS_TOKEN;
+  },
+  get META_CAPI_TEST_EVENT_CODE() {
+    return metaEnv.META_CAPI_TEST_EVENT_CODE;
+  },
 }));
 vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@reddoorla/maintenance/forms")>();
@@ -42,17 +55,25 @@ type Body = Record<string, unknown>;
 // under test.
 const OLD_TS = () => Date.now() - 10_000;
 
-function call(body: Body) {
+/** Graph is stubbed through the event's fetch; ingest and the CRM never use it. */
+let graph: ReturnType<typeof vi.fn>;
+
+function call(
+  body: Body,
+  opts: { cookies?: Record<string, string>; userAgent?: string | null } = {},
+) {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (opts.userAgent !== null) headers["user-agent"] = opts.userAgent ?? "vitest";
   const event = {
     request: new Request("https://site.test/api/inquiry", {
       method: "POST",
-      headers: { "content-type": "application/json", "user-agent": "vitest" },
+      headers,
       body: JSON.stringify(body),
     }),
-    fetch: globalThis.fetch,
+    fetch: graph,
     url: new URL("https://site.test/api/inquiry"),
     getClientAddress: () => "203.0.113.7",
-    cookies: { get: () => undefined },
+    cookies: { get: (name: string) => opts.cookies?.[name] },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   return Promise.resolve(POST(event)).then(async (res: Response) => ({
@@ -70,7 +91,20 @@ beforeEach(() => {
   getByUID.mockRejectedValue(new Error("no such document"));
   submitToIngest.mockReset();
   submitToIngest.mockResolvedValue({ ok: true, id: "sub_1" });
+  metaEnv.META_CAPI_ACCESS_TOKEN = "test-token";
+  metaEnv.META_CAPI_TEST_EVENT_CODE = undefined;
+  graph = vi.fn(async () => new Response(null, { status: 200 }));
 });
+
+/** Calls the Conversions API (Graph) made by this request, if any. */
+const graphCalls = () =>
+  graph.mock.calls.filter(([u]) => String(u).startsWith("https://graph.facebook.com/"));
+/** The one event Meta received. */
+const sentEvent = () => {
+  expect(graphCalls()).toHaveLength(1);
+  const init = graphCalls()[0][1] as RequestInit;
+  return JSON.parse(String(init.body)).data[0];
+};
 
 describe("POST /api/inquiry", () => {
   it("runs the honeypot screen BEFORE any validation 400", async () => {
@@ -375,5 +409,138 @@ describe("POST /api/inquiry", () => {
     await call({ email: "a@b.com", turnstileToken: "x".repeat(2049), ts: OLD_TS() });
     expect(submitToIngest).toHaveBeenCalledTimes(2);
     expect(lastPayload()._meta).not.toHaveProperty("turnstileToken");
+  });
+});
+
+describe("Meta Lead (Conversions API)", () => {
+  const EVENT_ID = "4f1c2a9e-7b1d-4c55-9a0e-1f2e3d4c5b6a";
+  const metaLead = { eventId: EVENT_ID, consent: "accepted" };
+  const SOURCE = "https://site.test/medtech?utm_source=x&email=a@b.c";
+  const application = (over: Body = {}): Body => ({
+    email: " Ann@Example.COM ",
+    name: "Ann Example",
+    phone: "(310) 555-0123",
+    smsConsent: true,
+    answers: [{ label: "Problems", value: "Outdated materials" }],
+    sourceUrl: SOURCE,
+    metaLead,
+    ts: OLD_TS(),
+    ...over,
+  });
+  const sha = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
+
+  it("sends one Lead for a completed application, hashed, with no query in the source URL", async () => {
+    const { status, json } = await call(application());
+    expect(status).toBe(200);
+    expect(json).toEqual({ success: true });
+
+    const ev = sentEvent();
+    expect(ev).toMatchObject({
+      event_name: "Lead",
+      event_id: EVENT_ID,
+      event_source_url: "https://site.test/medtech",
+      action_source: "website",
+    });
+    expect(ev.user_data.em).toEqual([sha("ann@example.com")]);
+    expect(ev.user_data.ph).toEqual([sha("13105550123")]);
+
+    // Neither the raw email nor the raw phone appears anywhere in what Meta gets.
+    const wire = String((graphCalls()[0][1] as RequestInit).body);
+    for (const raw of ["Ann@Example.COM", "ann@example.com", "(310) 555-0123", "3105550123"]) {
+      expect(wire).not.toContain(raw);
+    }
+  });
+
+  it("sends nothing when metaLead is absent or is not an accepted, well-formed tag", async () => {
+    const bad: unknown[] = [
+      undefined,
+      { eventId: EVENT_ID, consent: "rejected" },
+      { eventId: EVENT_ID },
+      { eventId: EVENT_ID, consent: "true" },
+    ];
+    for (const tag of bad) {
+      const { status, json } = await call(application({ metaLead: tag }));
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead for a step-one email capture, even with a valid metaLead", async () => {
+    await call({ email: "buyer@example.com", step: "The Diagnosis", metaLead, ts: OLD_TS() });
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead when the source is off the funnel or on another origin", async () => {
+    await call(application({ sourceUrl: "https://site.test/boise?x=1" }));
+    await call(application({ sourceUrl: "https://evil.test/medtech" }));
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead for a test-mode submission", async () => {
+    await call(application({ testMode: true }));
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends nothing and still succeeds when the token is unset", async () => {
+    metaEnv.META_CAPI_ACCESS_TOKEN = undefined;
+    const { status, json } = await call(application());
+    expect(status).toBe(200);
+    expect(json).toEqual({ success: true });
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("still answers success when Graph refuses or the request throws", async () => {
+    graph.mockResolvedValueOnce(new Response('{"error":{"code":1}}', { status: 500 }));
+    const refused = await call(application());
+    expect(refused).toEqual({ status: 200, json: { success: true } });
+
+    graph.mockRejectedValueOnce(new Error("socket hang up"));
+    const thrown = await call(application());
+    expect(thrown).toEqual({ status: 200, json: { success: true } });
+    expect(graphCalls()).toHaveLength(2);
+  });
+
+  it("sends no Lead when ingest failed", async () => {
+    submitToIngest.mockResolvedValueOnce({ ok: false, status: 500, error: "boom" });
+    const { status } = await call(application());
+    expect(status).toBe(502);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it.each([["x"], ["a".repeat(65)]])(
+    "ignores a malformed event id (%s) without a 400",
+    async (id) => {
+      const { status, json } = await call(
+        application({ metaLead: { eventId: id, consent: "accepted" } }),
+      );
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+      expect(graphCalls()).toHaveLength(0);
+    },
+  );
+
+  it("forwards the browser's _fbp and _fbc, and drops a malformed one", async () => {
+    await call(application(), {
+      cookies: { _fbp: "fb.1.1794000000000.123456789", _fbc: "fb.1.1794000000000.AbCdEf" },
+    });
+    expect(sentEvent().user_data).toMatchObject({
+      fbp: "fb.1.1794000000000.123456789",
+      fbc: "fb.1.1794000000000.AbCdEf",
+    });
+
+    graph.mockClear();
+    await call(application(), { cookies: { _fbp: "not-meta" } });
+    expect(sentEvent().user_data).not.toHaveProperty("fbp");
+  });
+
+  it("sends the test event code when one is configured", async () => {
+    metaEnv.META_CAPI_TEST_EVENT_CODE = "TEST12345";
+    await call(application());
+    expect(JSON.parse(String((graphCalls()[0][1] as RequestInit).body)).test_event_code).toBe(
+      "TEST12345",
+    );
   });
 });

@@ -1,11 +1,13 @@
 import { json, type Cookies } from "@sveltejs/kit";
-import * as env from "$app/env/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { syncInquiryToCrm, syncApplicationToCrm } from "$lib/ghl/client";
 import { normalizeZone } from "$lib/schedule/timezone";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 import { questionsFor } from "$lib/ghl/questions";
 import { createClient } from "$lib/prismicio";
+import { isFunnelPath } from "$lib/consent/metaPixel";
+import { metaCookies, sendMetaEvent } from "$lib/server/metaCapi";
+import * as env from "$app/env/private";
 import type { Content } from "@prismicio/client";
 import type { RequestHandler } from "./$types";
 
@@ -167,6 +169,69 @@ function visitorTextOf(
     }
   }
   return typed.join("\n");
+}
+
+// crypto.randomUUID() on the client; the same bound the pixel endpoint uses.
+const LEAD_EVENT_ID = /^[A-Za-z0-9-]{8,64}$/;
+
+/**
+ * The browser's Lead tag (`metaLead`), when it is well formed and accepted.
+ * Anything else is undefined and ignored: a visitor cannot fix a bad tag, so it
+ * is never a 400.
+ */
+function readLeadEventId(tag: unknown): string | undefined {
+  if (typeof tag !== "object" || tag === null) return undefined;
+  const { eventId, consent } = tag as Record<string, unknown>;
+  if (consent !== "accepted") return undefined;
+  return typeof eventId === "string" && LEAD_EVENT_ID.test(eventId) ? eventId : undefined;
+}
+
+type LeadInput = {
+  tag: unknown;
+  sourceUrl: string;
+  url: URL;
+  userAgent: string | undefined;
+  clientIp: string | undefined;
+  email: string;
+  phone: string;
+  cookies: Cookies;
+  fetch: typeof fetch;
+};
+
+/**
+ * The server copy of the browser's Lead for a completed application (see
+ * $lib/consent/metaPixel `trackLead`). The source must be a funnel page on this
+ * origin, as the browser's page was, and a request with no user agent is not a
+ * browser's. Sends nothing when any check fails.
+ */
+async function sendLead(lead: LeadInput): Promise<void> {
+  const eventId = readLeadEventId(lead.tag);
+  if (!eventId || !lead.userAgent) return;
+  let source: URL;
+  try {
+    source = new URL(lead.sourceUrl || `${lead.url.origin}${lead.url.pathname}`);
+  } catch {
+    return;
+  }
+  if (source.origin !== lead.url.origin || !isFunnelPath(source.pathname)) return;
+
+  await sendMetaEvent(
+    {
+      eventName: "Lead",
+      eventId,
+      eventSourceUrl: source.origin + source.pathname,
+      ip: lead.clientIp,
+      userAgent: lead.userAgent,
+      ...metaCookies((n) => lead.cookies.get(n), source),
+      email: lead.email,
+      phone: lead.phone,
+    },
+    {
+      fetch: lead.fetch,
+      token: env.META_CAPI_ACCESS_TOKEN,
+      testEventCode: env.META_CAPI_TEST_EVENT_CODE,
+    },
+  );
 }
 
 export const POST: RequestHandler = async ({ request, fetch, url, getClientAddress, cookies }) => {
@@ -415,6 +480,28 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
           );
         }
       }
+    }
+  }
+
+  // The Lead is the server copy of the browser's, for a finished application
+  // only: step one is an email capture and sends none, and a probe never does.
+  // Whatever happens here, the visitor still gets success: the application is
+  // in ingest already.
+  if (body.testMode !== true && isApplication) {
+    try {
+      await sendLead({
+        tag: body.metaLead,
+        sourceUrl,
+        url,
+        userAgent,
+        clientIp,
+        email,
+        phone,
+        cookies,
+        fetch,
+      });
+    } catch (err) {
+      console.error(`[inquiry] Lead not sent: ${(err as Error)?.message ?? err}`);
     }
   }
 

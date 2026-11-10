@@ -2008,3 +2008,19 @@ The view now carries `failedStages`: a stage is `{ok:false}` with an error that 
 **Left open.** Review round 1 found that `Report.svelte` mounts Standing and GoalFit only when their data exists. Their new failure copy is therefore unreachable today; the method section is where a visitor reads it (reddoorla/reddoor-website#341). The site-health clause also overstates when only some of its stages failed (#342). The five old fixtures are not regenerated: the producer has since added `pagesWithTruncatedAnchors: []`, and that drift predates this work.
 
 Usage: not readable (`get_session` carries no usage figures in this session).
+
+## 2026-11-10 — Meta `Lead` on a completed MedTech application, browser and Conversions API (branch `claude/medtech-capi-lead`, not pushed)
+
+The operator's decision: a completed inquiry application on the MedTech funnel fires Meta `Lead`, with hashed email and phone on the server copy. The browser fires it once the application is in, including for a budget "No", because a Lead is a submitted application. Step one (the email capture) fires nothing, so the server gates on `isApplication` as well as on the tag.
+
+The browser and the server share one event id. `prepareLead` mints it before the post, the post carries it as `metaLead`, and `trackLead` puts it on the pixel as `eventID` after a 200. The server checks the tag again (consent accepted, id shape `[A-Za-z0-9-]{8,64}`), the source page (same origin, a funnel path), and a user agent. A bad tag is ignored, never a 400: the visitor cannot fix it, and a 400 would tell a bot which of its payloads reached validation. Every failure on the server path still answers `{success: true}`, because the application is already in ingest.
+
+The cookie helpers moved from the PageView endpoint into `metaCapi.ts` as `metaCookies`, so both endpoints read `_fbp` and `_fbc` one way. The PageView endpoint's own tests pass unedited.
+
+**Red before green.** Eleven new tests failed before implementation: the four `metaCookies` cases, the three `prepareLead`/`trackLead` cases, and four inquiry cases (the Lead send, Graph refused or thrown, the `_fbp`/`_fbc` forwarding, the test event code). The negative cases ("sends nothing when ...", a malformed event id, step one, test mode) passed before any code existed, so they guard the gate but do not prove it; the positive case beside them is what proves the instrument.
+
+**Belief corrected on contact.** A fresh clone's `vitest run` fails with `Tsconfig not found` for `$app/tsconfig` until `svelte-kit sync` has generated `.svelte-kit/`. That reads like a broken test file, and it is not one.
+
+**Honest accounting.** `pnpm lint` failed on the untracked `.lead-plan.md` (a planning file, not part of the change). It was moved out of the tree for the lint run and put back; it is not committed. The three prettier failures on changed files were formatting only.
+
+Usage: $4.896359415, 3925/58784 tokens, 15942149/320638 cache, rate limit allowed

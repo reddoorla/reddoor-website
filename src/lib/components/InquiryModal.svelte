@@ -20,6 +20,7 @@
   import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
   import * as publicEnv from "$app/env/public";
   import { loadTurnstile } from "$lib/turnstile";
+  import { prepareLead, readConsent, trackLead, type PixelWindow } from "$lib/consent/metaPixel";
 
   export type InquiryStep = {
     title: string;
@@ -743,6 +744,13 @@
       value: answers[q.tag] ?? "",
     }));
 
+    // The Lead tag, decided before the post: the server needs the id the pixel
+    // will get. Null off the funnel or without an accepted answer, and then the
+    // post carries no tag at all.
+    const lead = prepareLead(
+      location.pathname,
+      readConsent(() => localStorage),
+    );
     const res = await postIngest({
       email: capturedEmail,
       name: capturedName,
@@ -752,6 +760,7 @@
       // The same answers keyed by CRM field id. The server whitelists these
       // against its own question table, so an unknown id is dropped, not written.
       fields: pruned,
+      ...(lead ? { metaLead: { eventId: lead.eventId, consent: "accepted" } } : {}),
     });
     if (!res.ok) {
       if (session === mySession) {
@@ -760,6 +769,9 @@
       }
       return;
     }
+    // Once the application is in, whatever happens to the session below: the
+    // Lead is a submitted application, budget "No" included.
+    if (lead) trackLead(window as unknown as PixelWindow, document, lead.eventId);
 
     // Advance only if this is still the live session AND still on the contact
     // frame — a Back during a slow submit must not be yanked to the thank-you.

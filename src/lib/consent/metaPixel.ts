@@ -215,3 +215,27 @@ async function whenCookiesWritten(
     await new Promise((r) => setTimeout(r, FBP_WAIT_STEP_MS));
   }
 }
+
+/**
+ * The Lead tag for a submitted application, decided before the post so the
+ * server gets the same id the pixel will. Null off the funnel or without an
+ * accepted answer: then the post carries no tag and no Lead is fired anywhere.
+ */
+export function prepareLead(pathname: string, consent: Consent): { eventId: string } | null {
+  if (!isFunnelPath(pathname) || consent !== "accepted") return null;
+  return { eventId: newEventId() };
+}
+
+/**
+ * The browser's Lead, once the application is in. It fires for a "No" at the
+ * budget gate too: a Lead is a submitted application. Measurement never breaks
+ * the form, so any failure here is swallowed.
+ */
+export function trackLead(win: PixelWindow, doc: Document, eventId: string): void {
+  try {
+    const fbq = ensureMetaPixel(win, doc);
+    fbq("track", "Lead", {}, { eventID: eventId });
+  } catch {
+    // Measurement never breaks the form.
+  }
+}
