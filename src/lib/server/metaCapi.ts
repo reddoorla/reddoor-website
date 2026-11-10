@@ -38,6 +38,47 @@ export type ServerEvent = {
   phone?: string;
 };
 
+// Meta's `fb.{subdomain_index}.{creation_time}.{value}`, set by fbevents.js.
+// Meta does not promise fbclid's alphabet, so the value is any printable ASCII.
+const FB_COOKIE = /^fb\.\d+\.\d{10,16}\.[\x21-\x7e]{1,500}$/;
+const FBCLID = /^[\x21-\x7e]{1,500}$/;
+
+/**
+ * The cookie, unless the URL carries a different (newer) ad click than the one
+ * it records: fbevents.js would rewrite it for that click too.
+ */
+function freshFbc(cookieFbc: string | undefined, source: URL): string | undefined {
+  const id = source.searchParams.get("fbclid");
+  if (cookieFbc && (!id || cookieFbc.endsWith(`.${id}`))) return cookieFbc;
+  return fbcFromClickId(source) ?? cookieFbc;
+}
+
+/**
+ * A visitor arriving from an ad carries `fbclid` in the URL before fbevents.js
+ * has turned it into `_fbc`. Meta documents building fbc from it:
+ * `fb.1.{creation time in ms}.{fbclid}`.
+ */
+function fbcFromClickId(source: URL): string | undefined {
+  const id = source.searchParams.get("fbclid");
+  return id && FBCLID.test(id) ? `fb.1.${Date.now()}.${id}` : undefined;
+}
+
+/**
+ * The browser's Meta cookies as the Conversions API takes them. A malformed
+ * value is dropped, never forwarded; `fbc` is the cookie unless the URL carries
+ * a newer ad click (see freshFbc).
+ */
+export function metaCookies(
+  get: (name: string) => string | undefined,
+  source: URL,
+): { fbp?: string; fbc?: string } {
+  const valid = (name: string) => {
+    const v = get(name);
+    return v && FB_COOKIE.test(v) ? v : undefined;
+  };
+  return { fbp: valid("_fbp"), fbc: freshFbc(valid("_fbc"), source) };
+}
+
 const sha256 = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
 
 /** Meta's `em` normalisation: trim, then lower-case. */

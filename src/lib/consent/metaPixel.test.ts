@@ -5,9 +5,11 @@ import {
   META_PIXEL_SRC,
   ensureMetaPixel,
   isFunnelPath,
+  prepareLead,
   readConsent,
   saveConsent,
   trackFunnelPageView,
+  trackLead,
   type Consent,
 } from "./metaPixel";
 
@@ -229,4 +231,45 @@ describe("the server copy of each event (Conversions API)", () => {
       expect(appended).toHaveLength(0);
     },
   );
+});
+
+describe("the Lead event (a submitted application)", () => {
+  const ID = /^[A-Za-z0-9-]{8,64}$/;
+
+  it("prepares a lead id only on a funnel page with accepted consent", () => {
+    expect(prepareLead("/", "accepted")).toBeNull();
+    expect(prepareLead("/boise", "accepted")).toBeNull();
+    expect(prepareLead("/medtech", "rejected")).toBeNull();
+    expect(prepareLead("/medtech", null)).toBeNull();
+
+    const onMedtech = prepareLead("/medtech", "accepted");
+    expect(onMedtech?.eventId).toMatch(ID);
+    expect(prepareLead("/brand-friction-audit", "accepted")?.eventId).toMatch(ID);
+    // A fresh id per application, or Meta would drop the second as a duplicate.
+    expect(prepareLead("/medtech", "accepted")?.eventId).not.toBe(onMedtech?.eventId);
+  });
+
+  it("tracks Lead on the pixel with the same eventID the server will get", () => {
+    const win: Parameters<typeof ensureMetaPixel>[0] = {};
+    const { doc } = fakeDocument();
+    const eventId = "4f1c2a9e-7b1d-4c55-9a0e-1f2e3d4c5b6a";
+
+    trackLead(win, doc, eventId);
+    const leads = win.fbq!.queue.filter((c) => c[0] === "track");
+    expect(leads).toEqual([["track", "Lead", {}, { eventID: eventId }]]);
+  });
+
+  it("never throws into the form when the pixel cannot load", () => {
+    const broken = {
+      createElement: () => {
+        throw new Error("no DOM");
+      },
+      head: { appendChild: () => {} },
+      location: { href: "https://reddoorla.com/medtech" },
+      cookie: "",
+    };
+    expect(() =>
+      trackLead({}, broken as unknown as Document, "4f1c2a9e-7b1d-4c55-9a0e-1f2e3d4c5b6a"),
+    ).not.toThrow();
+  });
 });

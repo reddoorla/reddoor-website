@@ -1,11 +1,14 @@
 import { json, type Cookies } from "@sveltejs/kit";
-import * as env from "$app/env/private";
 import { submitToIngest, screenSubmission } from "@reddoorla/maintenance/forms";
 import { syncInquiryToCrm, syncApplicationToCrm } from "$lib/ghl/client";
 import { normalizeZone } from "$lib/schedule/timezone";
 import { DEFAULT_INQUIRY_SURVEY_ID } from "$lib/ghl/constants";
 import { questionsFor } from "$lib/ghl/questions";
 import { createClient } from "$lib/prismicio";
+import { isFunnelPath } from "$lib/consent/metaPixel";
+import { metaCookies, sendMetaEvent } from "$lib/server/metaCapi";
+import { takeLeadSlot } from "$lib/server/leadLimit";
+import * as env from "$app/env/private";
 import type { Content } from "@prismicio/client";
 import type { RequestHandler } from "./$types";
 
@@ -167,6 +170,86 @@ function visitorTextOf(
     }
   }
   return typed.join("\n");
+}
+
+// crypto.randomUUID() on the client; the same bound the pixel endpoint uses.
+const LEAD_EVENT_ID = /^[A-Za-z0-9-]{8,64}$/;
+
+/**
+ * The browser's Lead tag (`metaLead`), when it is well formed and accepted.
+ * Anything else is undefined and ignored: a visitor cannot fix a bad tag, so it
+ * is never a 400.
+ */
+function readLeadEventId(tag: unknown): string | undefined {
+  if (typeof tag !== "object" || tag === null) return undefined;
+  const { eventId, consent } = tag as Record<string, unknown>;
+  if (consent !== "accepted") return undefined;
+  return typeof eventId === "string" && LEAD_EVENT_ID.test(eventId) ? eventId : undefined;
+}
+
+type LeadInput = {
+  tag: unknown;
+  sourceUrl: string;
+  url: URL;
+  userAgent: string | undefined;
+  clientIp: string | undefined;
+  /** The handler's Turnstile token, as forwarded to ingest (undefined when absent). */
+  turnstileToken: string | undefined;
+  email: string;
+  phone: string;
+  cookies: Cookies;
+  fetch: typeof fetch;
+};
+
+/**
+ * The server copy of the browser's Lead for a completed application (see
+ * $lib/consent/metaPixel `trackLead`). The source must be a funnel page on this
+ * origin, as the browser's page was, and a request with no user agent is not a
+ * browser's. A Turnstile token must be present: central ingest stores a
+ * tokenless submission as spam (`turnstile-required-absent`), so a Lead for one
+ * was never a real applicant. This checks only that a token string is there,
+ * not that it verified, so a forger can send any string. A valid `_fbp` cookie
+ * is required too, and it is just as forgeable: a forger can set one. A
+ * malformed `_fbp` is dropped by metaCookies, so it counts as absent. The
+ * per-IP limit (takeLeadSlot, keyed by client via limitKey) bounds how many
+ * Leads one client can cause; a request with no client address sends none,
+ * since it cannot be limited. The limit runs after every other check so a
+ * rejected post spends no slot. Sends nothing when any check fails; the
+ * application itself is never affected. The operator accepted these in-site
+ * guards; the real fix is reddoorla/reddoor-maintenance#2027.
+ */
+async function sendLead(lead: LeadInput): Promise<void> {
+  const eventId = readLeadEventId(lead.tag);
+  if (!eventId || !lead.userAgent || !lead.turnstileToken) return;
+  let source: URL;
+  try {
+    source = new URL(lead.sourceUrl || `${lead.url.origin}${lead.url.pathname}`);
+  } catch {
+    return;
+  }
+  if (source.origin !== lead.url.origin || !isFunnelPath(source.pathname)) return;
+
+  const cookies = metaCookies((n) => lead.cookies.get(n), source);
+  if (!cookies.fbp) return;
+  if (!lead.clientIp || !takeLeadSlot(lead.clientIp)) return;
+
+  await sendMetaEvent(
+    {
+      eventName: "Lead",
+      eventId,
+      eventSourceUrl: source.origin + source.pathname,
+      ip: lead.clientIp,
+      userAgent: lead.userAgent,
+      ...cookies,
+      email: lead.email,
+      phone: lead.phone,
+    },
+    {
+      fetch: lead.fetch,
+      token: env.META_CAPI_ACCESS_TOKEN,
+      testEventCode: env.META_CAPI_TEST_EVENT_CODE,
+    },
+  );
 }
 
 export const POST: RequestHandler = async ({ request, fetch, url, getClientAddress, cookies }) => {
@@ -347,6 +430,29 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     );
   }
 
+  // The Lead is the server copy of the browser's, for a finished application
+  // only: step one is an email capture and sends none, and a probe never does.
+  // It starts here, beside the CRM sync below rather than after it, and is
+  // awaited at the end. Whatever happens to it, the visitor still gets success:
+  // the application is in ingest already.
+  const leadSent: Promise<void> =
+    body.testMode !== true && isApplication
+      ? sendLead({
+          tag: body.metaLead,
+          sourceUrl,
+          url,
+          userAgent,
+          clientIp,
+          turnstileToken,
+          email,
+          phone,
+          cookies,
+          fetch,
+        }).catch((err) => {
+          console.error(`[inquiry] Lead not sent: ${(err as Error)?.message ?? err}`);
+        })
+      : Promise.resolve();
+
   // Ingest is the source of record and holds the lead now. The CRM sync runs on
   // top of it: awaited, so a failure is logged with a real status — the browser
   // fire this replaced was opaque by construction (`mode: "no-cors"`) and, on
@@ -418,5 +524,8 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     }
   }
 
+  // Awaited last, so the response waits for the Lead and the CRM sync together
+  // (whichever is slower), not for one after the other. It never rejects.
+  await leadSent;
   return json({ success: true });
 };

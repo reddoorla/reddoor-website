@@ -1,6 +1,6 @@
 import * as env from "$app/env/private";
 import { isFunnelPath } from "$lib/consent/metaPixel";
-import { sendMetaEvent } from "$lib/server/metaCapi";
+import { metaCookies, sendMetaEvent } from "$lib/server/metaCapi";
 import type { RequestHandler } from "./$types";
 
 // The server half of the MedTech funnel's Meta Pixel ($lib/consent/metaPixel).
@@ -15,31 +15,6 @@ const PIXEL_EVENTS = new Set(["PageView"]);
 
 // crypto.randomUUID() on the client; bounded so a body can't stuff Meta's logs.
 const EVENT_ID = /^[A-Za-z0-9-]{8,64}$/;
-
-// Meta's `fb.{subdomain_index}.{creation_time}.{value}`, set by fbevents.js.
-// Meta does not promise fbclid's alphabet, so the value is any printable ASCII.
-const FB_COOKIE = /^fb\.\d+\.\d{10,16}\.[\x21-\x7e]{1,500}$/;
-const FBCLID = /^[\x21-\x7e]{1,500}$/;
-
-/**
- * The cookie, unless the URL carries a different (newer) ad click than the one
- * it records: fbevents.js would rewrite it for that click too.
- */
-function freshFbc(cookieFbc: string | undefined, source: URL): string | undefined {
-  const id = source.searchParams.get("fbclid");
-  if (cookieFbc && (!id || cookieFbc.endsWith(`.${id}`))) return cookieFbc;
-  return fbcFromClickId(source) ?? cookieFbc;
-}
-
-/**
- * A visitor arriving from an ad carries `fbclid` in the URL before fbevents.js
- * has turned it into `_fbc`. Meta documents building fbc from it:
- * `fb.1.{creation time in ms}.{fbclid}`.
- */
-function fbcFromClickId(source: URL): string | undefined {
-  const id = source.searchParams.get("fbclid");
-  return id && FBCLID.test(id) ? `fb.1.${Date.now()}.${id}` : undefined;
-}
 
 const MAX_BODY = 4096;
 
@@ -83,10 +58,6 @@ export const POST: RequestHandler = async ({ request, url, cookies, getClientAdd
   const userAgent = request.headers.get("user-agent");
   if (!userAgent) return noContent();
 
-  const cookie = (name: string) => {
-    const v = cookies.get(name);
-    return v && FB_COOKIE.test(v) ? v : undefined;
-  };
   let ip: string | undefined;
   try {
     ip = getClientAddress();
@@ -107,8 +78,7 @@ export const POST: RequestHandler = async ({ request, url, cookies, getClientAdd
       eventSourceUrl: source.origin + source.pathname,
       ip,
       userAgent,
-      fbp: cookie("_fbp"),
-      fbc: freshFbc(cookie("_fbc"), source),
+      ...metaCookies((n) => cookies.get(n), source),
     },
     {
       fetch,
