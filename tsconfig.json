@@ -4,7 +4,7 @@
   // the list below is ours: kit's own example plus tests/, which kit 2's
   // generated include covered.
   "extends": "$app/tsconfig",
-  "include": ["src", "tests", "*"],
+  "include": ["src", "tests", "*", "netlify"],
   "exclude": ["src/service-worker"],
   "compilerOptions": {
     "allowJs": true,

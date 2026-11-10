@@ -3,7 +3,8 @@
   import SliceSection from "$lib/components/SliceSection.svelte";
   import RailRow from "$lib/components/RailRow.svelte";
   import Video from "$lib/components/Video.svelte";
-  import { mediaUrl } from "$lib/video/media";
+  import { videoFor } from "$lib/video/media";
+  import { page } from "$app/state";
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
   import { PrismicImage } from "@prismicio/svelte";
   import { isFilled } from "@prismicio/client";
@@ -27,14 +28,16 @@
   const headingTag = $derived(slice.primary.label ? "h3" : "h2");
 
   const vimeoId = $derived(normalizeVimeoId(slice.primary.vimeo_id));
-  const mp4 = $derived(mediaUrl(slice.primary.video_mp4));
-  const mobileMp4 = $derived(mediaUrl(slice.primary.video_mp4_mobile));
+  // The R2 renditions when the build encoded this video, else the Prismic files.
+  const video = $derived(
+    videoFor(slice.primary.video_mp4, slice.primary.video_mp4_mobile, null, page.data.videos),
+  );
   // Precedence + degrade rules (and why) live in ./media.ts.
   const media = $derived(
     resolveCaseStudyMedia({
       hasAfter: isFilled.image(slice.primary.after_image),
       hasBefore: isFilled.image(slice.primary.before_image),
-      hasVideo: vimeoId !== "" || !!mp4 || !!mobileMp4,
+      hasVideo: vimeoId !== "" || !!video.mp4 || !!video.mobileMp4,
     }),
   );
 
@@ -306,8 +309,8 @@
              self-hosted file adds the shared pause button (WCAG 2.2.2), in the
              top corner, clear of the slideshow's own controls. -->
         <Video
-          {mp4}
-          {mobileMp4}
+          mp4={video.mp4}
+          mobileMp4={video.mobileMp4}
           {vimeoId}
           mode="background"
           hasPoster={media.base !== "none"}

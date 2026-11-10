@@ -1,0 +1,120 @@
+# Encodes a Prismic video master to R2 (media.reddoorla.com), then rebuilds the
+# site so its slices play the R2 files. The relay (src/lib/server/video-relay.ts,
+# run by netlify/functions/prismic-video.mts) calls the workflow-dispatch API
+# when an editor publishes a video; a manual run starts it from the Actions tab.
+# The shared library is @reddoorla/maintenance/video-pipeline.
+name: video-encode
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Prismic file URL of the master"
+        required: true
+        type: string
+      class:
+        description: "background or player"
+        required: true
+        type: choice
+        options: [background, player]
+      key:
+        description: "R2 key from the relay; leave empty for a manual run"
+        required: false
+        type: string
+        default: ""
+      force:
+        description: "Re-encode even when R2 already serves this class (e.g. after a bad encode)"
+        required: false
+        type: boolean
+        default: false
+
+# One group per video and class, whatever started the run. GitHub keeps one
+# pending run per group, so a re-published background run would replace a
+# pending player run (the one a visitor is waiting for) if they shared a group.
+concurrency:
+  group: video-encode-${{ inputs.url }}-${{ inputs.class }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  encode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Encode and upload to R2
+        id: encode
+        # bash here runs `bash --noprofile --norc -eo pipefail`, so an encode
+        # failure fails the step even though its output goes through tee.
+        shell: bash
+        env:
+          URL: ${{ inputs.url }}
+          CLASS: ${{ inputs.class }}
+          # Set only on a dispatch from the relay; encode refuses a key that its own --site would not give.
+          KEY: ${{ inputs.key }}
+          FORCE: ${{ inputs.force && 'true' || '' }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
+        run: |
+          log="$(mktemp)"
+          pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website ${KEY:+--key "$KEY"} ${FORCE:+--force} | tee "$log"
+          # encode skips a run whose class the existing R2 manifest already covers (unless force), and prints `SKIP <key>: ...`; nothing changed, so no rebuild.
+          if grep -q '^SKIP ' "$log"; then echo "rebuild=false" >> "$GITHUB_OUTPUT"; fi
+          # The manifest the encode wrote (`MANIFEST <site>/<stem>-<hash>/manifest.json`), read back from R2 by the CORS check.
+          manifest="$(awk '/^MANIFEST /{print $2; exit}' "$log")"
+          if [ -n "$manifest" ]; then echo "manifest=$manifest" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Check the R2 bucket serves CORS
+        # The player is <video crossorigin="anonymous">, which R2 refuses without a
+        # bucket CORS rule for https://reddoorla.com (the operator sets the rule). A
+        # missing rule shows up only as players that never load, so fail the run here.
+        if: steps.encode.outputs.rebuild != 'false'
+        env:
+          MANIFEST: ${{ steps.encode.outputs.manifest }}
+        run: |
+          : "${MANIFEST:?the encode step printed no MANIFEST line, so there is nothing to check}"
+          # A GET, not a HEAD: the player makes GET requests, and R2 adds the CORS header only to the methods a rule allows.
+          headers="$(curl -sS --max-time 30 --suppress-connect-headers -o /dev/null -D - -H 'Origin: https://reddoorla.com' "https://media.reddoorla.com/$MANIFEST")" || { echo "::error::could not reach media.reddoorla.com to check the manifest"; exit 1; }
+          status_line="$(head -n 1 <<<"$headers" | tr -d '\r')"
+          if ! grep -Eq '^HTTP/[0-9.]+ 200([[:space:]]|$)' <<<"$status_line"; then
+            echo "::error::media.reddoorla.com did not serve the manifest $MANIFEST ($status_line): check the custom domain and public access"
+            exit 1
+          fi
+          if ! grep -qi '^access-control-allow-origin:' <<<"$headers"; then
+            echo "::error::media.reddoorla.com sends no Access-Control-Allow-Origin for https://reddoorla.com: add the R2 bucket CORS rule for that origin. $MANIFEST is already on R2, so the next site build will ship R2 player URLs that fail; after adding the rule, re-run this workflow with force (a plain re-run SKIPs) or trigger a deploy"
+            exit 1
+          fi
+          echo "CORS ok for $MANIFEST"
+
+      - name: Rebuild the site
+        if: steps.encode.outputs.rebuild != 'false'
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: |
+          : "${NETLIFY_BUILD_HOOK:?NETLIFY_BUILD_HOOK is not set}"
+          curl -fsS -X POST -d '{}' "$NETLIFY_BUILD_HOOK" > /dev/null && echo "build hook called"
+
+      - name: Stuck check
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: pnpm exec reddoor-maint video-pipeline stuck --site reddoor-website --repo "$REPO" --prismic reddoor-la --media-base https://media.reddoorla.com --rules src/lib/video/pipeline-rules.json --open-issue || true

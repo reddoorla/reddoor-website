@@ -73,6 +73,7 @@ describe("the SSR policy matches the static one", () => {
     };
     expect(allows("https://reddoor-la.cdn.prismic.io/reddoor-la/abc_offer-1080.mp4")).toBe(true);
     expect(allows("https://prismic-io.s3.amazonaws.com/reddoor-la/abc_offer-1080.mp4")).toBe(true);
+    expect(allows("https://media.reddoorla.com/reddoor-website/x/x-1080.mp4")).toBe(true);
     expect(allows("https://evil.example/reddoor-la/abc.mp4")).toBe(false);
   });
 });

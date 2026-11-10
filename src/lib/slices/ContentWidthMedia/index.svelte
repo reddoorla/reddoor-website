@@ -5,7 +5,8 @@
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import Slideshow from "$lib/components/Slideshow/Slideshow.svelte";
   import Video from "$lib/components/Video.svelte";
-  import { captionsUrl, mediaUrl } from "$lib/video/media";
+  import { videoFor } from "$lib/video/media";
+  import { page } from "$app/state";
   import { asImageSrc } from "@prismicio/client";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
@@ -46,12 +47,27 @@
       width: 1600,
     });
 
-  const hasVideo = (item: { video_mp4: unknown; video_mp4_mobile: unknown }, id: unknown) =>
-    Boolean(
-      id ||
-      mediaUrl(item.video_mp4 as Parameters<typeof mediaUrl>[0]) ||
-      mediaUrl(item.video_mp4_mobile as Parameters<typeof mediaUrl>[0]),
+  // What an item plays: its R2 renditions when the build encoded it, else its
+  // Prismic files. A video is one that plays either way.
+  const itemVideo = (item: {
+    video_mp4: unknown;
+    video_mp4_mobile: unknown;
+    video_captions: unknown;
+  }) =>
+    videoFor(
+      item.video_mp4 as Parameters<typeof videoFor>[0],
+      item.video_mp4_mobile as Parameters<typeof videoFor>[1],
+      item.video_captions as Parameters<typeof videoFor>[2],
+      page.data.videos,
     );
+
+  const hasVideo = (
+    item: { video_mp4: unknown; video_mp4_mobile: unknown; video_captions: unknown },
+    id: unknown,
+  ) => {
+    const v = itemVideo(item);
+    return Boolean(id || v.mp4 || v.mobileMp4);
+  };
 
   type CwmImageItem = ContentWidthImageSliceDefaultPrimaryImagesItem;
 
@@ -114,6 +130,7 @@
       >
         {#each slice.primary.images as item, i (i)}
           {@const gallerySlides = galleryImages(item)}
+          {@const v = itemVideo(item)}
           {#if gallerySlides}
             <!-- Gallery-linked item → inline slideshow. Ignores item.link (the
                    carousel owns clicks/swipe; a wrapping <a> would fight controls). -->
@@ -202,7 +219,7 @@
                   >
                 {/if}
 
-                {#if item.vimeoid || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
+                {#if item.vimeoid || v.mp4 || v.mobileMp4}
                   <PrismicImage
                     class="w-full h-full object-cover absolute top-0 left-0 z-0"
                     field={item.image}
@@ -213,12 +230,12 @@
                     decoding="async"
                   />
                   <Video
-                    mp4={mediaUrl(item.video_mp4)}
-                    mobileMp4={mediaUrl(item.video_mp4_mobile)}
+                    mp4={v.mp4}
+                    mobileMp4={v.mobileMp4}
                     vimeoId={item.vimeoid}
                     mode={item.loopvideo ? "background" : "player"}
-                    poster={posterSrc(item.image)}
-                    captions={captionsUrl(item.video_captions)}
+                    poster={posterSrc(item.image) ?? v.poster}
+                    captions={v.captions}
                     title={item.label || item.image?.alt || undefined}
                     hasPoster={isFilled.image(item.image)}
                     class="object-cover w-full {item.aspect !== 'free'
@@ -268,7 +285,7 @@
                 </div>
               {/if}
 
-              {#if item.vimeoid || mediaUrl(item.video_mp4) || mediaUrl(item.video_mp4_mobile)}
+              {#if item.vimeoid || v.mp4 || v.mobileMp4}
                 <!-- Poster is absolute against the padded (pr-6/pb-6) cell, so
                        subtract the gap when hasGap to match the video box instead
                        of bleeding into the gap. -->
@@ -284,12 +301,12 @@
                   decoding="async"
                 />
                 <Video
-                  mp4={mediaUrl(item.video_mp4)}
-                  mobileMp4={mediaUrl(item.video_mp4_mobile)}
+                  mp4={v.mp4}
+                  mobileMp4={v.mobileMp4}
                   vimeoId={item.vimeoid}
                   mode={item.loopvideo ? "background" : "player"}
-                  poster={posterSrc(item.image)}
-                  captions={captionsUrl(item.video_captions)}
+                  poster={posterSrc(item.image) ?? v.poster}
+                  captions={v.captions}
                   title={item.label || item.image?.alt || undefined}
                   controlClass={slice.primary.hasGap ? "bottom-10 right-10" : "bottom-4 right-4"}
                   hasPoster={isFilled.image(item.image)}

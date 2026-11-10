@@ -1,0 +1,23 @@
+{
+  "screen_width_image": [
+    {
+      "field": "video_mp4",
+      "class": { "flag": "loopvideo", "whenTrue": "background", "whenFalse": "player" }
+    }
+  ],
+  "content_width_image": [
+    {
+      "field": "video_mp4",
+      "class": { "flag": "loopvideo", "whenTrue": "background", "whenFalse": "player" }
+    }
+  ],
+  "screen_width_columns": [
+    {
+      "field": "video_mp4",
+      "class": { "flag": "loopvideo", "whenTrue": "background", "whenFalse": "player" }
+    }
+  ],
+  "offer_hero": [{ "field": "video_mp4", "class": "player" }],
+  "case_study": [{ "field": "video_mp4", "class": "background" }],
+  "$document": [{ "field": "booked_video_mp4", "class": "player" }]
+}
