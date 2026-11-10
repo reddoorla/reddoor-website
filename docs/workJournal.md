@@ -1985,3 +1985,31 @@ Mutations on the first version: ignoring consent turned 3 smoke tests red; treat
 CSP: `script-src` gains `connect.facebook.net`, and `connect-src` gains `www.facebook.com`. A first draft also put `connect.facebook.net` in `connect-src`, but every request to it is a `<script>`, so it came out. No privacy page exists on reddoorla.com; that is flagged to the operator, not written. The minors are filed as reddoorla/reddoor-website#333 (no way to withdraw consent) and #334 (fbevents duplicate-PageView and form-POST fallback, unverifiable headless). Out of scope and left for later: the questionnaire's Meta-to-CRM sync that Tim mentioned, and CAPI.
 
 Usage: $4.53, 648/40099 tokens, 11159947/205063 cache, rate limit allowed (reading at 9:53am PT, before this commit; the hand-back has the final figure).
+
+## 2026-11-10 — The MedTech pixel's PageView gets its Conversions API copy (#337, `2cb6fa9`)
+
+Tim needed Meta's Conversions API (CAPI) alongside the browser pixel from #332. The server sends the same event the browser sends, with the same id. The browser gives each PageView a fresh `eventID`, then posts that id to `/api/meta-event`. The endpoint forwards the event to Graph v27.0, so Meta keeps one of the pair. It does nothing until the operator sets `META_CAPI_ACCESS_TOKEN` on the production site. The token, and the one-time Test Events check after it is set, are his and Tim's (steps in reddoorla/reddoor-workspace `drafts/2026-11-10-medtech-capi/tim-steps.md`).
+
+**Why only PageView.** #332 tracks nothing else. The brief expected a `Lead` with hashed email and phone. The hashing exists in `$lib/server/metaCapi`, but no form sends it: a form event would hand Meta a lead's contact details, and reddoorla.com has no privacy page. That is the operator's call.
+
+**Beliefs corrected on contact.**
+
+- _"Wait for fbevents.js to load, and the cookies will be there."_ False. On the deploy preview with the real fbevents.js, the first build posted 53ms after Accept with no `_fb` cookie. Even the load-gated build posted before Meta's pixel config arrived (1754ms against 2100ms cold, 427ms against 436ms warm). fbevents writes `_fbp` and `_fbc` only after the config. The shipped build waits for `_fbp` (every 100ms, up to 2s) and posted at 905ms, carrying `_fbp` and `_fbc=fb.2.<ms>.<fbclid>`.
+- _Playwright's `request.headers()` shows the cookies._ It doesn't; `allHeaders()` does. My first reading of "no cookies" proved nothing until the probe switched. The timing argument held on its own.
+- _Graph's version._ Meta's example says v27.0, and its changelog page said v26.0 was the latest. Graph itself answered v26.0 and v27.0 and called v28.0 unknown, so v27.0 it is. A bogus `access_token` in the JSON body answers code 190 (invalid), so Graph reads the token there, and it stays out of the URL.
+
+**Defects the review caught.** Three Opus lenses per round. Round 1 had three majors:
+
+- `event_source_url` was the full href. CRM links land on `/schedule?first_name=…&email=…&phone=…`, and the browser posts before `stripQueryParams` runs. Meta now gets origin and path only, and the client sends only origin, path and `fbclid`.
+- The post went out before fbevents could write any cookie.
+- Two smoke tests clicked Accept against the real endpoint, so a developer's own token would have sent test PageViews to Tim's pixel.
+
+Round 2's one major was the config-timing gap above. Round 3 was minors only, filed as #344–#347. Also filed:
+
+- #338: no rate limit on the public endpoint;
+- #339: a visitor leaving during the wait loses the server copy;
+- #343: #332's browser pixel keeps a CRM link's details out of its page URL (`dl`) only because the strip wins a race. That margin measured 55ms warm, and no leak was observed.
+
+**Mutations.** 19, each red: consent ignored on either side; the server minting its own id; email hashed raw; a throw or a send without the token; the full URL to Meta; no fbclid fallback; no `_fbp` wait; the token back in the URL; and the rest in #337's table.
+
+**Process notes.** #335, named in the brief as the pixel PR, was a history-only bring-main; the pixel was #332. The operator had already merged the promotion #336 (10:37am PT) before #337 landed, so a fresh bring-main (#348) and promotion follow. The container's pinned Playwright has no browser installed, so the smoke spec ran through a throwaway config pointing at `/opt/pw-browsers/chromium`.
