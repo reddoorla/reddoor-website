@@ -83,9 +83,16 @@ describe("which stages count as ran-and-failed", () => {
 });
 
 describe("the opening clause of an empty section", () => {
-  it("says the site-health checks ran and failed when one of them did", () => {
+  // `checks` failed too: with checks fine the viewport row exists, the health
+  // list is not empty, and SiteHealth never prints this clause.
+  it("says the site-health checks ran and failed when they did", () => {
     const view = toReportView(
-      withStages("11111111", { basics: FAILED, assets: undefined, siteChecks: undefined }),
+      withStages("11111111", {
+        checks: FAILED,
+        assets: { ok: false, error: "skipped — the checks stage failed" },
+        basics: FAILED,
+        siteChecks: undefined,
+      }),
     );
     expect(gapClause(view, [...HEALTH], "These checks", true)).toBe(
       "These checks ran on this audit and failed before they returned a result",
