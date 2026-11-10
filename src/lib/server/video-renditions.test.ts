@@ -36,12 +36,19 @@ const MANIFEST = {
   files: { mp4: "alpha-1080.mp4", poster: "alpha-poster.jpg" },
 };
 
-/** Alpha has a manifest on R2; every other url is a 404. */
-function fakeFetch() {
+/** A background-class manifest for Alpha, as the encoder writes it for a background slot. */
+const BACKGROUND_MANIFEST = {
+  ...MANIFEST,
+  class: "background",
+  dir: "background-20261110T103000Z",
+};
+
+/** Alpha has a manifest on R2 (`manifest` by default); every other url is a 404. */
+function fakeFetch(manifest: object = MANIFEST) {
   return vi.fn(async (input: string | URL | Request) => {
     const url = String(input);
     if (url === `https://media.reddoorla.com/${ALPHA_KEY}/manifest.json`) {
-      return new Response(JSON.stringify(MANIFEST), { status: 200 });
+      return new Response(JSON.stringify(manifest), { status: 200 });
     }
     return new Response(null, { status: 404 });
   }) as unknown as typeof fetch & ReturnType<typeof vi.fn>;
@@ -109,5 +116,93 @@ describe("loadVideoRenditions", () => {
       BETA,
       expect.any(String),
     );
+  });
+
+  it("gives no entry for a player slot whose R2 copy is a background rendition", async () => {
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const out = await loadVideoRenditions(client, fakeFetch(BACKGROUND_MANIFEST), NOW);
+
+    expect(out).not.toHaveProperty([ALPHA]);
+  });
+
+  it("keeps a background slot's URL when its R2 copy is a player rendition", async () => {
+    const client = {
+      dangerouslyGetAll: async () => [
+        {
+          id: "alpha-doc",
+          last_publication_date: "2026-11-10T10:00:00Z",
+          data: {
+            body: [{ slice_type: "case_study", primary: { video_mp4: media(ALPHA) } }],
+          },
+        },
+      ],
+    };
+
+    const out = await loadVideoRenditions(client, fakeFetch(MANIFEST), NOW);
+
+    expect(Object.keys(out)).toEqual([ALPHA]);
+  });
+
+  it("gives {} and does not hang when a manifest fetch never settles unless its signal aborts", async () => {
+    const seen: (AbortSignal | undefined)[] = [];
+    const hangingFetch = vi.fn(
+      (_input: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          seen.push(init?.signal ?? undefined);
+          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+        }),
+    ) as unknown as typeof fetch;
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const out = await loadVideoRenditions(client, hangingFetch, NOW, { fetchTimeoutMs: 20 });
+
+    expect(out).toEqual({});
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((signal) => signal instanceof AbortSignal)).toBe(true);
+  });
+
+  it("gives {} with the timeout warning when Prismic never answers", async () => {
+    const client = { dangerouslyGetAll: () => new Promise<DocLike[]>(() => {}) };
+
+    const out = await loadVideoRenditions(client, fakeFetch(), NOW, { overallTimeoutMs: 20 });
+
+    expect(out).toEqual({});
+    expect(warn).toHaveBeenCalledWith(
+      "[video-pipeline] renditions timed out, playing Prismic files",
+    );
+  });
+
+  it("gives {} with the timeout warning when a fetch ignores its signal", async () => {
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+    const deafFetch = vi.fn(() => new Promise<Response>(() => {})) as unknown as typeof fetch;
+
+    const out = await loadVideoRenditions(client, deafFetch, NOW, {
+      fetchTimeoutMs: 10_000,
+      overallTimeoutMs: 20,
+    });
+
+    expect(out).toEqual({});
+    expect(warn).toHaveBeenCalledWith(
+      "[video-pipeline] renditions timed out, playing Prismic files",
+    );
+  });
+
+  it("a preview call neither reads nor writes the memo", async () => {
+    const dangerouslyGetAll = vi.fn(async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")]);
+    const client = { dangerouslyGetAll };
+
+    await loadVideoRenditions(client, fakeFetch(), NOW);
+    await loadVideoRenditions(client, fakeFetch(), NOW, { preview: true });
+    expect(dangerouslyGetAll).toHaveBeenCalledTimes(2);
+
+    await loadVideoRenditions(client, fakeFetch(), NOW);
+    expect(dangerouslyGetAll).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,13 +1,11 @@
 # Encodes a Prismic video master to R2 (media.reddoorla.com), then rebuilds the
-# site so its slices play the R2 files. Dispatched by netlify/functions/
-# prismic-video.mts (repository_dispatch) when an editor publishes a video, or
-# by hand (workflow_dispatch) for a Prismic file URL. The shared library is
-# @reddoorla/maintenance/video-pipeline.
+# site so its slices play the R2 files. The relay (src/lib/server/video-relay.ts,
+# run by netlify/functions/prismic-video.mts) calls the workflow-dispatch API
+# when an editor publishes a video; a manual run starts it from the Actions tab.
+# The shared library is @reddoorla/maintenance/video-pipeline.
 name: video-encode
 
 on:
-  repository_dispatch:
-    types: [video-encode]
   workflow_dispatch:
     inputs:
       url:
@@ -19,9 +17,15 @@ on:
         required: true
         type: choice
         options: [background, player]
+      key:
+        description: "R2 key from the relay; leave empty for a manual run"
+        required: false
+        type: string
+        default: ""
 
+# Every run of one video shares a group, whatever started it.
 concurrency:
-  group: video-encode-${{ github.event.client_payload.key || inputs.url }}
+  group: video-encode-${{ inputs.url }}
   cancel-in-progress: false
 
 permissions:
@@ -48,18 +52,27 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
 
       - name: Encode and upload to R2
+        id: encode
+        # bash here runs `bash --noprofile --norc -eo pipefail`, so an encode
+        # failure fails the step even though its output goes through tee.
+        shell: bash
         env:
-          URL: ${{ github.event.client_payload.url || inputs.url }}
-          CLASS: ${{ github.event.client_payload.class || inputs.class }}
+          URL: ${{ inputs.url }}
+          CLASS: ${{ inputs.class }}
           # Set only on a dispatch from the relay; encode refuses a key that its own --site would not give.
-          KEY: ${{ github.event.client_payload.key }}
+          KEY: ${{ inputs.key }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
-        run: pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website ${KEY:+--key "$KEY"}
+        run: |
+          log="$(mktemp)"
+          pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website ${KEY:+--key "$KEY"} | tee "$log"
+          # encode prints `SKIP <key>: ...` when the R2 copy already serves this class; nothing changed, so no rebuild.
+          if grep -q '^SKIP ' "$log"; then echo "rebuild=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Rebuild the site
+        if: steps.encode.outputs.rebuild != 'false'
         env:
           NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
         run: |

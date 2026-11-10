@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { handlePrismicWebhook } from "@reddoorla/maintenance/video-pipeline";
+import { handlePrismicWebhook, videoKey } from "@reddoorla/maintenance/video-pipeline";
 import type { DocLike } from "@reddoorla/maintenance/video-pipeline";
 import { buildRelayConfig } from "./video-relay";
-import { VIDEO_MEDIA_BASE, VIDEO_REPO, VIDEO_RULES, VIDEO_SITE } from "../video/pipeline";
+import { VIDEO_RULES } from "../video/pipeline";
 
 const SECRET = "webhook-secret";
 const TOKEN = "dispatch-token";
@@ -60,9 +60,9 @@ describe("buildRelayConfig", () => {
 
   it("carries the site's own constants: site, repo, media base and rules", () => {
     const cfg = buildRelayConfig(env, { fetch: fakeFetch(), getDocuments: async () => [] });
-    expect(cfg.site).toBe(VIDEO_SITE);
-    expect(cfg.repo).toBe(VIDEO_REPO);
-    expect(cfg.mediaBase).toBe(VIDEO_MEDIA_BASE);
+    expect(cfg.site).toBe("reddoor-website");
+    expect(cfg.repo).toBe("reddoorla/reddoor-website");
+    expect(cfg.mediaBase).toBe("https://media.reddoorla.com");
     expect(cfg.rules).toBe(VIDEO_RULES);
   });
 
@@ -89,12 +89,13 @@ describe("the relay through buildRelayConfig", () => {
     expect(dispatches).toHaveLength(1);
     const [dispatchUrl, init] = dispatches[0]!;
     expect(String(dispatchUrl)).toBe(
-      "https://api.github.com/repos/reddoorla/reddoor-website/dispatches",
+      "https://api.github.com/repos/reddoorla/reddoor-website/actions/workflows/video-encode.yml/dispatches",
     );
     expect(init?.method).toBe("POST");
-    const sent = JSON.parse(String(init?.body));
-    expect(sent.event_type).toBe("video-encode");
-    expect(sent.client_payload).toMatchObject({ url: VIDEO_URL, class: "player" });
+    expect(JSON.parse(String(init?.body))).toEqual({
+      ref: "main",
+      inputs: { url: VIDEO_URL, class: "player", key: videoKey("reddoor-website", VIDEO_URL) },
+    });
   });
 
   it("answers 401 and touches nothing when the secret is wrong", async () => {
