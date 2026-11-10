@@ -12,12 +12,16 @@ const submitToIngest = vi.fn();
 const metaEnv = vi.hoisted(() => ({
   META_CAPI_ACCESS_TOKEN: "test-token" as string | undefined,
   META_CAPI_TEST_EVENT_CODE: undefined as string | undefined,
+  // Unset by default, as it was under $env/dynamic: the CRM sync stays off in
+  // every test except the ones that set it.
+  CRM_FUNNEL_ACTIVE_TOKEN: undefined as string | undefined,
 }));
 vi.mock("$app/env/private", () => ({
   FORMS_INGEST_URL: "https://ingest.test/api/forms/reddoor",
   FORMS_INGEST_TOKEN: "test-token",
-  // Unset, as it was under $env/dynamic: the CRM sync stays off in this suite.
-  CRM_FUNNEL_ACTIVE_TOKEN: undefined,
+  get CRM_FUNNEL_ACTIVE_TOKEN() {
+    return metaEnv.CRM_FUNNEL_ACTIVE_TOKEN;
+  },
   get META_CAPI_ACCESS_TOKEN() {
     return metaEnv.META_CAPI_ACCESS_TOKEN;
   },
@@ -29,6 +33,16 @@ vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@reddoorla/maintenance/forms")>();
   return { ...actual, submitToIngest: (opts: unknown) => submitToIngest(opts) };
 });
+// The CRM client, replaced whole: each sync resolves to a contact unless a test
+// swaps in its own implementation (to make the CRM slow, say).
+const crm = vi.hoisted(() => ({
+  application: vi.fn(async (_opts: unknown) => ({ ok: true, data: { contactId: "c1" } })),
+  inquiry: vi.fn(async (_opts: unknown) => ({ ok: true, data: { contactId: "c1" } })),
+}));
+vi.mock("$lib/ghl/client", () => ({
+  syncApplicationToCrm: (opts: unknown) => crm.application(opts),
+  syncInquiryToCrm: (opts: unknown) => crm.inquiry(opts),
+}));
 
 // The page's step titles, as Prismic serves them. A rejected lookup stands in
 // for an outage, a `page`-type campaign, or an unknown uid.
@@ -60,7 +74,12 @@ let graph: ReturnType<typeof vi.fn>;
 
 function call(
   body: Body,
-  opts: { cookies?: Record<string, string>; userAgent?: string | null } = {},
+  opts: {
+    cookies?: Record<string, string>;
+    /** Replaces the cookie jar outright, for a test that makes reading it throw. */
+    cookieJar?: { get: (name: string) => string | undefined };
+    userAgent?: string | null;
+  } = {},
 ) {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (opts.userAgent !== null) headers["user-agent"] = opts.userAgent ?? "vitest";
@@ -73,7 +92,7 @@ function call(
     fetch: graph,
     url: new URL("https://site.test/api/inquiry"),
     getClientAddress: () => "203.0.113.7",
-    cookies: { get: (name: string) => opts.cookies?.[name] },
+    cookies: opts.cookieJar ?? { get: (name: string) => opts.cookies?.[name] },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   return Promise.resolve(POST(event)).then(async (res: Response) => ({
@@ -93,6 +112,9 @@ beforeEach(() => {
   submitToIngest.mockResolvedValue({ ok: true, id: "sub_1" });
   metaEnv.META_CAPI_ACCESS_TOKEN = "test-token";
   metaEnv.META_CAPI_TEST_EVENT_CODE = undefined;
+  metaEnv.CRM_FUNNEL_ACTIVE_TOKEN = undefined;
+  crm.application.mockClear();
+  crm.inquiry.mockClear();
   graph = vi.fn(async () => new Response(null, { status: 200 }));
 });
 
@@ -424,6 +446,7 @@ describe("Meta Lead (Conversions API)", () => {
     answers: [{ label: "Problems", value: "Outdated materials" }],
     sourceUrl: SOURCE,
     metaLead,
+    turnstileToken: "0.tok",
     ts: OLD_TS(),
     ...over,
   });
@@ -548,6 +571,82 @@ describe("Meta Lead (Conversions API)", () => {
     graph.mockClear();
     await call(application(), { cookies: { _fbp: "not-meta" } });
     expect(sentEvent().user_data).not.toHaveProperty("fbp");
+  });
+
+  // The browser retries a post whose response was lost, and the modal keeps one
+  // Lead id per wizard session, so a retry carries the same metaLead. The server
+  // forwards that id unchanged: Meta counts an event_id once within 48 hours.
+  it("forwards the same event id on a retried application, so Meta can dedupe it", async () => {
+    await call(application());
+    await call(application());
+    expect(graphCalls()).toHaveLength(2);
+    const ids = graphCalls().map(
+      ([, init]) => JSON.parse(String((init as RequestInit).body)).data[0].event_id,
+    );
+    expect(ids).toEqual([EVENT_ID, EVENT_ID]);
+  });
+
+  // Central ingest stores a tokenless submission as spam, so a Lead for one was
+  // never a real applicant. Requiring the token here also means a bare curl
+  // forgery of the endpoint needs a token string to get a Lead out.
+  it("sends no Lead without a Turnstile token, and still answers success", async () => {
+    for (const turnstileToken of [undefined, ""]) {
+      const { status, json } = await call(application({ turnstileToken }));
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(submitToIngest).toHaveBeenCalledTimes(2);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  // The Lead is started right after ingest and the CRM sync runs beside it, so
+  // the response waits for the longer of the two, not their sum. The CRM here is
+  // slow until the Graph call has begun (or a second has passed): a Lead that
+  // waits for the CRM would finish after it, and the order would say so.
+  it("starts the Lead before the CRM sync finishes, and answers after both", async () => {
+    metaEnv.CRM_FUNNEL_ACTIVE_TOKEN = "crm-token";
+    const order: string[] = [];
+    let graphStarted!: () => void;
+    const started = new Promise<void>((resolve) => (graphStarted = resolve));
+    crm.application.mockImplementationOnce(async () => {
+      await Promise.race([started, new Promise((resolve) => setTimeout(resolve, 1000))]);
+      order.push("crm");
+      return { ok: true, data: { contactId: "c1" } };
+    });
+    graph.mockImplementation(async () => {
+      order.push("graph");
+      graphStarted();
+      return new Response(null, { status: 200 });
+    });
+
+    const { status, json } = await call(application());
+    expect(status).toBe(200);
+    expect(json).toEqual({ success: true });
+    expect(crm.application).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["graph", "crm"]);
+  });
+
+  // sendLead itself throws (the cookie jar is read inside it), which is not the
+  // same as Graph refusing: this proves the handler's own catch is what keeps
+  // the visitor's success, with the lead already in ingest.
+  it("still answers success and keeps the ingest copy when sendLead itself throws", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { status, json } = await call(application(), {
+        cookieJar: {
+          get: () => {
+            throw new Error("boom");
+          },
+        },
+      });
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+      expect(submitToIngest).toHaveBeenCalledTimes(1);
+      expect(graphCalls()).toHaveLength(0);
+      expect(logged).toHaveBeenCalledWith(expect.stringContaining("Lead not sent: boom"));
+    } finally {
+      logged.mockRestore();
+    }
   });
 
   it("sends the test event code when one is configured", async () => {

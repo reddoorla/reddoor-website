@@ -114,6 +114,10 @@
   // continuation sees the mismatch and refuses to touch the new session's state.
   // Plain (not $state) — it gates control flow, it is never rendered.
   let session = 0;
+  // The Lead tag for this wizard session, decided on its first submit and reused
+  // by every retry (see submitApplication). undefined = not decided yet; null =
+  // this session has no Lead. Plain, like `session`: it is never rendered.
+  let leadTag: { eventId: string } | null | undefined = undefined;
 
   const resolvedSurveyId = $derived(surveyId.trim() || DEFAULT_INQUIRY_SURVEY_ID);
   /**
@@ -415,6 +419,8 @@
     phone = "";
     smsConsent = false;
     contactErrors = {};
+    // A new wizard session gets its own Lead id on its first submit.
+    leadTag = undefined;
   }
 
   /**
@@ -744,13 +750,22 @@
       value: answers[q.tag] ?? "",
     }));
 
-    // The Lead tag, decided before the post: the server needs the id the pixel
-    // will get. Null off the funnel or without an accepted answer, and then the
-    // post carries no tag at all.
-    const lead = prepareLead(
-      location.pathname,
-      readConsent(() => localStorage),
-    );
+    // The Lead tag, decided once per wizard session, on the first submit. A retry
+    // after a lost response posts the same tag, so Meta gets one Lead for the one
+    // application, not one per attempt. Null off the funnel or without an
+    // accepted answer, and then the post carries no tag at all. Measurement never
+    // breaks the form: a storage or id source that throws means no Lead.
+    if (leadTag === undefined) {
+      try {
+        leadTag = prepareLead(
+          location.pathname,
+          readConsent(() => localStorage),
+        );
+      } catch {
+        leadTag = null;
+      }
+    }
+    const lead = leadTag;
     const res = await postIngest({
       email: capturedEmail,
       name: capturedName,

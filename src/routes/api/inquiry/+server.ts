@@ -192,6 +192,8 @@ type LeadInput = {
   url: URL;
   userAgent: string | undefined;
   clientIp: string | undefined;
+  /** The handler's Turnstile token, as forwarded to ingest (undefined when absent). */
+  turnstileToken: string | undefined;
   email: string;
   phone: string;
   cookies: Cookies;
@@ -202,11 +204,14 @@ type LeadInput = {
  * The server copy of the browser's Lead for a completed application (see
  * $lib/consent/metaPixel `trackLead`). The source must be a funnel page on this
  * origin, as the browser's page was, and a request with no user agent is not a
- * browser's. Sends nothing when any check fails.
+ * browser's. A Turnstile token is required too: central ingest stores a
+ * tokenless submission as spam (`turnstile-required-absent`), so a Lead for one
+ * was never a real applicant, and a bare curl forgery needs a token to get one.
+ * Sends nothing when any check fails.
  */
 async function sendLead(lead: LeadInput): Promise<void> {
   const eventId = readLeadEventId(lead.tag);
-  if (!eventId || !lead.userAgent) return;
+  if (!eventId || !lead.userAgent || !lead.turnstileToken) return;
   let source: URL;
   try {
     source = new URL(lead.sourceUrl || `${lead.url.origin}${lead.url.pathname}`);
@@ -412,6 +417,29 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     );
   }
 
+  // The Lead is the server copy of the browser's, for a finished application
+  // only: step one is an email capture and sends none, and a probe never does.
+  // It starts here, beside the CRM sync below rather than after it, and is
+  // awaited at the end. Whatever happens to it, the visitor still gets success:
+  // the application is in ingest already.
+  const leadSent: Promise<void> =
+    body.testMode !== true && isApplication
+      ? sendLead({
+          tag: body.metaLead,
+          sourceUrl,
+          url,
+          userAgent,
+          clientIp,
+          turnstileToken,
+          email,
+          phone,
+          cookies,
+          fetch,
+        }).catch((err) => {
+          console.error(`[inquiry] Lead not sent: ${(err as Error)?.message ?? err}`);
+        })
+      : Promise.resolve();
+
   // Ingest is the source of record and holds the lead now. The CRM sync runs on
   // top of it: awaited, so a failure is logged with a real status — the browser
   // fire this replaced was opaque by construction (`mode: "no-cors"`) and, on
@@ -483,27 +511,8 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     }
   }
 
-  // The Lead is the server copy of the browser's, for a finished application
-  // only: step one is an email capture and sends none, and a probe never does.
-  // Whatever happens here, the visitor still gets success: the application is
-  // in ingest already.
-  if (body.testMode !== true && isApplication) {
-    try {
-      await sendLead({
-        tag: body.metaLead,
-        sourceUrl,
-        url,
-        userAgent,
-        clientIp,
-        email,
-        phone,
-        cookies,
-        fetch,
-      });
-    } catch (err) {
-      console.error(`[inquiry] Lead not sent: ${(err as Error)?.message ?? err}`);
-    }
-  }
-
+  // Awaited last, so the response waits for the Lead and the CRM sync together
+  // (whichever is slower), not for one after the other. It never rejects.
+  await leadSent;
   return json({ success: true });
 };

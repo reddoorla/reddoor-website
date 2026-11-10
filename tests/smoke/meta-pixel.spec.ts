@@ -176,6 +176,134 @@ test(
   },
 );
 
+/**
+ * The inquiry posts the modal makes, answered in order: `statuses[0]` for the
+ * email step, then the application, and the last status repeats. Turnstile is
+ * aborted, as the modal's own suite does, so the post never waits on it.
+ */
+async function stubInquiryPosts(page: Page, statuses: number[] = [200]) {
+  const posts: Record<string, unknown>[] = [];
+  await page.route("**/challenges.cloudflare.com/**", (route) => route.abort());
+  await page.route("**/api/inquiry", (route) => {
+    posts.push(route.request().postDataJSON() as Record<string, unknown>);
+    const status = statuses[Math.min(posts.length - 1, statuses.length - 1)];
+    return route.fulfill({
+      status,
+      contentType: "application/json",
+      body: JSON.stringify(status === 200 ? { success: true } : { error: "Something went wrong." }),
+    });
+  });
+  return posts;
+}
+
+/** Opens the modal from its first inquiry trigger and submits a finished application. */
+async function submitApplication(page: Page) {
+  await page.locator('a[href$="#inquire"]').first().click();
+  await page.locator("#inquiry-email").fill("buyer@example.com");
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Inquire Now" }).click();
+  await expect(
+    dialog.getByRole("heading", { name: /What problems are you experiencing\?/ }),
+  ).toBeVisible();
+  for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
+  await page.locator("#inquiry-name").fill("Pat Buyer");
+  await page.locator("#inquiry-phone").fill("(555) 123-4567");
+  await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
+  await dialog.getByRole("button", { name: "Submit Application" }).click();
+  return dialog;
+}
+
+/** The Lead events the page queued on Tim's pixel. */
+const leadCalls = async (page: Page) =>
+  ((await fbqCalls(page)) ?? []).filter((c) => c[0] === "track" && c[1] === "Lead");
+
+test(
+  "a completed application on the funnel fires one Lead, under the id the server is sent",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    const posts = await stubInquiryPosts(page);
+    await gotoHydrated(page, "/medtech");
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect(consentBar(page)).toBeHidden();
+
+    await submitApplication(page);
+    await expect(page).toHaveURL(/\/schedule$/);
+
+    // Email step, then the application: the application carries the Lead tag.
+    expect(posts).toHaveLength(2);
+    const metaLead = posts[1].metaLead as { eventId?: string; consent?: string } | undefined;
+    expect(metaLead?.consent).toBe("accepted");
+    expect(metaLead?.eventId).toBeTruthy();
+    await expect.poll(() => leadCalls(page)).toHaveLength(1);
+    expect(await leadCalls(page)).toEqual([["track", "Lead", {}, { eventID: metaLead?.eventId }]]);
+  },
+);
+
+test(
+  "an application the server refuses fires no Lead, and the visitor stays on the form",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    const posts = await stubInquiryPosts(page, [200, 502]);
+    await gotoHydrated(page, "/medtech");
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect(consentBar(page)).toBeHidden();
+
+    const dialog = await submitApplication(page);
+    await expect(dialog.getByRole("alert")).toBeVisible();
+    expect(posts).toHaveLength(2);
+    expect(await leadCalls(page)).toEqual([]);
+  },
+);
+
+test(
+  "a retried application keeps its Lead id, so Meta counts one Lead",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    const posts = await stubInquiryPosts(page, [200, 502, 200]);
+    await gotoHydrated(page, "/medtech");
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect(consentBar(page)).toBeHidden();
+
+    const dialog = await submitApplication(page);
+    await expect(dialog.getByRole("alert")).toBeVisible();
+    await dialog.getByRole("button", { name: "Submit Application" }).click();
+    await expect(page).toHaveURL(/\/schedule$/);
+
+    // The first application was refused and its Lead never fired; the retry is
+    // the same visitor's same application, so it carries the same id.
+    expect(posts).toHaveLength(3);
+    const first = (posts[1].metaLead as { eventId?: string } | undefined)?.eventId;
+    const retry = (posts[2].metaLead as { eventId?: string } | undefined)?.eventId;
+    expect(first).toBeTruthy();
+    expect(retry).toBe(first);
+    await expect.poll(() => leadCalls(page)).toHaveLength(1);
+    expect(await leadCalls(page)).toEqual([["track", "Lead", {}, { eventID: first }]]);
+  },
+);
+
+// /dev/a11y-fixtures, not /boise: it is off the funnel and carries the modal's
+// full five-question survey, which /boise's survey does not (the walk-through
+// has no fifth "Next" there). The inquiry-modal suite drives the same page.
+test(
+  "off the funnel the same application posts no Lead, even with consent",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    const posts = await stubInquiryPosts(page);
+    await page.addInitScript(() => localStorage.setItem("cookieConsent", "true"));
+    await gotoHydrated(page, "/dev/a11y-fixtures");
+
+    await submitApplication(page);
+    await expect(page).toHaveURL(/\/schedule$/);
+    expect(posts).toHaveLength(2);
+    expect(posts[1]).not.toHaveProperty("metaLead");
+    expect(await leadCalls(page)).toEqual([]);
+  },
+);
+
 test(
   "off the funnel there is no ask and no pixel, even after consent",
   { tag: "@smoke" },
