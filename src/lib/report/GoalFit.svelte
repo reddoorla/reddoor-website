@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { GOAL_LABELS, goalVerdict, type GoalRequirement, type ReportView } from "./model";
+  import {
+    GOAL_LABELS,
+    gapClause,
+    goalVerdict,
+    type GoalRequirement,
+    type ReportView,
+  } from "./model";
   import { numberWord } from "./narrative";
   import { composed } from "./overrides";
 
@@ -62,8 +68,8 @@
 
 {#if !fit}
   <p class="type-lede m-0 text-muted">
-    This check did not run on this audit. That is a gap in the measurement, not a finding about your
-    site.
+    {gapClause(view, ["goalFit"], "This check")}. That is a gap in the measurement, not a finding
+    about your site.
   </p>
 {:else if fit.goal === "unknown"}
   <!-- A real measurement, not a failure. We read every page and could not tell

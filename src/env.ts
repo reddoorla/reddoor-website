@@ -51,6 +51,16 @@ export const variables = defineEnvVars({
     description:
       'Set to "1" by the Playwright smoke suite only: the booking funnel renders its built-in copy, whatever is published in Prismic.',
   },
+  META_CAPI_ACCESS_TOKEN: {
+    schema: optional,
+    description:
+      "Meta Conversions API token for the MedTech pixel (Events Manager > pixel > Settings > Conversions API); unset sends no server events.",
+  },
+  META_CAPI_TEST_EVENT_CODE: {
+    schema: optional,
+    description:
+      "Meta Test Events code; set only while checking server events in Events Manager, then remove.",
+  },
   PRISMIC_HIDDEN_CONTENT: {
     schema: optional,
     description: 'Set to "show" on the staging site to show hide-tagged Prismic documents.',

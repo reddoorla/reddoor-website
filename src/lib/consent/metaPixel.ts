@@ -88,6 +88,8 @@ type FbqFn = ((...args: unknown[]) => void) & {
   loaded: boolean;
   version: string;
   disablePushState?: boolean;
+  /** Resolves once fbevents.js has loaded or failed (blocked, offline). */
+  settled?: Promise<"load" | "error">;
 };
 
 export type PixelWindow = { fbq?: FbqFn; _fbq?: FbqFn };
@@ -115,6 +117,10 @@ export function ensureMetaPixel(win: PixelWindow, doc: Document): FbqFn {
   const script = doc.createElement("script");
   script.async = true;
   script.src = META_PIXEL_SRC;
+  fbq.settled = new Promise((resolve) => {
+    script.addEventListener("load", () => resolve("load"));
+    script.addEventListener("error", () => resolve("error"));
+  });
   doc.head.appendChild(script);
 
   fbq("set", "autoConfig", false, META_PIXEL_ID);
@@ -122,7 +128,90 @@ export function ensureMetaPixel(win: PixelWindow, doc: Document): FbqFn {
   return fbq;
 }
 
-/** One PageView for the funnel page now showing. */
-export function trackFunnelPageView(win: PixelWindow, doc: Document): void {
-  ensureMetaPixel(win, doc)("track", "PageView");
+/** What the browser posts to /api/meta-event for the Conversions API copy. */
+export type ServerEventBody = {
+  event_name: string;
+  event_id: string;
+  event_source_url: string;
+  consent: "accepted";
+};
+
+export const SERVER_EVENT_ENDPOINT = "/api/meta-event";
+
+/**
+ * One id per event, shared by the pixel (`eventID`) and the server
+ * (`event_id`), so Meta keeps one of the pair. randomUUID is missing on plain
+ * http (`vite:devHost` on a phone) and before Safari 15.4, so it falls back to
+ * getRandomValues, which is there on both.
+ */
+function newEventId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+/** Fire-and-forget; `keepalive` lets it finish if the visitor leaves. */
+function postServerEvent(body: ServerEventBody): void {
+  try {
+    void fetch(SERVER_EVENT_ENDPOINT, {
+      method: "POST",
+      keepalive: true,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => {});
+  } catch {
+    // Measurement never breaks the page.
+  }
+}
+
+/**
+ * One PageView for the funnel page now showing, in the browser and (with the
+ * same event id) on the server. Only an "accepted" answer sends either: the
+ * server endpoint checks the same value again.
+ */
+export function trackFunnelPageView(
+  win: PixelWindow,
+  doc: Document,
+  consent: Consent,
+  send: (body: ServerEventBody) => void = postServerEvent,
+): void {
+  if (consent !== "accepted") return;
+  const eventId = newEventId();
+  const fbq = ensureMetaPixel(win, doc);
+  fbq("track", "PageView", {}, { eventID: eventId });
+  // Meta gets origin and path; the click id is the one query value the server
+  // needs (for fbc). A CRM link's name, email and phone never leave the page.
+  const here = new URL(doc.location.href);
+  const fbclid = here.searchParams.get("fbclid");
+  const body: ServerEventBody = {
+    event_name: "PageView",
+    event_id: eventId,
+    event_source_url:
+      here.origin + here.pathname + (fbclid ? `?fbclid=${encodeURIComponent(fbclid)}` : ""),
+    consent,
+  };
+  void whenCookiesWritten(doc, fbq.settled).then(() => send(body));
+}
+
+const FBP_WAIT_STEP_MS = 100;
+const FBP_WAIT_MAX_MS = 2000;
+const hasFbp = (doc: Document) => /(?:^|;\s*)_fbp=/.test(doc.cookie ?? "");
+
+/**
+ * The server copy should carry Meta's _fbp/_fbc cookies, and fbevents.js
+ * writes them only after it has loaded AND fetched the pixel's config: on the
+ * deploy preview (2026-11-10, real fbevents.js) a post sent at load time went
+ * 53ms after Accept with no _fb cookie, while both existed seconds later. So
+ * after a load, wait (bounded) for _fbp; after a blocked script, no cookie is
+ * coming and it posts at once.
+ */
+async function whenCookiesWritten(
+  doc: Document,
+  settled: Promise<"load" | "error"> | undefined,
+): Promise<void> {
+  if ((await settled) !== "load") return;
+  for (let waited = 0; waited < FBP_WAIT_MAX_MS && !hasFbp(doc); waited += FBP_WAIT_STEP_MS) {
+    await new Promise((r) => setTimeout(r, FBP_WAIT_STEP_MS));
+  }
 }

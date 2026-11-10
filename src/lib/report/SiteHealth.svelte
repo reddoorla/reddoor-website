@@ -1,7 +1,7 @@
 <script lang="ts">
   import ReportDisclosure from "./ReportDisclosure.svelte";
   import { healthRows } from "./health";
-  import type { ReportView } from "./model";
+  import { gapClause, type ReportView } from "./model";
 
   // Whether the site works — checked the way a stranger would check it.
   //
@@ -39,8 +39,8 @@
 
 {#if rows.length === 0}
   <p class="type-lede m-0 text-muted">
-    These checks did not run on this audit. That is a gap in the measurement, not a finding about
-    your site.
+    {gapClause(view, ["checks", "basics", "assets", "siteChecks"], "These checks", true)}. That is a
+    gap in the measurement, not a finding about your site.
   </p>
 {:else}
   <div class="flex flex-col gap-10">

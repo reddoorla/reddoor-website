@@ -1985,3 +1985,54 @@ Mutations on the first version: ignoring consent turned 3 smoke tests red; treat
 CSP: `script-src` gains `connect.facebook.net`, and `connect-src` gains `www.facebook.com`. A first draft also put `connect.facebook.net` in `connect-src`, but every request to it is a `<script>`, so it came out. No privacy page exists on reddoorla.com; that is flagged to the operator, not written. The minors are filed as reddoorla/reddoor-website#333 (no way to withdraw consent) and #334 (fbevents duplicate-PageView and form-POST fallback, unverifiable headless). Out of scope and left for later: the questionnaire's Meta-to-CRM sync that Tim mentioned, and CAPI.
 
 Usage: $4.53, 648/40099 tokens, 11159947/205063 cache, rate limit allowed (reading at 9:53am PT, before this commit; the hand-back has the final figure).
+
+## 2026-11-10 — The audit report tells a check that ran and failed from one that never ran; the four #893 gaps asserted on producer payloads (reddoorla/reddoor-website#340)
+
+**Why.** The producer-shape tests carried four "known coverage gap" tests, because the five producer fixtures varied which keys exist but never the values that pick a branch. reddoorla/reddoor-maintenance#2022 adds two runs of today's producer whose stubbed dependencies take the other branch. With those fixtures, each gap test became an assertion on the sentence a prospect reads, with every expected number read out of the raw payload by its path:
+
+- "We could not check." for the robots.txt that timed out;
+- "It turns away GPTBot." for the one that blocks it;
+- "We read 3 of the 3 pages we crawled for this check; your sitemap lists 12.";
+- "Named in 2 of 3 buyer searches." after one of three category probes died.
+
+**Defect, named.** The first gap was not just untested, it was wrong. `stage()` mapped `{ok:false}` to the same `null` as an absent stage. So on `adverse-unmeasured`, where two branded answers were captured and the accuracy model call then failed, the source check printed "no assistant answer about Acme Roofing was captured to check against". The oldest payload gets the same sentence for never having run the check. The brief's mutation, "make `stage()`'s failure branch read as 'not run'", described the code as it stood, so no test could have turned red on it. That made it a stop, not a fix. Asked at 10:09am PT; the operator chose "add it everywhere".
+
+The view now carries `failedStages`: a stage is `{ok:false}` with an error that is not one of the producer's four exported skip messages, which are copied verbatim, em dashes included. The source check, site health, the visibility test and the goal check use `gapClause` for their empty states. The method section, on the web report and the print sheet, names every failed check. A second defect turned up on the way: the print sheet's "Does it work" printed "Every check on whether the site works came back clean" whenever no health row existed, both for a run whose checks failed and for one that never ran them.
+
+**Beliefs corrected on contact:**
+
+- The bit-7 fix test asserted a non-empty `addresses` on every fix. The producer's type is `string | null`, and `measured-fixes.ts` writes `null` on its "Let GPTBot read your site" fix, which the first five fixtures never carried. The operator approved matching the type (10:37am PT). The test still requires one string per payload.
+- Dropping `=== true` on `crawlerAccessMeasured` changes nothing on any producer payload: the field is always a real boolean, and `false` stays `false`. Only a payload missing the key tells them apart, so that is the test.
+- The first mutation run reported all eight mutants surviving. vitest prints its failure list on stderr, and the harness read stdout. Rerun with a no-op control (stayed green), all eight were red.
+
+**Left open.** Review round 1 found that `Report.svelte` mounts Standing and GoalFit only when their data exists. Their new failure copy is therefore unreachable today; the method section is where a visitor reads it (reddoorla/reddoor-website#341). The site-health clause also overstates when only some of its stages failed (#342). The five old fixtures are not regenerated: the producer has since added `pagesWithTruncatedAnchors: []`, and that drift predates this work.
+
+Usage: not readable (`get_session` carries no usage figures in this session).
+
+## 2026-11-10 — The MedTech pixel's PageView gets its Conversions API copy (#337, `2cb6fa9`)
+
+Tim needed Meta's Conversions API (CAPI) alongside the browser pixel from #332. The server sends the same event the browser sends, with the same id. The browser gives each PageView a fresh `eventID`, then posts that id to `/api/meta-event`. The endpoint forwards the event to Graph v27.0, so Meta keeps one of the pair. It does nothing until the operator sets `META_CAPI_ACCESS_TOKEN` on the production site. The token, and the one-time Test Events check after it is set, are his and Tim's (steps in reddoorla/reddoor-workspace `drafts/2026-11-10-medtech-capi/tim-steps.md`).
+
+**Why only PageView.** #332 tracks nothing else. The brief expected a `Lead` with hashed email and phone. The hashing exists in `$lib/server/metaCapi`, but no form sends it: a form event would hand Meta a lead's contact details, and reddoorla.com has no privacy page. That is the operator's call.
+
+**Beliefs corrected on contact.**
+
+- _"Wait for fbevents.js to load, and the cookies will be there."_ False. On the deploy preview with the real fbevents.js, the first build posted 53ms after Accept with no `_fb` cookie. Even the load-gated build posted before Meta's pixel config arrived (1754ms against 2100ms cold, 427ms against 436ms warm). fbevents writes `_fbp` and `_fbc` only after the config. The shipped build waits for `_fbp` (every 100ms, up to 2s) and posted at 905ms, carrying `_fbp` and `_fbc=fb.2.<ms>.<fbclid>`.
+- _Playwright's `request.headers()` shows the cookies._ It doesn't; `allHeaders()` does. My first reading of "no cookies" proved nothing until the probe switched. The timing argument held on its own.
+- _Graph's version._ Meta's example says v27.0, and its changelog page said v26.0 was the latest. Graph itself answered v26.0 and v27.0 and called v28.0 unknown, so v27.0 it is. A bogus `access_token` in the JSON body answers code 190 (invalid), so Graph reads the token there, and it stays out of the URL.
+
+**Defects the review caught.** Three Opus lenses per round. Round 1 had three majors:
+
+- `event_source_url` was the full href. CRM links land on `/schedule?first_name=…&email=…&phone=…`, and the browser posts before `stripQueryParams` runs. Meta now gets origin and path only, and the client sends only origin, path and `fbclid`.
+- The post went out before fbevents could write any cookie.
+- Two smoke tests clicked Accept against the real endpoint, so a developer's own token would have sent test PageViews to Tim's pixel.
+
+Round 2's one major was the config-timing gap above. Round 3 was minors only, filed as #344–#347. Also filed:
+
+- #338: no rate limit on the public endpoint;
+- #339: a visitor leaving during the wait loses the server copy;
+- #343: #332's browser pixel keeps a CRM link's details out of its page URL (`dl`) only because the strip wins a race. That margin measured 55ms warm, and no leak was observed.
+
+**Mutations.** 19, each red: consent ignored on either side; the server minting its own id; email hashed raw; a throw or a send without the token; the full URL to Meta; no fbclid fallback; no `_fbp` wait; the token back in the URL; and the rest in #337's table.
+
+**Process notes.** #335, named in the brief as the pixel PR, was a history-only bring-main; the pixel was #332. The operator had already merged the promotion #336 (10:37am PT) before #337 landed, so a fresh bring-main (#348) and promotion follow. The container's pinned Playwright has no browser installed, so the smoke spec ran through a throwaway config pointing at `/opt/pw-browsers/chromium`.

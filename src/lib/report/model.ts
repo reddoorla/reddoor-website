@@ -771,6 +771,10 @@ export type ReportView = {
    *  at most a fixed number of pages, so "we read 14 of your 20 pages" was
    *  the crawl cap presented as the site; this is the honest denominator. */
   sitemapUrlCount: number | null;
+  /** Stages that RAN AND FAILED, in report order. A stage this era of the
+   *  payload lacks, or one the producer skipped on purpose, is not here: both
+   *  are "never ran", and only this list may say "ran and failed". */
+  failedStages: StageKey[];
   brandedRecognized: boolean | null;
   categoryProbes: ProbeAnswer[];
   brandedProbes: ProbeAnswer[];
@@ -852,6 +856,95 @@ function stage<T>(value: unknown): T | null {
   if (!value || typeof value !== "object") return null;
   const s = value as { ok?: unknown; data?: unknown };
   return s.ok === true && s.data !== undefined ? (s.data as T) : null;
+}
+
+/** The stages the report reads, in the order it reads them. */
+export const STAGE_KEYS = [
+  "checks",
+  "analyze",
+  "probes",
+  "stack",
+  "assets",
+  "basics",
+  "siteChecks",
+  "accessibility",
+  "goalFit",
+  "accuracy",
+] as const;
+export type StageKey = (typeof STAGE_KEYS)[number];
+
+/**
+ * The producer's own "never ran" messages: reddoor-maintenance
+ * `src/prospect/pipeline.ts` exports each one so a consumer compares rather
+ * than guesses. Copied, not imported: `AuditReport` is still untyped here (see
+ * fetch.ts), and so is this dependency. A stage `{ok:false}` with one of these
+ * was skipped on purpose; with any other error it ran and failed.
+ */
+const SKIPPED = new Set([
+  "skipped (--no-probes)", // PROBES_SKIPPED
+  "skipped — the checks stage failed", // ANALYZE_SKIPPED, ASSETS_SKIPPED
+  "skipped — no branded answers to check", // ACCURACY_SKIPPED
+  "no goal supplied and none could be inferred", // GOAL_UNRESOLVED
+]);
+
+/** `{ok:false}` with an error that is not one of the producer's skips. */
+function ranAndFailed(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const s = value as { ok?: unknown; error?: unknown };
+  return s.ok === false && !(typeof s.error === "string" && SKIPPED.has(s.error));
+}
+
+/** Did any of these stages run and fail on this audit? */
+export function stageFailed(view: ReportView, ...keys: StageKey[]): boolean {
+  return keys.some((k) => view.failedStages.includes(k));
+}
+
+/**
+ * The opening clause of a section with nothing to show: "ran on this audit and
+ * failed" when one of its stages did, "did not run" otherwise. They are
+ * different claims, and before #893 every section made the second one for
+ * both, so a source check whose model call failed told the reader no answer
+ * had been captured. No final full stop: each section ends the sentence its
+ * own way.
+ */
+export function gapClause(
+  view: ReportView,
+  keys: StageKey[],
+  subject: string,
+  plural = false,
+): string {
+  return stageFailed(view, ...keys)
+    ? `${subject} ran on this audit and failed before ${plural ? "they" : "it"} returned a result`
+    : `${subject} did not run on this audit`;
+}
+
+const STAGE_LABEL: Record<StageKey, string> = {
+  checks: "the page checks",
+  analyze: "the content analysis",
+  probes: "the visibility test",
+  stack: "the platform readout",
+  assets: "the link and image checks",
+  basics: "the basics checks",
+  siteChecks: "the site checks",
+  accessibility: "the accessibility scan",
+  goalFit: "the goal check",
+  accuracy: "the check of what the assistant says about you",
+};
+
+/**
+ * One sentence for the method section naming every stage that ran and failed,
+ * or null when none did. A failed stage leaves its section empty on the print
+ * sheet, so this is the only place there that says the gap is ours.
+ */
+export function failedChecksSentence(view: ReportView): string | null {
+  const names = view.failedStages.map((k) => STAGE_LABEL[k]);
+  if (names.length === 0) return null;
+  const list =
+    names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return (
+    `${list.charAt(0).toUpperCase()}${list.slice(1)} ran on this audit and failed before ` +
+    `returning a result. That is a gap in our measurement, not a finding about your site.`
+  );
 }
 
 /**
@@ -1195,6 +1288,7 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
       crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
         ? crawl.sitemap.urlCount
         : null,
+    failedStages: STAGE_KEYS.filter((k) => ranAndFailed(r[k])),
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,
     brandedProbes: answers.filter((a) => a.kind === "branded"),
