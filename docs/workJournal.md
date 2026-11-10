@@ -1985,3 +1985,26 @@ Mutations on the first version: ignoring consent turned 3 smoke tests red; treat
 CSP: `script-src` gains `connect.facebook.net`, and `connect-src` gains `www.facebook.com`. A first draft also put `connect.facebook.net` in `connect-src`, but every request to it is a `<script>`, so it came out. No privacy page exists on reddoorla.com; that is flagged to the operator, not written. The minors are filed as reddoorla/reddoor-website#333 (no way to withdraw consent) and #334 (fbevents duplicate-PageView and form-POST fallback, unverifiable headless). Out of scope and left for later: the questionnaire's Meta-to-CRM sync that Tim mentioned, and CAPI.
 
 Usage: $4.53, 648/40099 tokens, 11159947/205063 cache, rate limit allowed (reading at 9:53am PT, before this commit; the hand-back has the final figure).
+
+## 2026-11-10 — The audit report tells a check that ran and failed from one that never ran; the four #893 gaps asserted on producer payloads (reddoorla/reddoor-website#340)
+
+**Why.** The producer-shape tests carried four "known coverage gap" tests, because the five producer fixtures varied which keys exist but never the values that pick a branch. reddoorla/reddoor-maintenance#2022 adds two runs of today's producer whose stubbed dependencies take the other branch. With those fixtures, each gap test became an assertion on the sentence a prospect reads, with every expected number read out of the raw payload by its path:
+
+- "We could not check." for the robots.txt that timed out;
+- "It turns away GPTBot." for the one that blocks it;
+- "We read 3 of the 3 pages we crawled for this check; your sitemap lists 12.";
+- "Named in 2 of 3 buyer searches." after one of three category probes died.
+
+**Defect, named.** The first gap was not just untested, it was wrong. `stage()` mapped `{ok:false}` to the same `null` as an absent stage. So on `adverse-unmeasured`, where two branded answers were captured and the accuracy model call then failed, the source check printed "no assistant answer about Acme Roofing was captured to check against". The oldest payload gets the same sentence for never having run the check. The brief's mutation, "make `stage()`'s failure branch read as 'not run'", described the code as it stood, so no test could have turned red on it. That made it a stop, not a fix. Asked at 10:09am PT; the operator chose "add it everywhere".
+
+The view now carries `failedStages`: a stage is `{ok:false}` with an error that is not one of the producer's four exported skip messages, which are copied verbatim, em dashes included. The source check, site health, the visibility test and the goal check use `gapClause` for their empty states. The method section, on the web report and the print sheet, names every failed check. A second defect turned up on the way: the print sheet's "Does it work" printed "Every check on whether the site works came back clean" whenever no health row existed, both for a run whose checks failed and for one that never ran them.
+
+**Beliefs corrected on contact:**
+
+- The bit-7 fix test asserted a non-empty `addresses` on every fix. The producer's type is `string | null`, and `measured-fixes.ts` writes `null` on its "Let GPTBot read your site" fix, which the first five fixtures never carried. The operator approved matching the type (10:37am PT). The test still requires one string per payload.
+- Dropping `=== true` on `crawlerAccessMeasured` changes nothing on any producer payload: the field is always a real boolean, and `false` stays `false`. Only a payload missing the key tells them apart, so that is the test.
+- The first mutation run reported all eight mutants surviving. vitest prints its failure list on stderr, and the harness read stdout. Rerun with a no-op control (stayed green), all eight were red.
+
+**Left open.** Review round 1 found that `Report.svelte` mounts Standing and GoalFit only when their data exists. Their new failure copy is therefore unreachable today; the method section is where a visitor reads it (reddoorla/reddoor-website#341). The site-health clause also overstates when only some of its stages failed (#342). The five old fixtures are not regenerated: the producer has since added `pagesWithTruncatedAnchors: []`, and that drift predates this work.
+
+Usage: not readable (`get_session` carries no usage figures in this session).

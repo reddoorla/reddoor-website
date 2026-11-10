@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { toReportView, type Fix, type ReportView } from "./model";
 import type { AuditReport } from "./fetch";
+import type { Component } from "svelte";
+import { ssr, renderText } from "./ssr-test-harness";
 
 /**
  * `toReportView` over payloads the PRODUCER wrote, one per stored shape.
@@ -32,9 +34,9 @@ import type { AuditReport } from "./fetch";
  * and still match. Where the producer's value passes through untouched, the
  * comparison proves the pass-through and nothing else, so every such assertion
  * below is preceded by a check that the raw path EXISTS with the right type —
- * that part is what a rename reds. Where a fixture makes the two sides equal by
- * accident rather than by construction, the degeneracy is recorded as a named
- * test in "known coverage gaps" rather than left to be rediscovered.
+ * that part is what a rename reds. Where the five make the two sides equal by
+ * accident rather than by construction, the two adverse fixtures break the tie;
+ * their own blocks below say which value each one carries.
  *
  * `AuditReport` stays `Record<string, unknown>` (see fetch.ts — the real type
  * needs a dependency bump this repo has deliberately deferred), so the raw
@@ -75,11 +77,24 @@ const nonEmptyString = (value: unknown): boolean =>
 const SHAPES = ["11111111", "11100001", "11000001", "10000001", "00000000"] as const;
 
 /**
+ * Two more runs of TODAY's producer, over stubbed dependencies chosen so the
+ * values that pick a branch take the branch the five never reach (#893): a
+ * stage that ran and failed, an unmeasured robots.txt, one that turns GPTBot
+ * away, a sitemap with a real count, and a category probe that died. See the
+ * README's "The adverse shapes". Two files because one run cannot carry both
+ * robots cases: the producer fills `blockedAi` only after a successful fetch.
+ */
+const ADVERSE = ["adverse-unmeasured", "adverse-blocked"] as const;
+const ALL = [...SHAPES, ...ADVERSE] as const;
+
+/**
  * The bit-string is the specification — see the README's table. Bit 7 (index 6)
  * is `fix.addresses`, so it is the shape string itself that says whether a fix
- * in this era should carry that field, not an observation of the fixture.
+ * in this era should carry that field, not an observation of the fixture. The
+ * adverse files are today's era, all eight bits set.
  */
-const carriesFixAddresses = (shape: string): boolean => shape[6] === "1";
+const bitsOf = (shape: string): string => (shape.startsWith("adverse-") ? "11111111" : shape);
+const carriesFixAddresses = (shape: string): boolean => bitsOf(shape)[6] === "1";
 
 /**
  * NOTHING IS BUILT IN A `describe` BODY.
@@ -109,7 +124,7 @@ const viewFor = (shape: string): ReportView => {
   return built;
 };
 
-describe.each(SHAPES)("a producer payload of shape %s", (shape) => {
+describe.each(ALL)("a producer payload of shape %s", (shape) => {
   it("renders as a report rather than throwing", () => {
     expect(() => toReportView(rawFor(shape))).not.toThrow();
   });
@@ -262,11 +277,21 @@ describe.each(SHAPES)("a producer payload of shape %s", (shape) => {
       // eras that predate it too, so a generator that started back-filling it
       // into derived shapes would be caught rather than silently widening
       // what these fixtures claim to be.
+      // The producer's type is `addresses?: string | null`: a measured fix
+      // that answers no checklist row (measured-fixes.ts, e.g. "Let GPTBot read
+      // your site") writes null. The five carry none of those; adverse-blocked
+      // does. At least one string per payload, below, still proves the bit.
       if (carriesFixAddresses(shape)) {
-        expect(nonEmptyString(fix.addresses), `fixes[${i}].addresses`).toBe(true);
+        expect(
+          fix.addresses === null || nonEmptyString(fix.addresses),
+          `fixes[${i}].addresses`,
+        ).toBe(true);
       } else {
         expect(fix.addresses, `fixes[${i}].addresses`).toBeUndefined();
       }
+    }
+    if (carriesFixAddresses(shape)) {
+      expect(fixes.filter((f) => nonEmptyString(f.addresses)).length).toBeGreaterThan(0);
     }
     expect(view.fixes.map((f) => f.title)).toEqual(fixes.map((f) => f.title));
     expect(view.fixes.map((f) => f.why)).toEqual(fixes.map((f) => f.why));
@@ -288,13 +313,12 @@ describe.each(SHAPES)("a producer payload of shape %s", (shape) => {
    * "named in 1 of 2", and a flakier run read better. Nothing in this file used
    * to read `view.visibility` at all.
    *
-   * WHAT THIS CATCHES AND WHAT IT DOES NOT. `attempted` is 3 in every fixture,
-   * and so are `answered` and the answered-probe array's length. So this reds
-   * on a producer rename (the type check) and on a consumer that derives the
-   * total from somewhere with a different value — but it CANNOT tell
-   * `attempted` from `answered`, which is the swap the field exists to prevent.
-   * That needs a sixth, adverse fixture in which a probe errored; it is in the
-   * README's "Known gaps", and recorded as a test below.
+   * In the five shapes `attempted`, `answered` and the answered-probe array's
+   * length are all 3, so there this reds only on a rename or a source with a
+   * different value. In the adverse shapes a probe died (3 attempted, 2
+   * answered), which is what tells `attempted` from `answered` and from the
+   * array-length fallback; "a category probe that died" below asserts the
+   * sentence a reader sees.
    */
   it("takes the visibility denominator from what the run attempted", () => {
     const raw = rawFor(shape);
@@ -321,51 +345,178 @@ describe.each(SHAPES)("a producer payload of shape %s", (shape) => {
 });
 
 /**
- * WHAT NO FIXTURE EXERCISES.
+ * WHAT THE ADVERSE SHAPES PROVE, as a reader of the report sees it.
  *
- * Each test here asserts a degeneracy rather than a behaviour: it records that
- * a branch of `model.ts` is never reached by this corpus, so the assertion that
- * looks like it covers the branch is really comparing a constant with itself.
- * They are written to RED when the gap closes — a sixth, adverse fixture from
- * `gen-report-shapes.mts` in reddoor-maintenance will fail them, and the right
- * response is to delete the test that failed and strengthen its counterpart
- * above. See `fixtures/producer/README.md`, "Known gaps".
+ * Each `describe` below first checks that the fixture really carries the value
+ * it is named for (the precondition: a regeneration that lost it would make the
+ * rest compare a constant with itself, which is what the gap tests these replace
+ * used to record). Then it renders the component a prospect reads and
+ * asserts the sentence. Every expected number is read out of the raw payload by
+ * its path, never typed.
  */
-describe.each(SHAPES)("known coverage gaps in shape %s", (shape) => {
-  it("has no stage that failed, so stage()'s ok:false branch is never taken", () => {
-    const raw = rawFor(shape) as Record<string, unknown>;
-    const staged = Object.entries(raw).filter(
-      ([, value]) => !!value && typeof value === "object" && "ok" in (value as object),
-    );
-    expect(staged.length).toBeGreaterThan(0);
-    // The nulls these fixtures do produce come from a stage KEY being absent,
-    // which is a different path through `stage()` than `ok: false`.
-    expect(
-      staged.filter(([, value]) => (value as { ok?: unknown }).ok !== true).map(([k]) => k),
-    ).toEqual([]);
+const sourceCheck = await ssr<{ view: ReportView }>("src/lib/report/SourceCheck.svelte");
+const scoreBars = await ssr<{ view: ReportView }>("src/lib/report/ScoreBars.svelte");
+const printSheet = await ssr<{ data: { report: unknown; overrides: unknown } }>(
+  "src/routes/audit/[token]/print/+page.svelte",
+);
+
+/** Rendered HTML down to the words a reader sees. */
+const words = (html: string): string =>
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&rsquo;/g, "’")
+    .replace(/\s+/g, " ")
+    .trim();
+const read = (component: Component<{ view: ReportView }>, shape: string): string =>
+  words(renderText(component, { view: viewFor(shape) }));
+const printed = (shape: string): string =>
+  words(renderText(printSheet, { data: { report: rawFor(shape), overrides: {} } }));
+
+describe("a stage that ran and failed", () => {
+  it("is in the adverse fixture as the producer writes it: ok false, with the error", () => {
+    const raw = rawFor("adverse-unmeasured");
+    expect(at(raw, "accuracy.ok")).toBe(false);
+    expect(nonEmptyString(at(raw, "accuracy.error"))).toBe(true);
+    // The check had its input: branded answers were captured, whole. So "no
+    // answer was captured" would be a false reason, not a cautious one.
+    const branded = rows(raw, "probes.data.answers").filter((a) => a.kind === "branded");
+    expect(branded.filter((a) => nonEmptyString(a.fullAnswer)).length).toBeGreaterThan(0);
   });
 
-  it("measured crawler access and blocked nothing, so neither adverse branch runs", () => {
-    const raw = rawFor(shape);
+  it("is told apart from a stage this era never ran", () => {
+    expect(viewFor("adverse-unmeasured").failedStages).toContain("accuracy");
+    // The oldest shape carries no accuracy key at all: never ran, not failed.
+    expect(at(rawFor("00000000"), "accuracy")).toBeUndefined();
+    expect(viewFor("00000000").failedStages).not.toContain("accuracy");
+    // And a run where every stage succeeded fails nothing.
+    expect(viewFor("11111111").failedStages).toEqual([]);
+  });
+
+  it("still never reads as a measurement", () => {
+    expect(viewFor("adverse-unmeasured").accuracy).toBeNull();
+  });
+
+  it("says the check ran and failed, and never that no answer was captured", () => {
+    const text = read(sourceCheck, "adverse-unmeasured");
+    expect(text).toContain("ran and failed");
+    expect(text).not.toContain("was captured to check against");
+    expect(text).toContain("That is a gap in the measurement, not a finding about your site.");
+  });
+
+  it("keeps 'no answer was captured' for the era that never ran the check", () => {
+    const text = read(sourceCheck, "00000000");
+    expect(text).toContain("was captured to check against");
+    expect(text).not.toContain("ran and failed");
+  });
+
+  it("is named in the print sheet's method section, and nowhere for a clean run", () => {
+    expect(printed("adverse-unmeasured")).toMatch(/ran on this audit and failed/);
+    expect(printed("11111111")).not.toMatch(/ran on this audit and failed/);
+    expect(printed("00000000")).not.toMatch(/ran on this audit and failed/);
+  });
+});
+
+describe("a robots.txt we could not read", () => {
+  it("is in the adverse fixture: the fetch failed, so nothing was measured", () => {
+    const raw = rawFor("adverse-unmeasured");
+    expect(at(raw, "checks.data.crawlerAccessMeasured")).toBe(false);
+    expect(nonEmptyString(at(raw, "crawl.data.sidecarErrors.robots"))).toBe(true);
+  });
+
+  it("is reported as unmeasured, never as an all-clear", () => {
+    expect(viewFor("adverse-unmeasured").crawlerReach?.measured).toBe(false);
+    const text = read(scoreBars, "adverse-unmeasured");
+    expect(text).toContain("We could not check.");
+    expect(text).toContain("The robots.txt fetch itself failed");
+    expect(text).not.toContain("turns away none");
+  });
+
+  /**
+   * A payload whose checks stage predates the field. Derived from the producer
+   * fixture by deleting exactly that key, the way the five shapes are derived.
+   * `=== true` is what makes the missing field read as `false`, not
+   * `undefined`; anything looser lets an unknown pass as measured.
+   */
+  it("reads as unmeasured when the field is missing altogether", () => {
+    const raw = structuredClone(rawFor("adverse-unmeasured")) as Record<string, unknown>;
+    delete (at(raw, "checks.data") as Record<string, unknown>).crawlerAccessMeasured;
+    const view = toReportView(raw);
+    expect(view.crawlerReach?.measured).toBe(false);
+    expect(words(renderText(scoreBars, { view }))).toContain("We could not check.");
+  });
+});
+
+describe("a robots.txt that turns an AI crawler away", () => {
+  it("is in the adverse fixture: measured, with GPTBot blocked", () => {
+    const raw = rawFor("adverse-blocked");
     expect(at(raw, "checks.data.crawlerAccessMeasured")).toBe(true);
-    expect(at(raw, "checks.data.crawlerAccess.blockedAi")).toEqual([]);
+    expect(list(raw, "checks.data.crawlerAccess.blockedAi").length).toBeGreaterThan(0);
   });
 
-  it("carries no sitemap, so sitemapUrlCount's present:true branch never runs", () => {
-    // All five carry `{present: false, urlCount: 0}`, so `sitemapUrlCount` is
-    // null on every fixture and the assertion that guards it compares null
-    // with null five times.
-    expect(at(rawFor(shape), "crawl.data.sitemap.present")).toBe(false);
+  it("names every blocked crawler the checks stage measured", () => {
+    const blocked = list(rawFor("adverse-blocked"), "checks.data.crawlerAccess.blockedAi");
+    expect(viewFor("adverse-blocked").crawlerReach?.blocked).toEqual(blocked);
+    const text = read(scoreBars, "adverse-blocked");
+    expect(text).toContain(`It turns away ${blocked.join(", ")}.`);
+    expect(text).not.toContain("We could not check.");
+  });
+});
+
+describe("a sitemap the crawl found", () => {
+  it("is in the adverse fixture: present, listing more URLs than the crawl read", () => {
+    const raw = rawFor("adverse-blocked");
+    expect(at(raw, "crawl.data.sitemap.present")).toBe(true);
+    const count = at(raw, "crawl.data.sitemap.urlCount");
+    expect(typeof count).toBe("number");
+    expect(count as number).toBeGreaterThan(at(raw, "accuracy.data.pagesTotal") as number);
   });
 
-  it("attempted exactly as many category probes as it answered, hiding a swap", () => {
-    const raw = rawFor(shape);
-    const attempted = at(raw, "probes.data.categoryProbes.attempted");
-    expect(at(raw, "probes.data.categoryProbes.answered")).toBe(attempted);
-    expect(
-      list(raw, "probes.data.answers").filter((a) => (a as { kind?: string }).kind === "category")
-        .length,
-    ).toBe(attempted);
+  it("is reported as the sitemap's count, beside, not instead of, the pages we crawled", () => {
+    const raw = rawFor("adverse-blocked");
+    const count = at(raw, "crawl.data.sitemap.urlCount") as number;
+    const crawled = at(raw, "accuracy.data.pagesTotal") as number;
+    const read_ = at(raw, "accuracy.data.pagesRead") as number;
+    expect(viewFor("adverse-blocked").sitemapUrlCount).toBe(count);
+    const sentence = `We read ${read_} of the ${crawled} pages we crawled for this check; your sitemap lists ${count}.`;
+    expect(read(sourceCheck, "adverse-blocked")).toContain(sentence);
+    expect(printed("adverse-blocked")).toContain(sentence);
+  });
+
+  it("prints no sitemap count for a payload whose sitemap was absent", () => {
+    for (const shape of SHAPES) {
+      expect(at(rawFor(shape), "crawl.data.sitemap.present"), shape).toBe(false);
+      expect(read(sourceCheck, shape), shape).not.toContain("your sitemap lists");
+    }
+  });
+});
+
+describe("a category probe that died", () => {
+  it("is in both adverse fixtures: attempted is more than answered", () => {
+    for (const shape of ADVERSE) {
+      const raw = rawFor(shape);
+      const attempted = at(raw, "probes.data.categoryProbes.attempted") as number;
+      const answered = at(raw, "probes.data.categoryProbes.answered") as number;
+      const answers = list(raw, "probes.data.answers").filter(
+        (a) => (a as { kind?: string }).kind === "category",
+      ).length;
+      expect(typeof attempted, shape).toBe("number");
+      expect(attempted, shape).toBeGreaterThan(answered);
+      expect(answers, shape).toBe(answered);
+    }
+  });
+
+  it("counts against what was asked, in the view and in print", () => {
+    for (const shape of ADVERSE) {
+      const raw = rawFor(shape);
+      const attempted = at(raw, "probes.data.categoryProbes.attempted") as number;
+      const answered = at(raw, "probes.data.categoryProbes.answered") as number;
+      const named = viewFor(shape).visibility?.named;
+      expect(viewFor(shape).visibility?.total, shape).toBe(attempted);
+      // The print sheet is the surface the harness can render: Standing.svelte
+      // imports a sibling component, which `ssr()` does not compile.
+      expect(printed(shape), shape).toContain(`Named in ${named} of ${attempted} buyer searches.`);
+      expect(printed(shape), shape).not.toContain(`of ${answered} buyer searches`);
+    }
   });
 });
 
