@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { videoKey } from "@reddoorla/maintenance/video-pipeline";
 import type { DocLike } from "@reddoorla/maintenance/video-pipeline";
 import { loadVideoRenditions, resetVideoRenditionsCache } from "./video-renditions";
 
 const ALPHA = "https://reddoor-la.cdn.prismic.io/reddoor-la/a1_alpha-1080.mp4";
 const BETA = "https://reddoor-la.cdn.prismic.io/reddoor-la/b2_beta-1080.mp4";
 const NOW = new Date("2026-11-10T12:00:00Z");
+/** Alpha's R2 key, from the library, so the test follows the key format rather than restating it. */
+const ALPHA_KEY = videoKey("reddoor-website", ALPHA) as string;
+const ALPHA_DIR = "player-20261110T103000Z";
 
 const media = (url: string) => ({
   link_type: "Media",
@@ -26,7 +30,8 @@ const MANIFEST = {
   version: 1,
   source: "/reddoor-la/a1_alpha-1080.mp4",
   class: "player",
-  key: "reddoor-website/a1-alpha-1080",
+  key: ALPHA_KEY,
+  dir: ALPHA_DIR,
   encodedAt: "2026-11-10T10:30:00Z",
   files: { mp4: "alpha-1080.mp4", poster: "alpha-poster.jpg" },
 };
@@ -35,7 +40,7 @@ const MANIFEST = {
 function fakeFetch() {
   return vi.fn(async (input: string | URL | Request) => {
     const url = String(input);
-    if (url.includes("/reddoor-website/a1-alpha-1080/manifest.json")) {
+    if (url === `https://media.reddoorla.com/${ALPHA_KEY}/manifest.json`) {
       return new Response(JSON.stringify(MANIFEST), { status: 200 });
     }
     return new Response(null, { status: 404 });
@@ -66,8 +71,8 @@ describe("loadVideoRenditions", () => {
 
     expect(Object.keys(out)).toEqual([ALPHA]);
     expect(out[ALPHA]).toMatchObject({
-      mp4: "https://media.reddoorla.com/reddoor-website/a1-alpha-1080/alpha-1080.mp4",
-      poster: "https://media.reddoorla.com/reddoor-website/a1-alpha-1080/alpha-poster.jpg",
+      mp4: `https://media.reddoorla.com/${ALPHA_KEY}/${ALPHA_DIR}/alpha-1080.mp4`,
+      poster: `https://media.reddoorla.com/${ALPHA_KEY}/${ALPHA_DIR}/alpha-poster.jpg`,
       onR2: true,
     });
   });

@@ -51,11 +51,13 @@ jobs:
         env:
           URL: ${{ github.event.client_payload.url || inputs.url }}
           CLASS: ${{ github.event.client_payload.class || inputs.class }}
+          # Set only on a dispatch from the relay; encode refuses a key that its own --site would not give.
+          KEY: ${{ github.event.client_payload.key }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
-        run: pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website
+        run: pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website ${KEY:+--key "$KEY"}
 
       - name: Rebuild the site
         env:

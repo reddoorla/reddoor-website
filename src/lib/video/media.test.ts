@@ -63,6 +63,7 @@ describe("videoFor", () => {
   const mobile = media({ url: PRISMIC_MOBILE, name: "offer-720.mp4" });
   const captions = media({ url: EDITOR_VTT, name: "offer.en.vtt" });
   const rendition = {
+    class: "player" as const,
     mp4: "https://media.reddoorla.com/reddoor-website/offer/offer-1080.mp4",
     mobileMp4: "https://media.reddoorla.com/reddoor-website/offer/offer-720.mp4",
     webm: null,
