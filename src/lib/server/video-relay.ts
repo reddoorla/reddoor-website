@@ -4,6 +4,12 @@ import { withTimeout } from "./video-renditions";
 
 /** Each call the relay makes (a manifest read on R2, the dispatch) gets this long. */
 const RELAY_FETCH_TIMEOUT_MS = 3_000;
+/**
+ * The whole webhook gets this long, across every video. The library handles the
+ * videos one after another, each with up to two calls, so per-call limits alone
+ * add up past Netlify's 10 s synchronous-function limit.
+ */
+const RELAY_OVERALL_TIMEOUT_MS = 8_000;
 
 /** What the Netlify relay function needs from its environment and from Prismic. */
 export type RelayDeps = {
@@ -11,19 +17,25 @@ export type RelayDeps = {
   getDocuments: (ids: string[]) => Promise<DocLike[]>;
   /** Test seam: the per-call timeout. Defaults to 3 s. */
   fetchTimeoutMs?: number;
+  /** Test seam: the overall budget for one webhook. Defaults to 8 s. */
+  overallTimeoutMs?: number;
 };
 
 /**
  * The relay's configuration: the site's constants, the three secrets and
  * variables read from `env`, and the two effects passed in. Kept out of the
  * `.mts` adapter so a test can run the whole webhook through it. Every fetch
- * the relay makes is aborted after a few seconds, so a read that never settles
- * is treated as a failure (the video is not on R2) rather than a hung webhook.
+ * the relay makes is aborted after a few seconds, and every fetch of one
+ * webhook after the overall budget, so a read that never settles is treated as
+ * a failure (the video is not on R2) rather than a hung webhook. Call this once
+ * per request: the overall budget starts here.
  */
 export function buildRelayConfig(
   env: Record<string, string | undefined>,
   deps: RelayDeps,
 ): RelayConfig {
+  const overall = AbortSignal.timeout(deps.overallTimeoutMs ?? RELAY_OVERALL_TIMEOUT_MS);
+  const perCall = withTimeout(deps.fetch, deps.fetchTimeoutMs ?? RELAY_FETCH_TIMEOUT_MS);
   return {
     secret: env.PRISMIC_WEBHOOK_SECRET,
     site: VIDEO_SITE,
@@ -32,6 +44,10 @@ export function buildRelayConfig(
     mediaBase: VIDEO_MEDIA_BASE,
     rules: VIDEO_RULES,
     getDocuments: deps.getDocuments,
-    fetch: withTimeout(deps.fetch, deps.fetchTimeoutMs ?? RELAY_FETCH_TIMEOUT_MS),
+    fetch: (input, init) =>
+      perCall(input, {
+        ...init,
+        signal: init?.signal ? AbortSignal.any([overall, init.signal]) : overall,
+      }),
   };
 }

@@ -143,3 +143,55 @@ describe("the relay through buildRelayConfig", () => {
     expect(dispatches).toHaveLength(1);
   });
 });
+
+describe("the relay's overall deadline", () => {
+  it("answers within its overall budget when every fetch of several videos never settles", async () => {
+    const urls = [
+      "https://reddoor-la.cdn.prismic.io/reddoor-la/a1_offer-1080.mp4",
+      "https://reddoor-la.cdn.prismic.io/reddoor-la/b2_offer-1080.mp4",
+      "https://reddoor-la.cdn.prismic.io/reddoor-la/c3_offer-1080.mp4",
+    ];
+    const docs: DocLike[] = urls.map((url, i) => ({
+      id: `offer-doc-${i}`,
+      last_publication_date: "2026-11-10T10:00:00Z",
+      data: {
+        body: [
+          {
+            slice_type: "offer_hero",
+            primary: {
+              video_mp4: { link_type: "Media", url, name: `video-${i}.mp4`, kind: "file" },
+            },
+          },
+        ],
+      },
+    }));
+    // Nothing settles unless its signal aborts, for manifest reads and dispatches alike.
+    // An already-aborted signal rejects at once, as a real fetch does.
+    const neverSettles = vi.fn(
+      (_input: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+          if (signal?.aborted) return reject(new Error("aborted"));
+          signal?.addEventListener("abort", () => reject(new Error("aborted")));
+        }),
+    ) as unknown as typeof fetch;
+    const cfg = buildRelayConfig(env, {
+      fetch: neverSettles,
+      getDocuments: async () => docs,
+      fetchTimeoutMs: 80,
+      overallTimeoutMs: 100,
+    });
+
+    const started = Date.now();
+    const result = await handlePrismicWebhook(
+      { method: "POST", body: webhook({ documents: docs.map((d) => d.id) }) },
+      cfg,
+    );
+    const elapsed = Date.now() - started;
+
+    // The status is not asserted: the dispatches never settle, so the webhook answers a failure.
+    expect(result).toBeDefined();
+    // Three videos at 80 ms per read and dispatch would take about 480 ms; the overall budget caps it.
+    expect(elapsed).toBeLessThan(300);
+  });
+});

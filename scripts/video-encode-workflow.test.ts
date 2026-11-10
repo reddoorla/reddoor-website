@@ -305,4 +305,36 @@ describe("video-encode.yml CORS check after the encode", () => {
     expect(status).not.toBe(0);
     expect(output).toContain("no MANIFEST");
   });
+
+  it("asks for the manifest with GET, not HEAD, since the player makes GET requests", () => {
+    const { argsOf } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: { output: "HTTP/2 200\r\naccess-control-allow-origin: https://reddoorla.com\r\n" },
+    });
+
+    expect(argsOf("curl")).not.toMatch(/(^|\s)(-I|--head)(\s|$)/);
+    expect(argsOf("curl")).toMatch(/(^|\s)-D(\s|$)/);
+  });
+
+  it("fails with the status, not the CORS message, when R2 does not serve the manifest", () => {
+    const { status, output } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: { output: "HTTP/2 404\r\ncontent-type: application/xml\r\n" },
+    });
+
+    expect(status).not.toBe(0);
+    expect(output).toContain("::error::");
+    expect(output).toContain("404");
+    expect(output).toContain("did not serve the manifest");
+    expect(output).not.toContain("CORS");
+    expect(output).not.toContain("Access-Control");
+  });
+
+  it("fails with a CORS message that says to re-run with force when the header is missing on a 200", () => {
+    const { status, output } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: { output: "HTTP/2 200\r\ncontent-type: video/mp4\r\n" },
+    });
+
+    expect(status).not.toBe(0);
+    expect(output).toContain("CORS");
+    expect(output).toContain("force");
+  });
 });

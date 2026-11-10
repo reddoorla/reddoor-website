@@ -244,7 +244,7 @@ describe("loadVideoRenditions", () => {
     expect(dangerouslyGetAll).toHaveBeenCalledTimes(2);
   });
 
-  it("does not keep a build whose manifest read answered 503", async () => {
+  it("does not reuse a build whose manifest read answered 503 after thirty seconds", async () => {
     const ok = fakeFetch();
     let calls = 0;
     const flaky = vi.fn((input: string | URL | Request) => {
@@ -259,11 +259,11 @@ describe("loadVideoRenditions", () => {
     const first = await loadVideoRenditions(client, flaky, NOW);
     expect(first).toEqual({});
 
-    const second = await loadVideoRenditions(client, flaky, NOW);
+    const second = await loadVideoRenditions(client, flaky, new Date(NOW.getTime() + 31_000));
     expect(Object.keys(second)).toEqual([ALPHA]);
   });
 
-  it("does not keep a build whose manifest read timed out", async () => {
+  it("does not reuse a build whose manifest read timed out after thirty seconds", async () => {
     const ok = fakeFetch();
     let calls = 0;
     const slowThenOk = vi.fn((input: string | URL | Request, init?: RequestInit) => {
@@ -280,7 +280,7 @@ describe("loadVideoRenditions", () => {
     const first = await loadVideoRenditions(client, slowThenOk, NOW, { fetchTimeoutMs: 20 });
     expect(first).toEqual({});
 
-    const second = await loadVideoRenditions(client, slowThenOk, NOW);
+    const second = await loadVideoRenditions(client, slowThenOk, new Date(NOW.getTime() + 31_000));
     expect(Object.keys(second)).toEqual([ALPHA]);
   });
 
@@ -296,5 +296,70 @@ describe("loadVideoRenditions", () => {
 
     await loadVideoRenditions(client, fetchFn, NOW);
     expect(notEncoded).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks the build degraded when a 200 body stalls until the abort, so the next call retries", async () => {
+    // Headers arrive at once; the body never finishes before the per-fetch abort.
+    const stall = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      const signal = init?.signal;
+      const body = new ReadableStream({
+        start(controller) {
+          signal?.addEventListener("abort", () => controller.error(signal.reason));
+        },
+      });
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const first = await loadVideoRenditions(client, stall, NOW, { fetchTimeoutMs: 50 });
+    expect(first).toEqual({});
+
+    const second = await loadVideoRenditions(client, fakeFetch(), new Date(NOW.getTime() + 31_000));
+    expect(Object.keys(second)).toEqual([ALPHA]);
+  });
+
+  it("marks the build degraded when a 200 body is not JSON, so the next call retries", async () => {
+    const proxyPage = vi.fn(
+      async () => new Response("<html>err</html>", { status: 200 }),
+    ) as unknown as typeof fetch;
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const first = await loadVideoRenditions(client, proxyPage, NOW);
+    expect(first).toEqual({});
+
+    const second = await loadVideoRenditions(client, fakeFetch(), new Date(NOW.getTime() + 31_000));
+    expect(Object.keys(second)).toEqual([ALPHA]);
+  });
+
+  it("remembers a degraded build for thirty seconds, then tries again", async () => {
+    const ok = fakeFetch();
+    let calls = 0;
+    const serviceStalled = vi.fn((input: string | URL | Request) => {
+      calls += 1;
+      if (calls === 1) return Promise.resolve(new Response(null, { status: 503 }));
+      return ok(input);
+    }) as unknown as typeof fetch & ReturnType<typeof vi.fn>;
+    const client = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+
+    const first = await loadVideoRenditions(client, serviceStalled, NOW);
+    expect(first).toEqual({});
+    expect(serviceStalled).toHaveBeenCalledTimes(1);
+
+    await loadVideoRenditions(client, serviceStalled, new Date(NOW.getTime() + 10_000));
+    expect(serviceStalled).toHaveBeenCalledTimes(1);
+
+    const later = await loadVideoRenditions(
+      client,
+      serviceStalled,
+      new Date(NOW.getTime() + 31_000),
+    );
+    expect(serviceStalled).toHaveBeenCalledTimes(2);
+    expect(Object.keys(later)).toEqual([ALPHA]);
   });
 });
