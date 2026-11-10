@@ -16,7 +16,11 @@ const RELAY_OVERALL_TIMEOUT_MS = 8_000;
  * whichever comes first. The listener is removed when `work` settles.
  */
 function untilAborted<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
-  if (signal.aborted) return Promise.reject(signal.reason);
+  if (signal.aborted) {
+    // `work` has already started; a later rejection of it must not go unhandled.
+    work.catch(() => {});
+    return Promise.reject(signal.reason);
+  }
   return new Promise<T>((resolve, reject) => {
     const onAbort = () => reject(signal.reason);
     signal.addEventListener("abort", onAbort, { once: true });
@@ -66,8 +70,7 @@ export function buildRelayConfig(
     mediaBase: VIDEO_MEDIA_BASE,
     rules: VIDEO_RULES,
     // Prismic's read runs before any bounded call, so it is bounded by the same budget.
-    getDocuments: async (ids) => untilAborted(deps.getDocuments(ids), overall),
-
+    getDocuments: (ids) => untilAborted(deps.getDocuments(ids), overall),
     fetch: (input, init) =>
       perCall(input, {
         ...init,
