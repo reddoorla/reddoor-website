@@ -1963,3 +1963,25 @@ Content landed in Prismic, unpublished. This PR records it and corrects `scripts
 **Honest accounting.** SummitTrek was never visibly soft: 930px of source in a 198.71875×21.5 CSS px slot is 2.3× what a 2x screen draws. Production screenshots at 1440px, 2x, with the `<img>` src swapped, are close to indistinguishable. My first "before" looked washed out, but that was the logo grid's reveal animation caught mid-fade: retaken with `reducedMotion: 'reduce'` and a settled page, the opacity is 1 and the two match. This swap gives format consistency, not a visible fix. The Zero Labs grid swap on `/digital` is the visible one.
 
 **Tools.** In the cloud container `PRISMIC_WRITE_TOKEN` is `the-pointe-burbank`'s (`PRISMIC_REPOSITORY_NAME` says so). Reddoor's token is `REDDOOR_PRISMIC`, proven with a read (`getAssetTags`) before any upload.
+
+## 2026-11-10 — The MedTech funnel gets Tim's Meta Pixel, consent-gated (#332)
+
+Tim sent the pixel on Mon 11-09 and an updated one, "Reddoor Creative MT" (`4257052441251456`), on Tue at 9:19am PT. Meta's advice was to install it only on the funnel pages to be tracked. Tim asked about moving the pages to `medtech.reddoorla.com`, and the operator answered "we'll just consent-gate it". The operator then widened the scope from Meta's "landing and offer page" to every funnel page. The list is now `/medtech`, `/brand-friction-audit` (the offer: the `offer_hero` "MedTech Founders" document, now published on master), `/schedule` and `/not-a-fit`. Exact paths: `/boise` is another funnel and stays out.
+
+The gate copies Gallery Sonder's load-after-accept model (its `CookieConsent.svelte`, the `cookieConsent` key, PageView only), with one deliberate change: a bar instead of Sonder's full-screen modal. Sonder's modal blocks the page three seconds in. On a conversion page, that blocks the very visitors the pixel exists to count. The fleet has no consent banner by design. This bar exists only because a pixel landed on these four pages.
+
+Two fbevents defaults had to go, or "funnel only" would have been false after one Accept. `disablePushState` matters because fbevents fires its own PageView on every `history.pushState`, so a visitor who accepted on `/medtech` and clicked to `/` would have been tracked there. `autoConfig` comes off because it scrapes clicks and form fields into automatic events.
+
+**Defects the review caught** (one Opus pass over wiring, defensive, behaviour and scope):
+
+- **Critical.** `readConsent(localStorage)` evaluated `localStorage` outside the try. With site data blocked, reading the global itself throws, and the bar is mounted in the root layout, so every page would have failed to hydrate. The unit test passed only because it threw from `getItem`, not from the access. Both functions now take a getter, and a test throws from the getter.
+- **Major.** The bar sat at z-40, above the z-30 menu overlay, which is an aria-modal focus trap: its buttons were visible but out of reach of Tab. It is now at z-[25].
+- **Two majors in the tests.** `toContainEqual` let a double PageView pass, and nothing exercised SPA navigation, the part of the contract most likely to break. Counts are now exact, and a test client-navigates `/medtech` → `/schedule` → `/` → `/about` and expects exactly 2 PageViews. Deleting the effect's `void pathname;` turns that test red, and only that test.
+
+Mutations on the first version: ignoring consent turned 3 smoke tests red; treating every path as funnel, 1 smoke and 7 unit; dropping the PageView, 2 smoke and 1 unit; leaving autoConfig on, 1 unit.
+
+**Belief corrected on contact.** "Checked headless, the pixel fires PageView" cannot be seen as a `/tr` beacon. On the deploy preview, fbevents.js and Tim's `/signals/config/4257052441251456` both loaded with no CSP violations, and no `/tr` request followed. Is our code at fault, or is fbevents suppressing headless? The control was Sonder's production pixel, known to work, in the same headless browser: the same two scripts, and no `/tr` either. So the strongest headless evidence is the queue being drained (`callMethod` set) after the config loads. Seeing the PageView itself is Tim's Events Manager's job. Workarounds that hide the automation from fbevents were refused as bot-check circumvention, rightly; none was used.
+
+CSP: `script-src` gains `connect.facebook.net`, and `connect-src` gains `www.facebook.com`. A first draft also put `connect.facebook.net` in `connect-src`, but every request to it is a `<script>`, so it came out. No privacy page exists on reddoorla.com; that is flagged to the operator, not written. The minors are filed as reddoorla/reddoor-website#333 (no way to withdraw consent) and #334 (fbevents duplicate-PageView and form-POST fallback, unverifiable headless). Out of scope and left for later: the questionnaire's Meta-to-CRM sync that Tim mentioned, and CAPI.
+
+Usage: $4.53, 648/40099 tokens, 11159947/205063 cache, rate limit allowed (reading at 9:53am PT, before this commit; the hand-back has the final figure).
