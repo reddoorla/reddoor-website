@@ -502,13 +502,15 @@ describe("Meta Lead (Conversions API)", () => {
   });
 
   it("sends no Lead for a step-one email capture, even with a valid metaLead", async () => {
-    // From a funnel page, so the funnel check passes and only the step-one rule
-    // stands between this post and a Lead.
+    // From a funnel page, with a token, the _fbp cookie and a user agent, so
+    // every other check passes and only the step-one rule stands between this
+    // post and a Lead.
     await lead({
       email: "buyer@example.com",
       step: "The Diagnosis",
       sourceUrl: SOURCE,
       metaLead,
+      turnstileToken: "0.tok",
       ts: OLD_TS(),
     });
     expect(submitToIngest).toHaveBeenCalledTimes(1);
