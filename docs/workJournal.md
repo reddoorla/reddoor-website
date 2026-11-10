@@ -2062,3 +2062,38 @@ All three were found by mutating the code, not by reading the tests. After any n
 **Filed.** reddoorla/reddoor-website#353–#362, among them: no `external_id`; `fbc` built with the current time; deploy previews if the token ever leaves Production; a declined-then-accepted visitor getting no Lead; the browser Lead on a honeypot accept; the disclosure naming only email and phone; Meta's health-site event restrictions. Also reddoorla/reddoor-maintenance#2027 for the ingest verdict.
 
 Usage: $12.92, 3542/200395 tokens, 36649219/1259609 cache, rate limit allowed (this session only; the implementer's own session, before this one, is not counted)
+
+## 2026-11-10 — Video on R2, stage 1: one Prismic upload becomes R2 renditions, a poster and captions (branch `claude/video-r2-stage1`, this PR)
+
+**Why.** Prismic's Free plan locks a repository past 100 GB of bandwidth a month, and Tower's CDN has refused video since 11-03. Until now, Reddoor staff hand-ran `reddoor-maint video` and uploaded four files per video, which a client editor cannot do. The operator chose to build on Cloudflare R2 rather than buy Mux (workspace `decisions/2026-11-10-1741-video-hosting-one-upload.md`). The goal is that an editor uploads one file (100 MB or less, Prismic's cap) into the video field and publishes, and everything else follows. reddoorla.com is the pilot, not Williamson: Williamson has only background loops, so it could never show a player video with captions.
+
+**What it does.** `netlify/functions/prismic-video.mts` takes Prismic's publish webhook and checks its secret. It finds new video media links, classes each one as `background` or `player` by its slice (`src/lib/video/pipeline-rules.json`), and dispatches `video-encode.yml` through the workflow-dispatch API. That workflow runs `reddoor-maint video-pipeline encode` from `@reddoorla/maintenance` 0.117.0 (reddoorla/reddoor-maintenance#2029). It encodes background as 1080 mp4, webm, phone-720 and poster with no audio, and player as 1080 and 720 with AAC audio, a poster and Whisper WebVTT captions. It writes everything to R2 under `media.reddoorla.com` with a `manifest.json`, then calls the build hook. At build, `video-renditions.ts` reads each manifest and `videoFor` serves the R2 files when they exist, else the Prismic URL. `video-pipeline-stuck.yml` opens a `video-pipeline` issue hourly when a video has sat on Prismic for over an hour. `media.reddoorla.com` is in `media-src` in both `headers.ts` and `netlify.toml`.
+
+**The token is Actions-only.** The first draft used `repository_dispatch`, which needs Contents: write. On a public repo, with the token sitting in Netlify env, that is a push credential. Dispatching the one workflow needs only Actions: read and write. That can still dispatch the repo's other workflows and disable workflows, which the operator's checklist says.
+
+**Six review rounds, all on Opus with three lenses (wiring, security, tests).** Rounds 1 to 5 were dirty, and the five-round stop held the branch for the operator, who chose one sixth round on the round-5 fix alone. The defects, in order:
+
+- round 1: a player slot could play a muted background rendition, manifest reads forwarded visitor cookies and were unbounded, and a blocker that came from testing against a stale tarball of the library;
+- round 2: a failed R2 read was memoised for five minutes, and the SSR budget could exceed Netlify's limit;
+- round 3: the degraded read was still memoised at the body phase, and nothing checked CORS after an encode;
+- round 4: the body-phase failure was not treated as degraded, and the CORS check sent HEAD, which a GET-only CORS rule does not answer;
+- round 5: the relay's 8 s per-request budget did not cover Prismic's `getDocuments`, so a hanging Prismic ran the function into Netlify's 10 s limit. The repro was still pending at 2000 ms. `72e76aa` bounds it, so a hang now answers 500 inside the budget;
+- round 6: clean. Its minor 1 is folded in: the already-aborted path now catches the Prismic read it drops, which would otherwise be an unhandled rejection. Its minor 2 corrects `72e76aa`'s message: the "own budget" test catches a lazily cached signal but not a hoist of `AbortSignal.timeout(8000)` to module scope, which would abort every request on a warm instance past 8 s.
+
+**Beliefs corrected on contact.**
+
+- `crossorigin="anonymous"` on the player means CORS is not optional for captions only: without a CORS rule on R2, every player video fails. The encode workflow now checks CORS with a GET after each upload and fails, naming the rule.
+- The editor's `video_mp4_mobile` field looked like a place for a deliberately different mobile cut. A read-only query found 11 slots across 10 published videos, and all hold the recipe's own `<stem>-phone-720.mp4` downscale. So R2's phone rendition winning drops nothing, and the operator chose to keep it.
+
+**Gates against the published 0.117.0:** `pnpm check` 0 errors, 991 unit tests, lint and build all pass. Site mutations, all red: dropping the `needsEncode` filter, a bogus flag on the encode line, `--site reddoor-web`, and `--forse`.
+
+**Open, and not this PR's.** Nothing works live until `staging` is promoted to `main`, because the webhook dispatches against `main`. After that comes the operator's setup:
+
+- the Cloudflare account, R2, the `media.reddoorla.com` domain and CORS;
+- the five repo secrets and the two Netlify variables;
+- the Prismic webhook, set last;
+- the backfill of the 11 existing videos (9 background, 2 player), one `video-encode` dispatch each.
+
+The Done-when, one real player upload served from `media.reddoorla.com` with captions, waits on all of that. Accepted gaps: OfferHero and BookedPage cannot take the R2 poster.
+
+Usage: $2.27, 1585/15344 tokens, 5541559/142864 cache, rate limit allowed (this continuation's session only, read at 2:12pm PT; the four earlier sessions' figures are in their workspace journal entries).
