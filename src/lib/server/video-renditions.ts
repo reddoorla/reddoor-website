@@ -11,9 +11,10 @@ import { VIDEO_MEDIA_BASE, VIDEO_RULES, VIDEO_SITE } from "../video/pipeline";
 /** How long one build-time resolution serves every page. */
 const TTL_MS = 5 * 60 * 1000;
 /** Each manifest read gets this long before it counts as no rendition. */
-const FETCH_TIMEOUT_MS = 3000;
+const FETCH_TIMEOUT_MS = 2_000;
 /** The whole build gets this long; past it every video plays its Prismic file. */
-const OVERALL_TIMEOUT_MS = 10 * 1000;
+// Under Netlify's 10 s synchronous-function limit, so an SSR request still renders the Prismic fallback.
+const OVERALL_TIMEOUT_MS = 4_000;
 
 export type RenditionsOptions = {
   /** A Prismic preview session: neither read nor write the memo, so drafts are never shared. */
@@ -47,8 +48,16 @@ export function loadVideoRenditions(
 ): Promise<Record<string, Renditions>> {
   const preview = opts.preview === true;
   if (!preview && memo !== null && now.getTime() - memo.at < TTL_MS) return memo.promise;
-  const promise = build(client, fetchFn, now, opts);
-  if (!preview) memo = { at: now.getTime(), promise };
+  const work = build(client, fetchFn, now, opts);
+  const promise = work.then((out) => out ?? {});
+  if (!preview) {
+    const entry = { at: now.getTime(), promise };
+    memo = entry;
+    // A failed or timed-out build is not worth remembering: the next call tries again.
+    void work.then((out) => {
+      if (out === null && memo === entry) memo = null;
+    });
+  }
   return promise;
 }
 
@@ -61,12 +70,13 @@ function withTimeout(fetchFn: typeof fetch, ms: number): typeof fetch {
   };
 }
 
+/** Resolves to `null` when the build timed out or failed, so the caller can drop its memo. */
 async function build(
   client: { dangerouslyGetAll(): Promise<DocLike[]> },
   fetchFn: typeof fetch,
   now: Date,
   opts: RenditionsOptions,
-): Promise<Record<string, Renditions>> {
+): Promise<Record<string, Renditions> | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const overall = new Promise<null>((resolve) => {
     timer = setTimeout(() => resolve(null), opts.overallTimeoutMs ?? OVERALL_TIMEOUT_MS);
@@ -80,12 +90,12 @@ async function build(
     const out = await Promise.race([work, overall]);
     if (out === null) {
       console.warn("[video-pipeline] renditions timed out, playing Prismic files");
-      return {};
+      return null;
     }
     return out;
   } catch (err) {
     console.warn("[video-pipeline] renditions unavailable, playing Prismic files:", err);
-    return {};
+    return null;
   } finally {
     clearTimeout(timer);
   }

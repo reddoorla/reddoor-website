@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: ""
+      force:
+        description: "Re-encode even when R2 already serves this class (e.g. after a bad encode)"
+        required: false
+        type: boolean
+        default: false
 
 # Every run of one video shares a group, whatever started it.
 concurrency:
@@ -61,14 +66,15 @@ jobs:
           CLASS: ${{ inputs.class }}
           # Set only on a dispatch from the relay; encode refuses a key that its own --site would not give.
           KEY: ${{ inputs.key }}
+          FORCE: ${{ inputs.force && 'true' || '' }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           CF_AI_TOKEN: ${{ secrets.CF_AI_TOKEN }}
         run: |
           log="$(mktemp)"
-          pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website ${KEY:+--key "$KEY"} | tee "$log"
-          # encode prints `SKIP <key>: ...` when the R2 copy already serves this class; nothing changed, so no rebuild.
+          pnpm exec reddoor-maint video-pipeline encode --url "$URL" --class "$CLASS" --site reddoor-website ${KEY:+--key "$KEY"} ${FORCE:+--force} | tee "$log"
+          # encode skips a run whose class the existing R2 manifest already covers (unless force), and prints `SKIP <key>: ...`; nothing changed, so no rebuild.
           if grep -q '^SKIP ' "$log"; then echo "rebuild=false" >> "$GITHUB_OUTPUT"; fi
 
       - name: Rebuild the site

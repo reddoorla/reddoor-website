@@ -93,6 +93,44 @@ describe("loadVideoRenditions", () => {
     expect(warn).toHaveBeenCalled();
   });
 
+  it("does not keep a timed-out build for the five-minute memo", async () => {
+    const slow = {
+      dangerouslyGetAll: () =>
+        new Promise<DocLike[]>((resolve) =>
+          setTimeout(() => resolve([doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")]), 50),
+        ),
+    };
+
+    const first = await loadVideoRenditions(slow, fakeFetch(), NOW, { overallTimeoutMs: 20 });
+    expect(first).toEqual({});
+
+    const fast = {
+      dangerouslyGetAll: async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")],
+    };
+    const second = await loadVideoRenditions(fast, fakeFetch(), new Date(NOW.getTime() + 60_000));
+
+    expect(Object.keys(second)).toEqual([ALPHA]);
+  });
+
+  it("does not keep a failed Prismic read for the five-minute memo", async () => {
+    let reads = 0;
+    const flaky = {
+      dangerouslyGetAll: async () => {
+        reads += 1;
+        if (reads === 1) throw new Error("503");
+        return [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")];
+      },
+    };
+
+    const first = await loadVideoRenditions(flaky, fakeFetch(), NOW);
+    expect(first).toEqual({});
+
+    const second = await loadVideoRenditions(flaky, fakeFetch(), new Date(NOW.getTime() + 60_000));
+
+    expect(reads).toBe(2);
+    expect(Object.keys(second)).toEqual([ALPHA]);
+  });
+
   it("reads Prismic once for two calls within five minutes", async () => {
     const dangerouslyGetAll = vi.fn(async () => [doc("alpha-doc", ALPHA, "2026-11-10T10:00:00Z")]);
     const client = { dangerouslyGetAll };
