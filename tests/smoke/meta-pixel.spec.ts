@@ -14,13 +14,32 @@ async function watchFacebook(page: Page) {
   const requests: string[] = [];
   await page.route(FACEBOOK, (route) => {
     requests.push(route.request().url());
-    return route.fulfill({ status: 200, contentType: "text/javascript", body: "" });
+    // Like the real fbevents.js, the stand-in writes Meta's _fbp cookie, which
+    // the page waits for before posting the server copy.
+    const body = route.request().url().endsWith("/fbevents.js")
+      ? 'document.cookie = "_fbp=fb.1.1794000000000.1; path=/";'
+      : "";
+    return route.fulfill({ status: 200, contentType: "text/javascript", body });
   });
+  // The server copy of each event: answered here so that a developer's own
+  // META_CAPI_ACCESS_TOKEN never sends a test PageView to Tim's pixel.
+  // watchServerEvents (registered later, so matched first) records them.
+  await page.route("**/api/meta-event", (route) => route.fulfill({ status: 204 }));
   // /schedule asks the CRM for slots on mount; answer that here too.
   await page.route("**/api/slots**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: '{"slots":[]}' }),
   );
   return requests;
+}
+
+/** The bodies the page posts to /api/meta-event (the Conversions API copy). */
+async function watchServerEvents(page: Page) {
+  const bodies: Record<string, unknown>[] = [];
+  await page.route("**/api/meta-event", (route) => {
+    bodies.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({ status: 204 });
+  });
+  return bodies;
 }
 
 async function gotoHydrated(page: Page, path: string) {
@@ -82,6 +101,7 @@ test(
   { tag: "@smoke" },
   async ({ page }) => {
     await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
     await gotoHydrated(page, "/medtech");
     await consentBar(page).getByRole("button", { name: "Accept" }).click();
     await expect.poll(() => pageViews(page)).toBe(1);
@@ -89,16 +109,22 @@ test(
     // The inquiry hands over to /schedule with goto(): a SPA arrival.
     await clientNavigate(page, "/schedule");
     await expect.poll(() => pageViews(page)).toBe(2);
+    await expect.poll(() => serverEvents.length).toBe(2);
 
     // A hash change on a funnel page is not a new page.
     await page.evaluate(() => (location.hash = "inquire"));
     await clientNavigate(page, "/");
     await clientNavigate(page, "/about");
+    expect(await pageViews(page)).toBe(2);
+    expect(serverEvents.length).toBe(2);
     // Back onto the funnel, no sleep: its PageView lands in the same flush as
     // the arrival, so a stray fire on / or /about would already have made it 4.
     await clientNavigate(page, "/not-a-fit");
     await expect.poll(() => pageViews(page)).toBe(3);
+    await expect.poll(() => serverEvents.length).toBe(3);
     expect(await pageViews(page)).toBe(3);
+    // One server copy per browser PageView, each with its own id.
+    expect(new Set(serverEvents.map((e) => e.event_id)).size).toBe(3);
   },
 );
 
@@ -107,6 +133,7 @@ test(
   { tag: "@smoke" },
   async ({ page }) => {
     const requests = await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
     await gotoHydrated(page, "/not-a-fit");
     await consentBar(page).getByRole("button", { name: "Reject" }).click();
     await expect(consentBar(page)).toBeHidden();
@@ -115,6 +142,37 @@ test(
     await expect(consentBar(page)).toBeHidden();
     expect(await fbqCalls(page)).toBeNull();
     expect(requests).toEqual([]);
+    expect(serverEvents).toEqual([]);
+  },
+);
+
+test(
+  "after Accept, the server copy of the PageView carries the browser's eventID",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
+    await gotoHydrated(page, "/brand-friction-audit");
+    expect(serverEvents).toEqual([]);
+
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect.poll(() => serverEvents.length).toBe(1);
+    // Exactly one each way: a double post would make these differ.
+    expect(serverEvents.length).toBe(await pageViews(page));
+
+    const track = ((await fbqCalls(page)) ?? []).find(
+      (c) => c[0] === "track" && c[1] === "PageView",
+    );
+    const eventID = (track?.[3] as { eventID?: string } | undefined)?.eventID;
+    expect(eventID).toBeTruthy();
+    expect(serverEvents[0]).toMatchObject({
+      event_name: "PageView",
+      event_id: eventID,
+      consent: "accepted",
+    });
+    expect(new URL(String(serverEvents[0].event_source_url)).pathname).toBe(
+      "/brand-friction-audit",
+    );
   },
 );
 
@@ -123,6 +181,7 @@ test(
   { tag: "@smoke" },
   async ({ page }) => {
     const requests = await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
     await page.addInitScript(() => localStorage.setItem("cookieConsent", "true"));
 
     for (const path of ["/", "/boise", "/about"]) {
@@ -131,5 +190,6 @@ test(
       expect(await fbqCalls(page), path).toBeNull();
     }
     expect(requests).toEqual([]);
+    expect(serverEvents).toEqual([]);
   },
 );
