@@ -6,6 +6,7 @@
     notSourcedFromSite,
     ownSiteCitations,
     sourceCheckMeasured,
+    stageFailed,
     type Assertion,
     type ReportView,
   } from "./model";
@@ -86,8 +87,14 @@
      disagree about whether the check ran. -->
 {#if !acc || !sourceCheckMeasured(view)}
   <p class="type-lede m-0 text-muted">
-    <!-- Never "we found nothing wrong". We had nothing to read. -->
-    We could not check this on this audit — no assistant answer about {who} was captured to check against.
+    <!-- Never "we found nothing wrong". And never "no answer was captured" for
+         a check that had its answers and then failed (#893): that states a
+         reason we know to be false. -->
+    {#if stageFailed(view, "accuracy")}
+      We could not check this on this audit — the check ran and failed before it returned a result.
+    {:else}
+      We could not check this on this audit — no assistant answer about {who} was captured to check against.
+    {/if}
     That is a gap in the measurement, not a finding about your site.
   </p>
 {:else if acc.assertions.length === 0}

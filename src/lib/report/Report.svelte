@@ -14,7 +14,7 @@
   import FixList from "./FixList.svelte";
   import SearchResults from "./SearchResults.svelte";
   import WhatPasses from "./WhatPasses.svelte";
-  import { openingSummary, type ReportView } from "./model";
+  import { failedChecksSentence, openingSummary, type ReportView } from "./model";
   import {
     allFixes,
     auditedOn,
@@ -593,6 +593,9 @@
                   searches. Every source listed is a citation the assistant actually returned, not something
                   inferred from its wording.
                 </p>
+              {/if}
+              {#if failedChecksSentence(view)}
+                <p class="m-0">{failedChecksSentence(view)}</p>
               {/if}
               <p class="m-0">
                 <strong class="text-black">What we did not measure:</strong> we tested one AI assistant
