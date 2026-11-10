@@ -88,6 +88,8 @@ type FbqFn = ((...args: unknown[]) => void) & {
   loaded: boolean;
   version: string;
   disablePushState?: boolean;
+  /** Resolves once fbevents.js has loaded or failed (blocked, offline). */
+  settled?: Promise<void>;
 };
 
 export type PixelWindow = { fbq?: FbqFn; _fbq?: FbqFn };
@@ -115,6 +117,10 @@ export function ensureMetaPixel(win: PixelWindow, doc: Document): FbqFn {
   const script = doc.createElement("script");
   script.async = true;
   script.src = META_PIXEL_SRC;
+  fbq.settled = new Promise<void>((resolve) => {
+    script.addEventListener("load", () => resolve());
+    script.addEventListener("error", () => resolve());
+  });
   doc.head.appendChild(script);
 
   fbq("set", "autoConfig", false, META_PIXEL_ID);
@@ -134,10 +140,16 @@ export const SERVER_EVENT_ENDPOINT = "/api/meta-event";
 
 /**
  * One id per event, shared by the pixel (`eventID`) and the server
- * (`event_id`), so Meta keeps one of the pair. Funnel pages are https (and
- * localhost in dev), where randomUUID always exists.
+ * (`event_id`), so Meta keeps one of the pair. randomUUID is missing on plain
+ * http (`vite:devHost` on a phone) and before Safari 15.4, so it falls back to
+ * getRandomValues, which is there on both.
  */
-const newEventId = () => crypto.randomUUID();
+function newEventId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+}
 
 /** Fire-and-forget; `keepalive` lets it finish if the visitor leaves. */
 function postServerEvent(body: ServerEventBody): void {
@@ -166,11 +178,16 @@ export function trackFunnelPageView(
 ): void {
   if (consent !== "accepted") return;
   const eventId = newEventId();
-  ensureMetaPixel(win, doc)("track", "PageView", {}, { eventID: eventId });
-  send({
+  const fbq = ensureMetaPixel(win, doc);
+  fbq("track", "PageView", {}, { eventID: eventId });
+  const body: ServerEventBody = {
     event_name: "PageView",
     event_id: eventId,
     event_source_url: doc.location.href,
     consent,
-  });
+  };
+  // Post once fbevents.js has run: it is what writes the _fbp/_fbc cookies the
+  // server forwards, and on a full page load it has not run yet. A blocked
+  // script settles too, so the server copy still goes.
+  void (fbq.settled ?? Promise.resolve()).then(() => send(body));
 }

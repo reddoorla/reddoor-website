@@ -128,6 +128,39 @@ describe("POST /api/meta-event", () => {
     expect(graph).not.toHaveBeenCalled();
   });
 
+  it("builds fbc from the landing URL's fbclid when fbevents.js has not set _fbc yet", async () => {
+    await call({ ...good(), event_source_url: `${ORIGIN}/medtech?fbclid=IwAR1x_y-Z` });
+    expect(sentEvent().user_data.fbc).toMatch(/^fb\.1\.\d{13}\.IwAR1x_y-Z$/);
+  });
+
+  it("sends Meta only the page's origin and path: a CRM link's email or phone in the query never leaves", async () => {
+    await call({
+      ...good(),
+      event_source_url: `${ORIGIN}/schedule?first_name=Ann&email=ann%40x.com&phone=3105550142&fbclid=IwAR9#inquire`,
+    });
+    const init = graph.mock.calls[0][1] as RequestInit;
+    const ev = sentEvent();
+    expect(ev.event_source_url).toBe(`${ORIGIN}/schedule`);
+    expect(ev.user_data.fbc).toMatch(/\.IwAR9$/);
+    for (const leak of ["ann", "3105550142", "first_name"]) {
+      expect(String(init.body)).not.toContain(leak);
+    }
+  });
+
+  it("refuses an oversized body without reading it into a Graph call", async () => {
+    const res = await call({ ...good(), pad: "x".repeat(8_000) });
+    expect(res.status).toBe(400);
+    expect(graph).not.toHaveBeenCalled();
+  });
+
+  it("prefers the _fbc cookie over the URL's fbclid", async () => {
+    await call(
+      { ...good(), event_source_url: `${ORIGIN}/medtech?fbclid=fromUrl` },
+      { _fbc: "fb.1.1794000000000.fromCookie" },
+    );
+    expect(sentEvent().user_data.fbc).toBe("fb.1.1794000000000.fromCookie");
+  });
+
   it("drops a cookie that is not Meta's format instead of forwarding it", async () => {
     await call(good(), { _fbp: "x".repeat(500), _fbc: "fb.1.1794000000000.AbCdEf" });
     const ud = sentEvent().user_data;

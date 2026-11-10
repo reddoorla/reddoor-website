@@ -53,6 +53,17 @@ describe("customer data normalisation and hashing", () => {
     ]);
   });
 
+  it("drops a phone whose country it cannot tell rather than hash a wrong number", async () => {
+    const { buildPayload } = await load();
+    // A UK number written domestically: stripping its 0 would leave ten digits
+    // that read as a (wrong) US number.
+    const ud = buildPayload({ ...EVENT, phone: "020 7946 0958" }).data[0].user_data;
+    expect(ud).not.toHaveProperty("ph");
+    expect(buildPayload({ ...EVENT, phone: "1 310 555 0142" }).data[0].user_data.ph).toEqual([
+      sha("13105550142"),
+    ]);
+  });
+
   it("never sends the raw email or phone, and sends neither when there is none", async () => {
     const { buildPayload } = await load();
     const withPii = JSON.stringify(
@@ -93,9 +104,12 @@ describe("sendMetaEvent", () => {
     expect(u.origin + u.pathname).toBe(
       `https://graph.facebook.com/${GRAPH_API_VERSION}/${META_PIXEL_ID}/events`,
     );
-    expect(u.searchParams.get("access_token")).toBe("tkn");
+    // In the body, not the URL, so no log of request URLs can ever hold it.
+    expect(u.search).toBe("");
     expect(init.method).toBe("POST");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
     const body = JSON.parse(String(init.body));
+    expect(body.access_token).toBe("tkn");
     expect(body.data).toHaveLength(1);
     expect(body.data[0]).toMatchObject({
       event_name: "PageView",

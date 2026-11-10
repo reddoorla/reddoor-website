@@ -44,13 +44,18 @@ const sha256 = (s: string) => createHash("sha256").update(s, "utf8").digest("hex
 export const normalizeEmail = (raw: string) => raw.trim().toLowerCase();
 
 /**
- * Meta's `ph` normalisation: digits only, no leading zeros, with the country
- * code. A bare 10-digit number is taken as US/Canada, which is who the
- * MedTech funnel's forms are for.
+ * Meta's `ph` normalisation: digits only, with the country code. A number
+ * written with `+` keeps its own code; without one, only a North American
+ * number is recognisable (ten digits starting 2-9, or eleven starting 1).
+ * Anything else is dropped (empty), because guessing hashes a wrong number:
+ * "020 7946 0958" minus its 0 would read as a US number.
  */
 export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "").replace(/^0+/, "");
-  return digits.length === 10 ? `1${digits}` : digits;
+  const digits = raw.replace(/\D/g, "");
+  if (raw.trim().startsWith("+")) return digits.replace(/^0+/, "");
+  if (/^[2-9]\d{9}$/.test(digits)) return `1${digits}`;
+  if (/^1[2-9]\d{9}$/.test(digits)) return digits;
+  return "";
 }
 
 export function buildPayload(ev: ServerEvent, testEventCode?: string) {
@@ -81,6 +86,8 @@ export function buildPayload(ev: ServerEvent, testEventCode?: string) {
 
 type Log = Pick<Console, "warn" | "error">;
 
+const GRAPH_TIMEOUT_MS = 3000;
+
 let warnedNoToken = false;
 
 export async function sendMetaEvent(
@@ -101,17 +108,20 @@ export async function sendMetaEvent(
     return "skipped";
   }
 
-  const url = new URL(`https://graph.facebook.com/${GRAPH_API_VERSION}/${META_PIXEL_ID}/events`);
-  url.searchParams.set("access_token", opts.token);
+  const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${META_PIXEL_ID}/events`;
   try {
-    const res = await opts.fetch(url.toString(), {
+    // The token rides in the JSON body (Graph reads it there), never the URL,
+    // so nothing that logs request URLs can leak it. The timeout bounds a hung
+    // Graph call: the endpoint awaits this before answering.
+    const res = await opts.fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(buildPayload(ev, opts.testEventCode)),
+      body: JSON.stringify({ ...buildPayload(ev, opts.testEventCode), access_token: opts.token }),
+      signal: AbortSignal.timeout(GRAPH_TIMEOUT_MS),
     });
     if (res.ok) return "sent";
     // Meta's error body names the problem (bad token, stale event_time); it
-    // never echoes the token, and the URL holding it is not logged.
+    // never echoes the token.
     const detail = (await res.text().catch(() => "")).slice(0, 500);
     log.error(`[meta-capi] ${ev.eventName} refused: HTTP ${res.status} ${detail}`);
     return "failed";

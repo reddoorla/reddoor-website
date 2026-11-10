@@ -76,11 +76,27 @@ describe("consent storage", () => {
   });
 });
 
+type FakeScript = {
+  src: string;
+  async: boolean;
+  fire: (type: "load" | "error") => void;
+  addEventListener: (type: string, fn: () => void) => void;
+};
+
 function fakeDocument(href = "https://reddoorla.com/medtech") {
-  const appended: { src: string; async: boolean }[] = [];
+  const appended: FakeScript[] = [];
+  const createElement = (): FakeScript => {
+    const listeners: Record<string, (() => void)[]> = {};
+    return {
+      src: "",
+      async: false,
+      addEventListener: (type, fn) => void (listeners[type] ??= []).push(fn),
+      fire: (type) => listeners[type]?.forEach((fn) => fn()),
+    };
+  };
   const doc = {
-    createElement: () => ({ src: "", async: false }),
-    head: { appendChild: (el: { src: string; async: boolean }) => void appended.push(el) },
+    createElement,
+    head: { appendChild: (el: FakeScript) => void appended.push(el) },
     location: { href },
   };
   return { doc: doc as unknown as Document, appended };
@@ -104,23 +120,23 @@ describe("the pixel loader", () => {
     trackFunnelPageView(win, doc, "accepted", send);
     trackFunnelPageView(win, doc, "accepted", send);
     expect(appended).toHaveLength(1);
-    const tracks = fbq.queue.filter((c) => c[0] === "track");
-    expect(tracks).toHaveLength(2);
-    for (const t of tracks) expect(t.slice(0, 2)).toEqual(["track", "PageView"]);
+    const pageView = ["track", "PageView", {}, { eventID: expect.any(String) }];
+    expect(fbq.queue.filter((c) => c[0] === "track")).toEqual([pageView, pageView]);
   });
 });
 
 describe("the server copy of each event (Conversions API)", () => {
-  it("posts each PageView with the same event_id the browser pixel got as eventID", () => {
+  it("posts each PageView with the same event_id the browser pixel got as eventID", async () => {
     const win: Parameters<typeof ensureMetaPixel>[0] = {};
-    const { doc } = fakeDocument("https://reddoorla.com/brand-friction-audit");
+    const { doc, appended } = fakeDocument("https://reddoorla.com/brand-friction-audit");
     const send = vi.fn();
 
     trackFunnelPageView(win, doc, "accepted", send);
     trackFunnelPageView(win, doc, "accepted", send);
+    appended[0].fire("load");
 
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2));
     const tracks = win.fbq!.queue.filter((c) => c[0] === "track");
-    expect(send).toHaveBeenCalledTimes(2);
     tracks.forEach((t, i) => {
       const eventID = (t[3] as { eventID: string }).eventID;
       expect(eventID).toMatch(/^[A-Za-z0-9-]{8,64}$/);
@@ -135,13 +151,30 @@ describe("the server copy of each event (Conversions API)", () => {
     expect(send.mock.calls[0][0].event_id).not.toBe(send.mock.calls[1][0].event_id);
   });
 
+  it.each<["load" | "error"]>([["load"], ["error"]])(
+    "waits for fbevents.js to settle (%s) before posting, so Meta's _fbp/_fbc cookies can ride along",
+    async (outcome) => {
+      const win: Parameters<typeof ensureMetaPixel>[0] = {};
+      const { doc, appended } = fakeDocument();
+      const send = vi.fn();
+
+      trackFunnelPageView(win, doc, "accepted", send);
+      await Promise.resolve();
+      expect(send).not.toHaveBeenCalled();
+
+      appended[0].fire(outcome);
+      await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    },
+  );
+
   it.each<[Consent]>([["rejected"], [null]])(
     "with consent %j, neither the pixel nor the server hears anything",
-    (consent) => {
+    async (consent) => {
       const win: Parameters<typeof ensureMetaPixel>[0] = {};
       const { doc, appended } = fakeDocument();
       const send = vi.fn();
       trackFunnelPageView(win, doc, consent, send);
+      await Promise.resolve();
       expect(send).not.toHaveBeenCalled();
       expect(win.fbq).toBeUndefined();
       expect(appended).toHaveLength(0);

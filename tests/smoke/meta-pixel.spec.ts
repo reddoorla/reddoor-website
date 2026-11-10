@@ -16,6 +16,10 @@ async function watchFacebook(page: Page) {
     requests.push(route.request().url());
     return route.fulfill({ status: 200, contentType: "text/javascript", body: "" });
   });
+  // The server copy of each event: answered here so that a developer's own
+  // META_CAPI_ACCESS_TOKEN never sends a test PageView to Tim's pixel.
+  // watchServerEvents (registered later, so matched first) records them.
+  await page.route("**/api/meta-event", (route) => route.fulfill({ status: 204 }));
   // /schedule asks the CRM for slots on mount; answer that here too.
   await page.route("**/api/slots**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: '{"slots":[]}' }),
@@ -92,6 +96,7 @@ test(
   { tag: "@smoke" },
   async ({ page }) => {
     await watchFacebook(page);
+    const serverEvents = await watchServerEvents(page);
     await gotoHydrated(page, "/medtech");
     await consentBar(page).getByRole("button", { name: "Accept" }).click();
     await expect.poll(() => pageViews(page)).toBe(1);
@@ -99,6 +104,7 @@ test(
     // The inquiry hands over to /schedule with goto(): a SPA arrival.
     await clientNavigate(page, "/schedule");
     await expect.poll(() => pageViews(page)).toBe(2);
+    await expect.poll(() => serverEvents.length).toBe(2);
 
     // A hash change on a funnel page is not a new page.
     await page.evaluate(() => (location.hash = "inquire"));
@@ -108,7 +114,10 @@ test(
     // the arrival, so a stray fire on / or /about would already have made it 4.
     await clientNavigate(page, "/not-a-fit");
     await expect.poll(() => pageViews(page)).toBe(3);
+    await expect.poll(() => serverEvents.length).toBe(3);
     expect(await pageViews(page)).toBe(3);
+    // One server copy per browser PageView, each with its own id.
+    expect(new Set(serverEvents.map((e) => e.event_id)).size).toBe(3);
   },
 );
 
@@ -141,6 +150,8 @@ test(
 
     await consentBar(page).getByRole("button", { name: "Accept" }).click();
     await expect.poll(() => serverEvents.length).toBe(1);
+    // Exactly one each way: a double post would make these differ.
+    expect(serverEvents.length).toBe(await pageViews(page));
 
     const track = ((await fbqCalls(page)) ?? []).find(
       (c) => c[0] === "track" && c[1] === "PageView",
