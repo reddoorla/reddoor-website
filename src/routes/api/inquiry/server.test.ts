@@ -562,7 +562,7 @@ describe("Meta Lead (Conversions API)", () => {
   it.each([["x"], ["a".repeat(65)]])(
     "ignores a malformed event id (%s) without a 400",
     async (id) => {
-      const { status, json } = await call(
+      const { status, json } = await lead(
         application({ metaLead: { eventId: id, consent: "accepted" } }),
       );
       expect(status).toBe(200);
@@ -619,8 +619,9 @@ describe("Meta Lead (Conversions API)", () => {
   });
 
   // Central ingest stores a tokenless submission as spam, so a Lead for one was
-  // never a real applicant. Requiring the token here also means a bare curl
-  // forgery of the endpoint needs a token string to get a Lead out.
+  // never a real applicant. The check is only that a token string is present, not
+  // that it verified: a forger can send any string. The operator accepted this
+  // in-site guard; the real fix is reddoorla/reddoor-maintenance#2027.
   it("sends no Lead without a Turnstile token, and still answers success", async () => {
     for (const turnstileToken of [undefined, ""]) {
       const { status, json } = await lead(application({ turnstileToken }));
@@ -631,23 +632,31 @@ describe("Meta Lead (Conversions API)", () => {
     expect(graphCalls()).toHaveLength(0);
   });
 
-  // The Lead is started right after ingest and the CRM sync runs beside it, so
-  // the response waits for the longer of the two, not their sum. The CRM here is
-  // slow until the Graph call has begun (or a second has passed): a Lead that
-  // waits for the CRM would finish after it, and the order would say so.
-  it("starts the Lead before the CRM sync finishes, and answers after both", async () => {
+  // The Lead and the CRM sync run at the same time, so the response waits for the
+  // longer of the two, not their sum. Each stub records its start, then holds
+  // until the other has started (a second at most) before it records its end. If
+  // the two run one after the other, the second start comes after the first end,
+  // whichever of them goes first.
+  it("runs the Lead and the CRM sync at the same time, and answers after both", async () => {
     metaEnv.CRM_FUNNEL_ACTIVE_TOKEN = "crm-token";
-    const order: string[] = [];
-    let graphStarted!: () => void;
-    const started = new Promise<void>((resolve) => (graphStarted = resolve));
+    const events: string[] = [];
+    let graphBegan!: () => void;
+    let crmBegan!: () => void;
+    const graphStarted = new Promise<void>((resolve) => (graphBegan = resolve));
+    const crmStarted = new Promise<void>((resolve) => (crmBegan = resolve));
+    const aSecond = () => new Promise<void>((resolve) => setTimeout(resolve, 1000));
     crm.application.mockImplementationOnce(async () => {
-      await Promise.race([started, new Promise((resolve) => setTimeout(resolve, 1000))]);
-      order.push("crm");
+      events.push("crm:start");
+      crmBegan();
+      await Promise.race([graphStarted, aSecond()]);
+      events.push("crm:end");
       return { ok: true, data: { contactId: "c1" } };
     });
     graph.mockImplementation(async () => {
-      order.push("graph");
-      graphStarted();
+      events.push("graph:start");
+      graphBegan();
+      await Promise.race([crmStarted, aSecond()]);
+      events.push("graph:end");
       return new Response(null, { status: 200 });
     });
 
@@ -655,7 +664,10 @@ describe("Meta Lead (Conversions API)", () => {
     expect(status).toBe(200);
     expect(json).toEqual({ success: true });
     expect(crm.application).toHaveBeenCalledTimes(1);
-    expect(order).toEqual(["graph", "crm"]);
+    expect(graphCalls()).toHaveLength(1);
+    const secondStart = Math.max(events.indexOf("crm:start"), events.indexOf("graph:start"));
+    const firstEnd = Math.min(events.indexOf("crm:end"), events.indexOf("graph:end"));
+    expect(secondStart).toBeLessThan(firstEnd);
   });
 
   // sendLead itself throws (the cookie jar is read inside it), which is not the
@@ -694,6 +706,18 @@ describe("Meta Lead (Conversions API)", () => {
 
     await lead(application(), { ip: "198.51.100.9" });
     expect(graphCalls()).toHaveLength(4);
+  });
+
+  // An IPv6 client can send each post from a new address in its own /64, so the
+  // limit is per /64: four addresses in one /64 are one client, three Leads.
+  it("counts every address in one IPv6 /64 as one client", async () => {
+    for (let n = 1; n <= 4; n++) {
+      const { status, json } = await lead(application(), { ip: "2001:db8::" + n });
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(submitToIngest).toHaveBeenCalledTimes(4);
+    expect(graphCalls()).toHaveLength(3);
   });
 
   // The limit is the last check, so a post that fails another check takes no slot.

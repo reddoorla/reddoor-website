@@ -205,16 +205,18 @@ type LeadInput = {
  * The server copy of the browser's Lead for a completed application (see
  * $lib/consent/metaPixel `trackLead`). The source must be a funnel page on this
  * origin, as the browser's page was, and a request with no user agent is not a
- * browser's. A Turnstile token is required too: central ingest stores a
+ * browser's. A Turnstile token must be present: central ingest stores a
  * tokenless submission as spam (`turnstile-required-absent`), so a Lead for one
- * was never a real applicant, and a bare curl forgery needs a token to get one.
- * A valid `_fbp` cookie is required as well: fbevents.js sets it in a browser
- * that accepted consent on the funnel, and a bare forgery usually has none. A
- * malformed `_fbp` is dropped by metaCookies, so it counts as absent. Last, a
- * per-IP limit (takeLeadSlot) bounds how many Leads one client can cause, and a
- * request with no client address sends none, since it cannot be limited. The
- * limit runs after every other check so a rejected post spends no slot. Sends
- * nothing when any check fails; the application itself is never affected.
+ * was never a real applicant. This checks only that a token string is there,
+ * not that it verified, so a forger can send any string. A valid `_fbp` cookie
+ * is required too, and it is just as forgeable: a forger can set one. A
+ * malformed `_fbp` is dropped by metaCookies, so it counts as absent. The
+ * per-IP limit (takeLeadSlot, keyed by client via limitKey) bounds how many
+ * Leads one client can cause; a request with no client address sends none,
+ * since it cannot be limited. The limit runs after every other check so a
+ * rejected post spends no slot. Sends nothing when any check fails; the
+ * application itself is never affected. The operator accepted these in-site
+ * guards; the real fix is reddoorla/reddoor-maintenance#2027.
  */
 async function sendLead(lead: LeadInput): Promise<void> {
   const eventId = readLeadEventId(lead.tag);
