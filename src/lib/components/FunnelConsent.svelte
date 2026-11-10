@@ -44,7 +44,7 @@
   $effect(() => {
     if (ready && onFunnel && consent === "accepted") {
       void pathname;
-      trackFunnelPageView(window as unknown as PixelWindow, document);
+      trackFunnelPageView(window as unknown as PixelWindow, document, consent);
     }
   });
 

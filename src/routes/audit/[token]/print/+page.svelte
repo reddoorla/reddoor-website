@@ -1,6 +1,8 @@
 <script lang="ts">
   import {
     citationRuns,
+    failedChecksSentence,
+    gapClause,
     namesakeLeads,
     notSourcedFromSite,
     openingSummary,
@@ -295,7 +297,14 @@
     {/if}
 
     <h3>Does it work</h3>
-    {#if healthProblems.length === 0}
+    {#if healthRows(view).length === 0}
+      <!-- Nothing ran, or it ran and failed: never "came back clean", which is
+           what this printed for both before #893. -->
+      <p class="note">
+        {gapClause(view, ["checks", "basics", "assets", "siteChecks"], "These checks", true)}. That
+        is a gap in our measurement, not a finding about your site.
+      </p>
+    {:else if healthProblems.length === 0}
       <p class="note">Every check on whether the site works came back clean — see What passes.</p>
     {:else}
       {#each healthProblems as row (row.key)}
@@ -398,6 +407,9 @@
         The visibility test ran {view.categoryProbes.length + view.brandedProbes.length} searches. Every
         source listed is a citation the assistant actually returned, not something inferred from its wording.
       </p>
+    {/if}
+    {#if failedChecksSentence(view)}
+      <p>{failedChecksSentence(view)}</p>
     {/if}
     <p>
       <strong>What we did not measure:</strong> we tested one AI assistant, not all of them. Results vary

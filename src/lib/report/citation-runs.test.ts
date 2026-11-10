@@ -276,6 +276,7 @@ const view = {
   businessName: "Acme Co",
   namesake: null,
   sitemapUrlCount: null,
+  failedStages: [],
   brandedProbes: [],
   accuracy: {
     assertions: RUN_ROWS,

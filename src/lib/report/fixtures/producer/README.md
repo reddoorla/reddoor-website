@@ -1,7 +1,8 @@
 # Producer-shaped report fixtures
 
-Five payloads, one per shape the stored `result_json` actually takes, **written
-by the producer** rather than by hand.
+Five payloads, one per shape the stored `result_json` actually takes, plus two
+**adverse** runs of today's producer, all **written by the producer** rather than
+by hand.
 
 ## Why they exist
 
@@ -55,27 +56,28 @@ keys that era did not carry** — the bit-string is the whole specification. The
 are still the producer's output with named fields removed, never a guess at what
 the producer used to write.
 
-## Known gaps
+## The adverse shapes
 
-What no fixture exercises today, exactly as found. Each is a branch that
-`producer-shapes.test.ts` **records rather than covers** — it has a named test
-under "known coverage gaps" that asserts the degeneracy, so the corpus says out
-loud where an assertion is comparing a constant with itself. Every one of them
-needs a sixth, **adverse** fixture from `gen-report-shapes.mts` in
-reddoor-maintenance; closing a gap will red its gap test, which is the signal to
-delete that test and strengthen its counterpart.
+The five vary which **keys** exist, never the **values** that pick a branch:
+every stage succeeded, robots.txt was read and blocked nothing, there was no
+sitemap, and every category probe answered. So four branches of `toReportView`
+had never run on a producer-shaped input, and this section used to list them as
+"known gaps", each with a test asserting the gap
+([reddoor-maintenance#893](https://github.com/reddoorla/reddoor-maintenance/issues/893)).
+The generator now also writes two runs of today's producer whose stubbed
+dependencies take the other branch:
 
-- **No stage has `ok: false`.** Every stage of all five payloads succeeded, so
-  `stage()`'s failure branch is never taken. The nulls these fixtures do produce
-  come from a stage KEY being absent, which is a different path.
-- **`checks.data.crawlerAccessMeasured` is `true` and `crawlerAccess.blockedAi`
-  is empty in all five.** Neither an unmeasured robots.txt nor a site that
-  actually blocks an AI crawler is covered, and both sides of the `measured`
-  assertion normalise a missing field the same way.
-- **`crawl.data.sitemap.present` is `false` in all five** (with `urlCount: 0`),
-  so `sitemapUrlCount` is `null` on every fixture and its `present: true` branch
-  has never run.
-- **`probes.data.categoryProbes.attempted` equals `answered` in all five** (both
-  3, and the answered-probe array is 3 long too). The test catches `model.ts`
-  reading a path with a different value, but **cannot** catch `attempted` being
-  swapped for `answered` — which is the defect the field exists to prevent.
+| file                      | what it carries                                                                                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adverse-unmeasured.json` | robots.txt timed out, so `crawlerAccessMeasured` is `false`; the accuracy stage **ran and failed** (`{ok: false, error}`) after its answers were captured                           |
+| `adverse-blocked.json`    | robots.txt turns GPTBot away, so `blockedAi` is `["GPTBot"]`; accuracy succeeds, which is what renders the sitemap count                                                            |
+| both                      | `sitemap.present` is `true` with `urlCount` 12, against the 3 pages the crawl reads; one of three category probes timed out, so `categoryProbes.attempted` is 3 and `answered` is 2 |
+
+Two files because one run cannot carry both robots cases: the producer fills
+`blockedAi` only after a successful fetch. `producer-shapes.test.ts` runs every
+per-shape assertion over all seven, then asserts what a reader sees on each
+adverse branch. `failed-stages.test.ts` covers "ran and failed" against "never
+ran" in every other section, from these fixtures with one stage swapped.
+
+The adverse files are the generator's raw bytes, not prettier-formatted like
+the five: `.prettierignore` already skips them.

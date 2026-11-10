@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { resetLeadLimit } from "$lib/server/leadLimit";
 
 // The e2e suite stubs /api/inquiry wholesale, so the handler's own logic —
 // screen ordering, validation, message composition, ingest forwarding — runs
@@ -6,16 +8,42 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // payloads and drive success/failure; screenSubmission stays REAL so the
 // honeypot/timing contract is the true one.
 const submitToIngest = vi.fn();
+// Mutable per test: the Conversions API token and test code are read at call
+// time through getters, so a test can unset the token without re-mocking.
+const metaEnv = vi.hoisted(() => ({
+  META_CAPI_ACCESS_TOKEN: "test-token" as string | undefined,
+  META_CAPI_TEST_EVENT_CODE: undefined as string | undefined,
+  // Unset by default, as it was under $env/dynamic: the CRM sync stays off in
+  // every test except the ones that set it.
+  CRM_FUNNEL_ACTIVE_TOKEN: undefined as string | undefined,
+}));
 vi.mock("$app/env/private", () => ({
   FORMS_INGEST_URL: "https://ingest.test/api/forms/reddoor",
   FORMS_INGEST_TOKEN: "test-token",
-  // Unset, as it was under $env/dynamic: the CRM sync stays off in this suite.
-  CRM_FUNNEL_ACTIVE_TOKEN: undefined,
+  get CRM_FUNNEL_ACTIVE_TOKEN() {
+    return metaEnv.CRM_FUNNEL_ACTIVE_TOKEN;
+  },
+  get META_CAPI_ACCESS_TOKEN() {
+    return metaEnv.META_CAPI_ACCESS_TOKEN;
+  },
+  get META_CAPI_TEST_EVENT_CODE() {
+    return metaEnv.META_CAPI_TEST_EVENT_CODE;
+  },
 }));
 vi.mock("@reddoorla/maintenance/forms", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@reddoorla/maintenance/forms")>();
   return { ...actual, submitToIngest: (opts: unknown) => submitToIngest(opts) };
 });
+// The CRM client, replaced whole: each sync resolves to a contact unless a test
+// swaps in its own implementation (to make the CRM slow, say).
+const crm = vi.hoisted(() => ({
+  application: vi.fn(async (_opts: unknown) => ({ ok: true, data: { contactId: "c1" } })),
+  inquiry: vi.fn(async (_opts: unknown) => ({ ok: true, data: { contactId: "c1" } })),
+}));
+vi.mock("$lib/ghl/client", () => ({
+  syncApplicationToCrm: (opts: unknown) => crm.application(opts),
+  syncInquiryToCrm: (opts: unknown) => crm.inquiry(opts),
+}));
 
 // The page's step titles, as Prismic serves them. A rejected lookup stands in
 // for an outage, a `page`-type campaign, or an unknown uid.
@@ -42,17 +70,35 @@ type Body = Record<string, unknown>;
 // under test.
 const OLD_TS = () => Date.now() - 10_000;
 
-function call(body: Body) {
+/** Graph is stubbed through the event's fetch; ingest and the CRM never use it. */
+let graph: ReturnType<typeof vi.fn>;
+
+function call(
+  body: Body,
+  opts: {
+    cookies?: Record<string, string>;
+    /** Replaces the cookie jar outright, for a test that makes reading it throw. */
+    cookieJar?: { get: (name: string) => string | undefined };
+    userAgent?: string | null;
+    /** The client address; null makes getClientAddress throw (no address). */
+    ip?: string | null;
+  } = {},
+) {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (opts.userAgent !== null) headers["user-agent"] = opts.userAgent ?? "vitest";
   const event = {
     request: new Request("https://site.test/api/inquiry", {
       method: "POST",
-      headers: { "content-type": "application/json", "user-agent": "vitest" },
+      headers,
       body: JSON.stringify(body),
     }),
-    fetch: globalThis.fetch,
+    fetch: graph,
     url: new URL("https://site.test/api/inquiry"),
-    getClientAddress: () => "203.0.113.7",
-    cookies: { get: () => undefined },
+    getClientAddress: () => {
+      if (opts.ip === null) throw new Error("no client address");
+      return opts.ip ?? "203.0.113.7";
+    },
+    cookies: opts.cookieJar ?? { get: (name: string) => opts.cookies?.[name] },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   return Promise.resolve(POST(event)).then(async (res: Response) => ({
@@ -66,11 +112,28 @@ const lastPayload = () =>
   (submitToIngest.mock.calls.at(-1)?.[0] as any).payload as Record<string, unknown>;
 
 beforeEach(() => {
+  resetLeadLimit();
   getByUID.mockReset();
   getByUID.mockRejectedValue(new Error("no such document"));
   submitToIngest.mockReset();
   submitToIngest.mockResolvedValue({ ok: true, id: "sub_1" });
+  metaEnv.META_CAPI_ACCESS_TOKEN = "test-token";
+  metaEnv.META_CAPI_TEST_EVENT_CODE = undefined;
+  metaEnv.CRM_FUNNEL_ACTIVE_TOKEN = undefined;
+  crm.application.mockClear();
+  crm.inquiry.mockClear();
+  graph = vi.fn(async () => new Response(null, { status: 200 }));
 });
+
+/** Calls the Conversions API (Graph) made by this request, if any. */
+const graphCalls = () =>
+  graph.mock.calls.filter(([u]) => String(u).startsWith("https://graph.facebook.com/"));
+/** The one event Meta received. */
+const sentEvent = () => {
+  expect(graphCalls()).toHaveLength(1);
+  const init = graphCalls()[0][1] as RequestInit;
+  return JSON.parse(String(init.body)).data[0];
+};
 
 describe("POST /api/inquiry", () => {
   it("runs the honeypot screen BEFORE any validation 400", async () => {
@@ -375,5 +438,328 @@ describe("POST /api/inquiry", () => {
     await call({ email: "a@b.com", turnstileToken: "x".repeat(2049), ts: OLD_TS() });
     expect(submitToIngest).toHaveBeenCalledTimes(2);
     expect(lastPayload()._meta).not.toHaveProperty("turnstileToken");
+  });
+});
+
+describe("Meta Lead (Conversions API)", () => {
+  const EVENT_ID = "4f1c2a9e-7b1d-4c55-9a0e-1f2e3d4c5b6a";
+  const metaLead = { eventId: EVENT_ID, consent: "accepted" };
+  const SOURCE = "https://site.test/medtech?utm_source=x&email=a@b.c";
+  const application = (over: Body = {}): Body => ({
+    email: " Ann@Example.COM ",
+    name: "Ann Example",
+    phone: "(310) 555-0123",
+    smsConsent: true,
+    answers: [{ label: "Problems", value: "Outdated materials" }],
+    sourceUrl: SOURCE,
+    metaLead,
+    turnstileToken: "0.tok",
+    ts: OLD_TS(),
+    ...over,
+  });
+  const sha = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
+  // A well-formed _fbp, as fbevents.js sets it. Every Lead below carries it,
+  // so each test still reaches the check it is about.
+  const FBP = "fb.1.1794000000000.123456789";
+  const lead = (body: Body, opts: Parameters<typeof call>[1] = {}) =>
+    call(body, { ...opts, cookies: { _fbp: FBP, ...opts.cookies } });
+
+  it("sends one Lead for a completed application, hashed, with no query in the source URL", async () => {
+    const { status, json } = await lead(application());
+    expect(status).toBe(200);
+    expect(json).toEqual({ success: true });
+
+    const ev = sentEvent();
+    expect(ev).toMatchObject({
+      event_name: "Lead",
+      event_id: EVENT_ID,
+      event_source_url: "https://site.test/medtech",
+      action_source: "website",
+    });
+    expect(ev.user_data.em).toEqual([sha("ann@example.com")]);
+    expect(ev.user_data.ph).toEqual([sha("13105550123")]);
+
+    // Neither the raw email nor the raw phone appears anywhere in what Meta gets.
+    const wire = String((graphCalls()[0][1] as RequestInit).body);
+    for (const raw of ["Ann@Example.COM", "ann@example.com", "(310) 555-0123", "3105550123"]) {
+      expect(wire).not.toContain(raw);
+    }
+  });
+
+  it("sends nothing when metaLead is absent or is not an accepted, well-formed tag", async () => {
+    const bad: unknown[] = [
+      undefined,
+      { eventId: EVENT_ID, consent: "rejected" },
+      { eventId: EVENT_ID },
+      { eventId: EVENT_ID, consent: "true" },
+    ];
+    for (const tag of bad) {
+      const { status, json } = await lead(application({ metaLead: tag }));
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead for a step-one email capture, even with a valid metaLead", async () => {
+    // From a funnel page, with a token, the _fbp cookie and a user agent, so
+    // every other check passes and only the step-one rule stands between this
+    // post and a Lead.
+    await lead({
+      email: "buyer@example.com",
+      step: "The Diagnosis",
+      sourceUrl: SOURCE,
+      metaLead,
+      turnstileToken: "0.tok",
+      ts: OLD_TS(),
+    });
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead without a user agent, which Meta requires for website events", async () => {
+    await lead(application(), { userAgent: null });
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead when the source is off the funnel or on another origin", async () => {
+    await lead(application({ sourceUrl: "https://site.test/boise?x=1" }));
+    await lead(application({ sourceUrl: "https://evil.test/medtech" }));
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends no Lead for a test-mode submission", async () => {
+    await lead(application({ testMode: true }));
+    expect(submitToIngest).toHaveBeenCalledTimes(1);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends nothing and still succeeds when the token is unset", async () => {
+    metaEnv.META_CAPI_ACCESS_TOKEN = undefined;
+    const { status, json } = await lead(application());
+    expect(status).toBe(200);
+    expect(json).toEqual({ success: true });
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("still answers success when Graph refuses or the request throws", async () => {
+    graph.mockResolvedValueOnce(new Response('{"error":{"code":1}}', { status: 500 }));
+    const refused = await lead(application());
+    expect(refused).toEqual({ status: 200, json: { success: true } });
+
+    graph.mockRejectedValueOnce(new Error("socket hang up"));
+    const thrown = await lead(application());
+    expect(thrown).toEqual({ status: 200, json: { success: true } });
+    expect(graphCalls()).toHaveLength(2);
+  });
+
+  it("sends no Lead when ingest failed", async () => {
+    submitToIngest.mockResolvedValueOnce({ ok: false, status: 500, error: "boom" });
+    const { status } = await lead(application());
+    expect(status).toBe(502);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it.each([["x"], ["a".repeat(65)], ["<script>aaaa"], [12345678]])(
+    "ignores a malformed event id (%s) without a 400",
+    async (id) => {
+      const { status, json } = await lead(
+        application({ metaLead: { eventId: id, consent: "accepted" } }),
+      );
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+      expect(graphCalls()).toHaveLength(0);
+    },
+  );
+
+  it("forwards the browser's _fbp and _fbc, and drops a malformed _fbc", async () => {
+    await lead(application(), {
+      cookies: { _fbp: "fb.1.1794000000000.123456789", _fbc: "fb.1.1794000000000.AbCdEf" },
+    });
+    expect(sentEvent().user_data).toMatchObject({
+      fbp: "fb.1.1794000000000.123456789",
+      fbc: "fb.1.1794000000000.AbCdEf",
+    });
+
+    // A malformed _fbc with a valid _fbp still sends, and carries no fbc.
+    graph.mockClear();
+    await lead(application(), { cookies: { _fbc: "not-meta" } });
+    expect(sentEvent().user_data).toMatchObject({ fbp: FBP });
+    expect(sentEvent().user_data).not.toHaveProperty("fbc");
+  });
+
+  // The operator's in-site guard: a forged post carries a third party's hashed
+  // email and phone, and only a real browser that accepted consent has _fbp.
+  it("sends no Lead without a valid _fbp cookie, and still answers success", async () => {
+    const cookieSets: Record<string, string>[] = [
+      {},
+      { _fbp: "" },
+      { _fbp: "not-meta" },
+      { _fbp: "fb.1.123.x" },
+    ];
+    for (const cookies of cookieSets) {
+      const { status, json } = await call(application(), { cookies });
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(submitToIngest).toHaveBeenCalledTimes(4);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  // The browser retries a post whose response was lost, and the modal keeps one
+  // Lead id per wizard session, so a retry carries the same metaLead. The server
+  // forwards that id unchanged: Meta counts an event_id once within 48 hours.
+  it("forwards the same event id on a retried application, so Meta can dedupe it", async () => {
+    await lead(application());
+    await lead(application());
+    expect(graphCalls()).toHaveLength(2);
+    const ids = graphCalls().map(
+      ([, init]) => JSON.parse(String((init as RequestInit).body)).data[0].event_id,
+    );
+    expect(ids).toEqual([EVENT_ID, EVENT_ID]);
+  });
+
+  // Central ingest stores a tokenless submission as spam, so a Lead for one was
+  // never a real applicant. The check is only that a token string is present, not
+  // that it verified: a forger can send any string. The operator accepted this
+  // in-site guard; the real fix is reddoorla/reddoor-maintenance#2027.
+  it("sends no Lead without a Turnstile token, and still answers success", async () => {
+    for (const turnstileToken of [undefined, ""]) {
+      const { status, json } = await lead(application({ turnstileToken }));
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(submitToIngest).toHaveBeenCalledTimes(2);
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  // The Lead and the CRM sync run at the same time, so the response waits for the
+  // longer of the two, not their sum. Each stub records its start, then holds
+  // until the other has started (a second at most). If the two run one after the
+  // other, the second start comes after the first end, whichever goes first.
+  // Graph also finishes last, a timer after the CRM has ended, so a response
+  // that did not wait for the Lead would be recorded before "graph:end".
+  it("runs the Lead and the CRM sync at the same time, and answers after both", async () => {
+    metaEnv.CRM_FUNNEL_ACTIVE_TOKEN = "crm-token";
+    const events: string[] = [];
+    let graphBegan!: () => void;
+    let crmBegan!: () => void;
+    let crmFinished!: () => void;
+    const graphStarted = new Promise<void>((resolve) => (graphBegan = resolve));
+    const crmStarted = new Promise<void>((resolve) => (crmBegan = resolve));
+    const crmEnded = new Promise<void>((resolve) => (crmFinished = resolve));
+    const aSecond = () => new Promise<void>((resolve) => setTimeout(resolve, 1000));
+    crm.application.mockImplementationOnce(async () => {
+      events.push("crm:start");
+      crmBegan();
+      await Promise.race([graphStarted, aSecond()]);
+      events.push("crm:end");
+      crmFinished();
+      return { ok: true, data: { contactId: "c1" } };
+    });
+    graph.mockImplementation(async () => {
+      events.push("graph:start");
+      graphBegan();
+      await Promise.race([crmStarted, aSecond()]);
+      await Promise.race([crmEnded, aSecond()]);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      events.push("graph:end");
+      return new Response(null, { status: 200 });
+    });
+
+    const { status, json } = await lead(application());
+    events.push("response");
+    expect(status).toBe(200);
+    expect(json).toEqual({ success: true });
+    expect(crm.application).toHaveBeenCalledTimes(1);
+    expect(graphCalls()).toHaveLength(1);
+    const secondStart = Math.max(events.indexOf("crm:start"), events.indexOf("graph:start"));
+    const firstEnd = Math.min(events.indexOf("crm:end"), events.indexOf("graph:end"));
+    expect(secondStart).toBeLessThan(firstEnd);
+    expect(events.indexOf("graph:end")).toBeLessThan(events.indexOf("response"));
+  });
+
+  // sendLead itself throws (the cookie jar is read inside it), which is not the
+  // same as Graph refusing: this proves the handler's own catch is what keeps
+  // the visitor's success, with the lead already in ingest.
+  it("still answers success and keeps the ingest copy when sendLead itself throws", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { status, json } = await lead(application(), {
+        cookieJar: {
+          get: () => {
+            throw new Error("boom");
+          },
+        },
+      });
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+      expect(submitToIngest).toHaveBeenCalledTimes(1);
+      expect(graphCalls()).toHaveLength(0);
+      expect(logged).toHaveBeenCalledWith(expect.stringContaining("Lead not sent: boom"));
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
+  // The per-IP guard bounds Leads a single client can cause; the application
+  // itself still goes to ingest and the visitor still gets success.
+  it("sends at most three Leads per IP in ten minutes, and the fourth application still succeeds", async () => {
+    for (let i = 0; i < 4; i++) {
+      const { status, json } = await lead(application());
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(submitToIngest).toHaveBeenCalledTimes(4);
+    expect(graphCalls()).toHaveLength(3);
+
+    await lead(application(), { ip: "198.51.100.9" });
+    expect(graphCalls()).toHaveLength(4);
+  });
+
+  // An IPv6 client can send each post from a new address in its own /64, so the
+  // limit is per /64: four addresses in one /64 are one client, three Leads.
+  it("counts every address in one IPv6 /64 as one client", async () => {
+    for (let n = 1; n <= 4; n++) {
+      const { status, json } = await lead(application(), { ip: "2001:db8::" + n });
+      expect(status).toBe(200);
+      expect(json).toEqual({ success: true });
+    }
+    expect(submitToIngest).toHaveBeenCalledTimes(4);
+    expect(graphCalls()).toHaveLength(3);
+  });
+
+  // The limit is the last check, so a post that fails another check takes no slot.
+  // One post per earlier check, each failing only that check, so moving the
+  // limit above any of them would spend a slot and refuse a later valid Lead.
+  it("a post that fails another check spends no slot", async () => {
+    await lead(application({ metaLead: undefined }));
+    await lead(application({ turnstileToken: undefined }));
+    await lead(application({ sourceUrl: "https://site.test/boise" }));
+    await lead(application(), { userAgent: null });
+    await call(application());
+    await call(application(), { cookies: { _fbp: "not-meta" } });
+    expect(submitToIngest).toHaveBeenCalledTimes(6);
+    expect(graphCalls()).toHaveLength(0);
+    for (let i = 0; i < 3; i++) await lead(application());
+    expect(graphCalls()).toHaveLength(3);
+  });
+
+  // Netlify always supplies an address; an adapter that does not cannot be limited,
+  // so such a Lead is not sent.
+  it("sends no Lead when the client address is unknown", async () => {
+    const { status, json } = await lead(application(), { ip: null });
+    expect(status).toBe(200);
+    expect(json).toEqual({ success: true });
+    expect(graphCalls()).toHaveLength(0);
+  });
+
+  it("sends the test event code when one is configured", async () => {
+    metaEnv.META_CAPI_TEST_EVENT_CODE = "TEST12345";
+    await lead(application());
+    expect(JSON.parse(String((graphCalls()[0][1] as RequestInit).body)).test_event_code).toBe(
+      "TEST12345",
+    );
   });
 });

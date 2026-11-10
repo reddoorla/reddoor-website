@@ -103,6 +103,7 @@ const viewWith = (accuracy: ReportView["accuracy"]): ReportView =>
     businessName: "Acme Co",
     namesake: null,
     sitemapUrlCount: null,
+    failedStages: [],
   }) as unknown as ReportView;
 
 const assertion = (verdict: Assertion["verdict"] = "confirmed"): Assertion =>

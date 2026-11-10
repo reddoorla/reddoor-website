@@ -1,6 +1,6 @@
 <script lang="ts">
   import CitationChart from "./CitationChart.svelte";
-  import { fieldShape, type ReportView } from "./model";
+  import { fieldShape, gapClause, type ReportView } from "./model";
 
   // Where the prospect stands in AI answers — reported as a finding with its
   // evidence attached, never as a score on the same track as the site work.
@@ -178,7 +178,7 @@
   </div>
 {:else}
   <p class="type-lede m-0 text-muted">
-    The visibility test did not run on this audit, so there is nothing to report here. That is a gap
-    in the measurement, not a finding about your site.
+    {gapClause(view, ["probes"], "The visibility test")}, so there is nothing to report here. That
+    is a gap in the measurement, not a finding about your site.
   </p>
 {/if}
