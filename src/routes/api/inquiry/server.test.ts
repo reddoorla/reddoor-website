@@ -697,8 +697,16 @@ describe("Meta Lead (Conversions API)", () => {
   });
 
   // The limit is the last check, so a post that fails another check takes no slot.
+  // One post per earlier check, each failing only that check, so moving the
+  // limit above any of them would spend a slot and refuse a later valid Lead.
   it("a post that fails another check spends no slot", async () => {
-    for (let i = 0; i < 3; i++) await lead(application({ metaLead: undefined }));
+    await lead(application({ metaLead: undefined }));
+    await lead(application({ turnstileToken: undefined }));
+    await lead(application({ sourceUrl: "https://site.test/boise" }));
+    await lead(application(), { userAgent: null });
+    await call(application());
+    await call(application(), { cookies: { _fbp: "not-meta" } });
+    expect(submitToIngest).toHaveBeenCalledTimes(6);
     expect(graphCalls()).toHaveLength(0);
     for (let i = 0; i < 3; i++) await lead(application());
     expect(graphCalls()).toHaveLength(3);
