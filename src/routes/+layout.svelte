@@ -15,6 +15,7 @@
 
   import { isInHero } from "$lib/stores/isInHero.svelte";
   import LandscapeModal from "$lib/components/LandscapeModal.svelte";
+  import FunnelConsent from "$lib/components/FunnelConsent.svelte";
   import { trapFocus } from "$lib/actions/trapFocus";
 
   import rotatingReddoor from "$lib/assets/icons/logos/drawnReddoors.webp";
@@ -279,6 +280,7 @@
   </div>
 {/if}
 <LandscapeModal />
+<FunnelConsent />
 <!-- `<main>` sits OUTSIDE the {#key} on purpose. Keyed, it was torn down and
      rebuilt on every navigation, and because `out:fade` runs 500ms while
      `in:fade` waits 700ms, the outgoing copy overlapped the incoming one — two
