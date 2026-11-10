@@ -33,7 +33,8 @@ function expandIPv6(addr: string): string[] | null {
 /**
  * The key a client's Leads are counted under. An IPv6 client holds a whole /64
  * (it can send each post from a fresh address in it), so every address in one
- * /64 shares a key. An IPv4 address, or an IPv4-mapped IPv6 one, is its own key.
+ * /64 shares a key. An IPv4 address, or an IPv4-mapped IPv6 one in its dotted
+ * form (`::ffff:1.2.3.4`, which is how Node and Netlify print it), is its own key.
  * Anything unparseable is returned unchanged, and this never throws.
  */
 export function limitKey(ip: string): string {

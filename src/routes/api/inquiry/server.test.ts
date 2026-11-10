@@ -559,7 +559,7 @@ describe("Meta Lead (Conversions API)", () => {
     expect(graphCalls()).toHaveLength(0);
   });
 
-  it.each([["x"], ["a".repeat(65)]])(
+  it.each([["x"], ["a".repeat(65)], ["<script>aaaa"], [12345678]])(
     "ignores a malformed event id (%s) without a 400",
     async (id) => {
       const { status, json } = await lead(
@@ -634,33 +634,40 @@ describe("Meta Lead (Conversions API)", () => {
 
   // The Lead and the CRM sync run at the same time, so the response waits for the
   // longer of the two, not their sum. Each stub records its start, then holds
-  // until the other has started (a second at most) before it records its end. If
-  // the two run one after the other, the second start comes after the first end,
-  // whichever of them goes first.
+  // until the other has started (a second at most). If the two run one after the
+  // other, the second start comes after the first end, whichever goes first.
+  // Graph also finishes last, a timer after the CRM has ended, so a response
+  // that did not wait for the Lead would be recorded before "graph:end".
   it("runs the Lead and the CRM sync at the same time, and answers after both", async () => {
     metaEnv.CRM_FUNNEL_ACTIVE_TOKEN = "crm-token";
     const events: string[] = [];
     let graphBegan!: () => void;
     let crmBegan!: () => void;
+    let crmFinished!: () => void;
     const graphStarted = new Promise<void>((resolve) => (graphBegan = resolve));
     const crmStarted = new Promise<void>((resolve) => (crmBegan = resolve));
+    const crmEnded = new Promise<void>((resolve) => (crmFinished = resolve));
     const aSecond = () => new Promise<void>((resolve) => setTimeout(resolve, 1000));
     crm.application.mockImplementationOnce(async () => {
       events.push("crm:start");
       crmBegan();
       await Promise.race([graphStarted, aSecond()]);
       events.push("crm:end");
+      crmFinished();
       return { ok: true, data: { contactId: "c1" } };
     });
     graph.mockImplementation(async () => {
       events.push("graph:start");
       graphBegan();
       await Promise.race([crmStarted, aSecond()]);
+      await Promise.race([crmEnded, aSecond()]);
+      await new Promise((resolve) => setTimeout(resolve, 20));
       events.push("graph:end");
       return new Response(null, { status: 200 });
     });
 
     const { status, json } = await lead(application());
+    events.push("response");
     expect(status).toBe(200);
     expect(json).toEqual({ success: true });
     expect(crm.application).toHaveBeenCalledTimes(1);
@@ -668,6 +675,7 @@ describe("Meta Lead (Conversions API)", () => {
     const secondStart = Math.max(events.indexOf("crm:start"), events.indexOf("graph:start"));
     const firstEnd = Math.min(events.indexOf("crm:end"), events.indexOf("graph:end"));
     expect(secondStart).toBeLessThan(firstEnd);
+    expect(events.indexOf("graph:end")).toBeLessThan(events.indexOf("response"));
   });
 
   // sendLead itself throws (the cookie jar is read inside it), which is not the
