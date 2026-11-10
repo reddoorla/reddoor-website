@@ -38,13 +38,13 @@ export const CONTENT_SECURITY_POLICY = [
   "object-src 'none'",
   "form-action 'self'",
   "frame-ancestors 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline' https://use.typekit.net https://p.typekit.net https://fonts.googleapis.com",
   "font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com",
   "img-src 'self' data: https:",
   "frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com https://app.netlify.com",
   "media-src 'self' https://reddoor-la.cdn.prismic.io https://prismic-io.s3.amazonaws.com",
-  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net",
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net https://connect.facebook.net https://www.facebook.com",
 ].join("; ");
 
 /**
