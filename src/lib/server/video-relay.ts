@@ -11,6 +11,28 @@ const RELAY_FETCH_TIMEOUT_MS = 3_000;
  */
 const RELAY_OVERALL_TIMEOUT_MS = 8_000;
 
+/**
+ * `work`, or a rejection with the signal's reason as soon as `signal` aborts,
+ * whichever comes first. The listener is removed when `work` settles.
+ */
+function untilAborted<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    work.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (err: unknown) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
 /** What the Netlify relay function needs from its environment and from Prismic. */
 export type RelayDeps = {
   fetch: typeof fetch;
@@ -43,7 +65,9 @@ export function buildRelayConfig(
     dispatchToken: env.VIDEO_DISPATCH_TOKEN,
     mediaBase: VIDEO_MEDIA_BASE,
     rules: VIDEO_RULES,
-    getDocuments: deps.getDocuments,
+    // Prismic's read runs before any bounded call, so it is bounded by the same budget.
+    getDocuments: async (ids) => untilAborted(deps.getDocuments(ids), overall),
+
     fetch: (input, init) =>
       perCall(input, {
         ...init,

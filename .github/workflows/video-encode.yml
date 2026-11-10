@@ -92,7 +92,7 @@ jobs:
         run: |
           : "${MANIFEST:?the encode step printed no MANIFEST line, so there is nothing to check}"
           # A GET, not a HEAD: the player makes GET requests, and R2 adds the CORS header only to the methods a rule allows.
-          headers="$(curl -sS -o /dev/null -D - -H 'Origin: https://reddoorla.com' "https://media.reddoorla.com/$MANIFEST")"
+          headers="$(curl -sS --max-time 30 --suppress-connect-headers -o /dev/null -D - -H 'Origin: https://reddoorla.com' "https://media.reddoorla.com/$MANIFEST")" || { echo "::error::could not reach media.reddoorla.com to check the manifest"; exit 1; }
           status_line="$(head -n 1 <<<"$headers" | tr -d '\r')"
           if ! grep -Eq '^HTTP/[0-9.]+ 200([[:space:]]|$)' <<<"$status_line"; then
             echo "::error::media.reddoorla.com did not serve the manifest $MANIFEST ($status_line): check the custom domain and public access"

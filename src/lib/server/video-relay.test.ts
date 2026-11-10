@@ -194,4 +194,41 @@ describe("the relay's overall deadline", () => {
     // Three videos at 80 ms per read and dispatch would take about 480 ms; the overall budget caps it.
     expect(elapsed).toBeLessThan(300);
   });
+
+  it("answers within the overall budget when Prismic's getDocuments never settles", async () => {
+    const cfg = buildRelayConfig(env, {
+      fetch: fakeFetch(),
+      // Prismic's own fetch has no timeout here: it only ends if something aborts it.
+      getDocuments: () => new Promise<DocLike[]>(() => {}),
+      fetchTimeoutMs: 50,
+      overallTimeoutMs: 100,
+    });
+
+    const started = Date.now();
+    // The library does not catch a getDocuments rejection, so the webhook rejects with the abort.
+    await expect(handlePrismicWebhook({ method: "POST", body: webhook() }, cfg)).rejects.toThrow();
+    const elapsed = Date.now() - started;
+
+    expect(elapsed).toBeLessThan(300);
+  });
+
+  it("gives each config its own overall budget, so a later config's fetch is not aborted by an earlier one", async () => {
+    buildRelayConfig(env, {
+      fetch: fakeFetch(),
+      getDocuments: async () => [],
+      overallTimeoutMs: 50,
+    });
+    // Wait past the first config's budget before building the second.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // Like a real fetch, rejects when handed a signal that has already aborted.
+    const fetchFn = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      if (init?.signal?.aborted) throw new Error("aborted");
+      return new Response(null, { status: 200 });
+    }) as unknown as typeof fetch;
+    const second = buildRelayConfig(env, { fetch: fetchFn, getDocuments: async () => [] });
+
+    const res = await second.fetch("https://media.reddoorla.com/reddoor-website/x/manifest.json");
+    expect(res.status).toBe(200);
+  });
 });

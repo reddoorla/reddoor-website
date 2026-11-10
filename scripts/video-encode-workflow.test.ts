@@ -315,6 +315,56 @@ describe("video-encode.yml CORS check after the encode", () => {
     expect(argsOf("curl")).toMatch(/(^|\s)-D(\s|$)/);
   });
 
+  it("never asks for HEAD, even inside a combined short flag such as -sSI or as -X HEAD", () => {
+    const { argsOf } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: { output: "HTTP/2 200\r\naccess-control-allow-origin: https://reddoorla.com\r\n" },
+    });
+    const args = argsOf("curl");
+
+    expect(args).not.toMatch(/(^|\s)-[A-Za-z]*I[A-Za-z]*(\s|$)/);
+    expect(args).not.toMatch(/(^|\s)(-X\s?HEAD|--request[= ]HEAD)(\s|$)/);
+  });
+
+  it("bounds the curl with --max-time 30 and suppresses proxy CONNECT headers", () => {
+    const { argsOf } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: { output: "HTTP/2 200\r\naccess-control-allow-origin: https://reddoorla.com\r\n" },
+    });
+
+    expect(argsOf("curl")).toContain("--max-time 30");
+    expect(argsOf("curl")).toContain("--suppress-connect-headers");
+  });
+
+  it("fails with a reachability message when curl cannot reach R2", () => {
+    const { status, output } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: { output: "", exit: 6 },
+    });
+
+    expect(status).not.toBe(0);
+    expect(output).toContain("::error::could not reach media.reddoorla.com to check the manifest");
+  });
+
+  it("passes an HTTP/1.1 200 status line with the header present", () => {
+    const { status, output } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: {
+        output: "HTTP/1.1 200 OK\r\naccess-control-allow-origin: https://reddoorla.com\r\n",
+      },
+    });
+
+    expect(status).toBe(0);
+    expect(output).not.toContain("::error::");
+  });
+
+  it("passes an HTTP/2 200 status line with a trailing space and the header present", () => {
+    const { status, output } = runStep(corsScript(), MANIFEST_ENV, {
+      curl: {
+        output: "HTTP/2 200 \r\naccess-control-allow-origin: https://reddoorla.com\r\n",
+      },
+    });
+
+    expect(status).toBe(0);
+    expect(output).not.toContain("::error::");
+  });
+
   it("fails with the status, not the CORS message, when R2 does not serve the manifest", () => {
     const { status, output } = runStep(corsScript(), MANIFEST_ENV, {
       curl: { output: "HTTP/2 404\r\ncontent-type: application/xml\r\n" },
