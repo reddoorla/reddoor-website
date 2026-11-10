@@ -72,6 +72,7 @@ for (const path of ["/medtech", "/brand-friction-audit", "/schedule", "/not-a-fi
       await gotoHydrated(page, path);
       await expect(consentBar(page)).toBeHidden();
       await expect.poll(() => pageViews(page)).toBe(1);
+      expect(await pageViews(page)).toBe(1);
     },
   );
 }
@@ -93,9 +94,11 @@ test(
     await page.evaluate(() => (location.hash = "inquire"));
     await clientNavigate(page, "/");
     await clientNavigate(page, "/about");
-    // Give a stray effect time to fire before asserting it did not.
-    await page.waitForTimeout(1000);
-    expect(await pageViews(page)).toBe(2);
+    // Back onto the funnel, no sleep: its PageView lands in the same flush as
+    // the arrival, so a stray fire on / or /about would already have made it 4.
+    await clientNavigate(page, "/not-a-fit");
+    await expect.poll(() => pageViews(page)).toBe(3);
+    expect(await pageViews(page)).toBe(3);
   },
 );
 
