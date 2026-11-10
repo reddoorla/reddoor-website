@@ -114,10 +114,12 @@
   // continuation sees the mismatch and refuses to touch the new session's state.
   // Plain (not $state) — it gates control flow, it is never rendered.
   let session = 0;
-  // The Lead tag for this wizard session, decided on its first submit and reused
-  // by every retry (see submitApplication). undefined = not decided yet; null =
-  // this session has no Lead. Plain, like `session`: it is never rendered.
-  let leadTag: { eventId: string } | null | undefined = undefined;
+  // The Lead tag for this wizard session, decided once when the contact frame
+  // opens (see decideLead) and reused by every retry (see submitApplication).
+  // undefined = not decided yet; null = this session has no Lead. It is rendered
+  // too: its presence decides the Meta disclosure under the submit button, so
+  // the notice and the Lead are one decision.
+  let leadTag = $state<{ eventId: string } | null | undefined>(undefined);
 
   const resolvedSurveyId = $derived(surveyId.trim() || DEFAULT_INQUIRY_SURVEY_ID);
   /**
@@ -684,12 +686,31 @@
     return Array.isArray(v) ? v.includes(option) : v === option;
   }
 
+  /**
+   * Decide this wizard session's Lead tag, once. Called as the contact frame
+   * opens, so the disclosure shown there and the Lead the submit fires agree; a
+   * no-op once decided. Measurement never breaks the form: a storage or id
+   * source that throws means no Lead.
+   */
+  function decideLead() {
+    if (leadTag !== undefined) return;
+    try {
+      leadTag = prepareLead(
+        location.pathname,
+        readConsent(() => localStorage),
+      );
+    } catch {
+      leadTag = null;
+    }
+  }
+
   async function nextQuestion(e: SubmitEvent) {
     e.preventDefault();
     if (!questions) return;
     if (qIndex < questions.length - 1) {
       await goTo("question", qIndex + 1);
     } else {
+      decideLead();
       await goTo("contact");
     }
   }
@@ -750,21 +771,11 @@
       value: answers[q.tag] ?? "",
     }));
 
-    // The Lead tag, decided once per wizard session, on the first submit. A retry
+    // The Lead tag, decided once per wizard session (see decideLead). A retry
     // after a lost response posts the same tag, so Meta gets one Lead for the one
     // application, not one per attempt. Null off the funnel or without an
-    // accepted answer, and then the post carries no tag at all. Measurement never
-    // breaks the form: a storage or id source that throws means no Lead.
-    if (leadTag === undefined) {
-      try {
-        leadTag = prepareLead(
-          location.pathname,
-          readConsent(() => localStorage),
-        );
-      } catch {
-        leadTag = null;
-      }
-    }
+    // accepted answer, and then the post carries no tag at all.
+    decideLead();
     const lead = leadTag;
     const res = await postIngest({
       email: capturedEmail,
@@ -1146,10 +1157,21 @@
               >
                 Back
               </button>
-              <button type="submit" class="inquiry-submit" aria-busy={status === "sending"}>
+              <button
+                type="submit"
+                class="inquiry-submit"
+                aria-busy={status === "sending"}
+                aria-describedby={leadTag ? "inquiry-lead-note" : undefined}
+              >
                 {#if status === "sending"}Sending<SendingDots />{:else}Submit Application{/if}
               </button>
             </div>
+
+            {#if leadTag}
+              <p id="inquiry-lead-note" class="inquiry-lead-note">
+                We share a hashed copy of your email and phone with Meta to measure our ads.
+              </p>
+            {/if}
           </form>
         {/if}
       </div>
@@ -1428,6 +1450,13 @@
     font-size: 14px;
     line-height: 20px;
     color: #aa1419; /* token: primary-dark — 5.9:1 on white */
+  }
+  /* The Meta disclosure, shown only where the Lead fires. The panel is #fff. */
+  .inquiry-lead-note {
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: #6e6f72; /* token: muted — 5.0:1 on white */
   }
   .inquiry-sent {
     margin: 0;

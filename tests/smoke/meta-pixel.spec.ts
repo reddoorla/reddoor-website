@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import { AxeBuilder } from "@axe-core/playwright";
+import { settleAnimations } from "./settle-animations";
 
 // The MedTech funnel's Meta Pixel ($lib/consent/metaPixel). What a visitor and
 // Meta observe: on a funnel page, nothing goes to Facebook until Accept, then
@@ -196,8 +198,11 @@ async function stubInquiryPosts(page: Page, statuses: number[] = [200]) {
   return posts;
 }
 
-/** Opens the modal from its first inquiry trigger and submits a finished application. */
-async function submitApplication(page: Page) {
+/**
+ * Opens the modal from its first inquiry trigger and walks the questions to the
+ * contact frame. Returns the dialog, on the frame where "Submit Application" is.
+ */
+async function reachContact(page: Page) {
   await page.locator('a[href$="#inquire"]').first().click();
   await page.locator("#inquiry-email").fill("buyer@example.com");
   const dialog = page.getByRole("dialog");
@@ -206,12 +211,94 @@ async function submitApplication(page: Page) {
     dialog.getByRole("heading", { name: /What problems are you experiencing\?/ }),
   ).toBeVisible();
   for (let i = 0; i < 5; i++) await dialog.getByRole("button", { name: "Next" }).click();
+  return dialog;
+}
+
+/** Opens the modal and submits a finished application. */
+async function submitApplication(page: Page) {
+  const dialog = await reachContact(page);
   await page.locator("#inquiry-name").fill("Pat Buyer");
   await page.locator("#inquiry-phone").fill("(555) 123-4567");
   await dialog.getByRole("checkbox", { name: /I agree to receive text messages/ }).check();
   await dialog.getByRole("button", { name: "Submit Application" }).click();
   return dialog;
 }
+
+// The disclosure under the submit button, only where the Lead will fire.
+const DISCLOSURE = /hashed copy of your email and phone with Meta/;
+
+test(
+  "with consent on the funnel, the submit button is described by the Meta disclosure",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    await stubInquiryPosts(page);
+    await gotoHydrated(page, "/medtech");
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect(consentBar(page)).toBeHidden();
+
+    const dialog = await reachContact(page);
+    const submit = dialog.getByRole("button", { name: "Submit Application" });
+    await expect(submit).toHaveAccessibleDescription(DISCLOSURE);
+    await expect(dialog.getByText(DISCLOSURE)).toBeVisible();
+  },
+);
+
+test(
+  "the disclosure under the submit button passes AA contrast",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    await stubInquiryPosts(page);
+    await gotoHydrated(page, "/medtech");
+    await consentBar(page).getByRole("button", { name: "Accept" }).click();
+    await expect(consentBar(page)).toBeHidden();
+
+    const dialog = await reachContact(page);
+    await expect(dialog.getByText(DISCLOSURE)).toBeVisible();
+    // The modal's own scan: settled colours, WCAG 2 A and AA rules.
+    await settleAnimations(page);
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  },
+);
+
+test(
+  "without consent on the funnel there is no disclosure",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    await stubInquiryPosts(page);
+    // "false" is the stored rejection (readConsent): no Lead, so no disclosure.
+    await page.addInitScript(() => localStorage.setItem("cookieConsent", "false"));
+    await gotoHydrated(page, "/medtech");
+
+    const dialog = await reachContact(page);
+    await expect(dialog.getByText(DISCLOSURE)).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Submit Application" }),
+    ).not.toHaveAccessibleDescription(DISCLOSURE);
+  },
+);
+
+test(
+  "off the funnel there is no disclosure, even with consent",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await watchFacebook(page);
+    await stubInquiryPosts(page);
+    await page.addInitScript(() => localStorage.setItem("cookieConsent", "true"));
+    await gotoHydrated(page, "/dev/a11y-fixtures");
+
+    const dialog = await reachContact(page);
+    await expect(dialog.getByText(DISCLOSURE)).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Submit Application" }),
+    ).not.toHaveAccessibleDescription(DISCLOSURE);
+  },
+);
 
 /** The Lead events the page queued on Tim's pixel. */
 const leadCalls = async (page: Page) =>

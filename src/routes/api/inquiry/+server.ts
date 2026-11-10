@@ -7,6 +7,7 @@ import { questionsFor } from "$lib/ghl/questions";
 import { createClient } from "$lib/prismicio";
 import { isFunnelPath } from "$lib/consent/metaPixel";
 import { metaCookies, sendMetaEvent } from "$lib/server/metaCapi";
+import { takeLeadSlot } from "$lib/server/leadLimit";
 import * as env from "$app/env/private";
 import type { Content } from "@prismicio/client";
 import type { RequestHandler } from "./$types";
@@ -207,7 +208,13 @@ type LeadInput = {
  * browser's. A Turnstile token is required too: central ingest stores a
  * tokenless submission as spam (`turnstile-required-absent`), so a Lead for one
  * was never a real applicant, and a bare curl forgery needs a token to get one.
- * Sends nothing when any check fails.
+ * A valid `_fbp` cookie is required as well: fbevents.js sets it in a browser
+ * that accepted consent on the funnel, and a bare forgery usually has none. A
+ * malformed `_fbp` is dropped by metaCookies, so it counts as absent. Last, a
+ * per-IP limit (takeLeadSlot) bounds how many Leads one client can cause, and a
+ * request with no client address sends none, since it cannot be limited. The
+ * limit runs after every other check so a rejected post spends no slot. Sends
+ * nothing when any check fails; the application itself is never affected.
  */
 async function sendLead(lead: LeadInput): Promise<void> {
   const eventId = readLeadEventId(lead.tag);
@@ -220,6 +227,10 @@ async function sendLead(lead: LeadInput): Promise<void> {
   }
   if (source.origin !== lead.url.origin || !isFunnelPath(source.pathname)) return;
 
+  const cookies = metaCookies((n) => lead.cookies.get(n), source);
+  if (!cookies.fbp) return;
+  if (!lead.clientIp || !takeLeadSlot(lead.clientIp)) return;
+
   await sendMetaEvent(
     {
       eventName: "Lead",
@@ -227,7 +238,7 @@ async function sendLead(lead: LeadInput): Promise<void> {
       eventSourceUrl: source.origin + source.pathname,
       ip: lead.clientIp,
       userAgent: lead.userAgent,
-      ...metaCookies((n) => lead.cookies.get(n), source),
+      ...cookies,
       email: lead.email,
       phone: lead.phone,
     },
