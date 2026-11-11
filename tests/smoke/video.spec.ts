@@ -227,10 +227,10 @@ test(
   async ({ page }) => {
     await serveMedia(page);
     // A stand-in for Vimeo's player (registered after serveMedia's abort, so
-    // it wins): it says `ready` once, as soon as it loads, as the real one
-    // does, and records each player.js method it is sent. Served at once, it
-    // is usually ready before the page hydrates, which is the case where a
-    // listener-only page never hears it.
+    // it wins): it says `ready` once, as soon as it loads, and records each
+    // player.js method it is sent; it never repeats `ready` to rescue a page
+    // that was not listening yet. Served at once, it is usually ready before
+    // the page hydrates, the case where a listener-only page never hears it.
     await page.route("https://player.vimeo.com/video/**", (route) =>
       route.fulfill({
         status: 200,
