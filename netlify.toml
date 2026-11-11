@@ -6,6 +6,12 @@
     NODE_VERSION = "24"
     COREPACK_INTEGRITY_KEYS = "0"
 
+# The Prismic video webhook relay (netlify/functions/prismic-video.mts). Netlify
+# finds functions in this folder by default; it is stated here so the location
+# sits beside the build settings.
+[functions]
+    directory = "netlify/functions"
+
 # Baseline security headers, applied to every response on the deployed site.
 #
 # Notes on what is deliberately NOT restricted, so nothing breaks:
@@ -82,4 +88,4 @@
         Referrer-Policy = "strict-origin-when-cross-origin"
         Strict-Transport-Security = "max-age=31536000; includeSubDomains"
         Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=()"
-        Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://use.typekit.net https://p.typekit.net https://fonts.googleapis.com; font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com https://app.netlify.com; media-src 'self' https://reddoor-la.cdn.prismic.io https://prismic-io.s3.amazonaws.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net https://www.facebook.com"
+        Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://static.cdn.prismic.io https://challenges.cloudflare.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://use.typekit.net https://p.typekit.net https://fonts.googleapis.com; font-src 'self' data: https://use.typekit.net https://p.typekit.net https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://player.vimeo.com https://*.prismic.io https://challenges.cloudflare.com https://app.netlify.com; media-src 'self' https://reddoor-la.cdn.prismic.io https://prismic-io.s3.amazonaws.com https://media.reddoorla.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://*.prismic.io https://*.typekit.net https://www.facebook.com"

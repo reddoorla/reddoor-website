@@ -3,7 +3,8 @@
   import { PrismicImage } from "@prismicio/svelte";
   import { asImageSrc, isFilled, type Content } from "@prismicio/client";
   import Video from "$lib/components/Video.svelte";
-  import { captionsUrl, mediaUrl } from "$lib/video/media";
+  import { videoFor } from "$lib/video/media";
+  import { page } from "$app/state";
   import SliceSection from "$lib/components/SliceSection.svelte";
   import { resolvePadding } from "$lib/utils/slicePadding";
 
@@ -13,8 +14,15 @@
 
   const pad = $derived(resolvePadding(slice.primary, false));
 
-  const mp4 = $derived(mediaUrl(slice.primary.video_mp4));
-  const mobileMp4 = $derived(mediaUrl(slice.primary.video_mp4_mobile));
+  // The R2 renditions when the build encoded this video, else the Prismic files.
+  const video = $derived(
+    videoFor(
+      slice.primary.video_mp4,
+      slice.primary.video_mp4_mobile,
+      slice.primary.video_captions,
+      page.data.videos,
+    ),
+  );
 
   /**
    * Author-selected aspect ratio. Full literal class names — Tailwind's scanner
@@ -49,7 +57,7 @@
     ? 'pb-12'
     : ''} {backgroundColorString}"
 >
-  {#if slice.primary.vimeoid || mp4 || mobileMp4}
+  {#if slice.primary.vimeoid || video.mp4 || video.mobileMp4}
     <PrismicImage
       class="w-screen h-full object-cover absolute {pad.padTop ? 'top-12' : 'top-0'} left-0 z-0"
       field={slice.primary.image}
@@ -61,8 +69,8 @@
     />
 
     <Video
-      {mp4}
-      {mobileMp4}
+      mp4={video.mp4}
+      mobileMp4={video.mobileMp4}
       vimeoId={slice.primary.vimeoid}
       mode={slice.primary.loopvideo ? "background" : "player"}
       title={slice.primary.image?.alt || undefined}
@@ -72,8 +80,8 @@
         w: undefined,
         h: undefined,
         width: 1920,
-      })}
-      captions={captionsUrl(slice.primary.video_captions)}
+      }) ?? video.poster}
+      captions={video.captions}
       controlClass={pad.padBottom ? "bottom-16 right-4" : "bottom-4 right-4"}
       hasPoster={isFilled.image(slice.primary.image)}
       allow="autoplay; fullscreen;"
