@@ -227,9 +227,10 @@ test(
   async ({ page }) => {
     await serveMedia(page);
     // A stand-in for Vimeo's player (registered after serveMedia's abort, so
-    // it wins): it says `ready` until the page answers, as the real player's
-    // handshake would arrive after hydration, and records each player.js
-    // method it is sent. Vimeo shows its auto-generated track by default.
+    // it wins): it says `ready` once, as soon as it loads, as the real one
+    // does, and records each player.js method it is sent. Served at once, it
+    // is usually ready before the page hydrates, which is the case where a
+    // listener-only page never hears it.
     await page.route("https://player.vimeo.com/video/**", (route) =>
       route.fulfill({
         status: 200,
@@ -239,10 +240,7 @@ test(
           addEventListener("message", (e) => {
             try { window.got.push(JSON.parse(e.data).method); } catch {}
           });
-          const t = setInterval(() => {
-            if (window.got.length) clearInterval(t);
-            else parent.postMessage(JSON.stringify({ event: "ready" }), "*");
-          }, 100);
+          parent.postMessage(JSON.stringify({ event: "ready" }), "*");
         </script>`,
       }),
     );

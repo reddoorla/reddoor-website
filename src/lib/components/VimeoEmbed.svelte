@@ -174,13 +174,19 @@
     };
   });
 
-  // Captions start off in an interactive embed, as in Video's own player.
-  // Vimeo shows a clip's auto-generated English track by default, and the
-  // clips burn their words in, so it printed them twice (Tim, 2026-11-11).
-  // player.js's `disableTextTrack` turns the track off for this load only; it
-  // stays in Vimeo's CC menu. Sent on `ready` and on `load`, like the end
-  // subscription below, since either can be missed. Background embeds show
-  // no captions, so they need nothing.
+  // Captions start off in an interactive embed, as in Video's own player:
+  // the clips burn their words in, so a shown track prints them twice (Tim,
+  // 2026-11-11). A guard more than a fix. On the offer clip, a fresh browser
+  // got Vimeo's auto-generated track off with no message (measured
+  // 2026-11-11, against the journal's earlier "on by default"); this keeps
+  // it off whatever else would turn it on. Measured on the real embed too:
+  // enabled, then `disableTextTrack`, it read `disabled`. The message turns
+  // the track off for this load only; it stays in Vimeo's CC menu. The iframe is server-rendered, so the player
+  // can load and say `ready` (once) before hydration attaches anything here:
+  // the message also goes out as the effect starts. If the frame has not
+  // navigated yet, the browser drops it (the target origin does not match)
+  // and `load` or `ready` sends it again. Background embeds show no
+  // captions, so they need nothing.
   $effect(() => {
     if (background) return;
     const el = playerEl;
@@ -203,6 +209,7 @@
     };
     window.addEventListener("message", onMessage);
     el.addEventListener("load", disable);
+    disable();
     return () => {
       window.removeEventListener("message", onMessage);
       el.removeEventListener("load", disable);
