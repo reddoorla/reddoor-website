@@ -175,7 +175,7 @@ test(
 );
 
 test(
-  "a self-hosted player waits for the visitor, is named, and shows its captions",
+  "a self-hosted player waits for the visitor, is named, and offers its captions switched off",
   { tag: "@smoke" },
   async ({ page }) => {
     await gotoFixture(page);
@@ -187,14 +187,35 @@ test(
     // Its own poster, set once it is near: frame 0 would cover any still.
     await expect(video).toHaveAttribute("poster", /pl-poster\.png/);
     expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
+
+    // Captions start off (Tim, 2026-11-11: his clips burn the words in, so a
+    // track shown by default printed them twice). Read the mode only once
+    // metadata is in: the browser's automatic track selection, which is what
+    // turns a `default` track on, runs before readyState can leave
+    // HAVE_NOTHING, so an earlier read would pass even with the track on.
+    await expect
+      .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState))
+      .toBeGreaterThanOrEqual(1);
+    expect(
+      await video.evaluate((v: HTMLVideoElement) => {
+        const t = v.textTracks[0];
+        return t ? `${t.kind}:${t.mode}` : "none";
+      }),
+    ).toBe("captions:disabled");
+
+    // Still there for a viewer who wants them: the player's captions menu
+    // sets this same mode, and the file then loads and yields its cue.
+    await video.evaluate((v: HTMLVideoElement) => {
+      v.textTracks[0]!.mode = "showing";
+    });
     await expect
       .poll(() =>
         video.evaluate((v: HTMLVideoElement) => {
-          const t = v.textTracks[0];
-          return t ? `${t.kind}:${t.mode}` : "none";
+          const t = v.textTracks[0]!;
+          return `${t.mode}:${t.cues?.[0] ? (t.cues[0] as VTTCue).text : ""}`;
         }),
       )
-      .toBe("captions:showing");
+      .toBe("showing:Fixture caption");
   },
 );
 

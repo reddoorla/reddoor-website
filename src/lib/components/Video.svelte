@@ -7,7 +7,8 @@
   // behind `<source media="(max-width: 767px)">`, the pattern Williamson's
   // BgVideo set (reddoor-maintenance decision 63). A phone file with no 1080p
   // file plays at every width. A player can carry a WebVTT captions file,
-  // shown by default, as Vimeo shows its own.
+  // off by default and on through the player's captions menu: the clips
+  // carry burned-in words, which already count as captions.
   //
   // Two modes:
   //
@@ -317,7 +318,10 @@
         onerror={mp4 ? undefined : fail}
       />{/if}
     {#if mp4}<source src={mp4} type="video/mp4" onerror={fail} />{/if}
-    {#if captions}<track kind="captions" srclang="en" label="English" src={captions} default />{/if}
+    <!-- No `default`: captions start off and the player's CC menu turns them
+         on. The clips burn their words in, so a track shown on load printed
+         them twice (Tim, 2026-11-11). -->
+    {#if captions}<track kind="captions" srclang="en" label="English" src={captions} />{/if}
   </video>
 {:else if fallback}
   {@render fallback()}

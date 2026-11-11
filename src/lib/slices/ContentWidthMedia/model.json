@@ -141,7 +141,7 @@
                 "type": "Link",
                 "config": {
                   "label": "video captions (WebVTT)",
-                  "placeholder": "Pick the .vtt captions file from the media library. Shown by default when the video file plays.",
+                  "placeholder": "Pick the .vtt captions file from the media library. Off by default; viewers turn it on in the player.",
                   "select": "media",
                   "allowTargetBlank": false
                 }
