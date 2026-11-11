@@ -174,6 +174,41 @@
     };
   });
 
+  // Captions start off in an interactive embed, as in Video's own player.
+  // Vimeo shows a clip's auto-generated English track by default, and the
+  // clips burn their words in, so it printed them twice (Tim, 2026-11-11).
+  // player.js's `disableTextTrack` turns the track off for this load only; it
+  // stays in Vimeo's CC menu. Sent on `ready` and on `load`, like the end
+  // subscription below, since either can be missed. Background embeds show
+  // no captions, so they need nothing.
+  $effect(() => {
+    if (background) return;
+    const el = playerEl;
+    if (!el) return;
+    const disable = () =>
+      el.contentWindow?.postMessage(
+        JSON.stringify({ method: "disableTextTrack" }),
+        "https://player.vimeo.com",
+      );
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== "https://player.vimeo.com") return;
+      if (e.source !== el.contentWindow) return;
+      let data: VimeoEventMessage;
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      if (data.event === "ready") disable();
+    };
+    window.addEventListener("message", onMessage);
+    el.addEventListener("load", disable);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      el.removeEventListener("load", disable);
+    };
+  });
+
   // End of an interactive embed. No URL parameter turns off Vimeo's end screen
   // ("More from …" and three other videos); only the account's embed settings
   // can. So the caller hears about the end and takes the player down instead.

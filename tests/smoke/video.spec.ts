@@ -190,9 +190,11 @@ test(
 
     // Captions start off (Tim, 2026-11-11: his clips burn the words in, so a
     // track shown by default printed them twice). Read the mode only once
-    // metadata is in: the browser's automatic track selection, which is what
-    // turns a `default` track on, runs before readyState can leave
-    // HAVE_NOTHING, so an earlier read would pass even with the track on.
+    // metadata is in, so the read comes well after the browser's automatic
+    // track selection (what turns a `default` track on): the <video> is
+    // server-rendered, so that selection is queued at parse time, before
+    // hydration lets the player fetch anything. A `default` track reads
+    // `showing` here.
     await expect
       .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState))
       .toBeGreaterThanOrEqual(1);
@@ -216,6 +218,42 @@ test(
         }),
       )
       .toBe("showing:Fixture caption");
+  },
+);
+
+test(
+  "a Vimeo player is told to start with its captions off",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await serveMedia(page);
+    // A stand-in for Vimeo's player (registered after serveMedia's abort, so
+    // it wins): it says `ready` until the page answers, as the real player's
+    // handshake would arrive after hydration, and records each player.js
+    // method it is sent. Vimeo shows its auto-generated track by default.
+    await page.route("https://player.vimeo.com/video/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: `<!doctype html><script>
+          window.got = [];
+          addEventListener("message", (e) => {
+            try { window.got.push(JSON.parse(e.data).method); } catch {}
+          });
+          const t = setInterval(() => {
+            if (window.got.length) clearInterval(t);
+            else parent.postMessage(JSON.stringify({ event: "ready" }), "*");
+          }, 100);
+        </script>`,
+      }),
+    );
+    await page.goto("/dev/video-fixture#cases", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+    const frame = kase(page, "player-empty").locator("iframe");
+    await expect(frame).toHaveAttribute("src", /player\.vimeo\.com/);
+    const player = await (await frame.elementHandle())!.contentFrame();
+    await expect
+      .poll(() => player!.evaluate(() => (window as unknown as { got: string[] }).got))
+      .toContain("disableTextTrack");
   },
 );
 
