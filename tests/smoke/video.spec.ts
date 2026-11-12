@@ -175,7 +175,7 @@ test(
 );
 
 test(
-  "a self-hosted player waits for the visitor, is named, and shows its captions",
+  "a self-hosted player waits for the visitor, is named, and offers its captions switched off",
   { tag: "@smoke" },
   async ({ page }) => {
     await gotoFixture(page);
@@ -187,14 +187,71 @@ test(
     // Its own poster, set once it is near: frame 0 would cover any still.
     await expect(video).toHaveAttribute("poster", /pl-poster\.png/);
     expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
+
+    // Captions start off (Tim, 2026-11-11: his clips burn the words in, so a
+    // track shown by default printed them twice). Read the mode only once
+    // metadata is in, so the read comes well after the browser's automatic
+    // track selection (what turns a `default` track on): the <video> is
+    // server-rendered, so that selection is queued at parse time, before
+    // hydration lets the player fetch anything. A `default` track reads
+    // `showing` here.
+    await expect
+      .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState))
+      .toBeGreaterThanOrEqual(1);
+    expect(
+      await video.evaluate((v: HTMLVideoElement) => {
+        const t = v.textTracks[0];
+        return t ? `${t.kind}:${t.mode}` : "none";
+      }),
+    ).toBe("captions:disabled");
+
+    // Still there for a viewer who wants them: the player's captions menu
+    // sets this same mode, and the file then loads and yields its cue.
+    await video.evaluate((v: HTMLVideoElement) => {
+      v.textTracks[0]!.mode = "showing";
+    });
     await expect
       .poll(() =>
         video.evaluate((v: HTMLVideoElement) => {
-          const t = v.textTracks[0];
-          return t ? `${t.kind}:${t.mode}` : "none";
+          const t = v.textTracks[0]!;
+          return `${t.mode}:${t.cues?.[0] ? (t.cues[0] as VTTCue).text : ""}`;
         }),
       )
-      .toBe("captions:showing");
+      .toBe("showing:Fixture caption");
+  },
+);
+
+test(
+  "a Vimeo player is told to start with its captions off",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await serveMedia(page);
+    // A stand-in for Vimeo's player (registered after serveMedia's abort, so
+    // it wins): it says `ready` once, as soon as it loads, and records each
+    // player.js method it is sent; it never repeats `ready` to rescue a page
+    // that was not listening yet. Served at once, it is usually ready before
+    // the page hydrates, the case where a listener-only page never hears it.
+    await page.route("https://player.vimeo.com/video/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: `<!doctype html><script>
+          window.got = [];
+          addEventListener("message", (e) => {
+            try { window.got.push(JSON.parse(e.data).method); } catch {}
+          });
+          parent.postMessage(JSON.stringify({ event: "ready" }), "*");
+        </script>`,
+      }),
+    );
+    await page.goto("/dev/video-fixture#cases", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html[data-hydrated]")).toBeAttached({ timeout: 30_000 });
+    const frame = kase(page, "player-empty").locator("iframe");
+    await expect(frame).toHaveAttribute("src", /player\.vimeo\.com/);
+    const player = await (await frame.elementHandle())!.contentFrame();
+    await expect
+      .poll(() => player!.evaluate(() => (window as unknown as { got: string[] }).got))
+      .toContain("disableTextTrack");
   },
 );
 

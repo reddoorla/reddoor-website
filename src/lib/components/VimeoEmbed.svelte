@@ -174,6 +174,49 @@
     };
   });
 
+  // Captions start off in an interactive embed, as in Video's own player:
+  // the clips burn their words in, so a shown track prints them twice (Tim,
+  // 2026-11-11). A guard more than a fix. On the offer clip, a fresh browser
+  // got Vimeo's auto-generated track off with no message (measured
+  // 2026-11-11, against the journal's earlier "on by default"); this turns
+  // it off at load if anything else had turned it on. Measured on the real
+  // embed too: enabled, then `disableTextTrack`, it read `disabled`; and
+  // after `disableTextTrack`, enabling it again read `showing`, so the track
+  // stays available. The iframe is server-rendered, so the player can load
+  // and say `ready` before hydration attaches anything here: the message
+  // also goes out as the effect starts. If the frame has not navigated yet,
+  // the browser drops it (the target origin does not match; Chromium logs a
+  // console warning) and `load` or `ready` sends it again. Background
+  // embeds show no captions, so they need nothing.
+  $effect(() => {
+    if (background) return;
+    const el = playerEl;
+    if (!el) return;
+    const disable = () =>
+      el.contentWindow?.postMessage(
+        JSON.stringify({ method: "disableTextTrack" }),
+        "https://player.vimeo.com",
+      );
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== "https://player.vimeo.com") return;
+      if (e.source !== el.contentWindow) return;
+      let data: VimeoEventMessage;
+      try {
+        data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      } catch {
+        return;
+      }
+      if (data.event === "ready") disable();
+    };
+    window.addEventListener("message", onMessage);
+    el.addEventListener("load", disable);
+    disable();
+    return () => {
+      window.removeEventListener("message", onMessage);
+      el.removeEventListener("load", disable);
+    };
+  });
+
   // End of an interactive embed. No URL parameter turns off Vimeo's end screen
   // ("More from …" and three other videos); only the account's embed settings
   // can. So the caller hears about the end and takes the player down instead.
