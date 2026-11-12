@@ -2498,7 +2498,7 @@ export interface ContentWidthImageSliceDefaultPrimaryImagesItem {
 	 * video captions (WebVTT) field in *ContentWidthMedia → Default → Primary → images*
 	 *
 	 * - **Field Type**: Link to Media
-	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Off by default; viewers turn it on in the player.
 	 * - **API ID Path**: content_width_image.default.primary.images[].video_captions
 	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
 	 */
@@ -3482,7 +3482,7 @@ export interface OfferHeroSliceDefaultPrimary {
 	 * video captions (WebVTT) field in *OfferHero → Default → Primary*
 	 *
 	 * - **Field Type**: Link to Media
-	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Off by default; viewers turn it on in the player.
 	 * - **API ID Path**: offer_hero.default.primary.video_captions
 	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
 	 */
@@ -3756,7 +3756,7 @@ export interface ScreenWidthColumnsSliceDefaultPrimaryMediaItem {
 	 * video captions (WebVTT) field in *ScreenWidthColumns → Default → Primary → media*
 	 *
 	 * - **Field Type**: Link to Media
-	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Off by default; viewers turn it on in the player.
 	 * - **API ID Path**: screen_width_columns.default.primary.media[].video_captions
 	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
 	 */
@@ -3958,7 +3958,7 @@ export interface ScreenWidthImageSliceDefaultPrimary {
 	 * video captions (WebVTT) field in *ScreenWidthMedia → Default → Primary*
 	 *
 	 * - **Field Type**: Link to Media
-	 * - **Placeholder**: Pick the .vtt captions file from the media library. Shown by default when the video file plays.
+	 * - **Placeholder**: Pick the .vtt captions file from the media library. Off by default; viewers turn it on in the player.
 	 * - **API ID Path**: screen_width_image.default.primary.video_captions
 	 * - **Documentation**: https://prismic.io/docs/fields/link-to-media
 	 */

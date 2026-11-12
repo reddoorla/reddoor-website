@@ -1723,6 +1723,8 @@ The operator, 9:00am PT: later audits were inheriting the framing of Reddoor's o
 
 ## 2026-10-26 — Every video goes through one component, self-hosted first with Vimeo as the fallback (P1-74, #295)
 
+> Superseded in part by 2026-11-11 — Every player's captions start off; a viewer turns them on.
+
 **Why.** The operator widened P1-74 on the morning of 10-26: the offer video self-hosted from the 115x cut, and every other video on the site on the same pattern, with Vimeo as the fallback. `Video.svelte` does it with two modes. `player` has controls, captions and a poster, and OfferHero still ends on its poster. `background` is a muted loop that plays near the viewport and pauses off it, keeps a visitor's pause, and never starts under Reduce Motion. A 1080p mp4 plays, plus a 720p phone mp4 behind `<source media>` (Williamson's pattern). The Vimeo embed renders when no file is set, or when the file fails: `error` on the video or its last source, or `NotSupportedError` from `play()`. The models gained 13 fields, all additive. With nothing filled, the deploy preview matched production on six pages: the same embeds, no `<video>`, 0 CSP violations, and one extra iframe that was Netlify's drawer.
 
 **Beliefs corrected on contact.**
@@ -2097,3 +2099,22 @@ Usage: $12.92, 3542/200395 tokens, 36649219/1259609 cache, rate limit allowed (t
 The Done-when, one real player upload served from `media.reddoorla.com` with captions, waits on all of that. Accepted gaps: OfferHero and BookedPage cannot take the R2 poster.
 
 Usage: $2.27, 1585/15344 tokens, 5541559/142864 cache, rate limit allowed (this continuation's session only, read at 2:12pm PT; the four earlier sessions' figures are in their workspace journal entries).
+
+## 2026-11-11 — Every player's captions start off; a viewer turns them on (#369, branch `claude/captions-default-off`)
+
+Tim, in Discord at 8:51am PT: the offer video on `/brand-friction-audit` printed its words twice, because the clip has them burned in and the player also showed its WebVTT track. Tucker, 11:50am PT: burned-in words already count as captions, so the player's own default to off. The cockpit settled it as off everywhere, still available, no caption file deleted.
+
+**Why it showed.** Every self-hosted player goes through `Video.svelte`, and its `<track>` carried `default`, which makes the browser's automatic track selection show it. Production, clicked through by script: track present, `default`, mode `showing` on load, 83 cues. The preview of this PR: no `default`, mode `disabled`, and turned on, `showing` with the same 83 cues. The four `video_captions` placeholders that told editors "Shown by default" now say the opposite.
+
+**Beliefs corrected on contact.**
+
+- _"Vimeo shows its auto-generated track by default"_ (the 2026-10-26 entry). Not in a fresh browser. On the real embed of the offer clip (1238093596), read through player.js `getTextTracks`: no message read `disabled`; `enableTextTrack({language: "en-x-autogen", kind: "subtitles"})` read `showing`, which proves the reader can see it on; enable then `disableTextTrack` read `disabled`; `disableTextTrack` then enable read `showing`. The first enable attempt passed a bare language string and got `error`; the argument is an object. So the Vimeo half of this PR, `disableTextTrack` from `VimeoEmbed`'s interactive embed, is a guard for whatever else turns the track on, not the fix for what Tim saw. Round 1 of review raised it as a major on the journal's word, and the measurement came after the fix.
+- _"A test can read the track mode any time after load."_ The self-hosted test reads it only after `readyState >= 1`. My first comment said the spec guarantees selection before that; round 1 found the spec says no such thing. The real reason is ordering: the `<video>` is server-rendered, so selection is queued at parse time, before hydration lets the player fetch.
+
+**Defects the reviews found, named.** Three Opus rounds. Round 1 was dirty: the Vimeo fallback (major, above) and the spec claim (minor). Round 2 was dirty with one real major: a server-rendered Vimeo iframe can load and post `ready` once before hydration attaches anything, so `disableTextTrack` was never sent. It now also goes out as the effect starts (dropped, with a Chromium console warning, if the frame has not navigated; `load` or `ready` sends it again). The first stand-in player re-posted `ready` until answered and hid this; posting once, the test fails 3 of 3 without the effect-start send (`Received array: []`). Round 3 was clean, with four comment minors folded in.
+
+**Mutations.** On `Video.svelte`: `default` restored (got `captions:showing`), the track removed (`none`), no `src` (`showing:` with no cue), `kind="subtitles"` (`subtitles:disabled`): all killed. On `VimeoEmbed.svelte`: the method renamed (`["noop"]`) and the effect-start send removed (`[]`, 3 of 3): both killed.
+
+**Honest accounting.** Axe on `/dev/a11y-fixtures` and `/dev/video-fixture` is identical to `main` (0, and the fixture's own 3 landmark findings). Playwright ran locally on the container's Chromium 1243, not the pinned build. One combined local run failed offer-hero's "does not scroll" test on `toBeInViewport`; it passed 3 of 3 alone on both `main` and this branch, the fake player there ignores the new message, and the same combined run then passed 27 of 27. Not fixed here. Only the offer clip is known to have burned-in words; the booked page's clip was not checked, and it now shows captions only on request.
+
+Usage: $12.73, 1859/92518 tokens, 29945137/706836 cache, rate limit allowed (read at 4:48pm PT; refreshed then, on the operator's word, as the real edit that starts fresh CI runs after the 12:24pm PT org-wide runner stall left this PR's runs stuck in `queued`)
