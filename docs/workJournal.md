@@ -2117,4 +2117,4 @@ Tim, in Discord at 8:51am PT: the offer video on `/brand-friction-audit` printed
 
 **Honest accounting.** Axe on `/dev/a11y-fixtures` and `/dev/video-fixture` is identical to `main` (0, and the fixture's own 3 landmark findings). Playwright ran locally on the container's Chromium 1243, not the pinned build. One combined local run failed offer-hero's "does not scroll" test on `toBeInViewport`; it passed 3 of 3 alone on both `main` and this branch, the fake player there ignores the new message, and the same combined run then passed 27 of 27. Not fixed here. Only the offer clip is known to have burned-in words; the booked page's clip was not checked, and it now shows captions only on request.
 
-Usage: $8.12, 1262/73689 tokens, 19469810/439688 cache, rate limit allowed (read at 12:25pm PT, before this entry's commit)
+Usage: $12.73, 1859/92518 tokens, 29945137/706836 cache, rate limit allowed (read at 4:48pm PT; refreshed then, on the operator's word, as the real edit that starts fresh CI runs after the 12:24pm PT org-wide runner stall left this PR's runs stuck in `queued`)
