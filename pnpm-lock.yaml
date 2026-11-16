@@ -184,7 +184,7 @@ importers:
         version: 3.2.0(@prismicio/client@7.23.0)(@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3(@typescript-eslint/types@8.72.1))(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(svelte@5.57.3(@typescript-eslint/types@8.72.1))
       '@reddoorla/maintenance':
         specifier: ^0.117.0
-        version: 0.117.0(@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3(@typescript-eslint/types@8.72.1))(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(jiti@2.7.0)(playwright-core@1.65.0)(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)
+        version: 0.117.2(@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3(@typescript-eslint/types@8.72.1))(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(jiti@2.7.0)(playwright-core@1.65.0)(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)
       '@resvg/resvg-wasm':
         specifier: ^2.6.2
         version: 2.6.2
@@ -591,8 +591,8 @@ packages:
       '@sveltejs/kit':
         optional: true
 
-  '@reddoorla/maintenance@0.117.0':
-    resolution: {integrity: sha512-aC1RTjPnKDdr0dE1pnkwuhy1H2IOQal77KENAHFar4vyLHoJXF+ddu3cHq7yNO36X62uS36mFwCBUFxYjRZifA==}
+  '@reddoorla/maintenance@0.117.2':
+    resolution: {integrity: sha512-RlakityoeO36b+EkNtty9oM1PRh42z1QM1Z5hktFoXBricr2r6VFAvEwMSyh1KCpN+7ZZRvwcU0DQWGfjRjYdA==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -1704,6 +1704,7 @@ packages:
   postcss-selector-parser@7.2.0:
     resolution: {integrity: sha512-Khh/tERVBn0I1499dvBSHY0pWJloMJWUxDsOBM0CCDPAcVZ10Jl2L1qy1f19uEX22spa8Mv7DCdEQJc0cGwBhQ==}
     engines: {node: '>=4'}
+    deprecated: Double-escapes CSS Modules class names (#362). Use 7.2.1.
 
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
@@ -2334,7 +2335,7 @@ snapshots:
     optionalDependencies:
       '@sveltejs/kit': 3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3(@typescript-eslint/types@8.72.1))(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  '@reddoorla/maintenance@0.117.0(@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3(@typescript-eslint/types@8.72.1))(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(jiti@2.7.0)(playwright-core@1.65.0)(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)':
+  '@reddoorla/maintenance@0.117.2(@sveltejs/kit@3.1.1(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3(@typescript-eslint/types@8.72.1))(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)(vite@8.3.6(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)))(jiti@2.7.0)(playwright-core@1.65.0)(svelte@5.57.3(@typescript-eslint/types@8.72.1))(typescript@6.0.3)':
     dependencies:
       '@axe-core/playwright': 4.14.0(playwright-core@1.65.0)
       '@eslint/js': 10.0.1(eslint@10.14.0(jiti@2.7.0))
