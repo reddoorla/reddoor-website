@@ -280,13 +280,13 @@
       onclick={toggle}
     >
       {#if paused}
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"
-          ><path d="M4 2.5v11l9-5.5z" /></svg
-        >
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+          <path d="M4 2.5v11l9-5.5z" />
+        </svg>
       {:else}
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"
-          ><path d="M3.5 2h3v12h-3zM9.5 2h3v12h-3z" /></svg
-        >
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+          <path d="M3.5 2h3v12h-3zM9.5 2h3v12h-3z" />
+        </svg>
       {/if}
     </button>
   {/if}

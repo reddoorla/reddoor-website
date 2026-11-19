@@ -39,7 +39,7 @@
     "lint-staged": "^17.6.0",
     "postcss": "^8.5.15",
     "prettier": "^3.8.4",
-    "prettier-plugin-svelte": "^4.1.1",
+    "prettier-plugin-svelte": "^4.2.0",
     "prismic": "^1.21.0",
     "sharp": "^0.35.0",
     "simple-git-hooks": "^2.14.0",

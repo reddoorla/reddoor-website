@@ -1032,8 +1032,10 @@
                   style="transform: translateY({(i + 1) * 100}%)"
                   data-testid="sort-option"
                   transition:slide
-                  onclick={() => (orderString = option)}>{option}</button
+                  onclick={() => (orderString = option)}
                 >
+                  {option}
+                </button>
               {/each}
             </div>
           {/if}
@@ -1083,8 +1085,10 @@
               f.key,
             )}"
             aria-pressed={cats[f.key]}
-            onclick={() => (cats[f.key] = !cats[f.key])}>{f.label}</button
+            onclick={() => (cats[f.key] = !cats[f.key])}
           >
+            {f.label}
+          </button>
         {/each}
       </div>
     </div>

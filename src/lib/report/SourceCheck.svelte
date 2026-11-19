@@ -133,9 +133,9 @@
         {/if}
         {#if view.namesake}
           <p class="type-meta m-0 text-muted">
-            Across the buyer searches we ran, <strong class="text-black"
-              >{view.namesake.domain}</strong
-            >
+            Across the buyer searches we ran, <strong class="text-black">
+              {view.namesake.domain}
+            </strong>
             was cited {view.namesake.count}
             {view.namesake.count === 1 ? "time" : "times"}{namesakeLeads(view)
               ? " — more than any other source"

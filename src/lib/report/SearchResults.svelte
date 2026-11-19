@@ -21,8 +21,10 @@
       <p class="type-question m-0 text-black">
         <span class="text-primary" aria-hidden="true">&ldquo;</span>{probe.query}<span
           class="text-primary"
-          aria-hidden="true">&rdquo;</span
+          aria-hidden="true"
         >
+          &rdquo;
+        </span>
       </p>
 
       <p class="type-meta m-0 font-medium {named ? 'text-dark' : 'text-primary'}">
