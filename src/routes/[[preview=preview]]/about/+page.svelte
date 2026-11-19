@@ -346,20 +346,22 @@
           onclick={decrementValues}
           aria-label="Previous promise"
           class={isValuesTransitioning ? "cursor-default" : ""}
-          ><ArrowLeft
+        >
+          <ArrowLeft
             class="size-[1.5em] hover:text-primary-dark transition-colors duration-300"
             strokeWidth={1.5}
-          /></button
-        >
+          />
+        </button>
         <button
           onclick={incrementValues}
           aria-label="Next promise"
           class={isValuesTransitioning ? "cursor-default" : ""}
-          ><ArrowRight
+        >
+          <ArrowRight
             class="size-[1.5em] hover:text-primary-dark transition-colors duration-300"
             strokeWidth={1.5}
-          /></button
-        >
+          />
+        </button>
       </div>
     </div>
   </ContentWidth>

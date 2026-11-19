@@ -471,11 +471,11 @@ Find the `{#key currentImageIndex}` block (lines 298–319):
     out:fade
   >
     <ContentWidth class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16">
-      <a class="pointer-events-auto" href={backgrounds[currentImageIndex].link}
-        ><p class="text-white text-left underline underline-offset-4">
+      <a class="pointer-events-auto" href={backgrounds[currentImageIndex].link}>
+        <p class="text-white text-left underline underline-offset-4">
           {backgrounds[currentImageIndex].name}
-        </p></a
-      >
+        </p>
+      </a>
       <p class="text-white text-left">
         {backgrounds[currentImageIndex].media}
       </p>
@@ -496,11 +496,11 @@ Replace with:
     >
       <ContentWidth class="flex flex-col items-start justify-end h-full pb-4 lg:pb-16">
         {#if currentSlide.project_link?.url}
-          <a class="pointer-events-auto" href={currentSlide.project_link.url}
-            ><p class="text-white text-left underline underline-offset-4">
+          <a class="pointer-events-auto" href={currentSlide.project_link.url}>
+            <p class="text-white text-left underline underline-offset-4">
               {currentSlide.project_name}
-            </p></a
-          >
+            </p>
+          </a>
         {:else if currentSlide.project_name}
           <p class="text-white text-left">
             {currentSlide.project_name}

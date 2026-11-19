@@ -443,9 +443,9 @@
             {#if openingSummary(view)}
               <p class="type-lede m-0 text-black">
                 {openingSummary(view)}
-                <a class="underline" href="#buyer-questions" onclick={() => (questionsOpen = true)}
-                  >See the questions.</a
-                >
+                <a class="underline" href="#buyer-questions" onclick={() => (questionsOpen = true)}>
+                  See the questions.
+                </a>
               </p>
             {/if}
 
@@ -487,8 +487,9 @@
                         <tr>
                           <td
                             class="type-meta border-b border-light py-2.5 pr-4 align-top text-muted"
-                            >{q.question}</td
                           >
+                            {q.question}
+                          </td>
                           <td
                             class="type-eyebrow border-b border-light py-2.5 pr-4 align-top {q.answered ===
                             'no'

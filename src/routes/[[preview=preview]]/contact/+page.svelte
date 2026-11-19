@@ -109,13 +109,13 @@
         >
           <input type="hidden" name="ts" value={data.formTs} />
           <p class="hidden" aria-hidden="true">
-            <label
-              >Don’t fill this out if you’re human: <input
+            <label>
+              Don’t fill this out if you’re human: <input
                 name="bot-field"
                 tabindex="-1"
                 autocomplete="off"
-              /></label
-            >
+              />
+            </label>
           </p>
           <!-- Real <label for> elements (fields were named by adjacent <p> +
                placeholder only — invisible to AT). The utility classes replicate

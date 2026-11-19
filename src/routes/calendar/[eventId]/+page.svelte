@@ -108,9 +108,9 @@
           </div>
 
           <p class="aside">
-            Need to change it? <a class="text-primary underline" href="/reschedule/{eventId}"
-              >Reschedule</a
-            >
+            Need to change it? <a class="text-primary underline" href="/reschedule/{eventId}">
+              Reschedule
+            </a>
             or <a class="text-primary underline" href="/cancel/{eventId}">cancel</a>.
           </p>
         {/if}

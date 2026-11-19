@@ -186,12 +186,14 @@
                      rather than on their metrics — see .step-num-digits. The
                      nudge is per-numeral because `01` and `02` do not need the
                      same one; `numeralNudge` explains why. -->
-                <span class="step-num"
-                  ><span
+                <span class="step-num">
+                  <span
                     class="step-num-digits"
-                    style="--digit-nudge:{numeralNudge(stepNumber(i))}px">{stepNumber(i)}</span
-                  ></span
-                >
+                    style="--digit-nudge:{numeralNudge(stepNumber(i))}px"
+                  >
+                    {stepNumber(i)}
+                  </span>
+                </span>
                 <span class="step-arrow">
                   <span class="step-arrow-line"></span>
                   <!-- The board exports this arrow as one fixed-length vector.

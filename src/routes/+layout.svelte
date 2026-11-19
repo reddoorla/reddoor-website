@@ -341,8 +341,10 @@
                   <a
                     class="label hover:opacity-80 transition-opacity"
                     href={item.href}
-                    onclick={() => (isOverlayVisible = false)}>{item.label}</a
+                    onclick={() => (isOverlayVisible = false)}
                   >
+                    {item.label}
+                  </a>
                 {/each}
                 <DefaultButton
                   href="/contact#inquire"
@@ -387,8 +389,10 @@
                   <a
                     class="label hover:opacity-80 transition-opacity"
                     href={item.href}
-                    onclick={() => (isOverlayVisible = false)}>{item.label}</a
+                    onclick={() => (isOverlayVisible = false)}
                   >
+                    {item.label}
+                  </a>
                 {/each}
                 {#if isIndustryPage}
                   <!-- See the overlay CTA above: opens the InquiryModal on
@@ -433,15 +437,17 @@
                      Industry pages carry a real CTA button instead, so nothing is
                      highlighted there — otherwise "About" would inherit the red. -->
                   {#if isIndustryPage || i < NAV_LINKS.length - 1}
-                    <a class="label" href={item.href} onclick={() => (isOverlayVisible = false)}
-                      >{item.label}</a
-                    >
+                    <a class="label" href={item.href} onclick={() => (isOverlayVisible = false)}>
+                      {item.label}
+                    </a>
                   {:else}
                     <a
                       class="text-primary label"
                       href={item.href}
-                      onclick={() => (isOverlayVisible = false)}>{item.label}</a
+                      onclick={() => (isOverlayVisible = false)}
                     >
+                      {item.label}
+                    </a>
                   {/if}
                 {/each}
                 {#if isIndustryPage}
@@ -474,31 +480,33 @@
           <ContentWidth class="pb-4 flex flex-row justify-end items-end z-20 relative">
             <div class="flex flex-col tracking-wide label gap-8 w-full md:w-1/3 lg:w-1/5">
               <div class="flex flex-col gap-1">
-                <a href="/" class="translate-x-[-8%] w-3/5 md:w-full"
-                  ><img
+                <a href="/" class="translate-x-[-8%] w-3/5 md:w-full">
+                  <img
                     src={rotatingReddoor}
                     alt="reddoor drawn in multiple styles"
                     loading="lazy"
                     decoding="async"
-                  /></a
-                >
+                  />
+                </a>
                 <a href="/portfolio" class="text-primary underline">Portfolio</a>
                 <a href="/about" class="text-primary underline">About</a>
                 <a href="/contact" class="text-primary underline">Meet with Us</a>
                 <a
                   href="https://www.linkedin.com/company/reddoor-creative"
-                  class="text-primary underline">LinkedIn</a
+                  class="text-primary underline"
                 >
-                <a href="https://www.instagram.com/reddoorla/" class="text-primary underline"
-                  >Instagram</a
-                >
+                  LinkedIn
+                </a>
+                <a href="https://www.instagram.com/reddoorla/" class="text-primary underline">
+                  Instagram
+                </a>
               </div>
               <div class="flex flex-col">
                 <div>CONTACT</div>
                 <a href="tel:3103413571" class="text-primary underline">+1 310-341-3571</a>
-                <a href="mailto:info@reddoorla.com" class="text-primary underline"
-                  >info@reddoorla.com</a
-                >
+                <a href="mailto:info@reddoorla.com" class="text-primary underline">
+                  info@reddoorla.com
+                </a>
               </div>
               <div class="flex flex-col">
                 <div>HQ MAILING ADDRESS</div>

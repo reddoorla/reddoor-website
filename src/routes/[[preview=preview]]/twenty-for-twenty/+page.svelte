@@ -282,8 +282,10 @@
       </p>
       <p class=" text-primary md:w-4/5 max-w-lg mt-8 large-body">
         Through it all, one constant has remained: clear stories brought to life through <span
-          class="underline-offset-[25%] underline">compelling design.</span
+          class="underline-offset-[25%] underline"
         >
+          compelling design.
+        </span>
       </p>
     </div>
     <div class="lockup md:w-1/2 flex flex-col text-primary items-center">
