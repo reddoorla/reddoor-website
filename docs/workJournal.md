@@ -835,7 +835,7 @@ sessions from our own Playwright runs as client traffic.
 
 ## 2026-09-16 — Tim's MarkUp round on the audit report: title, "live", heading, question link (fix/report-tim-markup)
 
-Tim marked up the Reddoor report (`/audit/xZMVU1EaZLC1ZLAJ81Rzxg`) on 09-15
+Tim marked up the Reddoor report (its token, since rotated, is kept in the private workspace) on 09-15
 at 14:13–14:35 PT and never sent the link; it surfaced in
 `#rd-clients-by-design` on 09-16. The board is "AEO / SEO Report", 8 pins.
 Pin screenshots could not be fetched this session (reading the MarkUp key for
@@ -1460,7 +1460,7 @@ There is no Firefox in the cloud container, so Firefox smoothness rests on Tucke
 
 ## 2026-09-30 — The audit's print sheet stops printing the site's nav and footer, and gets its title block back
 
-The PDF leave-behind that reddoor-maintenance attaches to every prospect-audit email is printed from `/audit/{token}/print`. Printed for token `xZMVU1EaZLC1ZLAJ81Rzxg` (the audit of reddoorla.com itself), page 1 had the site's "Reddoor Creative" wordmark and hamburger over the verdict, no title, and a mostly blank page after that. The last page carried the whole site footer, with the copyright cut off after "All Rights".
+The PDF leave-behind that reddoor-maintenance attaches to every prospect-audit email is printed from `/audit/{token}/print`. Printed for our own report (its token since rotated; the audit of reddoorla.com itself), page 1 had the site's "Reddoor Creative" wordmark and hamburger over the verdict, no title, and a mostly blank page after that. The last page carried the whole site footer, with the copyright cut off after "All Rights".
 
 The print sheet already meant to hide the chrome, and the one rule it had for that did the opposite of what it said. `:global(header), :global(nav), :global(body > footer) { display: none }` missed all three pieces of the site's chrome. The navs are `<div>`s, not `<header>` or `<nav>`, and the footer sits inside `main > div`, never directly under `body`. What it did hide was the sheet's own `<header>`, the eyebrow, h1 and meta line, so the title block was the only thing the rule removed. The rule is gone. The print route's load now returns `siteChrome: false`, and the root layout renders none of its three nav variants and no footer when a page says so. A data flag rather than a path match, so nothing else changes by being called `print`.
 
@@ -2131,6 +2131,84 @@ A prospect's report opened on "Asked about you by name, the assistant is not sur
 
 **Belief corrected.** "Detected" had come to mean "unsure". An answer can name a namesake precisely because it is sure.
 
+## 2026-11-23 — No report token in a tracked file; our own report's token rotated (B-06, `claude/b06-no-report-tokens`)
+
+A report's 22-character token is the whole credential for reading it, and this repo is public. Our own report's token had been in this journal since 09-16, in the entry on Tim's MarkUp round, and twice more as a bare word: in the PDF leave-behind entry and in an example in the 09-08 og-cards plan. It was finding B-06 of the 11-23 audit-system review, along with a client's token in reddoor-maintenance's public journal.
+
+**Rotated first, scrubbed second.** Git history keeps a scrubbed token, so the row got a new token before anything here changed. The old and new values are recorded only in the private workspace. Through maintenance's JSON route, with the edit-session header so no read receipt was stamped, the old token answers 404 and the new one 200. Then the two journal lines were redacted to say the token was rotated, and the plan's example became the fake token the layout test already uses. Those two lines are the one deliberate exception to "history is never edited": they lose a credential and assert nothing new. Everything else they say is untouched.
+
+**The check.** `scripts/no-report-tokens.test.ts` runs in `pnpm test:unit`, so it is in the `ci` gate. It reads every tracked text file and fails on exactly 22 token characters after any route that takes a token (`/audit/`, the `/r/` redirect, `/api/audit-report/`), with slashes optionally JSON-escaped, or after a stored row's `"token": "`. On a failure it prints the route and only six token characters, since CI logs are public. Review round 1 widened it from `/audit/` alone. Fake tokens pass: the one the layout and fetch tests share, and one character repeated, which `generateToken()` never makes. Before it was trusted, it was proved both ways:
+
+- On a synthetic token built at runtime, it found the token on every route shape and ignored placeholders, wrong lengths and fake tokens.
+- On the unscrubbed tree it failed, naming exactly the 09-16 line.
+- After the scrub it passes.
+
+It does not catch a bare token with no route before it, because a bare 22-character base64url string is too common a shape to fail CI on, nor a percent-encoded route or a `token=` query parameter. Nor does it see commit messages or PR bodies, which are not tracked files. The companion change for maintenance is reddoorla/reddoor-maintenance#2252.
+
+## 2026-11-23 — A report nobody has read cannot be opened, and the editor saves from a browser (W1, branch `claude/w1-approve-before-link`)
+
+Why: the 11-23 review of the audit system found that a finished run became a public link the moment it was saved, that a report known to be wrong could not be taken down, and that the one tool for correcting a report could not save. Maintenance's half (same branch name there) makes every finished run a draft that its JSON route 404s unless the caller presents `PROSPECT_EDIT_TOKEN`; this half is what lets the operator still see and fix one.
+
+The editor had never saved from a browser. The edit cookie was set with `path: "/audit"` and the save posts to `/api/audit-edit`; under RFC 6265 a cookie scoped to `/audit` is not sent to `/api/…`, so the handler never saw it and every save answered "Save failed (404)". Nothing caught it because the unit test stubs the cookie jar and the six browser tests in `edit-mode.spec.ts` skip without `E2E_AUDIT_TOKEN`, which is set nowhere. The feature's own end-to-end proof in September posted to maintenance directly, past this hop. The path is now `/`. `edit-save.spec.ts` is the first `@smoke` test that saves an edit in a real browser: the Playwright config starts `tests/smoke/maintenance-stub.mjs`, a forty-line stand-in for maintenance's two report routes, and points the dev server at it with throwaway keys, unconditionally unless `E2E_AUDIT_TOKEN` is set, so a smoke run can never reach a real report store. Putting the cookie path back to `/audit` turns it red (expected 200, received 404 on the save).
+
+`loadReport` now sends the edit token upstream only when the cookie is VERIFIED against `REPORT_EDIT_KEY`. Its mere presence still skips the read receipt, as before, but a forged cookie gets exactly what the public gets. A 410 from maintenance carries the newer report's token for a superseded link, and the loader redirects there (307, keeping `/print` or `/edit`); a 410 whose pointer is not token-shaped is a 404.
+
+The override map takes `hidden: true` on a row key (`analyze.data.fixes[2]`, `siteChecks.data[0]`, `accuracy.data.assertions[1]`, `accuracy.data.sources[3]`, `goalFit.data.requirements[0]`) and on `accuracy.data.conflation`. A hide is checked against the row's stored identifying text, the same stale-original guard the rewordings get, and removing rows happens after the text overrides, because those are positional and removing first would shift their indices. Hiding a site check takes its health row and health fix with it; hiding the collision block takes the callout, the collision headline and the collision fix together. The edit bar has a "Hide a row" list and a "Changes" list with Revert, and says "Draft, not approved" on a draft.
+
+`headlineFinding` no longer says "Everything we can measure on your site checks out" when the analysis, the visibility test or the accuracy check ran and failed; it says which parts did not run (kind `incomplete`). The review found eight stored reports leading with "checks out" while their analysis had failed on an API usage limit, five of them with no AI answers behind them at all. A stage skipped on purpose (`--no-probes`) is not a failure and still allows all clear.
+
+Mutations, each turning one named test red: cookie path back to `/audit` (the browser save); ignoring `hidden` in `applyOverrides` (a hidden fix absent from `allFixes`); dropping `analyze` from the all-clear guard (the failed-analysis headline).
+
+Deploy order matters: this half must be on `main` before maintenance's lands, or the editor cannot open a draft (no bearer sent) and a superseded link would 500 instead of redirecting.
+
+## 2026-11-23 — W1 review rounds 1 to 7: what changed after the entry above (#379, `claude/w1-approve-before-link`)
+
+The entry above was written before review and is left as it was. Seven rounds of review changed what it describes; the first six were dirty.
+
+Round 1 found that a row the operator hid was still in the reader's page: SvelteKit serialises `load` data for hydration, so a hidden fix sat in `__data.json` and view-source. Readers now get the payload with every override already applied on the server, and only the `composed:` entries, which name sentences this repo writes and can be matched only at render time. The editor alone gets the stored payload and the whole map, to show and revert. The same round made the smoke spec's tokens per run, after it failed 2 times in 40 at six workers by racing itself.
+
+Round 2 found that those composed entries still carried `original`, the sentence a rewording replaced, so a rewording written to remove a wrong claim still shipped the claim. A reader's entry now carries a digest of it (`originalDigest`), which `composed` compares instead. The same round stopped the last row of a section from being hidden: hiding all of them made the page state a measurement gap that never happened. Hidden rows stopped being edit targets.
+
+Round 3 found two more, both reproduced. A run whose page checks failed still said "checks out": the producer writes the analysis as "skipped — the checks stage failed", which is on the list of deliberate skips, so the guard never saw a failure. `checks` is now one of the stages all clear needs. And a rewording that no longer rendered (written against a row later hidden, or data that changed) was withheld from the page but its text still shipped. A reader now keeps only the composed entries whose line displays their text with the current map, which is the renderer's own test. `composed:goalVerdict` is wrapped inside `GoalFit.svelte` and is not an edit target, so the filter computes that line itself; without it a valid goal-verdict rewording would have been dropped, and a test pins that. A 410 that points back at its own token is now a 404, not a redirect loop.
+
+Mutations for round 3, each turning its test red: dropping `checks` from the guard; shipping every composed entry; leaving the goal verdict out of the filter; following a self-pointer.
+
+Round 4 found that round 3's filter dropped health-fix rewordings that did render. The renderer looks a health fix up by its row (`composed:healthFix[viewport].title`), and the edit list had always offered it by position (`composed:healthFix[0].title`), a key nothing reads. So the filter, built on the edit list, threw away the row-keyed ones, and every health-fix edit an operator saved from the browser had never rendered on any page, the editor's included. The edit list now keys health fixes by row, through `healthFixEntries`, which `healthFixes` also uses. A test saves each health-fix target under its own key and checks it renders; putting the positional key back turns it and the reader test red. Any positional health-fix entry already stored stays dead, as it always was. The same round stopped the goal-verdict line being kept where `GoalFit` shows no verdict (no goal fit, or an unknown goal).
+
+Round 5 found that round 3's filter had a second hole. An operator who emptied a composed line saw it gone in the editor, because `composed` returned the empty text, but the filter lists only lines with text, so it dropped the entry and the prospect read the generated sentence. `composed` now treats a blank override as none, for both, and the editor reverts an emptied line. That was the fifth dirty round, and the fix changed behaviour, so the operator was asked; he chose a sixth round. Round 6 found that the editor's new revert-on-empty also caught payload fields. Emptying one goal requirement's evidence, or one check's "why", has always blanked that one line for every reader, and the editor was now silently undoing it. The revert is limited to `composed:` keys. He chose a seventh round, which was clean; its one nit, pre-existing, is #384. `onBlur` lives in a Svelte component this repo's vitest cannot load, so that last line has no unit test, only two reviews' reading.
+
+The pattern worth keeping: rounds 3 to 6 each found a defect in the previous round's fix, and the last three were all in code this PR added to keep readers from seeing stale text. A filter that decides what a reader receives has to agree with the renderer on every key and every empty case, and the only test that settles that is one rendering both ways.
+
+Belief corrected: "a stage skipped on purpose still allows all clear" was true of `--no-probes` and false of a skip that another stage's failure caused. The skip strings say why a stage did not run, and only some of the reasons are the operator's choice.
+
+## 2026-11-23 — Every absence on the audit report says how many pages it rests on (W3, `claude/w3-read-pages-website`)
+
+The audit-system review (B-04, LG-12, BR-07) found the report printing "We read every page and could not tell…" over crawls of one and twelve pages, and "not on your site" over twenty pages of a ninety-five-page site. An absence is a statement about the pages we read, not the site, and a reader can only weigh it if we say how many. Every absence sentence on the web report and the print sheet now carries that count: the unanswered and goal-missing headlines, the opening summary, the goal verdict and its rows, the question table's receipt, the source check's lead line and footnote, the primer, and the contact row's detail. The counts come from `pagesReadOf` in `model.ts`, and the wording lives in one place, `pages-read.ts`.
+
+The first draft was one sentence shape, "in the N of your M pages we read". Seven review rounds showed how many ways that shape could say something false, and most of the code is now about the source of M:
+
+- **A present, untruncated sitemap.** Only this source may say "your M pages", "all" or "we read them all".
+- **A truncated sitemap.** It is a floor: "at least M pages on your site".
+- **Stored rows from before 2026-09-08.** These carry no `truncated` flag, and the absence of a flag means we do not know, so they are floors too.
+- **No sitemap.** M counts only what the home page links to, so it is "the M we found linked from your home page".
+- **A sitemap smaller than the links and sitemap together.** M is "the M we found".
+- **Zero pages read.** No count is printed. The absences become "Could not check", because a home page that answers 200 as `text/plain` gives a crawl with nothing read, and the goal checks used to call everything on it missing.
+- **One page, or two.** "Your one page" appears only when the site is one page, and two pages read "both".
+
+The source check reads fewer pages than the crawl. It skips empty pages and stops at a character budget, so its lead line and footnote use its own count, not the crawl's. In round 3 the two sentences in that section disagreed: twenty pages in the lead, eight in the footnote.
+
+Corrected on contact:
+
+- **"All" is not about arithmetic.** I believed `read >= site` was enough to say "all of your pages". It was wrong three ways: the site total can be a floor, it can be a count of home-page links, and a legacy row's sitemap can be smaller than the twenty pages read (`pagesReadOf` used to take `max(read, sitemap)` and printed "all 20 of your pages").
+- **A clause written for negatives breaks in a positive sentence.** "In each of your seven pages" read as "missing from some" after "not in place". The contact row's "we measured this in any of your seven pages" read as nonsense.
+
+One question-level design was considered and kept. A buyer-question absence says "not found in the N pages we read" over the crawl's count, though the model sees at most twelve pages of 1,500 characters each. The brief specifies it, and maintenance's keyword search over all crawled text backs it.
+
+Mutation: removing the count from the unanswered headline turned 10 tests red. Each review round's fixes carried one mutation per major, and every one went red. Unit tests went from 479 to 1205 in the report directory's suite and its neighbours.
+
+The branch is stacked on W1 (#379), because both change `model.ts` and `narrative.ts`. It was rebased onto W1 under a new branch name, since rewriting the first session's `claude/w3-read-pages-that-matter` was refused. Generated headlines changed wording, so an operator's edit on a stored report whose `original` no longer matches is dropped.
+
+Rounds: seven. Rounds 1 to 5 were dirty, and at five the session stopped and asked. Round 6 ran on the operator's yes (decision `2026-11-23-2105-w3-website-round-5-stop` in the workspace) and found one latent major, so it asked again. Round 7 ran on his second yes and was clean, with two nits filed as issues.
 ## 2026-11-23 — The Technical report, a second view of the same token (W4, `claude/w4-technical-report`)
 
 From the 11-23 audit-system review (workspace `audits/2026-11-23-audit-system-review/04-technical.md`, "The report"). `/audit/[token]/technical` answers the buyer who says "it's slow, something is broken, is it secure", from the deterministic stages alone. It never reads `analyze`, `probes`, `accuracy` or `goalFit`: a test deletes those four stages from the fixture and requires the byte-identical page, and two mutations that let the view read `analyze` or `accuracy` turn it red. The view is built on the server and sent alone, so unlike the parent route the stored row never reaches the browser.

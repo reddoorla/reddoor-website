@@ -45,6 +45,99 @@ function parsePath(key: string): (string | number)[] | null {
 }
 
 /**
+ * The rows an operator may take off the report (W1, DES-11, BR-12): a list
+ * item named by `<path>[<i>]`, identified by one of its own fields.
+ *
+ * An entry `{ "<path>[<i>]": { original, text: "", hidden: true } }` hides
+ * that row when `row[field] === original` in the payload as STORED (before any
+ * text override), the same stale-original guard the text overrides get.
+ * Hiding removes the row from the list the view is built from, so everything
+ * derived from it goes with it: a hidden site check takes its health row and
+ * health fix too.
+ */
+export const HIDEABLE: { path: string; field: string; noun: string }[] = [
+  { path: "siteChecks.data", field: "label", noun: "Check" },
+  { path: "analyze.data.fixes", field: "title", noun: "Fix" },
+  { path: "accuracy.data.assertions", field: "claim", noun: "What the assistant said" },
+  { path: "accuracy.data.sources", field: "domain", noun: "Source" },
+  { path: "goalFit.data.requirements", field: "label", noun: "Goal requirement" },
+];
+
+/** The name-collision block is one object, not a list item. Hiding it reads as
+ *  "the assistant did not confuse you with anyone": the block, its headline
+ *  and its fix come off when they came from this verdict. A namesake found
+ *  among the cited domains is a separate finding and stays. Its identifying
+ *  field is the quote it rests on (empty when it has none). */
+export const CONFLATION_KEY = "accuracy.data.conflation";
+
+function getAt(root: unknown, path: (string | number)[]): unknown {
+  let node: unknown = root;
+  for (const seg of path) {
+    if (node === null || typeof node !== "object") return undefined;
+    node = (node as Record<string | number, unknown>)[seg];
+  }
+  return node;
+}
+
+/** Which entries of the map hide something, resolved against the STORED
+ *  payload: list paths to the indices they hide, and whether the collision
+ *  block is hidden. A malformed or stale entry hides nothing. */
+function hiddenRows(
+  raw: AuditReport,
+  map: OverrideMap,
+): { lists: Map<string, Set<number>>; conflation: boolean } {
+  const lists = new Map<string, Set<number>>();
+  let conflation = false;
+  for (const [key, ov] of Object.entries(map)) {
+    if (!ov || ov.hidden !== true || typeof ov.original !== "string") continue;
+    if (key === CONFLATION_KEY) {
+      const c = getAt(raw, ["accuracy", "data", "conflation"]) as
+        { engineQuote?: unknown } | undefined;
+      if (
+        c &&
+        typeof c === "object" &&
+        (typeof c.engineQuote === "string" ? c.engineQuote : "") === ov.original
+      )
+        conflation = true;
+      continue;
+    }
+    const m = /^(.+)\[(\d+)\]$/.exec(key);
+    if (!m) continue;
+    const spec = HIDEABLE.find((h) => h.path === m[1]);
+    if (!spec) continue;
+    const parts = parsePath(key);
+    if (!parts) continue;
+    const row = getAt(raw, parts) as Record<string, unknown> | undefined;
+    if (!row || typeof row !== "object" || row[spec.field] !== ov.original) continue;
+    const set = lists.get(spec.path) ?? new Set<number>();
+    set.add(Number(m[2]));
+    lists.set(spec.path, set);
+  }
+  return { lists, conflation };
+}
+
+/** Replace the value at `path` with `fn(old)`, cloning each container on the
+ *  way down so the input is never mutated. */
+function writeAt(
+  root: AuditReport,
+  path: (string | number)[],
+  fn: (old: unknown) => unknown,
+): AuditReport {
+  const out: AuditReport = { ...root };
+  let node = out as Record<string | number, unknown>;
+  for (let i = 0; i < path.length - 1; i++) {
+    const seg = path[i]!;
+    const child = node[seg];
+    if (child === null || typeof child !== "object") return root;
+    node[seg] = Array.isArray(child) ? [...child] : { ...(child as object) };
+    node = node[seg] as Record<string | number, unknown>;
+  }
+  const last = path[path.length - 1]!;
+  node[last] = fn(node[last]);
+  return out;
+}
+
+/**
  * Replace payload-resident strings named by the map.
  *
  * Returns a structurally-shared copy: only the objects along an overridden path
@@ -57,10 +150,16 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
   const entries = Object.entries(map);
   if (entries.length === 0) return raw;
 
+  // Resolved against the stored payload BEFORE any text override, so a row
+  // whose title was also reworded is still recognised by its stored title.
+  const hidden = hiddenRows(raw, map);
+
   let out: AuditReport = raw;
   let cloned = false;
 
   for (const [key, ov] of entries) {
+    // A hide entry names a row, not a string; it is applied after this loop.
+    if (ov && (ov as { hidden?: unknown }).hidden === true) continue;
     const path = parsePath(key);
     if (!path) continue;
 
@@ -103,6 +202,22 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
     node[path[path.length - 1]!] = ov.text;
   }
 
+  // Hides last, and by index against the stored order: the text overrides
+  // above are positional, so removing rows first would shift their indices.
+  for (const [listPath, indices] of hidden.lists) {
+    const parts = parsePath(listPath)!;
+    out = writeAt(out, parts, (list) =>
+      Array.isArray(list) ? list.filter((_, i) => !indices.has(i)) : list,
+    );
+  }
+  if (hidden.conflation) {
+    out = writeAt(out, ["accuracy", "data", "conflation"], () => ({
+      detected: false,
+      otherNames: [],
+      engineQuote: null,
+    }));
+  }
+
   return out;
 }
 
@@ -119,6 +234,47 @@ export function composed(map: OverrideMap, key: string, generated: string): stri
   // declared `: string` return is only as true as the wire data. Without this,
   // a non-string `text` would be returned from a function TypeScript believes
   // cannot do that.
-  if (!ov || typeof ov.text !== "string" || ov.original !== generated) return generated;
-  return ov.text;
+  if (!ov || typeof ov.text !== "string") return generated;
+  // W1 review round 5. An emptied sentence is not an override. The reader's
+  // filter lists only lines with text, so an empty one rendered as gone for
+  // the editor while the prospect read the generated sentence. To take a line
+  // off the page, hide its row.
+  if (ov.text.trim() === "") return generated;
+  const matches =
+    typeof ov.originalDigest === "string"
+      ? ov.originalDigest === digest(generated)
+      : ov.original === generated;
+  return matches ? ov.text : generated;
+}
+
+/**
+ * A short, synchronous, non-cryptographic digest of a sentence (cyrb53), used
+ * to carry a composed override's stale-original guard to a reader WITHOUT
+ * carrying the sentence it replaced (W1 review round 2). It only has to tell
+ * "the sentence is still the one that was reworded" from "it changed", so
+ * collision resistance against an adversary is not the property needed; the
+ * page data must simply not contain the old words.
+ */
+export function digest(s: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/** The keys of the rows the map hides, resolved against the stored payload
+ *  (`<path>[<i>]`, or CONFLATION_KEY). The editor uses it to leave a hidden
+ *  row's lines out of what it wires and lists as in force. */
+export function hiddenRowKeys(raw: AuditReport, map: OverrideMap): Set<string> {
+  const { lists, conflation } = hiddenRows(raw, map);
+  const out = new Set<string>();
+  for (const [path, idx] of lists) for (const i of idx) out.add(`${path}[${i}]`);
+  if (conflation) out.add(CONFLATION_KEY);
+  return out;
 }

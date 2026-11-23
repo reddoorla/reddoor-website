@@ -2,7 +2,7 @@
   import { toReportView } from "$lib/report/model";
   import Report from "$lib/report/Report.svelte";
   import EditLayer from "$lib/report/EditLayer.svelte";
-  import { editableTargets } from "$lib/report/editable";
+  import { editableTargets, hideTargets } from "$lib/report/editable";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -35,6 +35,7 @@
 
   const view = $derived(toReportView(data.report, data.overrides));
   const targets = $derived(editableTargets(view, data.report));
+  const hideable = $derived(hideTargets(data.report, data.overrides));
   const who = $derived(view.businessName ?? "your business");
 </script>
 
@@ -50,4 +51,10 @@
      for an operator and another way for a reader — which is what makes "is edit
      mode inert for a prospect" answerable by looking at one file. -->
 <Report {view} />
-<EditLayer {targets} token={data.token} overrides={data.overrides} />
+<EditLayer
+  {targets}
+  {hideable}
+  token={data.token}
+  overrides={data.overrides}
+  approved={data.approved}
+/>
