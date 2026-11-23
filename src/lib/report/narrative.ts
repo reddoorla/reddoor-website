@@ -834,14 +834,22 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
 export function heldBackLines(view: ReportView): string[] {
   const h = heldBack(view);
   const lines: string[] = [];
+  // "also" only when a statement printed above this line (R1 fix 12).
+  const printedAbove = contradictedRows(view).length > 0 || notSourcedFromSite(view).length > 0;
   if (h.withheld > 0) {
     const them = h.withheld === 1 ? "it" : "them";
-    // "also" only when a statement printed above this line (R1 fix 12).
-    const printedAbove = contradictedRows(view).length > 0 || notSourcedFromSite(view).length > 0;
     lines.push(
       `The assistant ${printedAbove ? "also " : ""}made ${numberWord(h.withheld)} ${h.withheld === 1 ? "statement" : "statements"} ` +
         `about ${joinList(h.topics)} that we have not checked, so we have not repeated ${them} here. ` +
         `Ask us for ${them}.`,
+    );
+  }
+  if (h.unquoted > 0) {
+    // R2: a statement with no quote to print is counted, never repeated.
+    const them = h.unquoted === 1 ? "it" : "them";
+    lines.push(
+      `The assistant ${printedAbove ? "also " : ""}made ${numberWord(h.unquoted)} ${h.unquoted === 1 ? "statement" : "statements"} ` +
+        `we could not quote exactly, so we have not repeated ${them}.`,
     );
   }
   if (h.aboutOthers > 0) {

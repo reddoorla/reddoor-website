@@ -1180,13 +1180,15 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
 
   it("carries `absent` and `unverified` together, absent first", () => {
     // Split apart for a day (#169). The grey case is why they are back
-    // together: "a man named Tim leads Reddoor Creative" is drawn from
-    // LinkedIn, where he is the more active of two people the site's own team
-    // page lists. Neither "not on your site" nor "we could not check" is fair
-    // to it, and nothing we store tells the two apart.
+    // together: "a man on LinkedIn leads Acme" is drawn from LinkedIn, where
+    // he is the more active of two people the site's own team page lists.
+    // Neither "not on your site" nor "we could not check" is fair to it, and
+    // nothing we store tells the two apart.
+    // R2: the named form ("A man named Tim leads Acme.") is a withheld topic,
+    // not a grey row, so the fixture is worded without a name; see below.
     const out = notSourcedFromSite(
       view([
-        claim("unverified", "A man named Tim leads Acme."),
+        claim("unverified", "A man on LinkedIn leads Acme."),
         // W2: not a legal-entity statement, which the page now withholds.
         claim("absent", "Acme opened in 2012."),
         claim("unverified", "Acme is based in Ohio."),
@@ -1194,18 +1196,26 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
     );
     expect(out.map((a) => a.claim)).toEqual([
       "Acme opened in 2012.",
-      "A man named Tim leads Acme.",
+      "A man on LinkedIn leads Acme.",
       "Acme is based in Ohio.",
     ]);
+  });
+
+  it("withholds a named person from the list (R2: the named form is a withheld topic)", () => {
+    const out = notSourcedFromSite(view([claim("unverified", "A man named Tim leads Acme.")]));
+    expect(out).toEqual([]);
   });
 
   it("leaves out what the report states elsewhere", () => {
     // `confirmed` is counted in its own sentence and `contradicted` has its own
     // headed list. Neither belongs in a list of what the site does not account
     // for.
+    // R2: a confirmed row with no site quote is not "stated elsewhere": it
+    // prints under "What the AI says about you". The fixture gives it the
+    // site quote that puts it in "What your site backs up".
     const out = notSourcedFromSite(
       view([
-        claim("confirmed", "Acme does branding."),
+        { ...claim("confirmed", "Acme does branding."), siteQuote: "Acme does branding." },
         claim("contradicted", "Acme is based in Ohio."),
         claim("absent", "a"),
       ]),

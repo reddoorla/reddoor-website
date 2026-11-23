@@ -5,11 +5,13 @@ import {
   contradictedRows,
   notSourcedFromSite,
   openingSummary,
+  statements,
   toReportView,
   type Assertion,
   type ReportView,
 } from "./model";
 import {
+  displayQuote,
   headlineFinding,
   passes,
   collisionBlock,
@@ -248,26 +250,52 @@ export type HideTarget = {
 const ACCURACY_ROWS = "accuracy.data.assertions";
 
 /**
- * The accuracy rows the page prints, by index into the stored list. A row the
- * page withholds or never prints (a withheld topic, another business, an empty
- * quote) is not offered: hiding it changes nothing on the page, and counting it
- * toward the last-row rule would let the last printed row be hidden.
+ * R2. The accuracy statements the page prints, one target each, read from the
+ * payload as stored (`raw`, before overrides). A target is keyed by the
+ * statement's first stored row, so a hide entry names a row the page can find;
+ * its label is the quote the page prints, and when two printed statements share
+ * a label, both carry the question they answered. A statement the page withholds
+ * or counts is not offered: hiding it changes nothing on the page.
  */
-function accuracyRowsOnPage(raw: AuditReport): Set<number> {
-  const indexes = new Set<number>();
-  // A payload with no assertion list has no rows to offer, and the view cannot be
-  // built from it.
-  if (!Array.isArray(at(raw, ACCURACY_ROWS))) return indexes;
+function accuracyTargets(raw: AuditReport, map: OverrideMap, noun: string): HideTarget[] {
+  const list = at(raw, ACCURACY_ROWS);
+  if (!Array.isArray(list)) return [];
   const view = toReportView(raw);
+  const stored = view.accuracy?.assertions ?? [];
+  // The rows the three printed lists hold: the same functions the page calls,
+  // so an offered statement is one the page prints.
   const printed = new Set<Assertion>([
     ...notSourcedFromSite(view),
     ...contradictedRows(view),
     ...confirmedRows(view),
   ]);
-  (view.accuracy?.assertions ?? []).forEach((a, i) => {
-    if (printed.has(a)) indexes.add(i);
-  });
-  return indexes;
+  const found = statements(view)
+    .filter((s) => printed.has(s.row))
+    .map((s) => ({
+      index: stored.indexOf(s.rows[0]!),
+      label: `“${displayQuote(s.row.engineQuote)}”`,
+      query: s.row.query,
+    }))
+    .filter((x) => x.index >= 0);
+
+  const labelCount = new Map<string, number>();
+  for (const f of found) labelCount.set(f.label, (labelCount.get(f.label) ?? 0) + 1);
+
+  const out: HideTarget[] = [];
+  for (const { index, label, query } of found) {
+    const original = (list[index] as { claim?: unknown } | undefined)?.claim;
+    if (typeof original !== "string" || original.trim() === "") continue;
+    const key = `${ACCURACY_ROWS}[${index}]`;
+    out.push({
+      key,
+      original,
+      noun,
+      label: (labelCount.get(label) ?? 0) > 1 ? `${label} (asked: ${query})` : label,
+      hidden: map[key]?.hidden === true && map[key]!.original === original,
+      canHide: true,
+    });
+  }
+  return out;
 }
 
 /**
@@ -278,27 +306,23 @@ function accuracyRowsOnPage(raw: AuditReport): Set<number> {
  */
 export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
   const out: HideTarget[] = [];
-  const onPage = accuracyRowsOnPage(raw);
   for (const { path, field, noun } of HIDEABLE) {
     const list = at(raw, path);
     if (!Array.isArray(list)) continue;
-    list.forEach((row, i) => {
-      const original = (row as Record<string, unknown> | null)?.[field];
-      if (typeof original !== "string" || original.trim() === "") return;
-      if (path === ACCURACY_ROWS && !onPage.has(i)) return;
-      const key = `${path}[${i}]`;
-      const quote = (row as { engineQuote?: unknown }).engineQuote;
-      out.push({
-        key,
-        original,
-        noun,
-        ...(path === ACCURACY_ROWS
-          ? { label: `“${typeof quote === "string" ? quote.trim() : ""}”` }
-          : {}),
-        hidden: map[key]?.hidden === true && map[key]!.original === original,
-        canHide: true,
+    if (path === ACCURACY_ROWS) out.push(...accuracyTargets(raw, map, noun));
+    else
+      list.forEach((row, i) => {
+        const original = (row as Record<string, unknown> | null)?.[field];
+        if (typeof original !== "string" || original.trim() === "") return;
+        const key = `${path}[${i}]`;
+        out.push({
+          key,
+          original,
+          noun,
+          hidden: map[key]?.hidden === true && map[key]!.original === original,
+          canHide: true,
+        });
       });
-    });
     const rows = out.filter((t) => t.key.startsWith(`${path}[`));
     const visible = rows.filter((t) => !t.hidden);
     if (visible.length === 1) visible[0]!.canHide = false;

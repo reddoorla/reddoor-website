@@ -8,6 +8,7 @@
     namesakeLeads,
     notSourcedFromSite,
     ownSiteCitations,
+    sourceCheckHasRows,
     sourceCheckMeasured,
     stageFailed,
     type ReportView,
@@ -43,7 +44,7 @@
 
   // W2. Every list below prints the assistant's own words in quotation marks,
   // never the accuracy model's paraphrase, and only statements about this
-  // business on topics we print. See `printable` in model.ts.
+  // business on topics we print. See `statements` in model.ts.
   const contradicted = $derived(contradictedRows(view));
   // One list, under a heading that asserts nothing — the hedge in the line
   // beneath it carries the claim, and is true across the grey middle where most
@@ -103,7 +104,7 @@
     {/if}
     That is a gap in the measurement, not a finding about your site.
   </p>
-{:else if acc.assertions.length === 0}
+{:else if !sourceCheckHasRows(view)}
   <p class="type-lede m-0 text-black">
     We read {acc.answersRead === 1 ? "one answer" : `${acc.answersRead} answers`} about {who} and could
     not pull a checkable statement out of {acc.answersRead === 1 ? "it" : "them"}. That usually

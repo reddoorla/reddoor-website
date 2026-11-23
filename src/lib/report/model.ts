@@ -618,69 +618,57 @@ const LISTING_SITES = [
  * has always used.
  */
 export function notSourcedFromSite(view: ReportView): Assertion[] {
-  const all = printable(view.accuracy?.assertions ?? [], otherNamesOf(view));
+  const rows = printedRows(view, "notSourced");
   return [
-    ...all.filter((a) => a.verdict === "absent"),
-    ...all.filter((a) => a.verdict === "unverified"),
+    ...rows.filter((a) => a.verdict === "absent"),
+    ...rows.filter((a) => a.verdict !== "absent"),
   ];
 }
 
 /**
- * W2. Statements the report prints as being about the prospect: the answer's
- * own subject, and not a topic we withhold.
+ * R2. What a statement is, and what the page does with it. The page used to
+ * decide per stored ROW, but a reader sees a SENTENCE, and one sentence is often
+ * stored as several rows (the model splits it into claims). So every decision
+ * is taken once per statement here, and every list, count and hide reads it.
  *
- * The report used to print the accuracy model's paraphrase of every statement
- * under "What the AI says about you". Where an answer hedged that another firm
- * was the "most likely match" and described that firm, the paraphrase began
- * "The business…", and the page said it of the prospect. Now a row prints only when its subject is the prospect,
- * and only the assistant's own words, in quotation marks (`displayQuote` of
- * `engineQuote`, never `claim`). A stored row has no subject and is read as
- * about the prospect; the withhold is what keeps its worst rows off the page.
+ * Each statement gets exactly one outcome, the first that applies:
+ *  1. `unquoted`   its quote is empty: counted, never printed.
+ *  2. `aboutOthers` one of its rows is not about the prospect: counted.
+ *  3. `withheld`   one of its rows is on a withheld topic: counted, by topic.
+ *  4. `contradicted` printed in the contradicted list.
+ *  5. `confirmed`  printed in "What your site backs up", with a site quote.
+ *  6. `notSourced` printed under "What the AI says about you".
+ *
+ * Rows are grouped by `statementKey`, in stored order, so `rows[0]` is the
+ * row a hide targets. `row` is the one row the outcome prints from.
  */
-export function printable(rows: Assertion[], otherNames: string[] = []): Assertion[] {
-  return oneEach(
-    rows.filter((a) => aboutProspect(a, otherNames) && withheldTopic(a) === null && hasQuote(a)),
-  );
-}
+export type StatementOutcome =
+  "unquoted" | "aboutOthers" | "withheld" | "contradicted" | "confirmed" | "notSourced";
 
-/**
- * A row stored before 2026-11-23 has no subject, and is read as about the
- * prospect unless its own quote names another business: the assistant's
- * "most likely match" hedge, or one of the names it gave to something else.
- */
-function aboutProspect(a: Assertion, otherNames: string[] = []): boolean {
-  if (a.subject !== undefined) return a.subject === "prospect";
-  const quote = a.engineQuote.toLowerCase();
-  if (quote.includes("most likely match") || quote.includes("likely match")) return false;
-  return !otherNames.some((n) => quote.includes(n.toLowerCase()));
-}
+export type Statement = {
+  key: string;
+  rows: Assertion[];
+  /** The row the statement prints from. */
+  row: Assertion;
+  outcome: StatementOutcome;
+  /** For `withheld`: the first withheld topic, in TOPIC_TEXT order. */
+  topic: Exclude<AssertionTopic, "other"> | null;
+  /** Every row is about the prospect. */
+  about: boolean;
+};
 
-/** The other names the answer gave this business, cut to the part before " (",
- *  for matching the quote of a row stored without a subject. A short name
- *  matches almost anything, and this business's own name is not another. */
-export function otherNamesOf(view: ReportView): string[] {
-  const own = (view.businessName ?? "").trim().toLowerCase();
-  return (view.accuracy?.conflation?.otherNames ?? [])
-    .map((n) => (n.split(" (")[0] ?? "").trim())
-    .filter((n) => n.length >= 4 && n.toLowerCase() !== own);
-}
+/** The words of a text, lower-cased, for whole-word comparison. */
+const wordsOf = (s: string): string[] =>
+  s
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w !== "");
 
 /** A statement's identity on the page: the assistant's words and the question
  *  it answered. Several rows can share both, because the model splits one
  *  sentence into several claims, and the page prints that sentence once. */
 function statementKey(a: Assertion): string {
-  return `${a.engineQuote}\n${a.query}`;
-}
-
-/** The first row of each statement. */
-function oneEach(rows: Assertion[]): Assertion[] {
-  const seen = new Set<string>();
-  return rows.filter((a) => {
-    const key = statementKey(a);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return `${a.engineQuote.trim()}\n${a.query}`;
 }
 
 /** An empty quote has nothing to print, and `“”` is never a statement. */
@@ -688,20 +676,104 @@ function hasQuote(a: Assertion): boolean {
   return a.engineQuote.trim() !== "";
 }
 
+/**
+ * A row stored before 2026-11-23 has no subject, and is read as about the
+ * prospect unless its own quote names another business: the assistant's
+ * "most likely match" hedge, or one of the names it gave to something else,
+ * matched as whole words.
+ */
+function aboutProspect(a: Assertion, otherNames: string[] = []): boolean {
+  if (a.subject !== undefined) return a.subject === "prospect";
+  const quote = ` ${wordsOf(a.engineQuote).join(" ")} `;
+  if (quote.includes(" most likely match ") || quote.includes(" likely match ")) return false;
+  return !otherNames.some((n) => quote.includes(` ${wordsOf(n).join(" ")} `));
+}
+
+/** The other names the answer gave this business, cut to the part before " (",
+ *  for matching the quote of a row stored without a subject. A short name
+ *  matches almost anything. A name is not another business when it is part of
+ *  this business's own name, contains it, or shares its first word: "Acme
+ *  (Dallas)" is this business's own "Acme Roofing", not a second firm. */
+export function otherNamesOf(view: ReportView): string[] {
+  const own = wordsOf(view.businessName ?? "");
+  const ownText = own.join(" ");
+  return (view.accuracy?.conflation?.otherNames ?? [])
+    .map((n) => (n.split(" (")[0] ?? "").trim())
+    .filter((n) => {
+      if (n.length < 4) return false;
+      const w = wordsOf(n);
+      if (w.length === 0) return false;
+      if (own.length === 0) return true;
+      const phrase = w.join(" ");
+      const partOfOwn = ` ${ownText} `.includes(` ${phrase} `);
+      const containsOwn = ` ${phrase} `.includes(` ${ownText} `);
+      const sharesFirst = w[0] === own[0];
+      return !(partOfOwn || containsOwn || sharesFirst);
+    });
+}
+
+/**
+ * Every statement on the check, decided once (see `Statement`). Not gated on
+ * `sourceCheckMeasured`: each surface gates what it prints, as it always has.
+ */
+export function statements(view: ReportView): Statement[] {
+  const names = otherNamesOf(view);
+  const groups = new Map<string, Assertion[]>();
+  for (const a of view.accuracy?.assertions ?? []) {
+    const key = statementKey(a);
+    const group = groups.get(key);
+    if (group) group.push(a);
+    else groups.set(key, [a]);
+  }
+  return [...groups.values()].map((rows) => decide(rows, names));
+}
+
+function decide(rows: Assertion[], names: string[]): Statement {
+  const first = rows[0]!;
+  const about = rows.every((a) => aboutProspect(a, names));
+  const withheld = rows
+    .map((a) => withheldTopic(a))
+    .filter((t): t is Exclude<AssertionTopic, "other"> => t !== null);
+  const topic = TOPIC_TEXT.map(([t]) => t).find((t) => withheld.includes(t)) ?? null;
+  const contradicted = rows.find((a) => a.verdict === "contradicted");
+  const confirmed = rows.find((a) => a.verdict === "confirmed" && a.siteQuote !== null);
+  const absent = rows.find((a) => a.verdict === "absent");
+
+  let outcome: StatementOutcome;
+  let row: Assertion;
+  if (!hasQuote(first)) {
+    outcome = "unquoted";
+    row = first;
+  } else if (!about) {
+    outcome = "aboutOthers";
+    row = first;
+  } else if (topic !== null) {
+    outcome = "withheld";
+    row = first;
+  } else if (contradicted) {
+    outcome = "contradicted";
+    row = contradicted;
+  } else if (confirmed) {
+    outcome = "confirmed";
+    row = confirmed;
+  } else {
+    outcome = "notSourced";
+    row = absent ?? first;
+  }
+  return { key: statementKey(first), rows, row, outcome, topic, about };
+}
+
+/** The row each statement with this outcome prints, in statement order. */
+function printedRows(view: ReportView, outcome: StatementOutcome): Assertion[] {
+  return statements(view)
+    .filter((s) => s.outcome === outcome)
+    .map((s) => s.row);
+}
+
 /** Confirmed statements, with both quotes, for the reader to judge (BR-09). */
 export function confirmedRows(view: ReportView): Assertion[] {
   if (!sourceCheckMeasured(view)) return [];
-  const names = otherNamesOf(view);
-  return oneEach(
-    (view.accuracy?.assertions ?? []).filter(
-      (a) =>
-        a.verdict === "confirmed" &&
-        aboutProspect(a, names) &&
-        withheldTopic(a) === null &&
-        hasQuote(a) &&
-        a.siteQuote !== null,
-    ),
-  );
+  return printedRows(view, "confirmed");
 }
 
 /** Contradictions printed as about the prospect. */
@@ -709,9 +781,7 @@ export function contradictedRows(view: ReportView): Assertion[] {
   // Gated like the section: a statement out of an answer the report says it
   // did not read is not printed anywhere, the headline included.
   if (!sourceCheckMeasured(view)) return [];
-  return printable(view.accuracy?.assertions ?? [], otherNamesOf(view)).filter(
-    (a) => a.verdict === "contradicted",
-  );
+  return printedRows(view, "contradicted");
 }
 
 /**
@@ -721,12 +791,11 @@ export function contradictedRows(view: ReportView): Assertion[] {
  */
 export function withheldContradiction(view: ReportView): boolean {
   if (!sourceCheckMeasured(view)) return false;
-  const names = otherNamesOf(view);
-  return (view.accuracy?.assertions ?? []).some(
-    (a) =>
-      a.verdict === "contradicted" &&
-      aboutProspect(a, names) &&
-      (withheldTopic(a) !== null || !hasQuote(a)),
+  return statements(view).some(
+    (s) =>
+      s.about &&
+      (s.outcome === "withheld" || s.outcome === "unquoted") &&
+      s.rows.some((a) => a.verdict === "contradicted"),
   );
 }
 
@@ -764,40 +833,72 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
   [
     "ratings_reviews",
     [
-      // A score: "3.4/5", "4.2 out of 5", "rated 4.2 out of 5".
-      /\b\d(\.\d)?\s*(?:\/|out of)\s*(?:5|five|10|ten)\b/i,
+      // A score out of five: "3.4/5", "4.2 out of 5", "rated 4.2 out of 5". Only
+      // five: "9 out of 10 dentists" is not a rating.
+      /\b\d(?:\.\d)?\s*(?:\/|out of)\s*5\b/i,
       /\brated \d/i,
-      // "4-star", "a 4.9 on Google", "reviews on Glassdoor".
-      /\b\d(\.\d)?[- ]stars?\b/i,
-      /\b\d(\.\d)? on (?:google|yelp|glassdoor|indeed)\b/i,
+      // "a 4.6 rating", "average rating of 4.6", "Google rating of 4.7".
+      /\b\d(?:\.\d)?\s+(?:average\s+|google\s+|yelp\s+)?ratings?\b/i,
+      /\bratings?\s+(?:of\s+)?\d(?:\.\d)?\b/i,
+      // "4.8★", "4.9 stars", "4-star rating", "5 star reviews", "a star rating".
+      /\b\d(?:\.\d)?\s*★/,
+      /\b\d\.\d[- ]?stars?\b/i,
+      /\b\d[- ]stars?\s+(?:ratings?|reviews?)\b/i,
+      /\b\d+\s+(?:[a-z]+-)?stars?[- ]reviews?\b/i,
+      /\bstar ratings?\b/i,
+      // "a 4.9 on Google", "reviews on Glassdoor".
+      /\b\d(?:\.\d)?\s+on\s+(?:google|yelp|glassdoor|indeed|trustpilot|bbb)\b/i,
       /\breviews? (?:on|from) (?:google|yelp|glassdoor|indeed|trustpilot|bbb)\b/i,
       // A survey share: "60% would recommend it", "60% of employees".
       /\bwould recommend\b/i,
+      /\b\d+%\s+(?:would\s+)?recommend/i,
       /%\s+of (?:employees|reviewers)\b/i,
     ],
   ],
-  ["complaints", [/\b(?:complaints?|alerts?|lawsuits?|sued|litigation|scam|fraud\w*)\b/i]],
+  [
+    "complaints",
+    [
+      /\bcomplaints? (?:filed|against|about (?:the |our |this )?(?:business|company|us|them|it))\b/i,
+      /\balerts? on file\b/i,
+      /\b(?:lawsuits?|sued|litigation)\b/i,
+      /\bscams?\b/i,
+      /\bfraud (?:claims?|charges?|complaints?|allegations?)\b/i,
+    ],
+  ],
   ["accreditation", [/\b(?:accredit\w*|bbb|better business bureau)\b/i]],
   [
     "legal_entity",
     [
-      /\b(?:llc|l\.l\.c|inc|corp|ltd)\b/i,
+      /\b(?:llc|l\.l\.c)\b/i,
+      // "Example Studio, Inc." and "Example Corp.", a capitalised name before the
+      // suffix. Not "an Inc. 5000 honoree": no capital name, and a number after.
+      /\b[A-Z][\w&'-]*,?\s+(?:Inc|Corp|Ltd)\b(?!\.?\s*\d)/,
       /\bsole proprietor\w*/i,
       /\b(?:dba|d\/b\/a|doing business as)\b/i,
       // "registered in Texas" is a legal-entity claim the page must not print
       // unchecked, so the narrowing does not drop the original's "in" and "with".
       /\b(?:registered (?:as|in|with)|incorporated in)\b/i,
-      /\b(?:legal name|alternate name|subsidiary|franchise\w*|entity)\b/i,
+      /\b(?:legal name|alternate name|legal entity|subsidiary|franchisee|franchisor)\b/i,
+      /\bfranchise (?:agreement|owner|system|location)s?\b/i,
       /\b[Oo]perates as [A-Z]/,
     ],
   ],
   [
     "named_person",
     [
-      new RegExp(`\\b${ci(["founded", "led", "run", "headed", "managed"])} by [A-Z]`),
+      // "founded in 2001 by John Smith", "run by Dana Reyes".
       new RegExp(
-        `\\b${ci(["ceo", "cfo", "coo", "cto", "president", "founder", "co-founder"])}\\s+(?:${ci(["is", "was"])}\\s+)?[A-Z]`,
+        `\\b${ci(["founded", "led", "run", "headed", "managed"])}\\b[^.]{0,30}?\\bby [A-Z][a-z]+`,
       ),
+      // "CEO is Dana", "owner Jane Doe", "its founder, Jane Doe,".
+      new RegExp(
+        `\\b${ci(["ceo", "cfo", "coo", "cto", "president", "founder", "co-founder", "owner"])}s?,?\\s+(?:${ci(["is", "was"])}\\s+)?[A-Z][a-z]+`,
+      ),
+      // "A man named Tim leads Acme.", "named Tim".
+      /\b[Nn]amed [A-Z]/,
+      // "John Smith founded the company", "Dana Reyes leads".
+      /\b[A-Z][a-z]+ [A-Z][a-z]+ (?:leads|led|owns|runs|founded)\b/,
+      // "Dana Reyes, the CEO".
       new RegExp(
         `\\b[A-Z][a-z]+ [A-Z][a-z]+,? (?:${ci(["the"])} )?${ci(["ceo", "founder", "owner", "president"])}\\b`,
       ),
@@ -812,22 +913,26 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
     "revenue_headcount",
     [
       /\b(?:revenue|turnover|valuation|headcount)\b/i,
-      /\b\d[\d,]*\+?\s+(?:employees|people|staff)\b/i,
-      /\bstaff of \d+|\bteam of \d+ people\b/i,
+      // Staff counts only in employment wording: "40 employees", "employs 40",
+      // "team of 25", "staff of 12". "2,000 staff at hospitals" is not one.
+      /\b\d[\d,]*\+?\s+employees\b/i,
+      /\bemploy(?:s|ing|ed)? \d[\d,]*\+?\b/i,
+      /\b(?:team|staff) of \d+/i,
       // Money is a figure only with a scale word or a revenue word near it:
-      // "$5,000" is a price.
+      // "$5,000" is a price, and "annual" alone is not a figure.
       /\$\s?\d[\d,.]*\s*(?:million|billion|m\b)/i,
-      /\b(?:revenue|annual)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|annual)\b/i,
+      /\b(?:revenue|turnover)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|turnover)\b/i,
     ],
   ],
   [
     "street_address",
     [
       // A number, an optional direction or ordinal, a capitalised street word,
-      // then a long suffix or a dotted short one. Case-sensitive on purpose.
+      // then a long suffix, or a short one with its dot optional ("St," "Ave in").
+      // Case-sensitive on purpose: a lowercase word is not a street.
       new RegExp(
         "\\b\\d{1,6}\\s+(?:[NSEW]\\.?\\s+)?(?:(?:\\d{1,3}(?:st|nd|rd|th)|[A-Z][\\w'-]*)\\s+){1,4}" +
-          "(?:(?:Street|Road|Avenue|Boulevard|Drive|Lane|Parkway|Highway|Court|Place)\\b|(?:St|Rd|Ave|Blvd)\\.)",
+          "(?:(?:Street|Road|Avenue|Boulevard|Drive|Lane|Parkway|Highway|Court|Place)\\b|(?:St|Rd|Ave|Blvd)\\b\\.?)",
       ),
       /\bsuite\s+\d+/i,
     ],
@@ -870,34 +975,28 @@ export type HeldBack = {
   topics: string[];
   /** Statements the answer made about another business, or could not place. */
   aboutOthers: number;
+  /** Statements whose quote is empty: the assistant's words are not on record,
+   *  so there is nothing to print. Counted, never repeated. */
+  unquoted: number;
 };
 
-/** What the page leaves out, counted, so leaving it out is said aloud. */
+/** What the page leaves out, counted, so leaving it out is said aloud. One
+ *  count per statement, from `statements`, so a sentence split into several
+ *  rows is one statement to the reader. */
 export function heldBack(view: ReportView): HeldBack {
-  // Every verdict: a confirmed statement on a withheld topic, or about another
-  // business, is left off the page just as an absent one is.
-  const all = view.accuracy?.assertions ?? [];
-  const names = otherNamesOf(view);
   const topics: string[] = [];
-  const seenOthers = new Set<string>();
-  const seenWithheld = new Set<string>();
   let withheld = 0;
   let aboutOthers = 0;
-  for (const a of all) {
-    const key = statementKey(a);
-    if (!aboutProspect(a, names)) {
-      // One sentence split into several claims is one statement to the reader.
-      if (!seenOthers.has(key)) aboutOthers += 1;
-      seenOthers.add(key);
-      continue;
+  let unquoted = 0;
+  for (const s of statements(view)) {
+    if (s.outcome === "unquoted") unquoted += 1;
+    else if (s.outcome === "aboutOthers") aboutOthers += 1;
+    else if (s.outcome === "withheld" && s.topic !== null) {
+      withheld += 1;
+      if (!topics.includes(TOPIC_LABEL[s.topic])) topics.push(TOPIC_LABEL[s.topic]);
     }
-    const t = withheldTopic(a);
-    if (t === null || seenWithheld.has(key)) continue;
-    seenWithheld.add(key);
-    withheld += 1;
-    if (!topics.includes(TOPIC_LABEL[t])) topics.push(TOPIC_LABEL[t]);
   }
-  return { withheld, topics, aboutOthers };
+  return { withheld, topics, aboutOthers, unquoted };
 }
 
 /**
@@ -1535,7 +1634,9 @@ export function sourceCheckHasStatements(view: ReportView): boolean {
 
 /** The section has rows to report on, printed or counted. */
 export function sourceCheckHasRows(view: ReportView): boolean {
-  return sourceCheckMeasured(view) && (view.accuracy?.assertions.length ?? 0) > 0;
+  // R2: printed or counted, never the number of stored rows. A check whose
+  // only statement is unquoted still has a count to say.
+  return sourceCheckMeasured(view) && statements(view).length > 0;
 }
 
 export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {

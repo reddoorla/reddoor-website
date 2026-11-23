@@ -117,7 +117,41 @@ function hiddenRows(
     set.add(Number(m[2]));
     lists.set(spec.path, set);
   }
+  // R2: a statement is hidden as a whole. The model splits one sentence into
+  // several rows, and the page prints the sentence once, so hiding one row
+  // hides every stored row with the same quote and question. Otherwise a
+  // sibling would print the statement the reader had taken off.
+  const accuracy = lists.get(ACCURACY_LIST);
+  const accuracyRows = getAt(raw, ["accuracy", "data", "assertions"]);
+  if (accuracy && Array.isArray(accuracyRows)) {
+    for (const i of [...accuracy]) {
+      const hit = accuracyRows[i];
+      if (!sameStatementBase(hit)) continue;
+      accuracyRows.forEach((other, j) => {
+        if (sameStatementBase(other) && sameStatement(other, hit)) accuracy.add(j);
+      });
+    }
+  }
   return { lists, conflation };
+}
+
+const ACCURACY_LIST = "accuracy.data.assertions";
+
+/** Has this stored accuracy row the two fields a statement is known by? */
+function sameStatementBase(row: unknown): row is { engineQuote: string; query: unknown } {
+  return (
+    row !== null &&
+    typeof row === "object" &&
+    typeof (row as { engineQuote?: unknown }).engineQuote === "string"
+  );
+}
+
+/** The same sentence and the same question: the rows the page prints as one. */
+function sameStatement(
+  a: { engineQuote: string; query: unknown },
+  b: { engineQuote: string; query: unknown },
+): boolean {
+  return a.engineQuote.trim() === b.engineQuote.trim() && a.query === b.query;
 }
 
 /** Replace the value at `path` with `fn(old)`, cloning each container on the
