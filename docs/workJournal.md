@@ -2209,6 +2209,7 @@ Mutation: removing the count from the unanswered headline turned 10 tests red. E
 The branch is stacked on W1 (#379), because both change `model.ts` and `narrative.ts`. It was rebased onto W1 under a new branch name, since rewriting the first session's `claude/w3-read-pages-that-matter` was refused. Generated headlines changed wording, so an operator's edit on a stored report whose `original` no longer matches is dropped.
 
 Rounds: seven. Rounds 1 to 5 were dirty, and at five the session stopped and asked. Round 6 ran on the operator's yes (decision `2026-11-23-2105-w3-website-round-5-stop` in the workspace) and found one latent major, so it asked again. Round 7 ran on his second yes and was clean, with two nits filed as issues.
+
 ## 2026-11-23 — The Technical report, a second view of the same token (W4, `claude/w4-technical-report`)
 
 From the 11-23 audit-system review (workspace `audits/2026-11-23-audit-system-review/04-technical.md`, "The report"). `/audit/[token]/technical` answers the buyer who says "it's slow, something is broken, is it secure", from the deterministic stages alone. It never reads `analyze`, `probes`, `accuracy` or `goalFit`: a test deletes those four stages from the fixture and requires the byte-identical page, and two mutations that let the view read `analyze` or `accuracy` turn it red. The view is built on the server and sent alone, so unlike the parent route the stored row never reaches the browser.
