@@ -209,3 +209,42 @@ describe("W1 review round 1: a rewording the page withholds", () => {
     expect(changeList(map, inForce)[0]!.kind).toBe("reworded");
   });
 });
+
+describe("W1 review round 2: hiding stops at the last row, and a hidden row is not a target", () => {
+  const raw = {
+    analyze: {
+      ok: true,
+      data: {
+        fixes: [
+          { title: "Fix one", why: "w1" },
+          { title: "Fix two", why: "w2" },
+        ],
+      },
+    },
+  } as never;
+
+  it("the last visible row of a section cannot be hidden", async () => {
+    const { hideTargets } = await import("./editable");
+    const map = {
+      "analyze.data.fixes[0]": { original: "Fix one", text: "", hidden: true as const },
+    };
+    const t = hideTargets(raw, map);
+    expect(t.find((x) => x.key === "analyze.data.fixes[1]")!.canHide).toBe(false);
+    // With nothing hidden, both can be.
+    expect(hideTargets(raw, {}).every((x) => x.canHide)).toBe(true);
+  });
+
+  it("a rewording on a hidden row is listed as stale, not in force", async () => {
+    const { changeList, editableTargets } = await import("./editable");
+    const { toReportView } = await import("./model");
+    const map = {
+      "analyze.data.fixes[0]": { original: "Fix one", text: "", hidden: true as const },
+      "analyze.data.fixes[0].why": { original: "w1", text: "W1 edited" },
+    };
+    const targets = editableTargets(toReportView(raw, map), raw);
+    expect(targets.some((t) => t.key.startsWith("analyze.data.fixes[0]"))).toBe(false);
+    expect(changeList(map, targets).find((c) => c.key === "analyze.data.fixes[0].why")!.kind).toBe(
+      "stale",
+    );
+  });
+});

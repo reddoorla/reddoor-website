@@ -46,6 +46,16 @@
    * whatever came back resolved.
    */
   function wire(): void {
+    // Unwire everything first (review round 2): after a hide, an element can
+    // render a different line, and a stale key on it would save an edit nobody
+    // typed against the old line.
+    for (const el of document.querySelectorAll<HTMLElement>("[data-edit-key]")) {
+      delete el.dataset.editKey;
+      delete el.dataset.editOriginal;
+      el.contentEditable = "inherit";
+      el.classList.remove("rd-editable");
+      el.removeEventListener("blur", onBlur);
+    }
     const leaves: HTMLElement[] = [];
     for (const el of document.querySelectorAll<HTMLElement>(`main :is(${LEAF})`)) {
       // Leaves only: a container whose text happens to equal a target's would
@@ -95,6 +105,11 @@
     if (t.hidden) delete next[t.key];
     else next[t.key] = { original: t.original, text: "", hidden: true };
     await save(next);
+    // A maintenance deploy older than W1 drops the `hidden` flag and still
+    // answers "updated", so check what was stored rather than trust the 200.
+    if (!t.hidden && !failed && overrides[t.key]?.hidden !== true) {
+      failed = "The hide was not stored: the report server does not support hiding yet.";
+    }
   }
 
   /** W1: undo one change, whatever kind it is. */
@@ -146,7 +161,7 @@
               {#if c.kind === "hidden"}<span>
                   Hidden: {c.before}
                 </span>{:else if c.kind === "stale"}<span class="rd-edit-gone">
-                  “{c.after}”: no longer applies, the line it reworded has changed
+                  “{c.after}”: no longer applies: the line it reworded has changed or is gone
                 </span>{:else}<span>“{c.before}” → “{c.after}”</span>{/if}
               <button type="button" disabled={saving} onclick={() => revert(c.key)}>Revert</button>
             </li>
@@ -163,7 +178,14 @@
           {#each hideable as t (t.key)}
             <li>
               <span class:rd-edit-gone={t.hidden}>{t.noun}: {t.original || "(no quote)"}</span>
-              <button type="button" disabled={saving} onclick={() => toggleHidden(t)}>
+              <button
+                type="button"
+                disabled={saving || (!t.hidden && !t.canHide)}
+                title={!t.hidden && !t.canHide
+                  ? "The last row of a section cannot be hidden. Withdraw the report instead."
+                  : undefined}
+                onclick={() => toggleHidden(t)}
+              >
                 {t.hidden ? "Show" : "Hide"}
               </button>
             </li>

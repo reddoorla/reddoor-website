@@ -1,5 +1,5 @@
 import type { AuditReport, OverrideMap } from "./fetch";
-import { CONFLATION_KEY, HIDEABLE } from "./overrides";
+import { CONFLATION_KEY, HIDEABLE, hiddenRowKeys } from "./overrides";
 import { openingSummary, type ReportView } from "./model";
 import { headlineFinding, passes, collisionBlock, collisionFix, healthFixes } from "./narrative";
 import { healthRows } from "./health";
@@ -86,11 +86,16 @@ export function editableTargets(view: ReportView, raw?: AuditReport): EditTarget
   const out: EditTarget[] = [];
   const map = view.overrides;
   const source = raw ?? ({} as AuditReport);
+  // A hidden row is not on the page, so none of its lines is a target (review
+  // round 2): listed, a rewording on it read as in force, and its text could
+  // make a visible line with the same words ambiguous.
+  const hidden = hiddenRowKeys(source, map);
 
   for (const { path, fields } of PAYLOAD_FIELDS) {
     const list = at(source, path);
     if (!Array.isArray(list)) continue;
     list.forEach((row, i) => {
+      if (hidden.has(`${path}[${i}]`)) return;
       for (const f of fields) {
         const key = `${path}[${i}].${f}`;
         const generated = (row as Record<string, unknown>)[f];
@@ -211,6 +216,10 @@ export type HideTarget = {
   /** What kind of row, for the list ("Fix", "Source", …). */
   noun: string;
   hidden: boolean;
+  /** False for the last visible row of its section (review round 2): an
+   *  emptied section reads as a measurement ("we could not pull a checkable
+   *  statement", "we could not judge any of it"). Withdraw the report instead. */
+  canHide: boolean;
 };
 
 /**
@@ -233,8 +242,12 @@ export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
         original,
         noun,
         hidden: map[key]?.hidden === true && map[key]!.original === original,
+        canHide: true,
       });
     });
+    const rows = out.filter((t) => t.key.startsWith(`${path}[`));
+    const visible = rows.filter((t) => !t.hidden);
+    if (visible.length === 1) visible[0]!.canHide = false;
   }
   const c = at(raw, "accuracy.data.conflation") as
     { detected?: unknown; settled?: unknown; engineQuote?: unknown } | undefined;
@@ -247,6 +260,7 @@ export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
       original,
       noun: "Name collision (the assistant is not sure which business you are)",
       hidden: map[CONFLATION_KEY]?.hidden === true && map[CONFLATION_KEY]!.original === original,
+      canHide: true,
     });
   }
   return out;

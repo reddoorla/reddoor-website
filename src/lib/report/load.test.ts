@@ -268,9 +268,10 @@ describe("W1 review round 1: a hidden row never reaches a reader's page data", (
     const data = await loadReport(evt);
     expect(JSON.stringify(data)).not.toContain(HIDDEN_TITLE);
     // The composed rewording still reaches the renderer, which matches it.
-    expect(data.overrides).toEqual({
-      "composed:headlineFinding": { original: "Generated.", text: "Edited." },
-    });
+    // (Round 2: it carries a digest of the sentence it replaced, not the sentence.)
+    expect(Object.keys(data.overrides)).toEqual(["composed:headlineFinding"]);
+    expect(data.overrides["composed:headlineFinding"]!.text).toBe("Edited.");
+    expect(JSON.stringify(data)).not.toContain("Generated.");
   });
 
   it("the editor's load keeps the stored payload and the whole map, to put a row back", async () => {
@@ -278,5 +279,29 @@ describe("W1 review round 1: a hidden row never reaches a reader's page data", (
     const data = await loadReport(evt, { forEditor: true });
     expect(JSON.stringify(data.report)).toContain(HIDDEN_TITLE);
     expect(Object.keys(data.overrides)).toHaveLength(2);
+  });
+});
+
+describe("W1 review round 2: a reader's composed overrides carry no old sentence", () => {
+  it("ships a digest, not the sentence a rewording replaced, and still applies it", async () => {
+    const { composed, digest } = await import("./overrides");
+    const OLD = "The assistant says something your site contradicts.";
+    const body = {
+      report: { url: "https://acme.example/" },
+      overrides: { "composed:headlineFinding": { original: OLD, text: "Reworded." } },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const { evt } = event(TOKEN, respondWith(200, body));
+    const data = await loadReport(evt);
+    expect(JSON.stringify(data)).not.toContain(OLD);
+    expect(data.overrides["composed:headlineFinding"]).toEqual({
+      original: "",
+      text: "Reworded.",
+      originalDigest: digest(OLD),
+    });
+    // The renderer still applies it where the generated sentence matches…
+    expect(composed(data.overrides, "composed:headlineFinding", OLD)).toBe("Reworded.");
+    // …and withholds it where it does not.
+    expect(composed(data.overrides, "composed:headlineFinding", "Another.")).toBe("Another.");
   });
 });

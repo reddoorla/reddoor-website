@@ -234,6 +234,42 @@ export function composed(map: OverrideMap, key: string, generated: string): stri
   // declared `: string` return is only as true as the wire data. Without this,
   // a non-string `text` would be returned from a function TypeScript believes
   // cannot do that.
-  if (!ov || typeof ov.text !== "string" || ov.original !== generated) return generated;
-  return ov.text;
+  if (!ov || typeof ov.text !== "string") return generated;
+  const matches =
+    typeof ov.originalDigest === "string"
+      ? ov.originalDigest === digest(generated)
+      : ov.original === generated;
+  return matches ? ov.text : generated;
+}
+
+/**
+ * A short, synchronous, non-cryptographic digest of a sentence (cyrb53), used
+ * to carry a composed override's stale-original guard to a reader WITHOUT
+ * carrying the sentence it replaced (W1 review round 2). It only has to tell
+ * "the sentence is still the one that was reworded" from "it changed", so
+ * collision resistance against an adversary is not the property needed; the
+ * page data must simply not contain the old words.
+ */
+export function digest(s: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/** The keys of the rows the map hides, resolved against the stored payload
+ *  (`<path>[<i>]`, or CONFLATION_KEY). The editor uses it to leave a hidden
+ *  row's lines out of what it wires and lists as in force. */
+export function hiddenRowKeys(raw: AuditReport, map: OverrideMap): Set<string> {
+  const { lists, conflation } = hiddenRows(raw, map);
+  const out = new Set<string>();
+  for (const [path, idx] of lists) for (const i of idx) out.add(`${path}[${i}]`);
+  if (conflation) out.add(CONFLATION_KEY);
+  return out;
 }

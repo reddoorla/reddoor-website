@@ -1,7 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import * as env from "$app/env/private";
 import { fetchReport, REPORT_TOKEN_PATTERN, type AuditReport, type OverrideMap } from "./fetch";
-import { applyOverrides } from "./overrides";
+import { applyOverrides, digest } from "./overrides";
 import { EDIT_COOKIE, configuredEditKey, keyMatches } from "./edit-auth";
 
 /** The subset of a SvelteKit load event this needs. Declared structurally so
@@ -103,10 +103,21 @@ export async function loadReport(
   const report = opts.forEditor
     ? fetched.report
     : applyOverrides(fetched.report, fetched.overrides);
+  // The composed entries a reader keeps carry a DIGEST of the sentence they
+  // replaced, never the sentence (review round 2): a rewording that removed a
+  // wrong claim, or one built from a row that is now hidden, would otherwise
+  // still ship the old words as `original`.
   const overrides = opts.forEditor
     ? fetched.overrides
     : Object.fromEntries(
-        Object.entries(fetched.overrides).filter(([k]) => k.startsWith("composed:")),
+        Object.entries(fetched.overrides).flatMap(([k, ov]) =>
+          k.startsWith("composed:") &&
+          ov &&
+          typeof ov.original === "string" &&
+          typeof ov.text === "string"
+            ? [[k, { original: "", text: ov.text, originalDigest: digest(ov.original) }]]
+            : [],
+        ),
       );
 
   return {
