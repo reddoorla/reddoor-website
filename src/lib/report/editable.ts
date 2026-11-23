@@ -48,7 +48,8 @@ export type EditTarget = {
 const PAYLOAD_FIELDS: { path: string; fields: string[] }[] = [
   { path: "siteChecks.data", fields: ["label", "why", "evidence"] },
   { path: "analyze.data.fixes", fields: ["title", "why"] },
-  { path: "accuracy.data.assertions", fields: ["unverifiedReason"] },
+  // R3 fix 12: `unverifiedReason` is not here. Nothing prints it, so an edit to
+  // it would change nothing the reader sees.
   { path: "goalFit.data.requirements", fields: ["label", "why", "evidence"] },
 ];
 
@@ -240,6 +241,12 @@ export type HideTarget = {
    *  by the assistant's quote, which is what the reader sees on the page (R1 fix
    *  10). The identity stays `original`. */
   label?: string;
+  /** An accuracy statement's quote as the page prints it, for the changes list
+   *  (R3 fix 10). */
+  quote?: string;
+  /** Every override key of this statement's rows: showing it again removes all
+   *  of them (R3 fix 8). Absent for a row that is not a statement. */
+  group?: string[];
   hidden: boolean;
   /** False for the last visible row of its section (review round 2): an
    *  emptied section reads as a measurement ("we could not pull a checkable
@@ -252,10 +259,10 @@ const ACCURACY_ROWS = "accuracy.data.assertions";
 /**
  * R2. The accuracy statements the page prints, one target each, read from the
  * payload as stored (`raw`, before overrides). A target is keyed by the
- * statement's first stored row, so a hide entry names a row the page can find;
- * its label is the quote the page prints, and when two printed statements share
- * a label, both carry the question they answered. A statement the page withholds
- * or counts is not offered: hiding it changes nothing on the page.
+ * statement's first stored row that has a claim (R3 fix 9), so a hide entry names
+ * a row the page can find; its label is the quote the page prints. Statements
+ * are one per quote (R3 fix 6), so a label is never shared. A statement the page
+ * withholds or counts is not offered: hiding it changes nothing on the page.
  */
 function accuracyTargets(raw: AuditReport, map: OverrideMap, noun: string): HideTarget[] {
   const list = at(raw, ACCURACY_ROWS);
@@ -269,29 +276,35 @@ function accuracyTargets(raw: AuditReport, map: OverrideMap, noun: string): Hide
     ...contradictedRows(view),
     ...confirmedRows(view),
   ]);
-  const found = statements(view)
-    .filter((s) => printed.has(s.row))
-    .map((s) => ({
-      index: stored.indexOf(s.rows[0]!),
-      label: `“${displayQuote(s.row.engineQuote)}”`,
-      query: s.row.query,
-    }))
-    .filter((x) => x.index >= 0);
-
-  const labelCount = new Map<string, number>();
-  for (const f of found) labelCount.set(f.label, (labelCount.get(f.label) ?? 0) + 1);
-
+  // R3 fix 8: a statement reads hidden when any of its rows is hidden, siblings
+  // included, as the page hides them.
+  const hiddenKeys = hiddenRowKeys(raw, map);
   const out: HideTarget[] = [];
-  for (const { index, label, query } of found) {
-    const original = (list[index] as { claim?: unknown } | undefined)?.claim;
+  for (const s of statements(view)) {
+    if (!printed.has(s.row)) continue;
+    const indices = s.rows.map((a) => stored.indexOf(a)).filter((i) => i >= 0);
+    if (indices.length === 0) continue;
+    // R3 fix 9: the statement is keyed by its first row that has a claim. Failing
+    // that, by its quote, which the hide check accepts too.
+    const withClaim = indices.find((i) => {
+      const claim = (list[i] as { claim?: unknown } | undefined)?.claim;
+      return typeof claim === "string" && claim.trim() !== "";
+    });
+    const index = withClaim ?? indices[0]!;
+    const storedRow = list[index] as { claim?: unknown; engineQuote?: unknown } | undefined;
+    const original = withClaim !== undefined ? storedRow?.claim : storedRow?.engineQuote;
     if (typeof original !== "string" || original.trim() === "") continue;
     const key = `${ACCURACY_ROWS}[${index}]`;
+    const quote = displayQuote(s.row.engineQuote);
     out.push({
       key,
       original,
       noun,
-      label: (labelCount.get(label) ?? 0) > 1 ? `${label} (asked: ${query})` : label,
-      hidden: map[key]?.hidden === true && map[key]!.original === original,
+      // R3 fix 6: one label per statement; the question is not part of it.
+      label: `“${quote}”`,
+      quote,
+      group: indices.map((i) => `${ACCURACY_ROWS}[${i}]`),
+      hidden: hiddenKeys.has(key),
       canHide: true,
     });
   }
@@ -344,6 +357,17 @@ export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
   return out;
 }
 
+/**
+ * The override map with a hidden statement shown again. R3 fix 8: every hide in
+ * its group comes off, so a sibling hide cannot keep the statement off the page
+ * after the Show. A target with no group is shown by its own key.
+ */
+export function showStatement(map: OverrideMap, t: HideTarget): OverrideMap {
+  const next: OverrideMap = { ...map };
+  for (const key of t.group ?? [t.key]) delete next[key];
+  return next;
+}
+
 /** One entry of the override map, as the changes list shows it. `stale` is a
  *  rewording the page is withholding, because the line it named no longer
  *  reads as it did (a hide above it moved it, or a row it was built from was
@@ -358,11 +382,20 @@ export type ChangeRow = {
 /** Every override on this report, for the changes list with its Revert.
  *  `targets` are the lines as rendered now (`editableTargets`), which is how a
  *  rewording is told apart from one the page withholds. */
-export function changeList(map: OverrideMap, targets: EditTarget[] = []): ChangeRow[] {
+export function changeList(
+  map: OverrideMap,
+  targets: EditTarget[] = [],
+  hides: HideTarget[] = [],
+): ChangeRow[] {
   const shown = new Set(targets.map((t) => `${t.key}\u0000${t.text}`));
   return Object.entries(map).flatMap(([key, ov]): ChangeRow[] => {
     if (!ov || typeof ov.original !== "string") return [];
-    if (ov.hidden === true) return [{ key, kind: "hidden", before: ov.original, after: "" }];
+    if (ov.hidden === true) {
+      // R3 fix 10: a statement is listed by the quote the page printed, not by
+      // our paraphrase of it.
+      const before = hides.find((h) => h.key === key)?.quote ?? ov.original;
+      return [{ key, kind: "hidden", before, after: "" }];
+    }
     if (typeof ov.text !== "string") return [];
     const kind = shown.has(`${key}\u0000${ov.text}`) ? "reworded" : "stale";
     return [{ key, kind, before: ov.original, after: ov.text }];

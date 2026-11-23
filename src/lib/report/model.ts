@@ -8,6 +8,7 @@ import {
   readNothing,
   type PagesDenominator,
 } from "./pages-read";
+import { statementIdentity } from "./quote";
 
 /**
  * The shape the report components consume.
@@ -660,7 +661,7 @@ export function notSourcedFromSite(view: ReportView): Assertion[] {
  *  5. `confirmed`  printed in "What your site backs up", with a site quote.
  *  6. `notSourced` printed under "What the AI says about you".
  *
- * Rows are grouped by `statementKey`, in stored order, so `rows[0]` is the
+ * Rows are grouped by `statementIdentity` (quote.ts), in stored order, so `rows[0]` is the
  * row a hide targets. `row` is the one row the outcome prints from.
  */
 export type StatementOutcome =
@@ -676,6 +677,10 @@ export type Statement = {
   topic: Exclude<AssertionTopic, "other"> | null;
   /** Every row is about the prospect. */
   about: boolean;
+  /** R3 fix 1: one row is a contradiction about the prospect, whatever the
+   *  other rows say. A mixed statement is not printed, but its contradiction
+   *  still stands: the headline must not say all-clear over it. */
+  prospectContradicted: boolean;
 };
 
 /** The words of a text, lower-cased, for whole-word comparison. */
@@ -684,13 +689,6 @@ const wordsOf = (s: string): string[] =>
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((w) => w !== "");
-
-/** A statement's identity on the page: the assistant's words and the question
- *  it answered. Several rows can share both, because the model splits one
- *  sentence into several claims, and the page prints that sentence once. */
-function statementKey(a: Assertion): string {
-  return `${a.engineQuote.trim()}\n${a.query}`;
-}
 
 /** An empty quote has nothing to print, and `“”` is never a statement. */
 function hasQuote(a: Assertion): boolean {
@@ -741,7 +739,7 @@ export function statements(view: ReportView): Statement[] {
   const names = otherNamesOf(view);
   const groups = new Map<string, Assertion[]>();
   for (const a of view.accuracy?.assertions ?? []) {
-    const key = statementKey(a);
+    const key = statementIdentity(a);
     const group = groups.get(key);
     if (group) group.push(a);
     else groups.set(key, [a]);
@@ -752,12 +750,20 @@ export function statements(view: ReportView): Statement[] {
 function decide(rows: Assertion[], names: string[]): Statement {
   const first = rows[0]!;
   const about = rows.every((a) => aboutProspect(a, names));
+  // R3 fix 1: any row's contradiction about the prospect counts, not the first
+  // row's subject alone.
+  const prospectContradicted = rows.some(
+    (a) => a.verdict === "contradicted" && aboutProspect(a, names),
+  );
   const withheld = rows
     .map((a) => withheldTopic(a))
     .filter((t): t is Exclude<AssertionTopic, "other"> => t !== null);
   const topic = TOPIC_TEXT.map(([t]) => t).find((t) => withheld.includes(t)) ?? null;
   const contradicted = rows.find((a) => a.verdict === "contradicted");
-  const confirmed = rows.find((a) => a.verdict === "confirmed" && a.siteQuote !== null);
+  // R3 fix 12: a blank site quote is no site quote.
+  const confirmed = rows.find(
+    (a) => a.verdict === "confirmed" && (a.siteQuote ?? "").trim() !== "",
+  );
   const absent = rows.find((a) => a.verdict === "absent");
 
   let outcome: StatementOutcome;
@@ -781,7 +787,15 @@ function decide(rows: Assertion[], names: string[]): Statement {
     outcome = "notSourced";
     row = absent ?? first;
   }
-  return { key: statementKey(first), rows, row, outcome, topic, about };
+  return {
+    key: statementIdentity(first),
+    rows,
+    row,
+    outcome,
+    topic,
+    about,
+    prospectContradicted,
+  };
 }
 
 /** The row each statement with this outcome prints, in statement order. */
@@ -810,14 +824,25 @@ export function contradictedRows(view: ReportView): Assertion[] {
  * topic, or with no quote to print. While one stands, the report must not
  * say everything checks out (narrative's headline asks this).
  */
-export function withheldContradiction(view: ReportView): boolean {
-  if (!sourceCheckMeasured(view)) return false;
-  return statements(view).some(
+export function withheldContradictionKind(view: ReportView): "unquoted" | "withheld" | null {
+  if (!sourceCheckMeasured(view)) return null;
+  // R3 fix 1: a statement that prints nothing and carries a contradiction about
+  // the prospect counts, whether it is withheld, unquoted, or mixed with another
+  // business's row. Printed outcomes never count: those are on the page.
+  const held = statements(view).filter(
     (s) =>
-      s.about &&
-      (s.outcome === "withheld" || s.outcome === "unquoted") &&
-      s.rows.some((a) => a.verdict === "contradicted"),
+      s.prospectContradicted &&
+      s.outcome !== "contradicted" &&
+      s.outcome !== "confirmed" &&
+      s.outcome !== "notSourced",
   );
+  if (held.length === 0) return null;
+  // R3 fix 7: "unquoted" when every such statement has no quote to print.
+  return held.every((s) => s.outcome === "unquoted") ? "unquoted" : "withheld";
+}
+
+export function withheldContradiction(view: ReportView): boolean {
+  return withheldContradictionKind(view) !== null;
 }
 
 /**
@@ -857,7 +882,7 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       // A score out of five: "3.4/5", "4.2 out of 5", "rated 4.2 out of 5". Only
       // five: "9 out of 10 dentists" is not a rating.
       /\b\d(?:\.\d)?\s*(?:\/|out of)\s*5\b/i,
-      /\brated \d/i,
+      /\brated (?:at )?\d/i,
       // "a 4.6 rating", "average rating of 4.6", "Google rating of 4.7".
       /\b\d(?:\.\d)?\s+(?:average\s+|google\s+|yelp\s+)?ratings?\b/i,
       /\bratings?\s+(?:of\s+)?\d(?:\.\d)?\b/i,
@@ -874,6 +899,25 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\bwould recommend\b/i,
       /\b\d+%\s+(?:would\s+)?recommend/i,
       /%\s+of (?:employees|reviewers)\b/i,
+      // R3 fix 3, the phrasings a stored row uses with no topic recorded.
+      // "Rating: 4.2", "a Glassdoor score of 3.9", "Rating:** 4.2".
+      /\b(?:rating|score)s?\s*(?::|of|is|at)?\s*\**\s*\d/i,
+      // A platform within 30 characters of a figure, either way round: "Glassdoor:
+      // 3.4", "3.9 Glassdoor score", "Employees on Glassdoor give it 3.9".
+      /\b(?:glassdoor|indeed|google|yelp|trustpilot|bbb|charity navigator)\b[^.\n]{0,30}\d/i,
+      /\d[^.\n]{0,30}\b(?:glassdoor|indeed|google|yelp|trustpilot|bbb|charity navigator)\b/i,
+      // "(37 reviews)", "rated it five stars", "a rating of four stars".
+      /\d(?:\.\d)?\s*\(\d+ reviews?\)/i,
+      /\brated (?:it |them )?(?:one|two|three|four|five) stars?\b/i,
+      /\brating (?:of )?(?:one|two|three|four|five) stars?\b/i,
+      // "3.9 out of five", in words; "9 out of 10" is not a rating.
+      /\bout of (?:four|five|ten)\b/i,
+      // "3.9 overall rating", "3.4 rating".
+      /\b\d(?:\.\d)?\s+(?:overall\s+)?(?:rating|score)s?\b/i,
+      // "Employees give it 3.9", "Employee reviews average 3.2".
+      /\b(?:employee|customer)s?\s+(?:reviews?\s+)?(?:average|give)\b/i,
+      // "Senior management 2.9", and the other employer-review categories.
+      /\b(?:senior management|work.life balance|culture & values|compensation)\s+\d/i,
     ],
   ],
   [
@@ -924,6 +968,16 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
         `\\b[A-Z][a-z]+ [A-Z][a-z]+,? (?:${ci(["the"])} )?${ci(["ceo", "founder", "owner", "president"])}\\b`,
       ),
       /\b(?:Dr|Mr|Mrs|Ms)\.\s+[A-Z]/,
+      // "Dana Reyes is the founder of the studio", "Dana Reyes is its owner".
+      /\b[A-Z][a-z]+ [A-Z][a-z]+ is (?:the|its) (?:founder|co-founder|owner|ceo|president|principal)\b/,
+      // "Founder: Dana Reyes", "Owner: Dana Reyes".
+      new RegExp(
+        `\\b${ci(["founder", "co-founder", "owner", "ceo", "principal", "president"])}s?\\s*:\\s*[A-Z]`,
+      ),
+      // "the studio's principal, Dana Reyes".
+      new RegExp(
+        `\\b${ci(["founder", "co-founder", "owner", "ceo", "principal", "president"])}s?,\\s*[A-Z][a-z]+ [A-Z]`,
+      ),
     ],
   ],
   [
@@ -935,9 +989,11 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
     [
       /\b(?:revenue|turnover|valuation|headcount)\b/i,
       // Staff counts only in employment wording: "40 employees", "employs 40",
-      // "team of 25", "staff of 12". "2,000 staff at hospitals" is not one.
+      // "employs around 40", "team of 25", "staff of 12", "a 12-person team".
+      // "2,000 staff at hospitals" is not one.
       /\b\d[\d,]*\+?\s+employees\b/i,
-      /\bemploy(?:s|ing|ed)? \d[\d,]*\+?\b/i,
+      /\bemploy(?:s|ing|ed)?\s+(?:(?:about|around|over|nearly|roughly)\s+)?\d[\d,]*\+?\b/i,
+      /\b\d+-person\b/i,
       /\b(?:team|staff) of \d+/i,
       // Money is a figure only with a scale word or a revenue word near it:
       // "$5,000" is a price, and "annual" alone is not a figure.
@@ -968,23 +1024,38 @@ export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | 
   return null;
 }
 
-/** Does this text carry a withheld topic? For the branded answers' excerpts,
- *  which are printed whole and on a "reviews" query carry employee scores. */
+/** The first withheld topic a text carries, or null. R3 fix 4: any topic, not
+ *  only ratings. A branded answer's excerpt is printed whole, so a BBB rating, a
+ *  named founder or a complaint in it is withheld as a rating would be. */
+export function withheldIn(text: string): Exclude<AssertionTopic, "other"> | null {
+  for (const [topic, patterns] of TOPIC_TEXT)
+    if (patterns.some((re) => re.test(text))) return topic;
+  return null;
+}
+
+/** Does this text carry a withheld topic of any kind? */
 export function textWithheld(text: string): boolean {
-  return TOPIC_TEXT.some(
-    ([topic, patterns]) => topic === "ratings_reviews" && patterns.some((re) => re.test(text)),
-  );
+  return withheldIn(text) !== null;
 }
 
 /**
  * A branded answer's excerpt, as the web page prints it. An answer that gave a
  * rating or a review score, from customers or employees, is not reprinted:
  * the "<name> reviews" query brought employee ratings onto a sales document in
- * front of the person who runs the staff (PR-09).
+ * front of the person who runs the staff (PR-09). R3 fix 4: an excerpt answering
+ * a "… reviews" question is not reprinted either, and neither is one carrying
+ * any withheld topic.
  */
-export function brandedExcerpt(probe: Pick<ProbeAnswer, "snippet" | "truncated">): string {
-  if (textWithheld(probe.snippet)) {
+export function brandedExcerpt(
+  probe: Pick<ProbeAnswer, "snippet" | "truncated"> & { query?: string },
+): string {
+  const reviewsQuestion = /\sreviews$/.test((probe.query ?? "").trim());
+  const topic = withheldIn(probe.snippet);
+  if (reviewsQuestion || topic === "ratings_reviews") {
     return "This answer gave ratings or review scores, which we have not checked, so we have not repeated it here.";
+  }
+  if (topic !== null) {
+    return "This answer said something we have not checked, so we have not repeated it here.";
   }
   return `${probe.snippet}${probe.truncated ? "…" : ""}`;
 }

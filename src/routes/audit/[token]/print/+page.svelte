@@ -5,7 +5,6 @@
     contradictedRows,
     failedChecksSentence,
     gapClause,
-    nameUnsettled,
     namesakeLeads,
     notSourcedFromSite,
     openingSummary,
@@ -17,6 +16,7 @@
     allFixes,
     auditedOn,
     collisionBlock,
+    collisionQuote,
     displayQuote,
     heldBackLines,
     headlineFinding,
@@ -173,12 +173,10 @@
           {#if collision.detail}
             <p>{collision.detail}</p>
           {/if}
-          {#if nameUnsettled(accuracy)}
-            {#if accuracy.conflation.engineQuote}
-              <p class="fix-w">
-                The AI said: &ldquo;{displayQuote(accuracy.conflation.engineQuote)}&rdquo;
-              </p>
-            {/if}
+          {#if collisionQuote(view)}
+            <p class="fix-w">
+              The AI said: &ldquo;{displayQuote(collisionQuote(view) ?? "")}&rdquo;
+            </p>
           {/if}
           {#if view.namesake}
             <p>

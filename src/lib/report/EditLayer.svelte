@@ -1,6 +1,12 @@
 <script lang="ts">
   import { invalidateAll } from "$app/navigation";
-  import { changeList, resolveTargets, type EditTarget, type HideTarget } from "./editable";
+  import {
+    changeList,
+    resolveTargets,
+    showStatement,
+    type EditTarget,
+    type HideTarget,
+  } from "./editable";
   import type { OverrideMap } from "./fetch";
 
   let {
@@ -19,7 +25,7 @@
     approved?: boolean;
   } = $props();
 
-  const changes = $derived(changeList(overrides, targets));
+  const changes = $derived(changeList(overrides, targets, hideable));
   let panel = $state<"" | "changes" | "hide">("");
 
   let resolved = $state(0);
@@ -105,9 +111,9 @@
 
   /** W1: take a row off the report, or put it back. */
   async function toggleHidden(t: HideTarget): Promise<void> {
-    const next: OverrideMap = { ...overrides };
-    if (t.hidden) delete next[t.key];
-    else next[t.key] = { original: t.original, text: "", hidden: true };
+    const next: OverrideMap = t.hidden
+      ? showStatement(overrides, t)
+      : { ...overrides, [t.key]: { original: t.original, text: "", hidden: true } };
     await save(next);
     // A maintenance deploy older than W1 drops the `hidden` flag and still
     // answers "updated", so check what was stored rather than trust the 200.

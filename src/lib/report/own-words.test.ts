@@ -13,7 +13,7 @@ import {
   type HeldBack,
 } from "./model";
 import { displayQuote, headlineFinding, passes } from "./narrative";
-import { editableTargets, hideTargets } from "./editable";
+import { changeList, editableTargets, hideTargets, showStatement } from "./editable";
 
 /**
  * W2: the accuracy section says what the assistant said, about the right
@@ -295,6 +295,35 @@ describe("absent needs the whole site, by its own sitemap", () => {
     const { selection: _s, ...legacy } = data;
     const { truncated: _t, ...sitemap } = data.sitemap as Record<string, unknown>;
     const r = { ...base, crawl: { ok: true, data: { ...legacy, sitemap } } } as AuditReport;
+    expect(toReportView(r).accuracy?.assertions[0]?.verdict).toBe("unverified");
+  });
+
+  // R3 fix 11: the coverage rule is pinned on both of its branches, not only on
+  // the legacy one above. Each must go red with `completeOf(d)` replaced by
+  // `d.site !== null && d.site <= d.read`.
+  it("a truncated sitemap whose count the pages read reach does not make an absence", () => {
+    const pages = allPass.accuracy.data.pagesRead as number;
+    const base = reportWith([absent]);
+    const data = (base.crawl as { data: Record<string, unknown> }).data;
+    const r = {
+      ...base,
+      crawl: {
+        ok: true,
+        data: { ...data, sitemap: { present: true, urlCount: pages, truncated: true } },
+      },
+    } as AuditReport;
+    expect(toReportView(r).accuracy?.assertions[0]?.verdict).toBe("unverified");
+  });
+
+  it("a crawl with no sitemap whose linked pages were all read does not make an absence", () => {
+    const pages = allPass.accuracy.data.pagesRead as number;
+    const base = reportWith([absent]);
+    const data = (base.crawl as { data: Record<string, unknown> }).data;
+    const { sitemap: _sitemap, ...noSitemap } = data;
+    const r = {
+      ...base,
+      crawl: { ok: true, data: { ...noSitemap, selection: { pagesConsidered: pages } } },
+    } as AuditReport;
     expect(toReportView(r).accuracy?.assertions[0]?.verdict).toBe("unverified");
   });
 });
@@ -860,15 +889,18 @@ describe("R2: hiding takes a statement, not a row", () => {
     }
   });
 
-  it("two statements with the same quote and different questions are told apart by the question", () => {
+  // R3 fix 6 changed this: one sentence is one statement whatever question it
+  // answered, so the label no longer needs the question to tell two apart.
+  it("two rows with the same quote and different questions are one statement, labelled once", () => {
     const same = reportWith([
       row({ claim: "A.", engineQuote: Q, query: "best firm in Denver" }),
       row({ claim: "B.", engineQuote: Q, query: "best firm in Austin" }),
       row({ claim: "C.", engineQuote: "it designs logos" }),
     ]);
     const labels = hideTargets(same, {}).map((t) => t.label);
-    expect(labels).toContain(`“${Q}” (asked: best firm in Denver)`);
-    expect(labels).toContain(`“${Q}” (asked: best firm in Austin)`);
+    expect(labels).toContain(`“${Q}”`);
+    expect(labels.filter((l) => l === `“${Q}”`)).toHaveLength(1);
+    expect(labels.some((l) => l?.includes("(asked:"))).toBe(false);
     expect(displayQuote(`"${Q}"`)).toBe(Q);
   });
 });
@@ -1016,6 +1048,32 @@ describe("R2: topic patterns", () => {
     ["located at 450 Elm St, Austin", "street_address"],
     ["at 12 Oak Ave in Austin", "street_address"],
     ["a team of 25", "revenue_headcount"],
+    // R3 fix 3: the phrasings a stored row uses, with no topic recorded.
+    ["it has a Glassdoor score of 3.9", "ratings_reviews"],
+    ["Glassdoor rating: 3.9", "ratings_reviews"],
+    ["**Rating:** 4.2", "ratings_reviews"],
+    ["Google: 4.2 (37 reviews)", "ratings_reviews"],
+    ["averages 4.2 from 37 Google reviews", "ratings_reviews"],
+    ["Employees on Glassdoor give it 3.9", "ratings_reviews"],
+    ["has a 3.9 Glassdoor score", "ratings_reviews"],
+    ["customers rated it five stars", "ratings_reviews"],
+    ["a rating of four stars", "ratings_reviews"],
+    ["Employees give it 3.9 out of five", "ratings_reviews"],
+    ["It has a 3.4 Glassdoor rating.", "ratings_reviews"],
+    ["Glassdoor: 3.4", "ratings_reviews"],
+    ["It has a 3.9 overall rating on Glassdoor.", "ratings_reviews"],
+    ["Employees give it 4 stars on Indeed.", "ratings_reviews"],
+    ["It is rated at 3.8 by employees.", "ratings_reviews"],
+    ["Employee reviews average 3.2.", "ratings_reviews"],
+    ["On Glassdoor it holds a 3.6.", "ratings_reviews"],
+    ["Senior management 2.9", "ratings_reviews"],
+    ["Charity Navigator gives it 4 out of 4 stars.", "ratings_reviews"],
+    ["employs around 40 people", "revenue_headcount"],
+    ["a 12-person team", "revenue_headcount"],
+    ["Dana Reyes is the founder of the studio", "named_person"],
+    ["Founder: Dana Reyes", "named_person"],
+    ["Owner: Dana Reyes", "named_person"],
+    ["the studio's principal, Dana Reyes", "named_person"],
   ];
 
   it.each(WITHHELD)("withholds %s", (claim, topic) => {
@@ -1035,6 +1093,10 @@ describe("R2: topic patterns", () => {
     "an Inc. 5000 honoree",
     "works in 5 star hotels",
     "9 out of 10 dentists recommend it",
+    // R3 fix 3: negative controls, which must still print.
+    "Example Studio designs logos for restaurants",
+    "it was founded in 2001 in Denver",
+    "offers free consultations",
   ];
 
   it.each(NOT_WITHHELD)("does not withhold %s", (claim) => {
@@ -1061,5 +1123,369 @@ describe("R2: the withheld count is held in the HeldBack type", () => {
   it("heldBack reports unquoted statements beside the other counts", () => {
     const h: HeldBack = heldBack(toReportView(reportWith([row({ claim: "x", engineQuote: "" })])));
     expect(h.unquoted).toBe(1);
+  });
+});
+
+/* ------------------------------------------------------------------------ *
+ * Review round 3 (reddoor-website#380). Written before the fix.
+ * ------------------------------------------------------------------------ */
+
+const withBusiness = (report: AuditReport, businessName: string): AuditReport =>
+  ({ ...report, businessName }) as unknown as AuditReport;
+
+describe("R3 fix 1: a contradiction about the client survives a mixed statement", () => {
+  const Q = "Example Studio was founded in 2001 with Southgate Outfitters as a partner";
+  const prospect = row({
+    claim: "Example Studio was founded in 2001.",
+    verdict: "contradicted",
+    engineQuote: Q,
+    siteQuote: "Founded in 2022",
+    subject: "prospect",
+  });
+  const other = row({
+    claim: "Southgate Outfitters was founded in 2001.",
+    engineQuote: Q,
+    subject: "other",
+  });
+  const cases: [string, Assertion[]][] = [
+    ["other row first", [other, prospect]],
+    ["prospect row first", [prospect, other]],
+  ];
+
+  it.each(cases)(
+    "the headline is not all-clear, and names the withheld contradiction: %s",
+    (_l, rows) => {
+      const h = headlineFinding(toReportView(reportWith(rows))).text;
+      expect(h).not.toContain("Everything we can measure");
+      expect(h).toContain("that your own site contradicts");
+    },
+  );
+
+  const S = "Example Studio sits next to Harbor Dental on Main";
+  const otherRow = row({ claim: "Other.", engineQuote: S, subject: "other" });
+  const prospectRow = row({ claim: "Prospect.", engineQuote: S, subject: "prospect" });
+  const mixed: [string, Assertion[]][] = [
+    ["other row first", [otherRow, prospectRow]],
+    ["prospect row first", [prospectRow, otherRow]],
+  ];
+
+  it.each(mixed)("a shared sentence is about another business, in either order: %s", (_l, rows) => {
+    for (const [, text] of surfaces(reportWith(rows))) {
+      expect(text).not.toContain("Harbor Dental");
+      expect(text).not.toContain("What the AI says about you");
+      expect(text).toContain("statement the assistant made was about another business");
+    }
+  });
+});
+
+describe("R3 fix 2: hiding the collision block keeps the names it is judged by", () => {
+  const report = withBusiness(
+    reportWith(
+      [
+        row({ claim: "Studio.", engineQuote: "Example Studio is a design studio in Denver" }),
+        row({
+          claim: "Northwind.",
+          engineQuote: "Northwind sells screen printing and embroidered uniforms",
+        }),
+      ],
+      {
+        conflation: {
+          detected: true,
+          settled: false,
+          otherNames: ["Northwind (Austin)"],
+          engineQuote: "it may be Northwind",
+        },
+      },
+    ),
+    "Example Studio",
+  );
+  const overrides: OverrideMap = {
+    "accuracy.data.conflation": { original: "it may be Northwind", text: "", hidden: true },
+  };
+
+  it("the hide leaves the Northwind sentence counted as another business", () => {
+    expect(heldBack(toReportView(report, overrides)).aboutOthers).toBe(1);
+    expect(heldBack(toReportView(report)).aboutOthers).toBe(1);
+  });
+
+  it("the Northwind sentence prints on neither surface", () => {
+    for (const [, text] of surfacesWith(report, overrides)) {
+      expect(text).not.toContain("Northwind sells");
+    }
+  });
+});
+
+describe("R3 fix 3: the withheld phrasings print on neither surface", () => {
+  const PHRASES = [
+    "it has a Glassdoor score of 3.9",
+    "Glassdoor rating: 3.9",
+    "**Rating:** 4.2",
+    "Google: 4.2 (37 reviews)",
+    "averages 4.2 from 37 Google reviews",
+    "Employees on Glassdoor give it 3.9",
+    "customers rated it five stars",
+    "a rating of four stars",
+    "Senior management 2.9",
+    "Charity Navigator gives it 4 out of 4 stars.",
+    "employs around 40 people",
+    "a 12-person team",
+    "Dana Reyes is the founder of the studio",
+    "Founder: Dana Reyes",
+    "the studio's principal, Dana Reyes",
+  ];
+
+  it("none of them is printed as a quote", () => {
+    const report = reportWith(PHRASES.map((s) => row({ claim: s, engineQuote: s })));
+    for (const [, text] of surfaces(report)) {
+      for (const s of PHRASES) expect(text, s).not.toContain(s);
+    }
+  });
+});
+
+describe("R3 fix 4: the branded excerpt does not reprint a withheld topic", () => {
+  it.each([
+    "Glassdoor rating: 3.9",
+    "BBB rating: A+",
+    "It was founded in 2012 by Dana Reyes. There are several complaints filed against the business with the state board.",
+  ])("does not reprint: %s", (snippet) => {
+    expect(brandedExcerpt({ snippet, truncated: false })).not.toContain(snippet);
+  });
+
+  it("does not reprint an excerpt answering a 'reviews' question", () => {
+    const excerpt = brandedExcerpt({
+      snippet: "Example Studio is a design studio in Denver.",
+      truncated: false,
+      query: "Example Studio reviews",
+    });
+    expect(excerpt).not.toContain("design studio");
+  });
+
+  it("still prints an ordinary excerpt under a name question (positive control)", () => {
+    const excerpt = brandedExcerpt({
+      snippet: "Example Studio is a design studio in Denver.",
+      truncated: false,
+      query: "who is Example Studio",
+    });
+    expect(excerpt).toContain("Example Studio is a design studio in Denver.");
+  });
+});
+
+describe("R3 fix 5: the collision block does not print another firm's rating", () => {
+  const report = withBusiness(
+    reportWith(
+      [
+        row({
+          claim: "Example Studio is a design agency.",
+          engineQuote: "Example Studio is a design agency",
+        }),
+      ],
+      {
+        conflation: {
+          detected: true,
+          settled: false,
+          otherNames: ["Southgate Outfitters (a store rated 2.1 out of 5 on Glassdoor)"],
+          engineQuote: "Most likely match: Southgate Outfitters, rated 2.1 out of 5 by employees",
+        },
+      },
+    ),
+    "Example Studio",
+  );
+
+  it("prints the other name without its rating, and no rating quote, on both surfaces", () => {
+    for (const [label, text] of surfaces(report)) {
+      expect(text, label).toContain("Southgate Outfitters");
+      expect(text, label).not.toContain("2.1");
+      expect(text, label).not.toContain("Glassdoor");
+    }
+  });
+});
+
+describe("R3 fix 6: one sentence prints once, whatever questions it answered", () => {
+  const Q = "it was founded in 2001";
+
+  it("a contradiction and an absent copy under two questions print once, as the contradiction", () => {
+    const report = reportWith([
+      row({
+        claim: "Founded 2001.",
+        verdict: "contradicted",
+        engineQuote: Q,
+        siteQuote: "Founded in 2012",
+        query: "who is Example Studio",
+      }),
+      row({ claim: "Founded 2001 too.", engineQuote: Q, query: "Example Studio reviews" }),
+    ]);
+    for (const [, text] of surfaces(report)) {
+      // The print sheet's headline quotes it too, so count the list item.
+      expect(text.match(new RegExp(`The AI said:\\s*"${Q}"`, "g"))?.length ?? 0).toBe(1);
+      expect(text).toContain("Your site says");
+      expect(text).not.toContain("What the AI says about you");
+    }
+  });
+
+  it("two absent copies under two questions print once", () => {
+    const Q2 = "it does branding work";
+    const report = reportWith([
+      row({ claim: "Brands.", engineQuote: Q2, query: "who is Example Studio" }),
+      row({ claim: "Brands again.", engineQuote: Q2, query: "best branding studio" }),
+    ]);
+    for (const [, text] of surfaces(report)) {
+      expect(count(text, `"${Q2}"`)).toBe(1);
+    }
+  });
+
+  it("hiding one copy hides the other, whatever question it answered", () => {
+    const Q2 = "it does branding work";
+    const raw = reportWith([
+      row({ claim: "A.", engineQuote: Q2, query: "who is Example Studio" }),
+      row({ claim: "B.", engineQuote: Q2, query: "best branding studio" }),
+      row({ claim: "C.", engineQuote: "it designs logos" }),
+    ]);
+    const overrides: OverrideMap = {
+      "accuracy.data.assertions[0]": { original: "A.", text: "", hidden: true },
+    };
+    for (const [, text] of surfacesWith(raw, overrides)) {
+      expect(text).not.toContain(`"${Q2}"`);
+      expect(text).toContain('"it designs logos"');
+    }
+  });
+});
+
+describe("R3 fix 7: a withheld contradiction with no quote has its own headline", () => {
+  it("says it contradicts something it could not quote exactly", () => {
+    const report = reportWith([
+      row({
+        claim: "Example Studio has 50 employees.",
+        verdict: "contradicted",
+        engineQuote: "  ",
+        siteQuote: "a team of 8",
+        topic: "revenue_headcount",
+      }),
+    ]);
+    const h = headlineFinding(toReportView(report)).text;
+    expect(h).toContain("your own site contradicts, in words we could not quote exactly");
+    expect(h).not.toContain("topic we have not checked");
+  });
+});
+
+describe("R3 fix 8: a sibling hide reads as hidden, and the last statement cannot be hidden", () => {
+  const raw = reportWith([
+    row({ claim: "Example Studio was founded in 2001.", engineQuote: "founded in 2001 in Denver" }),
+    row({ claim: "Example Studio is in Denver.", engineQuote: "founded in 2001 in Denver" }),
+    row({ claim: "Example Studio does branding work.", engineQuote: "it does branding work" }),
+  ]);
+  const overrides: OverrideMap = {
+    "accuracy.data.assertions[1]": {
+      original: "Example Studio is in Denver.",
+      text: "",
+      hidden: true,
+    },
+  };
+
+  it("the target for the shared statement reads hidden", () => {
+    const t = hideTargets(raw, overrides).find((x) => x.key === "accuracy.data.assertions[0]");
+    expect(t).toMatchObject({ hidden: true });
+  });
+
+  it("the last visible statement cannot be hidden", () => {
+    const t = hideTargets(raw, overrides).find((x) => x.key === "accuracy.data.assertions[2]");
+    expect(t).toMatchObject({ canHide: false });
+  });
+
+  it("showing the statement again removes every hide in its group", () => {
+    const both: OverrideMap = {
+      ...overrides,
+      "accuracy.data.assertions[0]": {
+        original: "Example Studio was founded in 2001.",
+        text: "",
+        hidden: true,
+      },
+    };
+    const target = hideTargets(raw, both).find((x) => x.key === "accuracy.data.assertions[0]")!;
+    expect(target.hidden).toBe(true);
+    expect(showStatement(both, target)).toEqual({});
+  });
+});
+
+describe("R3 fix 9: an empty first-row claim does not block hiding", () => {
+  const raw = reportWith([
+    row({ claim: "", engineQuote: "it designs logos" }),
+    row({ claim: "x", engineQuote: "it builds sites" }),
+  ]);
+  const accuracyKeys = (map: OverrideMap) =>
+    hideTargets(raw, map)
+      .map((t) => t.key)
+      .filter((k) => k.startsWith("accuracy.data.assertions["));
+
+  it("offers both statements", () => {
+    expect(accuracyKeys({})).toHaveLength(2);
+  });
+
+  it.each([
+    ["it designs logos", 0],
+    ["it builds sites", 1],
+  ])("each can be hidden, and hiding it takes %s off the page", (quote, index) => {
+    const key = `accuracy.data.assertions[${index}]`;
+    const target = hideTargets(raw, {}).find((t) => t.key === key);
+    const overrides: OverrideMap = {
+      [key]: { original: target!.original, text: "", hidden: true },
+    };
+    expect(hideTargets(raw, overrides).find((t) => t.key === key)?.hidden).toBe(true);
+    for (const [, text] of surfacesWith(raw, overrides)) {
+      expect(text).not.toContain(`"${quote}"`);
+    }
+  });
+});
+
+describe("R3 fix 10: the changes list names a hidden statement by the quote it printed", () => {
+  it("shows the quote, not the paraphrase", () => {
+    const raw = reportWith([
+      row({ claim: "Example Studio has an office in Denver.", engineQuote: "an office in Denver" }),
+    ]);
+    const map: OverrideMap = {
+      "accuracy.data.assertions[0]": {
+        original: "Example Studio has an office in Denver.",
+        text: "",
+        hidden: true,
+      },
+    };
+    expect(changeList(map, [], hideTargets(raw, map))).toEqual([
+      {
+        key: "accuracy.data.assertions[0]",
+        kind: "hidden",
+        before: "an office in Denver",
+        after: "",
+      },
+    ]);
+  });
+});
+
+describe("R3 fix 12: a blank site quote is no site quote, and the unverified reason is not editable", () => {
+  it("a confirmed row with a blank site quote prints as not sourced", () => {
+    const report = reportWith([
+      row({
+        claim: "Open since 2012.",
+        verdict: "confirmed",
+        engineQuote: "it has been open since 2012",
+        siteQuote: "   ",
+      }),
+    ]);
+    for (const [, text] of surfaces(report)) {
+      expect(text).toContain("What the AI says about you");
+      expect(text).not.toContain("What your site backs up");
+      expect(text).not.toContain("Your site says");
+    }
+  });
+
+  it("offers no unverified reason as a line to reword", () => {
+    const report = reportWith([
+      row({
+        claim: "Example Studio has an office in Denver.",
+        verdict: "unverified",
+        engineQuote: "an office in Denver",
+        unverifiedReason: "We could not find the passage this was based on.",
+      }),
+    ]);
+    const keys = editableTargets(toReportView(report), report).map((t) => t.key);
+    expect(keys.some((k) => k.endsWith(".unverifiedReason"))).toBe(false);
   });
 });

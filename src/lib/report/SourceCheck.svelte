@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     collisionBlock,
+    collisionQuote,
     displayQuote,
     heldBackLines,
     numberWord,
@@ -11,7 +12,6 @@
     citationRuns,
     confirmedRows,
     contradictedRows,
-    nameUnsettled,
     namesakeLeads,
     notSourcedFromSite,
     ownSiteCitations,
@@ -133,12 +133,10 @@
         {#if collision.detail}
           <p class="type-meta m-0 text-muted">{collision.detail}</p>
         {/if}
-        {#if nameUnsettled(acc)}
-          {#if acc.conflation.engineQuote}
-            <p class="type-meta m-0 text-muted">
-              The AI said: &ldquo;{displayQuote(acc.conflation.engineQuote)}&rdquo;
-            </p>
-          {/if}
+        {#if collisionQuote(view)}
+          <p class="type-meta m-0 text-muted">
+            The AI said: &ldquo;{displayQuote(collisionQuote(view) ?? "")}&rdquo;
+          </p>
         {/if}
         {#if view.namesake}
           <p class="type-meta m-0 text-muted">

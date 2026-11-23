@@ -20,13 +20,15 @@ import {
   contradictedRows,
   heldBack,
   notSourcedFromSite,
-  withheldContradiction,
+  withheldContradictionKind,
+  textWithheld,
   type BuyerQuestion,
   type Fix,
   type ReportView,
   type StageKey,
 } from "./model";
 import { composed } from "./overrides";
+import { displayQuote } from "./quote";
 
 /**
  * The narrative layer: one sentence the page leads with, and one list of
@@ -346,7 +348,19 @@ function headlineFindingGenerated(view: ReportView): Headline {
 
   // R1 fix 6: a contradiction about this business that the page withholds is
   // not a clean bill of health, and the all-clear below would say it is.
-  if (withheldContradiction(view)) {
+  // R3 fix 7: a contradiction we could not quote has its own wording, not the
+  // topic's: there is no topic we have not checked, only words we could not
+  // quote exactly.
+  const withheld = withheldContradictionKind(view);
+  if (withheld === "unquoted") {
+    return {
+      kind: "withheld-contradiction",
+      text:
+        "The assistant said something about you that your own site contradicts, in words we could not quote exactly. " +
+        "Ask us for it.",
+    };
+  }
+  if (withheld === "withheld") {
     return {
       kind: "withheld-contradiction",
       text:
@@ -452,26 +466,9 @@ export function passCount(view: ReportView): number {
   return passes(view).reduce((n, g) => n + g.items.length, 0);
 }
 
-/**
- * An engine quote as the reader should see it.
- *
- * The stored quote is verified upstream as a real substring of the answer,
- * and the answer is markdown — so a quote can arrive as "**multiple,
- * unrelated companies**", which on a client document reads as a typo. The
- * emphasis markers are dropped for display only; the words are untouched, so
- * the quote still survives being checked against the answer.
- */
-export function displayQuote(text: string): string {
-  const unemphasised = text
-    .replace(/(\*\*|__)(?=\S)([\s\S]+?)(?<=\S)\1/g, "$2")
-    .replace(/(?<!\S)\*(?=\S)([^*\n]+?)(?<=\S)\*(?!\S)/g, "$1")
-    .trim();
-  // The page wraps every quote in its own marks, so a quote that arrives
-  // already wrapped printed doubled: ""with $2 million in revenue"". One
-  // outer pair goes; a quote mark inside the sentence is content and stays.
-  const wrapped = unemphasised.match(/^["“]([\s\S]*)["”]$/);
-  return wrapped && !/["“”]/.test(wrapped[1] ?? "") ? (wrapped[1] ?? "").trim() : unemphasised;
-}
+/** The engine's quote as the reader sees it. Defined in `quote.ts`, which
+ *  `model.ts` and `overrides.ts` also read; re-exported here for the views. */
+export { displayQuote };
 
 /**
  * The remedy for a name collision, as a fix in the list rather than an aside.
@@ -506,6 +503,28 @@ function collisionFixGenerated(view: ReportView): Fix | null {
  *  one sentence naming what else it described, in the answer's own words. */
 export type CollisionBlock = { heading: string; detail: string | null };
 
+/**
+ * The other names the collision block may print. R3 fix 5: a name whose text
+ * carries a withheld topic (another firm's rating, in its own words) keeps only
+ * the part before " (", which is the name.
+ */
+export function collisionNames(view: ReportView): string[] {
+  return (view.accuracy?.conflation.otherNames ?? [])
+    .map((n) => (textWithheld(n) ? (n.split(" (")[0] ?? "").trim() : n))
+    .filter((n) => n !== "");
+}
+
+/**
+ * The assistant's quote for the collision block, or null. Withheld when it
+ * carries a withheld topic (R3 fix 5): the block then prints no quote line.
+ */
+export function collisionQuote(view: ReportView): string | null {
+  if (!nameUnsettled(view.accuracy)) return null;
+  const quote = view.accuracy?.conflation.engineQuote;
+  if (typeof quote !== "string" || quote.trim() === "" || textWithheld(quote)) return null;
+  return quote;
+}
+
 function collisionBlockGenerated(view: ReportView): CollisionBlock | null {
   const unsure = nameUnsettled(view.accuracy);
   if (!unsure && view.namesake === null) return null;
@@ -513,7 +532,7 @@ function collisionBlockGenerated(view: ReportView): CollisionBlock | null {
   // With no name on record, "which your business you are" is not a sentence,
   // and "business" is the one word this block must not supply.
   const name = view.businessName;
-  const names = view.accuracy?.conflation.otherNames ?? [];
+  const names = collisionNames(view);
   const described = names.length
     ? `Asked about you by name, it also described ${joinList(names)}.`
     : "Asked about you by name, it could not say which one you are.";
