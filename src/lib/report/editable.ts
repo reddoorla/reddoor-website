@@ -1,7 +1,13 @@
 import type { AuditReport, OverrideMap } from "./fetch";
-import { CONFLATION_KEY, HIDEABLE } from "./overrides";
+import { CONFLATION_KEY, HIDEABLE, hiddenRowKeys } from "./overrides";
 import { openingSummary, type ReportView } from "./model";
-import { headlineFinding, passes, collisionBlock, collisionFix, healthFixes } from "./narrative";
+import {
+  headlineFinding,
+  passes,
+  collisionBlock,
+  collisionFix,
+  healthFixEntries,
+} from "./narrative";
 import { healthRows } from "./health";
 
 /** One line an operator can rewrite. */
@@ -41,8 +47,14 @@ function at(obj: unknown, path: string): unknown {
   return node;
 }
 
+/** The generated text behind a line: the override's `original` only while
+ *  that override is the one on screen. A withheld override (its line moved,
+ *  for instance because a row above it was hidden) shows the generated text,
+ *  and recording the stale `original` against it would store an edit that can
+ *  never render (W1 review round 1). */
 function originalFor(map: OverrideMap, key: string, displayed: string): string {
-  return map[key]?.original ?? displayed;
+  const ov = map[key];
+  return ov && ov.text === displayed ? ov.original : displayed;
 }
 
 function push(out: EditTarget[], map: OverrideMap, key: string, text: unknown): void {
@@ -80,11 +92,16 @@ export function editableTargets(view: ReportView, raw?: AuditReport): EditTarget
   const out: EditTarget[] = [];
   const map = view.overrides;
   const source = raw ?? ({} as AuditReport);
+  // A hidden row is not on the page, so none of its lines is a target (review
+  // round 2): listed, a rewording on it read as in force, and its text could
+  // make a visible line with the same words ambiguous.
+  const hidden = hiddenRowKeys(source, map);
 
   for (const { path, fields } of PAYLOAD_FIELDS) {
     const list = at(source, path);
     if (!Array.isArray(list)) continue;
     list.forEach((row, i) => {
+      if (hidden.has(`${path}[${i}]`)) return;
       for (const f of fields) {
         const key = `${path}[${i}].${f}`;
         const generated = (row as Record<string, unknown>)[f];
@@ -129,9 +146,10 @@ export function editableTargets(view: ReportView, raw?: AuditReport): EditTarget
     push(out, map, "composed:collisionFix.why", collision.why);
   }
 
-  healthFixes(view).forEach((f, i) => {
-    push(out, map, `composed:healthFix[${i}].title`, f.title);
-    push(out, map, `composed:healthFix[${i}].why`, f.why);
+  // Keyed by the row, as `healthFixes` looks them up (W1 review round 4).
+  healthFixEntries(view).forEach(({ rowKey, fix }) => {
+    push(out, map, `composed:healthFix[${rowKey}].title`, fix.title);
+    push(out, map, `composed:healthFix[${rowKey}].why`, fix.why);
   });
 
   return out;
@@ -205,6 +223,10 @@ export type HideTarget = {
   /** What kind of row, for the list ("Fix", "Source", …). */
   noun: string;
   hidden: boolean;
+  /** False for the last visible row of its section (review round 2): an
+   *  emptied section reads as a measurement ("we could not pull a checkable
+   *  statement", "we could not judge any of it"). Withdraw the report instead. */
+  canHide: boolean;
 };
 
 /**
@@ -227,34 +249,51 @@ export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
         original,
         noun,
         hidden: map[key]?.hidden === true && map[key]!.original === original,
+        canHide: true,
       });
     });
+    const rows = out.filter((t) => t.key.startsWith(`${path}[`));
+    const visible = rows.filter((t) => !t.hidden);
+    if (visible.length === 1) visible[0]!.canHide = false;
   }
   const c = at(raw, "accuracy.data.conflation") as
-    { detected?: unknown; engineQuote?: unknown } | undefined;
-  if (c && c.detected === true) {
+    { detected?: unknown; settled?: unknown; engineQuote?: unknown } | undefined;
+  // Offered only when the block is on the page: since #375 it renders only for
+  // an answer that did not settle which business it means.
+  if (c && c.detected === true && c.settled === false) {
     const original = typeof c.engineQuote === "string" ? c.engineQuote : "";
     out.push({
       key: CONFLATION_KEY,
       original,
       noun: "Name collision (the assistant is not sure which business you are)",
       hidden: map[CONFLATION_KEY]?.hidden === true && map[CONFLATION_KEY]!.original === original,
+      canHide: true,
     });
   }
   return out;
 }
 
-/** One entry of the override map, as the changes list shows it. */
-export type ChangeRow = { key: string; kind: "hidden" | "reworded"; before: string; after: string };
+/** One entry of the override map, as the changes list shows it. `stale` is a
+ *  rewording the page is withholding, because the line it named no longer
+ *  reads as it did (a hide above it moved it, or a row it was built from was
+ *  reworded): listed so it can be reverted, never shown as in force. */
+export type ChangeRow = {
+  key: string;
+  kind: "hidden" | "reworded" | "stale";
+  before: string;
+  after: string;
+};
 
-/** Every override on this report, for the changes list with its Revert. */
-export function changeList(map: OverrideMap): ChangeRow[] {
+/** Every override on this report, for the changes list with its Revert.
+ *  `targets` are the lines as rendered now (`editableTargets`), which is how a
+ *  rewording is told apart from one the page withholds. */
+export function changeList(map: OverrideMap, targets: EditTarget[] = []): ChangeRow[] {
+  const shown = new Set(targets.map((t) => `${t.key}\u0000${t.text}`));
   return Object.entries(map).flatMap(([key, ov]): ChangeRow[] => {
     if (!ov || typeof ov.original !== "string") return [];
-    return ov.hidden === true
-      ? [{ key, kind: "hidden", before: ov.original, after: "" }]
-      : typeof ov.text === "string"
-        ? [{ key, kind: "reworded", before: ov.original, after: ov.text }]
-        : [];
+    if (ov.hidden === true) return [{ key, kind: "hidden", before: ov.original, after: "" }];
+    if (typeof ov.text !== "string") return [];
+    const kind = shown.has(`${key}\u0000${ov.text}`) ? "reworded" : "stale";
+    return [{ key, kind, before: ov.original, after: ov.text }];
   });
 }

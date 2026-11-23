@@ -19,7 +19,7 @@
     approved?: boolean;
   } = $props();
 
-  const changes = $derived(changeList(overrides));
+  const changes = $derived(changeList(overrides, targets));
   let panel = $state<"" | "changes" | "hide">("");
 
   let resolved = $state(0);
@@ -46,6 +46,16 @@
    * whatever came back resolved.
    */
   function wire(): void {
+    // Unwire everything first (review round 2): after a hide, an element can
+    // render a different line, and a stale key on it would save an edit nobody
+    // typed against the old line.
+    for (const el of document.querySelectorAll<HTMLElement>("[data-edit-key]")) {
+      delete el.dataset.editKey;
+      delete el.dataset.editOriginal;
+      el.contentEditable = "inherit";
+      el.classList.remove("rd-editable");
+      el.removeEventListener("blur", onBlur);
+    }
     const leaves: HTMLElement[] = [];
     for (const el of document.querySelectorAll<HTMLElement>(`main :is(${LEAF})`)) {
       // Leaves only: a container whose text happens to equal a target's would
@@ -84,7 +94,11 @@
     const next: OverrideMap = { ...overrides };
     // Typing the generated text back in REMOVES the override rather than
     // storing a no-op, so a report can always be returned to what was measured.
-    if (text === original) delete next[key];
+    // An emptied COMPOSED line reverts too (review round 5): a blank composed
+    // override renders as the generated text everywhere, so storing one would
+    // only mislead. A payload field emptied still blanks that one field for
+    // every reader (review round 6), as it always did.
+    if (text === original || (text === "" && key.startsWith("composed:"))) delete next[key];
     else next[key] = { original, text };
     await save(next);
   }
@@ -95,6 +109,11 @@
     if (t.hidden) delete next[t.key];
     else next[t.key] = { original: t.original, text: "", hidden: true };
     await save(next);
+    // A maintenance deploy older than W1 drops the `hidden` flag and still
+    // answers "updated", so check what was stored rather than trust the 200.
+    if (!t.hidden && !failed && overrides[t.key]?.hidden !== true) {
+      failed = "The hide was not stored: the report server does not support hiding yet.";
+    }
   }
 
   /** W1: undo one change, whatever kind it is. */
@@ -143,9 +162,11 @@
         <ul>
           {#each changes as c (c.key)}
             <li>
-              {#if c.kind === "hidden"}<span>Hidden: {c.before}</span>{:else}<span>
-                  “{c.before}” → “{c.after}”
-                </span>{/if}
+              {#if c.kind === "hidden"}<span>
+                  Hidden: {c.before}
+                </span>{:else if c.kind === "stale"}<span class="rd-edit-gone">
+                  “{c.after}”: no longer applies: the line it reworded has changed or is gone
+                </span>{:else}<span>“{c.before}” → “{c.after}”</span>{/if}
               <button type="button" disabled={saving} onclick={() => revert(c.key)}>Revert</button>
             </li>
           {/each}
@@ -161,7 +182,14 @@
           {#each hideable as t (t.key)}
             <li>
               <span class:rd-edit-gone={t.hidden}>{t.noun}: {t.original || "(no quote)"}</span>
-              <button type="button" disabled={saving} onclick={() => toggleHidden(t)}>
+              <button
+                type="button"
+                disabled={saving || (!t.hidden && !t.canHide)}
+                title={!t.hidden && !t.canHide
+                  ? "The last row of a section cannot be hidden. Withdraw the report instead."
+                  : undefined}
+                onclick={() => toggleHidden(t)}
+              >
                 {t.hidden ? "Show" : "Hide"}
               </button>
             </li>

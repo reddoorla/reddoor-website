@@ -1280,7 +1280,7 @@ describe("W1 (B-03): no all-clear when the parts it stands on failed", () => {
     expect(headlineFinding(toReportView(asReport(raw))).kind).toBe("all-clear");
   });
 
-  it("a failed-analysis fixture must not return all-clear, and names what did not run", () => {
+  it("a failed-analysis fixture must not return all-clear, and names what failed", () => {
     const h = headlineFinding(failed("analyze"));
     expect(h.kind).not.toBe("all-clear");
     expect(h.text).not.toContain("checks out");
@@ -1289,6 +1289,20 @@ describe("W1 (B-03): no all-clear when the parts it stands on failed", () => {
 
   it.each(["probes", "accuracy"] as const)("a failed %s stage is not all clear either", (key) => {
     expect(headlineFinding(failed(key)).kind).toBe("incomplete");
+  });
+
+  it("review round 3: failed page checks (analysis skipped as a cascade) are not all clear", () => {
+    const v = toReportView(
+      asReport({
+        ...raw,
+        checks: { ok: false, error: "fetch failed: ECONNRESET" },
+        analyze: { ok: false, error: "skipped — the checks stage failed" },
+      }),
+    );
+    const h = headlineFinding(v);
+    expect(h.kind).toBe("incomplete");
+    expect(h.text).not.toContain("checks out");
+    expect(h.text).toContain("the page checks");
   });
 
   it("a stage skipped on purpose is not a failure: --no-probes stays all clear", () => {

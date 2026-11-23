@@ -104,7 +104,9 @@ export const load: PageServerLoad = async (event) => {
   }
 
   return {
-    ...(await loadReport(event)),
+    // The editor alone gets the stored payload and the whole override map: it
+    // lists hidden rows to put them back, and matches `original`s.
+    ...(await loadReport(event, { forEditor: true })),
     editing: true,
     // The edit layer posts this back to /api/audit-edit. Taken from the route
     // params rather than re-derived, so the thing being saved is provably the

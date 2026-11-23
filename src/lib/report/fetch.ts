@@ -43,7 +43,15 @@ export type FetchReportOptions = {
 /** One replaced string, with the generated text it replaced. `original` is kept
  *  so the cockpit can show what changed, and so an override can be withheld if
  *  it no longer matches what it claims to replace. */
-export type Override = { original: string; text: string; hidden?: true };
+export type Override = {
+  original: string;
+  text: string;
+  hidden?: true;
+  /** W1 review round 2. Set only on a reader's copy of a `composed:` entry,
+   *  built by `loadReport`: the stored `original` is replaced by its digest so
+   *  the sentence it replaced is not in the page data. Never stored upstream. */
+  originalDigest?: string;
+};
 export type OverrideMap = Record<string, Override>;
 
 /** What one report fetch yields. `overrides` is always an object, never null,
@@ -144,7 +152,8 @@ export async function fetchReport(
   if (res.status === 410) {
     const body = (await res.json().catch(() => null)) as { supersededBy?: unknown } | null;
     const next = body?.supersededBy;
-    return typeof next === "string" && REPORT_TOKEN_PATTERN.test(next)
+    // A pointer back at this token would redirect forever (review round 3).
+    return typeof next === "string" && REPORT_TOKEN_PATTERN.test(next) && next !== token
       ? { supersededBy: next }
       : null;
   }

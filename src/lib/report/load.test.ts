@@ -10,6 +10,11 @@ vi.mock("$app/env/private", () => ({
 
 const { loadReport } = await import("./load");
 import { EDIT_COOKIE } from "./edit-auth";
+import { toReportView } from "./model";
+import { headlineFinding, healthFixes } from "./narrative";
+import { ALL_PASS_REPORT } from "./fixtures/all-pass";
+import type { AuditReport, OverrideMap } from "./fetch";
+import { healthRows } from "./health";
 
 const REPORT = { url: "https://acme.example/", businessName: "Acme Roofing", scores: {} };
 const TOKEN = "aB3-_xY9zQ1rS2tU4vW6xY";
@@ -242,9 +247,202 @@ describe("W1: drafts reach only a verified editor; superseded links redirect", (
     });
   });
 
+  it("review round 3: keeps /edit, and 404s a 410 that points at itself or has no body", async () => {
+    const NEXT = "zZ9-_yX8wQ0rS2tU4vW6xY";
+    const toEdit = captured(
+      undefined,
+      new Response(JSON.stringify({ supersededBy: NEXT }), { status: 410 }),
+      `/audit/${TOKEN}/edit`,
+    );
+    await expect(loadReport(toEdit.evt)).rejects.toMatchObject({
+      status: 307,
+      location: `/audit/${NEXT}/edit`,
+    });
+    const self = captured(
+      undefined,
+      new Response(JSON.stringify({ supersededBy: TOKEN }), { status: 410 }),
+    );
+    await expect(loadReport(self.evt)).rejects.toMatchObject({ status: 404 });
+    const empty = captured(undefined, new Response(null, { status: 410 }));
+    await expect(loadReport(empty.evt)).rejects.toMatchObject({ status: 404 });
+  });
+
   it("404s a 410 whose pointer is not a token", async () => {
     const gone = new Response(JSON.stringify({ supersededBy: "../../etc" }), { status: 410 });
     const { evt } = captured(undefined, gone);
     await expect(loadReport(evt)).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe("W1 review round 1: a hidden row never reaches a reader's page data", () => {
+  const HIDDEN_TITLE = "A finding the reviewer judged wrong";
+  const PAYLOAD = {
+    url: "https://acme.example/",
+    analyze: { ok: true, data: { fixes: [{ title: HIDDEN_TITLE }, { title: "Keep me" }] } },
+  };
+  // Review round 3: a reader keeps only rewordings that render, so this one is
+  // written against the sentence the page really generates once the row is gone.
+  const GENERATED = headlineFinding(
+    toReportView({
+      ...PAYLOAD,
+      analyze: { ok: true, data: { fixes: [{ title: "Keep me" }] } },
+    } as AuditReport),
+  ).text;
+  const body = {
+    report: PAYLOAD,
+    overrides: {
+      "analyze.data.fixes[0]": { original: HIDDEN_TITLE, text: "", hidden: true },
+      "composed:headlineFinding": { original: GENERATED, text: "Edited." },
+    },
+    approvedAt: "2026-11-23T20:00:00.000Z",
+  };
+
+  it("the reader's load carries neither the hidden row nor its override", async () => {
+    const { evt } = event(TOKEN, respondWith(200, body));
+    const data = await loadReport(evt);
+    expect(JSON.stringify(data)).not.toContain(HIDDEN_TITLE);
+    // The composed rewording still reaches the renderer, which matches it.
+    // (Round 2: it carries a digest of the sentence it replaced, not the sentence.)
+    expect(Object.keys(data.overrides)).toEqual(["composed:headlineFinding"]);
+    expect(data.overrides["composed:headlineFinding"]!.text).toBe("Edited.");
+    expect(JSON.stringify(data)).not.toContain(GENERATED);
+  });
+
+  it("the editor's load keeps the stored payload and the whole map, to put a row back", async () => {
+    const { evt } = event(TOKEN, respondWith(200, body));
+    const data = await loadReport(evt, { forEditor: true });
+    expect(JSON.stringify(data.report)).toContain(HIDDEN_TITLE);
+    expect(Object.keys(data.overrides)).toHaveLength(2);
+  });
+});
+
+describe("W1 review round 2: a reader's composed overrides carry no old sentence", () => {
+  it("ships a digest, not the sentence a rewording replaced, and still applies it", async () => {
+    const { composed, digest } = await import("./overrides");
+    // Review round 3: the sentence the page really generates, since a reader
+    // now keeps only rewordings that render.
+    const OLD = headlineFinding(toReportView({ url: "https://acme.example/" } as AuditReport)).text;
+    const body = {
+      report: { url: "https://acme.example/" },
+      overrides: { "composed:headlineFinding": { original: OLD, text: "Reworded." } },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const { evt } = event(TOKEN, respondWith(200, body));
+    const data = await loadReport(evt);
+    expect(JSON.stringify(data)).not.toContain(OLD);
+    expect(data.overrides["composed:headlineFinding"]).toEqual({
+      original: "",
+      text: "Reworded.",
+      originalDigest: digest(OLD),
+    });
+    // The renderer still applies it where the generated sentence matches…
+    expect(composed(data.overrides, "composed:headlineFinding", OLD)).toBe("Reworded.");
+    // …and withholds it where it does not.
+    expect(composed(data.overrides, "composed:headlineFinding", "Another.")).toBe("Another.");
+  });
+});
+
+describe("W1 review round 3: a rewording that no longer renders is not shipped to a reader", () => {
+  it("drops a composed entry whose sentence is no longer generated, text and all", async () => {
+    const STALE = "REWORDED: a sentence about a row that is now hidden";
+    const body = {
+      report: { url: "https://acme.example/" },
+      overrides: {
+        "composed:headlineFinding": {
+          original: "A sentence the page no longer generates.",
+          text: STALE,
+        },
+      },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const { evt } = event(TOKEN, respondWith(200, body));
+    const data = await loadReport(evt);
+    expect(JSON.stringify(data)).not.toContain(STALE);
+    expect(data.overrides).toEqual({});
+    // The editor still sees it, to revert it.
+    const ed = await loadReport(event(TOKEN, respondWith(200, body)).evt, { forEditor: true });
+    expect(JSON.stringify(ed.overrides)).toContain(STALE);
+  });
+
+  it("round 4: keeps a health-fix rewording that renders (keyed by the row)", async () => {
+    const report = viewportFails() as AuditReport;
+    const fix = healthFixes(toReportView(report))[0]!;
+    const body = {
+      report,
+      overrides: {
+        "composed:healthFix[viewport].title": { original: fix.title, text: "Reworded fix" },
+      },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const data = await loadReport(event(TOKEN, respondWith(200, body)).evt);
+    expect(Object.keys(data.overrides)).toEqual(["composed:healthFix[viewport].title"]);
+    expect(healthFixes(toReportView(data.report, data.overrides))[0]!.title).toBe("Reworded fix");
+  });
+
+  it("round 5: an emptied composed line renders the same for the editor and the reader", async () => {
+    const report = viewportFails() as AuditReport;
+    const row = healthRows(toReportView(report)).find((r) => r.key === "viewport")!;
+    const body = () => ({
+      report,
+      overrides: { "composed:health[viewport].detail": { original: row.detail, text: "" } },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    });
+    const detail = (d: { report: AuditReport; overrides: OverrideMap }) =>
+      healthRows(toReportView(d.report, d.overrides)).find((r) => r.key === "viewport")!.detail;
+    const reader = await loadReport(event(TOKEN, respondWith(200, body())).evt);
+    const editor = await loadReport(event(TOKEN, respondWith(200, body())).evt, {
+      forEditor: true,
+    });
+    expect(detail(editor)).toBe(detail(reader));
+    expect(detail(reader)).toBe(row.detail);
+  });
+
+  it("round 4: drops a goal-verdict rewording where no verdict is shown", async () => {
+    const body = {
+      report: { url: "https://acme.example/" },
+      overrides: {
+        "composed:goalVerdict": {
+          original: "We could not judge any of what it needs to do that.",
+          text: "NOT SHOWN",
+        },
+      },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const data = await loadReport(event(TOKEN, respondWith(200, body)).evt);
+    expect(JSON.stringify(data)).not.toContain("NOT SHOWN");
+  });
+
+  it("keeps a goal-verdict rewording that renders, which the edit targets do not list", async () => {
+    const report = {
+      url: "https://acme.example/",
+      goalFit: {
+        ok: true,
+        data: {
+          goal: "leads",
+          requirements: [
+            { key: "a", label: "A", status: "met", evidence: null, why: "", scope: "quick" },
+          ],
+        },
+      },
+    };
+    const body = {
+      report,
+      overrides: {
+        "composed:goalVerdict": {
+          original: "Everything it needs to do that is in place.",
+          text: "All set.",
+        },
+      },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const data = await loadReport(event(TOKEN, respondWith(200, body)).evt);
+    expect(Object.keys(data.overrides)).toEqual(["composed:goalVerdict"]);
+  });
+});
+
+/** The all-pass fixture with one measured problem: no viewport tag (one health fix). */
+function viewportFails() {
+  const r = structuredClone(ALL_PASS_REPORT) as Record<string, unknown>;
+  (r.checks as { data: Record<string, unknown> }).data.viewportOk = false;
+  return r;
+}
