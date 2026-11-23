@@ -70,19 +70,44 @@ export type Accuracy = {
   /** Zero means we had no engine answer to read. The section must then say it
    *  was not measured — never "nothing wrong was found". */
   answersRead: number;
-  /** The assistant described more than one business under this name. For a
-   *  common name that is the headline of the branded search. Absent on reports
-   *  stored before it was recorded, which read as not-detected. */
+  /** The assistant gave this name to something else too. Only when it also
+   *  did not settle which one this business is is that a finding: see
+   *  `nameUnsettled`. Absent on reports stored before it was recorded, which
+   *  read as not-detected. */
   conflation: Conflation;
 };
 
 export type Conflation = {
   detected: boolean;
+  /**
+   * Did the answer still say which one this business is, and keep the others
+   * apart? Recorded by audits from 2026-11-23; absent before.
+   *
+   * Absent never reads as unsure. The audit's earlier verdict asked only
+   * whether the answer named "more than one business under this name", a
+   * definition written around a case where the answer really could not tell.
+   * A stored answer that named the business first, with its city, its work and
+   * its site, and then said two unrelated things shared its initials, was
+   * recorded as detected, and the report led on "not sure which you are".
+   */
+  settled?: boolean;
+  /** The other things the answer gave the name to, each with what it is in the
+   *  answer's own words. Not necessarily businesses. */
   otherNames: string[];
   engineQuote: string | null;
 };
 
 const NO_CONFLATION: Conflation = { detected: false, otherNames: [], engineQuote: null };
+
+/**
+ * The assistant gave this business's name to something else too, and its own
+ * verdict says it did not settle which one it meant. The only name collision
+ * from the branded answers that the report states as a finding: the lead
+ * finding, the "not sure which you are" block and its fix all ask this.
+ */
+export function nameUnsettled(acc: Accuracy | null | undefined): boolean {
+  return Boolean(acc?.conflation.detected) && acc?.conflation.settled === false;
+}
 
 export type Fix = {
   title: string;
