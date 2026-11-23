@@ -114,8 +114,9 @@
             <a
               href={item.link.url}
               class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-30 focus:bg-white focus:px-2"
-              >{item.image.alt || "View linked media"}</a
             >
+              {item.image.alt || "View linked media"}
+            </a>
           {/if}
           {#if item.vimeoId || v.mp4 || v.mobileMp4}
             <PrismicImage

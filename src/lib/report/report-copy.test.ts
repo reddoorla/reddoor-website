@@ -10,7 +10,8 @@ import {
   type Assertion,
   type ReportView,
 } from "./model";
-import { allFixes, auditedOn, headlineFinding, TOC_TARGETS } from "./narrative";
+import { allFixes, auditedOn, collisionBlock, headlineFinding, TOC_TARGETS } from "./narrative";
+import { editableTargets } from "./editable";
 
 /**
  * Sentences the report must and must not contain, asserted on what renders.
@@ -104,6 +105,7 @@ const RICH: AuditReport = {
       pagesTotal: 5,
       conflation: {
         detected: true,
+        settled: false,
         otherNames: [OTHER_NAME],
         engineQuote: "There are two studios by that name.",
       },
@@ -409,5 +411,153 @@ describe("the print sheet tells the screen report's story", () => {
     expect(text).not.toMatch(/Most AI crawlers/);
     expect(text).not.toMatch(/crawlers (run|execute) no/i);
     expect(text).not.toMatch(/assumption/);
+  });
+});
+
+/**
+ * The "not sure which you are" finding is the branded answer's to make, not
+ * ours. It was written around our own audit, where the answer could not tell
+ * which of several same-named studios was meant, and it fired on a report
+ * whose answer named the business first — city, work, site — and then said a
+ * cancer biomarker and a billing credential share its initials. The lead
+ * finding called those two "businesses".
+ */
+describe("the name-collision finding follows the branded answer's own verdict", () => {
+  const WHO = "Example Studio";
+  const HEADING = `The assistant is not sure which ${WHO} you are`;
+  const withConflation = (conflation: Record<string, unknown>): AuditReport => ({
+    ...ALL_PASS_REPORT,
+    businessName: WHO,
+    accuracy: {
+      ok: true,
+      data: { ...allPass.accuracy.data, conflation },
+    },
+  });
+  const surfaces: Array<[string, (r: AuditReport) => string]> = [
+    ["the source-check section", (r) => seen(renderText(sourceCheck, { view: toReportView(r) }))],
+    ["the print sheet", (r) => seen(printed(r))],
+  ];
+  const fixTitles = (r: AuditReport) => allFixes(toReportView(r)).map((f) => f.title);
+
+  // An answer that described only the business itself.
+  const onlyItself = withConflation({
+    detected: false,
+    settled: true,
+    otherNames: [],
+    engineQuote: null,
+  });
+  // An answer that named the business and set an unrelated namesake apart.
+  const setApart = withConflation({
+    detected: true,
+    settled: true,
+    otherNames: ["EXST-1 (a protein marker)"],
+    engineQuote: "It is unrelated to EXST-1, a protein marker that shares the initials.",
+  });
+  // Stored before the audit asked whether the answer settled it.
+  const legacy = withConflation({
+    detected: true,
+    otherNames: ["EXST-1 (a protein marker)"],
+    engineQuote: "It is unrelated to EXST-1, a protein marker that shares the initials.",
+  });
+  // An answer that could not tell, whose one other is a credential.
+  const CREDENTIAL = "Example Studio Certified (a design credential offered by a trade body)";
+  const unsureCredential = withConflation({
+    detected: true,
+    settled: false,
+    otherNames: [CREDENTIAL],
+    engineQuote: "I can't tell which Example Studio you mean.",
+  });
+
+  it.each(surfaces)(
+    "%s: shows no collision block when the answer described only itself",
+    (_l, render) => {
+      expect(render(onlyItself)).not.toContain(HEADING);
+      expect(render(onlyItself)).not.toContain(COLLISION_HEADING);
+    },
+  );
+
+  it.each(surfaces)(
+    "%s: shows no collision block when the answer settled which one",
+    (_l, render) => {
+      for (const r of [setApart, legacy]) {
+        expect(render(r)).not.toContain(HEADING);
+        expect(render(r)).not.toContain("EXST-1");
+      }
+    },
+  );
+
+  it("neither leads on it nor makes it Fix 1 unless the answer was unsure", () => {
+    for (const r of [onlyItself, setApart, legacy]) {
+      expect(headlineFinding(toReportView(r)).kind).not.toBe("name-collision");
+      expect(fixTitles(r)).not.toContainEqual(expect.stringContaining("Say which"));
+    }
+    expect(headlineFinding(toReportView(unsureCredential)).kind).toBe("name-collision");
+    expect(fixTitles(unsureCredential)[0]).toContain(`Say which ${WHO}`);
+  });
+
+  it.each(surfaces)(
+    "%s: names a credential as the answer did, and never calls it a business",
+    (_l, render) => {
+      const text = render(unsureCredential);
+      // The block alone: the rest of the page has its own uses of the word
+      // ("your business details in structured data").
+      const block = text.slice(text.indexOf(HEADING), text.indexOf("The remedy is"));
+      expect(block).toContain(HEADING);
+      expect(block).toContain(CREDENTIAL);
+      expect(block).not.toMatch(/\bbusiness(es)?\b/i);
+    },
+  );
+
+  it("never calls the others businesses in the lead finding", () => {
+    const h = headlineFinding(toReportView(unsureCredential)).text;
+    expect(h).toContain(`not sure which ${WHO} you are`);
+    expect(h).not.toMatch(/\bbusiness(es)?\b/i);
+  });
+
+  it("lists the block's two lines for the editor, and honours both on screen and in print", () => {
+    const view = toReportView(unsureCredential);
+    const targets = editableTargets(view, unsureCredential);
+    const heading = targets.find((t) => t.key === "composed:collision.heading");
+    const detail = targets.find((t) => t.key === "composed:collision.detail");
+    expect(heading?.text).toBe(HEADING);
+    expect(detail?.text).toContain(CREDENTIAL);
+    const overrides = {
+      "composed:collision.heading": { original: HEADING, text: "EDITED-HEADING" },
+      "composed:collision.detail": { original: detail!.text, text: "EDITED-DETAIL" },
+    };
+    const screen = seen(renderText(sourceCheck, { view: { ...view, overrides } }));
+    const print = seen(renderText(printSheet, { data: { report: unsureCredential, overrides } }));
+    for (const text of [screen, print]) {
+      expect(text).toContain("EDITED-HEADING");
+      expect(text).toContain("EDITED-DETAIL");
+      expect(text).not.toContain(CREDENTIAL);
+    }
+    // An override recorded against other generated words is withheld.
+    const stale = {
+      "composed:collision.heading": { original: "SOMETHING ELSE", text: "STALE-EDIT" },
+    };
+    expect(seen(renderText(sourceCheck, { view: { ...view, overrides: stale } }))).not.toContain(
+      "STALE-EDIT",
+    );
+  });
+
+  it("does not put 'business' in the block when the report has no name on record", () => {
+    const anon = { ...unsureCredential, businessName: null } as AuditReport;
+    const b = collisionBlock(toReportView(anon))!;
+    expect(b.heading).toBe("The assistant is not sure which one you are");
+    expect(`${b.heading} ${b.detail}`).not.toMatch(/\bbusiness(es)?\b/i);
+  });
+
+  it("lets the report's editor reword the block, per report", () => {
+    const view = toReportView(unsureCredential);
+    const generated = renderText(sourceCheck, { view });
+    expect(seen(generated)).toContain(HEADING);
+    const edited = {
+      ...view,
+      overrides: {
+        "composed:collision.heading": { original: HEADING, text: "EDITED-HEADING" },
+      },
+    };
+    expect(seen(renderText(sourceCheck, { view: edited }))).toContain("EDITED-HEADING");
   });
 });

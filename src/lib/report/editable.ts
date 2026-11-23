@@ -1,6 +1,6 @@
 import type { AuditReport, OverrideMap } from "./fetch";
 import { openingSummary, type ReportView } from "./model";
-import { headlineFinding, passes, collisionFix, healthFixes } from "./narrative";
+import { headlineFinding, passes, collisionBlock, collisionFix, healthFixes } from "./narrative";
 import { healthRows } from "./health";
 
 /** One line an operator can rewrite. */
@@ -115,6 +115,12 @@ export function editableTargets(view: ReportView, raw?: AuditReport): EditTarget
     push(out, map, `composed:passes[${i}].title`, g.title);
     g.items.forEach((item, j) => push(out, map, `composed:passes[${i}].items[${j}]`, item));
   });
+
+  const block = collisionBlock(view);
+  if (block) {
+    push(out, map, "composed:collision.heading", block.heading);
+    push(out, map, "composed:collision.detail", block.detail);
+  }
 
   const collision = collisionFix(view);
   if (collision) {

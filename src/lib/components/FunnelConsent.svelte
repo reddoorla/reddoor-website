@@ -73,13 +73,17 @@
         <button
           type="button"
           class="cursor-pointer rounded-[4px] border-1 border-white bg-white px-5 py-2 tracking-wider text-black transition-opacity hover:opacity-80"
-          onclick={() => answer(true)}>Accept</button
+          onclick={() => answer(true)}
         >
+          Accept
+        </button>
         <button
           type="button"
           class="cursor-pointer rounded-[4px] border-1 border-white px-5 py-2 tracking-wider text-white transition-colors hover:bg-white hover:text-black"
-          onclick={() => answer(false)}>Reject</button
+          onclick={() => answer(false)}
         >
+          Reject
+        </button>
       </div>
     </ContentWidth>
   </div>

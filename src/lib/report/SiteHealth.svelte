@@ -90,10 +90,10 @@
                   <p class="type-meta m-0 break-all text-muted">
                     <span class="font-medium text-primary">{item.status}</span>
                     {item.url}
-                    <span class="text-muted"
-                      >— linked from {item.referencedBy.length}
-                      {plural(item.referencedBy.length, "page", "pages")}</span
-                    >
+                    <span class="text-muted">
+                      — linked from {item.referencedBy.length}
+                      {plural(item.referencedBy.length, "page", "pages")}
+                    </span>
                   </p>
                 {/each}
               </div>
@@ -125,8 +125,9 @@
                 <p class="type-eyebrow m-0 text-dark">Heaviest images</p>
                 {#each view.assets.heaviestImages as item (item.url)}
                   <p class="type-meta m-0 break-all text-muted">
-                    <span class="font-medium text-black tabular-nums">{mb(item.bytes ?? 0)} MB</span
-                    >
+                    <span class="font-medium text-black tabular-nums">
+                      {mb(item.bytes ?? 0)} MB
+                    </span>
                     {item.url}
                   </p>
                 {/each}

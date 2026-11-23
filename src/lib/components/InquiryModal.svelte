@@ -899,8 +899,10 @@
               <span class="inquiry-step-num">
                 <span
                   class="inquiry-step-digits"
-                  style="--digit-nudge:{numeralNudge(stepNumber(i))}px">{stepNumber(i)}</span
+                  style="--digit-nudge:{numeralNudge(stepNumber(i))}px"
                 >
+                  {stepNumber(i)}
+                </span>
                 {#if i === 0}
                   <!-- The board drops the process rail's arrow out of the
                        current step: a rule down to a chevron, not a loose

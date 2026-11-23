@@ -3,6 +3,7 @@
     citationRuns,
     failedChecksSentence,
     gapClause,
+    nameUnsettled,
     namesakeLeads,
     notSourcedFromSite,
     openingSummary,
@@ -13,6 +14,7 @@
   import {
     allFixes,
     auditedOn,
+    collisionBlock,
     displayQuote,
     headlineFinding,
     passes,
@@ -78,7 +80,7 @@
   const confirmed = $derived(
     (accuracy?.assertions ?? []).filter((a) => a.verdict === "confirmed").length,
   );
-  const collision = $derived(Boolean(accuracy?.conflation.detected) || view.namesake !== null);
+  const collision = $derived(collisionBlock(view));
 
   const healthProblems = $derived(healthRows(view).filter((r) => r.alert));
   const goalMissing = $derived(
@@ -164,19 +166,11 @@
       <h2>What AI is saying about you</h2>
       {#if collision}
         <div class="callout">
-          <h3>
-            {accuracy.conflation.detected
-              ? `The assistant is not sure which ${who} you are`
-              : "Someone else is answering to your name"}
-          </h3>
-          {#if accuracy.conflation.detected}
-            <p>
-              Asked about you by name, it described more than one business{accuracy.conflation
-                .otherNames.length
-                ? ` — including ${accuracy.conflation.otherNames.join(", ")}`
-                : ""}. Until your own pages make the name, the place and the work unambiguous,
-              anything it says about &ldquo;{who}&rdquo; may be about someone else.
-            </p>
+          <h3>{collision.heading}</h3>
+          {#if collision.detail}
+            <p>{collision.detail}</p>
+          {/if}
+          {#if nameUnsettled(accuracy)}
             {#if accuracy.conflation.engineQuote}
               <p class="fix-w">
                 The AI said: &ldquo;{displayQuote(accuracy.conflation.engineQuote)}&rdquo;
@@ -189,8 +183,8 @@
               {view.namesake.count}
               {view.namesake.count === 1 ? "time" : "times"}{namesakeLeads(view)
                 ? " — more than any other source"
-                : ""}. It is a different company with a name close enough to yours that the
-              assistant has to tell you apart.
+                : ""}. It is a different site with a name close enough to yours that the assistant
+              has to tell you apart.
             </p>
           {/if}
           <p class="note">The remedy is the first item under Our recommendations.</p>

@@ -42,13 +42,13 @@
         <div class="h-6 w-20 flex flex-row justify-between text-white">
           {#if data.prevProject}
             <a href={"/portfolio/" + data.prevProject.uid} aria-label="Previous project">
-              <ChevronLeft class="size-[2em] bump hover:text-light" strokeWidth={1} /></a
-            >
+              <ChevronLeft class="size-[2em] bump hover:text-light" strokeWidth={1} />
+            </a>
           {/if}
           {#if data.nextProject}
             <a href={"/portfolio/" + data.nextProject.uid} aria-label="Next project">
-              <ChevronRight class="size-[2em] bump hover:text-light" strokeWidth={1} /></a
-            >
+              <ChevronRight class="size-[2em] bump hover:text-light" strokeWidth={1} />
+            </a>
           {/if}
         </div>
       </div>

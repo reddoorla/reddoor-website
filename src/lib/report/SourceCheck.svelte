@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { displayQuote, numberWord } from "./narrative";
+  import { collisionBlock, displayQuote, numberWord } from "./narrative";
   import {
     citationRuns,
+    nameUnsettled,
     namesakeLeads,
     notSourcedFromSite,
     ownSiteCitations,
@@ -68,10 +69,11 @@
     yours: "yours",
   } as const;
 
-  // The collision, from either instrument: the branded answer describing more
-  // than one business, or a namesake domain cited across the buyer searches.
+  // The collision, from either instrument: a branded answer that gave this
+  // name to something else and did not settle which one it meant
+  // (`nameUnsettled`), or a namesake domain cited across the buyer searches.
   // One block, because a reader does not care which of our checks noticed.
-  const collision = $derived(Boolean(acc?.conflation.detected) || view.namesake !== null);
+  const collision = $derived(collisionBlock(view));
 
   // The honest denominator. `pagesTotal` is how many pages the crawl read,
   // which is capped — it is not how many pages the site has. The sitemap count
@@ -113,18 +115,12 @@
            narrative. One bordered block, nothing bordered inside it. -->
       <div class="flex flex-col gap-4 border-l-2 border-primary pl-6">
         <h4 class="type-question m-0 text-primary">
-          {acc.conflation.detected
-            ? `The assistant is not sure which ${who} you are`
-            : "Someone else is answering to your name"}
+          {collision.heading}
         </h4>
-        {#if acc.conflation.detected}
-          <p class="type-meta m-0 text-muted">
-            Asked about you by name, it described more than one business{acc.conflation.otherNames
-              .length
-              ? ` — including ${acc.conflation.otherNames.join(", ")}`
-              : ""}. Until your own pages make the name, the place and the work unambiguous,
-            anything it says about &ldquo;{who}&rdquo; may be about someone else.
-          </p>
+        {#if collision.detail}
+          <p class="type-meta m-0 text-muted">{collision.detail}</p>
+        {/if}
+        {#if nameUnsettled(acc)}
           {#if acc.conflation.engineQuote}
             <p class="type-meta m-0 text-muted">
               The AI said: &ldquo;{displayQuote(acc.conflation.engineQuote)}&rdquo;
@@ -133,14 +129,14 @@
         {/if}
         {#if view.namesake}
           <p class="type-meta m-0 text-muted">
-            Across the buyer searches we ran, <strong class="text-black"
-              >{view.namesake.domain}</strong
-            >
+            Across the buyer searches we ran, <strong class="text-black">
+              {view.namesake.domain}
+            </strong>
             was cited {view.namesake.count}
             {view.namesake.count === 1 ? "time" : "times"}{namesakeLeads(view)
               ? " — more than any other source"
-              : ""}. It is a different company with a name close enough to yours that the assistant
-            has to tell you apart.
+              : ""}. It is a different site with a name close enough to yours that the assistant has
+            to tell you apart.
           </p>
         {/if}
         <p class="type-meta m-0 text-muted">

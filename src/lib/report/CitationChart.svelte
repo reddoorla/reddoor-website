@@ -83,7 +83,7 @@
         class="h-2.5 w-full bg-band"
         role="img"
         aria-label="{row.domain}{isNamesake
-          ? ' (a different company with a similar name)'
+          ? ' (a different site with a similar name)'
           : ''} cited {row.count} {row.count === 1 ? 'time' : 'times'}"
       >
         <div class="h-full bg-dark" style="width: {pct(row.count)}%"></div>
