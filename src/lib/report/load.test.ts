@@ -13,7 +13,8 @@ import { EDIT_COOKIE } from "./edit-auth";
 import { toReportView } from "./model";
 import { headlineFinding, healthFixes } from "./narrative";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
-import type { AuditReport } from "./fetch";
+import type { AuditReport, OverrideMap } from "./fetch";
+import { healthRows } from "./health";
 
 const REPORT = { url: "https://acme.example/", businessName: "Acme Roofing", scores: {} };
 const TOKEN = "aB3-_xY9zQ1rS2tU4vW6xY";
@@ -376,6 +377,24 @@ describe("W1 review round 3: a rewording that no longer renders is not shipped t
     const data = await loadReport(event(TOKEN, respondWith(200, body)).evt);
     expect(Object.keys(data.overrides)).toEqual(["composed:healthFix[viewport].title"]);
     expect(healthFixes(toReportView(data.report, data.overrides))[0]!.title).toBe("Reworded fix");
+  });
+
+  it("round 5: an emptied composed line renders the same for the editor and the reader", async () => {
+    const report = viewportFails() as AuditReport;
+    const row = healthRows(toReportView(report)).find((r) => r.key === "viewport")!;
+    const body = () => ({
+      report,
+      overrides: { "composed:health[viewport].detail": { original: row.detail, text: "" } },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    });
+    const detail = (d: { report: AuditReport; overrides: OverrideMap }) =>
+      healthRows(toReportView(d.report, d.overrides)).find((r) => r.key === "viewport")!.detail;
+    const reader = await loadReport(event(TOKEN, respondWith(200, body())).evt);
+    const editor = await loadReport(event(TOKEN, respondWith(200, body())).evt, {
+      forEditor: true,
+    });
+    expect(detail(editor)).toBe(detail(reader));
+    expect(detail(reader)).toBe(row.detail);
   });
 
   it("round 4: drops a goal-verdict rewording where no verdict is shown", async () => {

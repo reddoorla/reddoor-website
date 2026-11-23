@@ -235,6 +235,11 @@ export function composed(map: OverrideMap, key: string, generated: string): stri
   // a non-string `text` would be returned from a function TypeScript believes
   // cannot do that.
   if (!ov || typeof ov.text !== "string") return generated;
+  // W1 review round 5. An emptied sentence is not an override. The reader's
+  // filter lists only lines with text, so an empty one rendered as gone for
+  // the editor while the prospect read the generated sentence. To take a line
+  // off the page, hide its row.
+  if (ov.text.trim() === "") return generated;
   const matches =
     typeof ov.originalDigest === "string"
       ? ov.originalDigest === digest(generated)

@@ -94,7 +94,10 @@
     const next: OverrideMap = { ...overrides };
     // Typing the generated text back in REMOVES the override rather than
     // storing a no-op, so a report can always be returned to what was measured.
-    if (text === original) delete next[key];
+    // An emptied line reverts too (review round 5): a blank override renders
+    // as the generated text everywhere, so storing one would only mislead.
+    // Taking a line off the page is "Hide a row".
+    if (text === original || text === "") delete next[key];
     else next[key] = { original, text };
     await save(next);
   }
