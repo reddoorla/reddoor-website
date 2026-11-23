@@ -618,7 +618,7 @@ const LISTING_SITES = [
  * has always used.
  */
 export function notSourcedFromSite(view: ReportView): Assertion[] {
-  const all = printable(view.accuracy?.assertions ?? []);
+  const all = printable(view.accuracy?.assertions ?? [], otherNamesOf(view));
   return [
     ...all.filter((a) => a.verdict === "absent"),
     ...all.filter((a) => a.verdict === "unverified"),
@@ -637,19 +637,70 @@ export function notSourcedFromSite(view: ReportView): Assertion[] {
  * `engineQuote`, never `claim`). A stored row has no subject and is read as
  * about the prospect; the withhold is what keeps its worst rows off the page.
  */
-export function printable(rows: Assertion[]): Assertion[] {
-  return rows.filter((a) => aboutProspect(a) && withheldTopic(a) === null);
+export function printable(rows: Assertion[], otherNames: string[] = []): Assertion[] {
+  return oneEach(
+    rows.filter((a) => aboutProspect(a, otherNames) && withheldTopic(a) === null && hasQuote(a)),
+  );
 }
 
-function aboutProspect(a: Assertion): boolean {
-  return a.subject === undefined || a.subject === "prospect";
+/**
+ * A row stored before 2026-11-23 has no subject, and is read as about the
+ * prospect unless its own quote names another business: the assistant's
+ * "most likely match" hedge, or one of the names it gave to something else.
+ */
+function aboutProspect(a: Assertion, otherNames: string[] = []): boolean {
+  if (a.subject !== undefined) return a.subject === "prospect";
+  const quote = a.engineQuote.toLowerCase();
+  if (quote.includes("most likely match") || quote.includes("likely match")) return false;
+  return !otherNames.some((n) => quote.includes(n.toLowerCase()));
+}
+
+/** The other names the answer gave this business, cut to the part before " (",
+ *  for matching the quote of a row stored without a subject. A short name
+ *  matches almost anything, and this business's own name is not another. */
+export function otherNamesOf(view: ReportView): string[] {
+  const own = (view.businessName ?? "").trim().toLowerCase();
+  return (view.accuracy?.conflation?.otherNames ?? [])
+    .map((n) => (n.split(" (")[0] ?? "").trim())
+    .filter((n) => n.length >= 4 && n.toLowerCase() !== own);
+}
+
+/** A statement's identity on the page: the assistant's words and the question
+ *  it answered. Several rows can share both, because the model splits one
+ *  sentence into several claims, and the page prints that sentence once. */
+function statementKey(a: Assertion): string {
+  return `${a.engineQuote}\n${a.query}`;
+}
+
+/** The first row of each statement. */
+function oneEach(rows: Assertion[]): Assertion[] {
+  const seen = new Set<string>();
+  return rows.filter((a) => {
+    const key = statementKey(a);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** An empty quote has nothing to print, and `“”` is never a statement. */
+function hasQuote(a: Assertion): boolean {
+  return a.engineQuote.trim() !== "";
 }
 
 /** Confirmed statements, with both quotes, for the reader to judge (BR-09). */
 export function confirmedRows(view: ReportView): Assertion[] {
   if (!sourceCheckMeasured(view)) return [];
-  return (view.accuracy?.assertions ?? []).filter(
-    (a) => a.verdict === "confirmed" && aboutProspect(a) && a.siteQuote !== null,
+  const names = otherNamesOf(view);
+  return oneEach(
+    (view.accuracy?.assertions ?? []).filter(
+      (a) =>
+        a.verdict === "confirmed" &&
+        aboutProspect(a, names) &&
+        withheldTopic(a) === null &&
+        hasQuote(a) &&
+        a.siteQuote !== null,
+    ),
   );
 }
 
@@ -658,7 +709,25 @@ export function contradictedRows(view: ReportView): Assertion[] {
   // Gated like the section: a statement out of an answer the report says it
   // did not read is not printed anywhere, the headline included.
   if (!sourceCheckMeasured(view)) return [];
-  return printable(view.accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted");
+  return printable(view.accuracy?.assertions ?? [], otherNamesOf(view)).filter(
+    (a) => a.verdict === "contradicted",
+  );
+}
+
+/**
+ * A contradiction about the prospect that the page withholds: on a withheld
+ * topic, or with no quote to print. While one stands, the report must not
+ * say everything checks out (narrative's headline asks this).
+ */
+export function withheldContradiction(view: ReportView): boolean {
+  if (!sourceCheckMeasured(view)) return false;
+  const names = otherNamesOf(view);
+  return (view.accuracy?.assertions ?? []).some(
+    (a) =>
+      a.verdict === "contradicted" &&
+      aboutProspect(a, names) &&
+      (withheldTopic(a) !== null || !hasQuote(a)),
+  );
 }
 
 /**
@@ -679,46 +748,106 @@ const TOPIC_LABEL: Record<Exclude<AssertionTopic, "other">, string> = {
   street_address: "addresses",
 };
 
+/** A case-insensitive spelling of each word, for a pattern that must also test
+ *  a capital letter (a name, a street word), where the `i` flag cannot be used. */
+const ci = (words: string[]): string =>
+  `(?:${words
+    .map((w) => w.replace(/[a-z]/gi, (c) => `[${c.toLowerCase()}${c.toUpperCase()}]`))
+    .join("|")})`;
+
 /** Read off the words, for rows stored before the producer recorded a topic
- *  and for a model that files one under `other`. Errs wide: a false match
- *  withholds a statement, which is the safe direction. */
-const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp][] = [
+ *  and for a model that files one under `other`. Errs wide, but only on words
+ *  that name the topic: a false match withholds a true sentence the page could
+ *  have printed, so each pattern is one a business's own description would not
+ *  use in an ordinary sense. A topic matches when any of its patterns does. */
+const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
   [
     "ratings_reviews",
-    /\b(ratings?|rated|stars?|reviews?|reviewers?|glassdoor|indeed|yelp|trustpilot|out of (5|five|10|ten))\b|\b\d(\.\d)?\s*\/\s*(5|10)\b/i,
+    [
+      // A score: "3.4/5", "4.2 out of 5", "rated 4.2 out of 5".
+      /\b\d(\.\d)?\s*(?:\/|out of)\s*(?:5|five|10|ten)\b/i,
+      /\brated \d/i,
+      // "4-star", "a 4.9 on Google", "reviews on Glassdoor".
+      /\b\d(\.\d)?[- ]stars?\b/i,
+      /\b\d(\.\d)? on (?:google|yelp|glassdoor|indeed)\b/i,
+      /\breviews? (?:on|from) (?:google|yelp|glassdoor|indeed|trustpilot|bbb)\b/i,
+      // A survey share: "60% would recommend it", "60% of employees".
+      /\bwould recommend\b/i,
+      /%\s+of (?:employees|reviewers)\b/i,
+    ],
   ],
-  ["complaints", /\b(complaints?|alerts?|lawsuits?|sued|litigation|scam|fraud\w*)\b/i],
-  ["accreditation", /\b(accredit\w*|bbb|better business bureau)\b/i],
+  ["complaints", [/\b(?:complaints?|alerts?|lawsuits?|sued|litigation|scam|fraud\w*)\b/i]],
+  ["accreditation", [/\b(?:accredit\w*|bbb|better business bureau)\b/i]],
   [
     "legal_entity",
-    /\b(llc|l\.l\.c|incorporated|corporation|sole proprietor\w*|dba|d\/b\/a|doing business as|alternate name|legal name|registered (as|in|with)|registration|subsidiary|franchise\w*|entity)\b/i,
+    [
+      /\b(?:llc|l\.l\.c|inc|corp|ltd)\b/i,
+      /\bsole proprietor\w*/i,
+      /\b(?:dba|d\/b\/a|doing business as)\b/i,
+      // "registered in Texas" is a legal-entity claim the page must not print
+      // unchecked, so the narrowing does not drop the original's "in" and "with".
+      /\b(?:registered (?:as|in|with)|incorporated in)\b/i,
+      /\b(?:legal name|alternate name|subsidiary|franchise\w*|entity)\b/i,
+      /\b[Oo]perates as [A-Z]/,
+    ],
   ],
   [
     "named_person",
-    /\b(ceo|cfo|coo|cto|president|chief|director|led by|run by|managed by|headed by|founded by|co-?founders?|founders?)\b|\b(Dr|Mr|Mrs|Ms)\.\s+[A-Z]/,
+    [
+      new RegExp(`\\b${ci(["founded", "led", "run", "headed", "managed"])} by [A-Z]`),
+      new RegExp(
+        `\\b${ci(["ceo", "cfo", "coo", "cto", "president", "founder", "co-founder"])}\\s+(?:${ci(["is", "was"])}\\s+)?[A-Z]`,
+      ),
+      new RegExp(
+        `\\b[A-Z][a-z]+ [A-Z][a-z]+,? (?:${ci(["the"])} )?${ci(["ceo", "founder", "owner", "president"])}\\b`,
+      ),
+      /\b(?:Dr|Mr|Mrs|Ms)\.\s+[A-Z]/,
+    ],
   ],
-  ["ownership", /\b(owned|owners?|owns|acquired|acquisition|parent company)\b/i],
+  [
+    "ownership",
+    [/\b(?:owned by|owner is|owners are|parent company|acquired by|acquisition of)\b/i],
+  ],
   [
     "revenue_headcount",
-    /\b(revenue|turnover|funding|raised|valuation|employees|headcount|staff of)\b|\$\s?\d|\b\d[\d,]*\+?\s+(employees|people|staff)\b/i,
+    [
+      /\b(?:revenue|turnover|valuation|headcount)\b/i,
+      /\b\d[\d,]*\+?\s+(?:employees|people|staff)\b/i,
+      /\bstaff of \d+|\bteam of \d+ people\b/i,
+      // Money is a figure only with a scale word or a revenue word near it:
+      // "$5,000" is a price.
+      /\$\s?\d[\d,.]*\s*(?:million|billion|m\b)/i,
+      /\b(?:revenue|annual)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|annual)\b/i,
+    ],
   ],
   [
     "street_address",
-    /\b\d{1,6}\s+(?:[A-Z][\w'-]*\s+){1,4}(St|Street|Rd|Road|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Pkwy|Parkway|Hwy|Highway|Ct|Court|Pl|Place)\b|\bsuite\s+\d+/i,
+    [
+      // A number, an optional direction or ordinal, a capitalised street word,
+      // then a long suffix or a dotted short one. Case-sensitive on purpose.
+      new RegExp(
+        "\\b\\d{1,6}\\s+(?:[NSEW]\\.?\\s+)?(?:(?:\\d{1,3}(?:st|nd|rd|th)|[A-Z][\\w'-]*)\\s+){1,4}" +
+          "(?:(?:Street|Road|Avenue|Boulevard|Drive|Lane|Parkway|Highway|Court|Place)\\b|(?:St|Rd|Ave|Blvd)\\.)",
+      ),
+      /\bsuite\s+\d+/i,
+    ],
   ],
 ];
 
 export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | null {
   if (a.topic !== undefined && a.topic !== "other") return a.topic;
   const text = `${a.claim}\n${a.engineQuote}`;
-  for (const [topic, re] of TOPIC_TEXT) if (re.test(text)) return topic;
+  for (const [topic, patterns] of TOPIC_TEXT)
+    if (patterns.some((re) => re.test(text))) return topic;
   return null;
 }
 
 /** Does this text carry a withheld topic? For the branded answers' excerpts,
  *  which are printed whole and on a "reviews" query carry employee scores. */
 export function textWithheld(text: string): boolean {
-  return TOPIC_TEXT.some(([topic, re]) => topic === "ratings_reviews" && re.test(text));
+  return TOPIC_TEXT.some(
+    ([topic, patterns]) => topic === "ratings_reviews" && patterns.some((re) => re.test(text)),
+  );
 }
 
 /**
@@ -745,17 +874,26 @@ export type HeldBack = {
 
 /** What the page leaves out, counted, so leaving it out is said aloud. */
 export function heldBack(view: ReportView): HeldBack {
-  const all = (view.accuracy?.assertions ?? []).filter((a) => a.verdict !== "confirmed");
+  // Every verdict: a confirmed statement on a withheld topic, or about another
+  // business, is left off the page just as an absent one is.
+  const all = view.accuracy?.assertions ?? [];
+  const names = otherNamesOf(view);
   const topics: string[] = [];
+  const seenOthers = new Set<string>();
+  const seenWithheld = new Set<string>();
   let withheld = 0;
   let aboutOthers = 0;
   for (const a of all) {
-    if (!aboutProspect(a)) {
-      aboutOthers += 1;
+    const key = statementKey(a);
+    if (!aboutProspect(a, names)) {
+      // One sentence split into several claims is one statement to the reader.
+      if (!seenOthers.has(key)) aboutOthers += 1;
+      seenOthers.add(key);
       continue;
     }
     const t = withheldTopic(a);
-    if (t === null) continue;
+    if (t === null || seenWithheld.has(key)) continue;
+    seenWithheld.add(key);
     withheld += 1;
     if (!topics.includes(TOPIC_LABEL[t])) topics.push(TOPIC_LABEL[t]);
   }
@@ -1382,8 +1520,21 @@ export function sourceCheckMeasured(view: ReportView): boolean {
  *
  * So: a surface that PROMISES statements asks this. A surface that only reports
  * whether the check happened at all asks `sourceCheckMeasured`.
+ *
+ * R1 fix 12: "statements" means the ones that PRINT. A check whose every
+ * statement is withheld or about another business has none to sort, and the
+ * lede must not say it sorted them. `sourceCheckHasRows` is the wider question,
+ * for the section, which still says what it counted.
  */
 export function sourceCheckHasStatements(view: ReportView): boolean {
+  return (
+    sourceCheckMeasured(view) &&
+    contradictedRows(view).length + notSourcedFromSite(view).length + confirmedRows(view).length > 0
+  );
+}
+
+/** The section has rows to report on, printed or counted. */
+export function sourceCheckHasRows(view: ReportView): boolean {
   return sourceCheckMeasured(view) && (view.accuracy?.assertions.length ?? 0) > 0;
 }
 

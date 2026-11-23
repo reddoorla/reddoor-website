@@ -119,6 +119,15 @@ const assertion = (verdict: Assertion["verdict"] = "confirmed"): Assertion =>
     engine: "test",
   }) as Assertion;
 
+// R1 fix 12: the lede promises statements that PRINT. The default above is a
+// confirmed statement with no site quote, which the page never prints, and a
+// legal-entity claim, which it withholds. The lede tests need one that prints.
+const sayable = (verdict: Assertion["verdict"]): Assertion => ({
+  ...assertion(verdict),
+  claim: "Acme Co designs brand identities.",
+  engineQuote: "Acme Co designs brand identities.",
+});
+
 const accuracyWith = (answersRead: number, assertions: Assertion[] = []): ReportView["accuracy"] =>
   ({
     assertions,
@@ -172,11 +181,11 @@ describe("sourceCheckHasStatements — whether the check came back holding a sta
   // POSITIVE CONTROLS — the ordinary report. A predicate that can only ever
   // return false is not a fix.
   it("is true when an answer was read and a statement came out of it", () => {
-    expect(sourceCheckHasStatements(viewWith(accuracyWith(1, [assertion()])))).toBe(true);
+    expect(sourceCheckHasStatements(viewWith(accuracyWith(1, [sayable("absent")])))).toBe(true);
   });
 
   it("is true across several answers and several statements", () => {
-    const acc = accuracyWith(3, [assertion(), assertion("contradicted")]);
+    const acc = accuracyWith(3, [sayable("absent"), sayable("contradicted")]);
     expect(sourceCheckHasStatements(viewWith(acc))).toBe(true);
   });
 });
@@ -243,11 +252,11 @@ describe("the accuracy lede — the three states it can be read in", () => {
 
   // POSITIVE CONTROL — a lede that never prints is not a fix.
   it("is present on the ordinary report", () => {
-    expect(text(lede, viewWith(accuracyWith(3, [assertion()])))).toContain(LEDE_SENTENCE);
+    expect(text(lede, viewWith(accuracyWith(3, [sayable("absent")])))).toContain(LEDE_SENTENCE);
   });
 
   it("prints the lede and no empty state together on the ordinary report", () => {
-    const view = viewWith(accuracyWith(3, [assertion()]));
+    const view = viewWith(accuracyWith(3, [sayable("absent")]));
     expect(text(lede, view)).toContain(LEDE_SENTENCE);
     expect(text(sourceCheck, view)).not.toContain(NO_STATEMENT);
   });

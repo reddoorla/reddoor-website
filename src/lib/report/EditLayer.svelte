@@ -181,7 +181,9 @@
         <ul>
           {#each hideable as t (t.key)}
             <li>
-              <span class:rd-edit-gone={t.hidden}>{t.noun}: {t.original || "(no quote)"}</span>
+              <span class:rd-edit-gone={t.hidden}>
+                {t.noun}: {t.label ?? (t.original || "(no quote)")}
+              </span>
               <button
                 type="button"
                 disabled={saving || (!t.hidden && !t.canHide)}

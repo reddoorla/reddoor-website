@@ -67,6 +67,16 @@ const UNVERIFIED = row({
   unverifiedReason: "UNVERIFIED-REASON",
   sourceDomains: ["row-source.test"],
 });
+// R1 fix 12: UNVERIFIED names a person, so it is withheld and its reason never
+// prints. This one is not withheld, so it prints, and its reason must still
+// stay off the page: the guard below can only fail on it.
+const OPEN = row({
+  claim: "Example Studio works mostly for startups.",
+  verdict: "unverified",
+  engineQuote: "ENGINE-QUOTE-OPEN",
+  unverifiedReason: "OPEN-REASON-SENTINEL",
+  sourceDomains: ["row-source.test"],
+});
 const OTHER_NAME = "Example Studios Ltd";
 const ELSEWHERE = "reviews-elsewhere.test";
 const SITEMAP = 137;
@@ -96,7 +106,7 @@ const RICH: AuditReport = {
     ok: true,
     data: {
       ...allPass.accuracy.data,
-      assertions: [...allPass.accuracy.data.assertions, CONTRADICTED, ABSENT, UNVERIFIED],
+      assertions: [...allPass.accuracy.data.assertions, CONTRADICTED, ABSENT, UNVERIFIED, OPEN],
       sources: [
         ...(allPass.accuracy.data.sources as unknown[]),
         { domain: ELSEWHERE, owner: "theirs", because: "a review site" },
@@ -140,6 +150,7 @@ describe.each(surfaces)("%s", (_label, html) => {
       CONTRADICTED.engineQuote,
       CONTRADICTED.siteQuote!,
       ABSENT.engineQuote,
+      OPEN.engineQuote,
       // UNVERIFIED names a person, so it is withheld and counted (W2).
       "named people",
       OTHER_NAME,
@@ -166,6 +177,7 @@ describe.each(surfaces)("%s", (_label, html) => {
       UNVERIFIED.claim,
       UNVERIFIED.engineQuote,
       UNVERIFIED.unverifiedReason!,
+      OPEN.unverifiedReason!,
       "row-source.test",
     ]) {
       expect(html).not.toContain(sentinel);

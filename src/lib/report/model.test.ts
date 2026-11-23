@@ -1166,7 +1166,9 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
   const claim = (verdict: Assertion["verdict"], text: string): Assertion => ({
     claim: text,
     verdict,
-    engineQuote: "",
+    // R1 fix 2: an empty quote never prints, so the fixture carries the claim's
+    // own words as the quote the assistant gave.
+    engineQuote: text,
     siteQuote: null,
     nearbyMention: null,
     unverifiedReason: null,

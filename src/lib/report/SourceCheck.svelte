@@ -159,7 +159,7 @@
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each citationRuns(contradicted) as { row, citations } (row.engineQuote + row.query)}
+          {#each citationRuns(contradicted) as { row, citations }, i (i)}
             <li class="flex flex-col gap-2 border-t border-light py-6">
               <!-- The engine's words, verified as a real substring of its answer
                    rather than paraphrased. A client checking us on this is the
@@ -210,7 +210,7 @@
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each notSourced as u (u.engineQuote + u.query)}
+          {#each notSourced as u, i (i)}
             <li class="border-t border-light py-4 font-medium text-black">
               &ldquo;{displayQuote(u.engineQuote)}&rdquo;
             </li>
@@ -229,7 +229,7 @@
       <div class="flex flex-col gap-5">
         <h4 class="type-question m-0 text-black">What your site backs up</h4>
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each confirmedList as row (row.engineQuote + row.query)}
+          {#each confirmedList as row, i (i)}
             <li class="flex flex-col gap-2 border-t border-light py-4">
               <p class="m-0 font-medium text-black">
                 The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;

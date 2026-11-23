@@ -70,6 +70,10 @@ export const HIDEABLE: { path: string; field: string; noun: string }[] = [
  *  field is the quote it rests on (empty when it has none). */
 export const CONFLATION_KEY = "accuracy.data.conflation";
 
+/** An accuracy assertion's `claim`: the paraphrase, which no override may reword
+ *  (R1 fix 9). */
+const ASSERTION_CLAIM_KEY = /^accuracy\.data\.assertions\[\d+\]\.claim$/;
+
 function getAt(root: unknown, path: (string | number)[]): unknown {
   let node: unknown = root;
   for (const seg of path) {
@@ -160,6 +164,10 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
   for (const [key, ov] of entries) {
     // A hide entry names a row, not a string; it is applied after this loop.
     if (ov && (ov as { hidden?: unknown }).hidden === true) continue;
+    // R1 fix 9: an assertion's `claim` is our paraphrase, and what a row is
+    // withheld by reads it. An operator's rewording of it would change what the
+    // page withholds, so it is not applied. The page prints the quote instead.
+    if (ASSERTION_CLAIM_KEY.test(key)) continue;
     const path = parsePath(key);
     if (!path) continue;
 

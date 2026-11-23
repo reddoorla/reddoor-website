@@ -8,6 +8,8 @@ import {
   confirmedRows,
   contradictedRows,
   heldBack,
+  notSourcedFromSite,
+  withheldContradiction,
   type Fix,
   type ReportView,
   type StageKey,
@@ -36,6 +38,7 @@ export type HeadlineKind =
   | "goal-unknown"
   | "goal-missing"
   | "contradicted"
+  | "withheld-contradiction"
   | "unanswered"
   | "partial"
   | "site-check"
@@ -230,6 +233,17 @@ function headlineFindingGenerated(view: ReportView): Headline {
       text:
         `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
         "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
+    };
+  }
+
+  // R1 fix 6: a contradiction about this business that the page withholds is
+  // not a clean bill of health, and the all-clear below would say it is.
+  if (withheldContradiction(view)) {
+    return {
+      kind: "withheld-contradiction",
+      text:
+        "The assistant said something about you that your own site contradicts, on a topic we have not checked here. " +
+        "Ask us for it.",
     };
   }
 
@@ -822,8 +836,10 @@ export function heldBackLines(view: ReportView): string[] {
   const lines: string[] = [];
   if (h.withheld > 0) {
     const them = h.withheld === 1 ? "it" : "them";
+    // "also" only when a statement printed above this line (R1 fix 12).
+    const printedAbove = contradictedRows(view).length > 0 || notSourcedFromSite(view).length > 0;
     lines.push(
-      `The assistant also made ${numberWord(h.withheld)} ${h.withheld === 1 ? "statement" : "statements"} ` +
+      `The assistant ${printedAbove ? "also " : ""}made ${numberWord(h.withheld)} ${h.withheld === 1 ? "statement" : "statements"} ` +
         `about ${joinList(h.topics)} that we have not checked, so we have not repeated ${them} here. ` +
         `Ask us for ${them}.`,
     );

@@ -1,6 +1,14 @@
 import type { AuditReport, OverrideMap } from "./fetch";
 import { CONFLATION_KEY, HIDEABLE, hiddenRowKeys } from "./overrides";
-import { openingSummary, type ReportView } from "./model";
+import {
+  confirmedRows,
+  contradictedRows,
+  notSourcedFromSite,
+  openingSummary,
+  toReportView,
+  type Assertion,
+  type ReportView,
+} from "./model";
 import {
   headlineFinding,
   passes,
@@ -226,12 +234,41 @@ export type HideTarget = {
   original: string;
   /** What kind of row, for the list ("Fix", "Source", …). */
   noun: string;
+  /** What the list shows, when it is not `original`: an accuracy row is named
+   *  by the assistant's quote, which is what the reader sees on the page (R1 fix
+   *  10). The identity stays `original`. */
+  label?: string;
   hidden: boolean;
   /** False for the last visible row of its section (review round 2): an
    *  emptied section reads as a measurement ("we could not pull a checkable
    *  statement", "we could not judge any of it"). Withdraw the report instead. */
   canHide: boolean;
 };
+
+const ACCURACY_ROWS = "accuracy.data.assertions";
+
+/**
+ * The accuracy rows the page prints, by index into the stored list. A row the
+ * page withholds or never prints (a withheld topic, another business, an empty
+ * quote) is not offered: hiding it changes nothing on the page, and counting it
+ * toward the last-row rule would let the last printed row be hidden.
+ */
+function accuracyRowsOnPage(raw: AuditReport): Set<number> {
+  const indexes = new Set<number>();
+  // A payload with no assertion list has no rows to offer, and the view cannot be
+  // built from it.
+  if (!Array.isArray(at(raw, ACCURACY_ROWS))) return indexes;
+  const view = toReportView(raw);
+  const printed = new Set<Assertion>([
+    ...notSourcedFromSite(view),
+    ...contradictedRows(view),
+    ...confirmedRows(view),
+  ]);
+  (view.accuracy?.assertions ?? []).forEach((a, i) => {
+    if (printed.has(a)) indexes.add(i);
+  });
+  return indexes;
+}
 
 /**
  * Every row on this report that can be hidden, read from the payload as stored
@@ -241,17 +278,23 @@ export type HideTarget = {
  */
 export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
   const out: HideTarget[] = [];
+  const onPage = accuracyRowsOnPage(raw);
   for (const { path, field, noun } of HIDEABLE) {
     const list = at(raw, path);
     if (!Array.isArray(list)) continue;
     list.forEach((row, i) => {
       const original = (row as Record<string, unknown> | null)?.[field];
       if (typeof original !== "string" || original.trim() === "") return;
+      if (path === ACCURACY_ROWS && !onPage.has(i)) return;
       const key = `${path}[${i}]`;
+      const quote = (row as { engineQuote?: unknown }).engineQuote;
       out.push({
         key,
         original,
         noun,
+        ...(path === ACCURACY_ROWS
+          ? { label: `“${typeof quote === "string" ? quote.trim() : ""}”` }
+          : {}),
         hidden: map[key]?.hidden === true && map[key]!.original === original,
         canHide: true,
       });

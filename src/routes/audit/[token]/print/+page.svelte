@@ -9,7 +9,7 @@
     namesakeLeads,
     notSourcedFromSite,
     openingSummary,
-    sourceCheckHasStatements,
+    sourceCheckHasRows,
     toReportView,
     wasNamed,
   } from "$lib/report/model";
@@ -156,13 +156,13 @@
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
        cannot know whether a claim is right; saying "the AI got this wrong"
        about something a client knows is true would discredit the page. -->
-  <!-- `accuracy &&` narrows the type; `sourceCheckHasStatements` is what
-       decides whether there is a statement to print, so this sheet and the
-       screen report cannot disagree about it. The "and at least one assertion"
-       half used to be spelled out here and nowhere else, which is how the
-       screen's lede came to promise statements this sheet knew it did not
-       have. -->
-  {#if accuracy && sourceCheckHasStatements(view)}
+  <!-- `accuracy &&` narrows the type; `sourceCheckHasRows` is the section's gate:
+       measured, and at least one row to report on. It is wider than
+       `sourceCheckHasStatements`, the lede's question: a check whose statements
+       are all withheld still prints its count, and must not promise sorted
+       statements. -->
+
+  {#if accuracy && sourceCheckHasRows(view)}
     <section>
       <h2>What AI is saying about you</h2>
       {#if collision}
@@ -191,7 +191,7 @@
           <p class="note">The remedy is the first item under Our recommendations.</p>
         </div>
       {/if}
-      {#each contradictedList as { row, citations } (row.engineQuote + row.query)}
+      {#each contradictedList as { row, citations }, i (i)}
         <div class="fix">
           <p class="fix-t">
             The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
@@ -218,7 +218,7 @@
         <h3>What the AI says about you</h3>
         <p class="note">These are claims that seem not to be sourced from your site.</p>
         <ul>
-          {#each notSourced as u (u.engineQuote + u.query)}
+          {#each notSourced as u, i (i)}
             <li>&ldquo;{displayQuote(u.engineQuote)}&rdquo;</li>
           {/each}
         </ul>
@@ -228,7 +228,7 @@
       {/each}
       {#if confirmedList.length}
         <h3>What your site backs up</h3>
-        {#each confirmedList as row (row.engineQuote + row.query)}
+        {#each confirmedList as row, i (i)}
           <div class="fix">
             <p class="fix-t">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
             <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
