@@ -431,3 +431,26 @@ describe("W4 review round 3", () => {
     );
   });
 });
+
+describe("W4 review round 4: printableUrl leaves ordinary addresses alone", () => {
+  it.each([
+    "https://x.example/wp-content/uploads/2023/05/Screenshot-2023-05-01-at-10.30.45.png",
+    "https://x.example/wp-content/uploads/2023/05/Brochure-v1.2.pdf",
+    "https://x.example/wp-content/uploads/Dr.-Smith-2.0.jpg",
+    "https://x.example/blog/whats-new-in-wordpress-6.4/",
+    "https://x.example/events/gala-10.30.2024/",
+  ])("%s is printed as it is", (url) => {
+    expect(printableUrl(url)).toBe(url);
+  });
+
+  it.each([
+    [
+      "https://cdnjs.example/ajax/libs/jquery/3.6.0/jquery.min.js",
+      "https://cdnjs.example/ajax/libs/jquery/jquery.min.js",
+    ],
+    ["https://x.example/lib/jquery-3.6.0-min.js", "https://x.example/lib/jquery-min.js"],
+    ["/relative/jquery-1.2.3.js?ver=1", "/relative/jquery.js"],
+  ])("strips the version from the asset %s", (url, want) => {
+    expect(printableUrl(url)).toBe(want);
+  });
+});

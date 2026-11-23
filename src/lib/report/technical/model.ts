@@ -179,19 +179,29 @@ const noneMissing = (n: number) =>
  * page never prints a version string (LGL-05).
  */
 export function printableUrl(url: string): string {
+  // Resolved against a dummy base so a relative address gets the same rules.
+  let u: URL;
   try {
-    const u = new URL(url);
-    // `v=` is a version only on an asset; on youtube.com/watch it is the video.
-    const asset = /\.(?:js|mjs|css)$/i.test(u.pathname);
-    for (const k of [...u.searchParams.keys()])
-      if (/^(?:ver|version)$/i.test(k) || (asset && /^v$/i.test(k))) u.searchParams.delete(k);
-    // A version anywhere in the path: jquery-1.12.4.min.js, bootstrap-4.6.0/,
-    // lib@1.2.3/ and jquery-ui-1.12.1.custom.min.js all lose the version.
-    u.pathname = u.pathname.replace(/[-.@]v?\d+(?:\.\d+)+(?=[./]|$)/gi, "");
-    return u.toString();
+    u = new URL(url, "https://relative.invalid");
   } catch {
-    return url.replace(/[?&](?:ver|version|v)=[^&#]*/gi, "");
+    return url;
   }
+  // Only a script or stylesheet carries a version in its address. An image,
+  // a PDF or a page does not, and stripping numbers there prints an address
+  // that does not exist (a screenshot named "…-at-10.30.45.png").
+  const asset = /\.(?:js|mjs|css)$/i.test(u.pathname);
+  for (const k of [...u.searchParams.keys()])
+    if (/^(?:ver|version)$/i.test(k) || (asset && /^v$/i.test(k))) u.searchParams.delete(k);
+  if (asset) {
+    // A whole version directory (cdnjs's /3.6.0/), then a version inside a
+    // name: jquery-1.12.4.min.js, bootstrap-4.6.0/, lib@1.2.3/,
+    // jquery-ui-1.12.1.custom.min.js, jquery-3.6.0-min.js.
+    u.pathname = u.pathname
+      .replace(/\/v?\d+(?:\.\d+)+(?=\/)/gi, "")
+      .replace(/[-.@]v?\d+(?:\.\d+)+(?=[-./]|$)/gi, "");
+  }
+  const out = u.toString();
+  return url.startsWith("http") ? out : out.replace("https://relative.invalid", "");
 }
 
 /** "Apache/2.4.18 (Ubuntu)" → "Apache". The product, never the build. */
@@ -793,7 +803,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         add(
           "spf",
           2,
-          "Your SPF record ends in an `all` that allows any server to send as your domain.",
+          'Your SPF record ends in an "all" rule that allows any server to send as your domain.',
         );
     }
     if (unproven(dns.dmarc)) {
@@ -850,7 +860,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
           // its own domain (read from the checks stage, as the pipeline's
           // DNS lookup is; `contactMx` covers only OTHER domains).
           publishesOwnAddress ? 3 : 2,
-          "Your domain lists no mail server, so email sent to an address at it is rejected.",
+          "Your domain lists no mail server, so email sent to an address at it may not be delivered.",
         );
     }
   }
