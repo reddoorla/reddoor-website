@@ -137,6 +137,8 @@ type RawPage = {
   raw?: RawExtract | null;
 };
 type RawDns = {
+  domain?: string | null;
+  contactMx?: { domain: string; hasMx: boolean } | null;
   measured?: boolean;
   spf?: string | null;
   dmarc?: string | null;
@@ -159,12 +161,17 @@ const stageData = <T>(raw: AuditReport, key: string): T | null => {
 };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-/** "all 12 we tested answered", but "the one we tested answered" and "none
- *  to test": "all 1" and "all 0" read as a bug in the report. */
-const allOf = (n: number, verb: string) =>
-  n === 0 ? "none to test" : n === 1 ? `the one we tested ${verb}` : `all ${n} we tested ${verb}`;
 const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
 const arr = <T>(x: T[] | null | undefined): T[] => (Array.isArray(x) ? x : []);
+
+/** "none of the 60 we tested came back missing". Not "all answered": a probe
+ *  that got no answer at all is counted as tested but never as broken. */
+const noneMissing = (n: number) =>
+  n === 0
+    ? "none to test"
+    : n === 1
+      ? "the one we tested did not come back missing"
+      : `none of the ${n} we tested came back missing`;
 
 /**
  * An address as printed: version-like query parameters removed, because a
@@ -176,6 +183,8 @@ export function printableUrl(url: string): string {
     const u = new URL(url);
     for (const k of [...u.searchParams.keys()])
       if (/^(?:ver|version|v)$/i.test(k)) u.searchParams.delete(k);
+    // A version in the file name too: jquery-1.12.4.min.js → jquery.min.js.
+    u.pathname = u.pathname.replace(/[-.@]v?\d+(?:\.\d+)+(?=(?:\.min)?\.(?:js|css|mjs)$)/i, "");
     return u.toString();
   } catch {
     return url.replace(/[?&](?:ver|version|v)=[^&#]*/gi, "");
@@ -204,11 +213,18 @@ export function dmarcState(record: string | null): "missing" | "monitoring" | "e
  *  reddoor-maintenance `isDeliberatelyHiddenPath`: the LAST path segment only,
  *  so `/legal/terms` is a legal page and `/search/boise-homes` is content. */
 const DELIBERATE =
-  /^(?:privacy(?:-policy|-notice|-statement)?|terms(?:-of-(?:use|service))?|terms-(?:and-)?conditions|legal|disclaimer|cookies?(?:-policy|-notice)?|thank-?you(?:-[a-z0-9-]+)?|thanks|confirmation|search|login|log-in|signin|sign-in|wp-login|account|my-account)$/i;
+  /^(?:privacy(?:-policy|-notice|-statement)?|terms(?:-of-(?:use|service))?|terms-(?:and-)?conditions|legal|disclaimer|cookies?(?:-policy|-notice)?|thank-?you(?:-for-[a-z-]+|-page|-\d+)?|thanks|confirmation|search|login|log-in|signin|sign-in|wp-login|account|my-account)$/i;
 export function isDeliberatelyHidden(url: string): boolean {
   try {
-    const last = new URL(url).pathname.split("/").filter(Boolean).pop();
-    return last !== undefined && DELIBERATE.test(last.replace(/\.(?:html?|php|aspx?)$/i, ""));
+    const u = new URL(url);
+    if (u.searchParams.has("s") && u.pathname === "/") return true;
+    const segs = u.pathname
+      .split("/")
+      .filter(Boolean)
+      .map((x) => x.replace(/\.(?:html?|php|aspx?)$/i, ""));
+    while (segs.length > 1 && /^(?:index|amp)$/i.test(segs[segs.length - 1]!)) segs.pop();
+    const last = segs.pop();
+    return last !== undefined && DELIBERATE.test(last);
   } catch {
     return false;
   }
@@ -223,7 +239,7 @@ function restrictsFraming(csp: string | undefined): boolean {
     policy.split(";").some((d) => {
       const [name, ...sources] = d.trim().split(/\s+/);
       if (name?.toLowerCase() !== "frame-ancestors" || sources.length === 0) return false;
-      return !sources.some((x) => /^(?:\*|https?:)$/i.test(x));
+      return !sources.some((x) => /^(?:\*|https?:|(?:https?:\/\/)?\*(?::\*)?\/?)$/i.test(x));
     }),
   );
 }
@@ -299,7 +315,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       add(
         `release-${r.header}`,
         2,
-        `Your ${r.header === "server" ? "server" : "site's runtime"} reports ${r.line}, whose makers ended standard support in ${monthYear(r.supportEnds)}. Updates can still be applied to an old line, so this says how old it is, not whether it has been patched.`,
+        `Your ${r.header === "server" ? "server" : "site's runtime"} reports ${r.line}, whose makers ended support in ${monthYear(r.supportEnds)}. Updates can still be applied to an old line, so this says how old it is, not whether it has been patched.`,
       );
     }
   }
@@ -315,13 +331,21 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   // ── Does the address work ──
   const address: Row[] = [];
   const b = base.basics;
+  // The stored `ok` needs both an https landing AND a page that loaded, so
+  // read where it landed before saying plain http is served.
+  const entryLanded = (b?.insecureEntry as { landedOn?: string | null } | undefined)?.landedOn;
+  const entryHttps = typeof entryLanded === "string" && entryLanded.startsWith("https:");
   if (b?.insecureEntry.measured) {
     address.push({
       label: "Typing the address without https",
-      text: b.insecureEntry.ok ? "lands on the secure site" : "does not reach the secure site",
-      ok: b.insecureEntry.ok,
+      text: b.insecureEntry.ok
+        ? "lands on the secure site"
+        : entryHttps
+          ? "reaches the secure address, but the page did not load for us"
+          : "does not reach the secure site",
+      ok: b.insecureEntry.ok ? true : entryHttps ? null : false,
     });
-    if (!b.insecureEntry.ok)
+    if (!b.insecureEntry.ok && !entryHttps)
       add(
         "insecure-entry",
         3,
@@ -337,7 +361,12 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       ok: b.hostVariant.ok,
     });
     if (!b.hostVariant.ok)
-      add("host-variant", 3, `${b.hostVariant.host} does not reach your site.`, b.hostVariant.url);
+      add(
+        "host-variant",
+        3,
+        `${b.hostVariant.host} does not reach your site.`,
+        printableUrl(b.hostVariant.url),
+      );
   }
   if (b?.notFound.measured) {
     // The stored `ok` folds two things together: whether a made-up address
@@ -348,7 +377,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
     // status is our missing answer, not theirs.
     const status = b.notFound.status;
     const soft = status !== null && status < 400;
-    const answers404 = status !== null && !soft;
+    const answers404 = status === 404 || status === 410;
     address.push({
       label: "A page that does not exist",
       text:
@@ -356,10 +385,13 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
           ? "we could not get an answer for it"
           : soft
             ? "does not answer as not found"
-            : b.notFound.linksBackToSite
-              ? "answers as not found, with a way back into the site"
-              : "answers as not found, but the page has no link back into the site",
-      ok: status === null ? null : answers404 && b.notFound.linksBackToSite,
+            : !answers404
+              ? `answered with an error (${status}) rather than a not-found page, so we could not judge it`
+              : b.notFound.linksBackToSite
+                ? "answers as not found, with a way back into the site"
+                : "answers as not found, but the page has no link back into the site",
+      ok:
+        status === null || (!soft && !answers404) ? null : answers404 && b.notFound.linksBackToSite,
     });
     if (soft)
       add(
@@ -380,7 +412,11 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       label: "Redirects",
       text:
         n === 0
-          ? `none of the ${http.redirectChains.checked} we followed chain`
+          ? http.redirectChains.checked === 0
+            ? "none to follow"
+            : http.redirectChains.checked === 1
+              ? "the one we followed does not chain"
+              : `none of the ${http.redirectChains.checked} we followed chain`
           : `${plural(n, "address goes", "addresses go")} through more than one redirect`,
       ok: n === 0,
     });
@@ -404,20 +440,21 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
     // `{{` links are counted once, as template code below, not twice.
     const realBroken = a.brokenLinks.filter((l) => !isPlaceholderUrl(l.url));
     const bl = realBroken.length;
+    const allBroken = a.brokenLinks.length;
     const bi = a.brokenImages.length;
     brokenThings.push({
       label: "Links on your pages",
       text:
-        bl === 0
-          ? allOf(a.linksChecked, "answered")
-          : `${bl} of the ${a.linksChecked} we tested did not answer`,
-      ok: bl === 0,
+        allBroken === 0
+          ? noneMissing(a.linksChecked)
+          : `${allBroken} of the ${a.linksChecked} we tested came back missing`,
+      ok: allBroken === 0,
     });
     brokenThings.push({
       label: "Images",
       text:
         bi === 0
-          ? allOf(a.imagesChecked, "loaded")
+          ? noneMissing(a.imagesChecked)
           : `${bi} of the ${a.imagesChecked} we tested did not load`,
       ok: bi === 0,
     });
@@ -443,8 +480,8 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       label: "Addresses your sitemap lists",
       text:
         n === 0
-          ? allOf(http.sitemapUrls.checked, "answered")
-          : `${n} of the ${http.sitemapUrls.checked} we tested did not answer`,
+          ? noneMissing(http.sitemapUrls.checked)
+          : `${n} of the ${http.sitemapUrls.checked} we tested came back missing`,
       ok: n === 0,
     });
     if (n)
@@ -462,8 +499,8 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       label: "Links to other sites",
       text:
         n === 0
-          ? allOf(http.externalLinks.checked, "answered")
-          : `${n} of the ${http.externalLinks.checked} we tested did not answer`,
+          ? noneMissing(http.externalLinks.checked)
+          : `${n} of the ${http.externalLinks.checked} we tested came back missing`,
       ok: n === 0,
     });
     if (n)
@@ -475,11 +512,13 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       );
   }
   const withVitals = pages.filter((p) => p.vitals);
-  const failed = withVitals.flatMap((p) =>
+  // One file that fails on every page is one file (a shared theme asset).
+  const failedAll = withVitals.flatMap((p) =>
     (p.vitals!.failedRequests ?? [])
       .filter((r) => r.firstParty)
       .map((r) => ({ ...r, page: p.url })),
   );
+  const failed = failedAll.filter((r, i) => failedAll.findIndex((x) => x.url === r.url) === i);
   if (withVitals.length) {
     brokenThings.push({
       label: "Files your pages ask for",
@@ -512,7 +551,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         "script-errors",
         3,
         `A script stopped with an error on ${plural(throwing.length, "page", "pages")}, so whatever it ran stops working there.`,
-        throwing[0]!.url,
+        printableUrl(throwing[0]!.url),
       );
   } else if (withVitals.length) {
     brokenThings.push({
@@ -536,7 +575,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       "template-leakage",
       3,
       "A link on your site points to an address with unfilled template code in it, so a visitor who follows it lands on a missing page.",
-      placeholder.page,
+      printableUrl(placeholder.page),
     );
   } else if (leakage?.status === "fail" && current) {
     brokenThings.push({ label: "Template code", text: "shows on a page", ok: false });
@@ -580,7 +619,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
     add(
       "heavy-image",
       2,
-      `One image weighs ${mb(top.bytes)}, which a visitor on a phone downloads in full.`,
+      `One image weighs ${mb(top.bytes)} as we downloaded it, which is heavy for a single picture.`,
       top.url,
     );
   }
@@ -612,7 +651,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         "overflow",
         overflowing.length > 1 ? 3 : 2,
         `${plural(overflowing.length, "page scrolls", "pages scroll")} sideways on a phone screen.`,
-        overflowing[0]!.url,
+        printableUrl(overflowing[0]!.url),
       );
     const tiny = withVitals.reduce((n, p) => n + (p.vitals!.tinyText?.count ?? 0), 0);
     phone.push({
@@ -629,8 +668,12 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   if (b?.insecureEntry.measured)
     safe.push({
       label: "https",
-      text: b.insecureEntry.ok ? "every visit ends up on https" : "plain http is still served",
-      ok: b.insecureEntry.ok,
+      text: b.insecureEntry.ok
+        ? "every visit ends up on https"
+        : entryHttps
+          ? "the address moves to https"
+          : "plain http is still served",
+      ok: b.insecureEntry.ok || entryHttps,
     });
   const has = (h: string) => headers[h] !== undefined;
   if (Object.keys(headers).length) {
@@ -656,9 +699,14 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       add(
         "framing",
         1,
-        "Your server does not send X-Frame-Options or a frame-ancestors policy, the standard protection against another site showing yours inside a frame.",
+        /frame-ancestors/i.test(headers["content-security-policy"] ?? "")
+          ? "Your content policy sets frame-ancestors, but to a value that allows any site to show yours inside a frame."
+          : "Your server does not send X-Frame-Options or a frame-ancestors policy, the standard protection against another site showing yours inside a frame.",
       );
-    const csp = has("content-security-policy");
+    // A policy with no script rule says nothing about where scripts come from.
+    const csp = /(?:^|[;,])\s*(?:script-src|default-src)\s/i.test(
+      `${headers["content-security-policy"] ?? ""} `,
+    );
     safe.push({ label: "A content policy for scripts", text: csp ? "set" : "not set", ok: csp });
     if (!csp)
       add(
@@ -713,7 +761,8 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       });
     } else {
       const spf = dns.spf ?? null;
-      const open = spf !== null && /[+]all\b/.test(spf);
+      // A bare `all` has the default qualifier, which is `+`.
+      const open = spf !== null && /(?:^|\s)\+?all\b/i.test(spf);
       email.push({
         label: "SPF, the list of servers allowed to send as you",
         text:
@@ -763,12 +812,19 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
           2,
           "Your domain publishes no DMARC policy, so a receiving mail server has no instruction from you about mail that fails its checks.",
         );
-      if (state === "monitoring")
+      if (state === "monitoring") {
+        const reports = /(?:^|;)\s*rua\s*=/i.test(dns.dmarc!);
+        const tail = reports
+          ? "a message forged in your name is reported to you but still delivered"
+          : "a message forged in your name is still delivered, and no report address is set";
         add(
           "dmarc",
           2,
-          "Your email domain publishes DMARC in watch-only mode, so a message forged in your name is reported to you but still delivered.",
+          dmarcPolicy(dns.dmarc!) === "none"
+            ? `Your email domain publishes DMARC in watch-only mode, so ${tail}.`
+            : `Your DMARC record has no policy a receiver can read, so ${tail}.`,
         );
+      }
     }
     const mx = Array.isArray(dns.mx) ? dns.mx : null;
     if (mx && (mx.length > 0 || dnsProven)) {
@@ -780,7 +836,9 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       if (!mx.length)
         add(
           "mx",
-          3,
+          // A visitor meets this only if the site publishes an address at
+          // its own domain; otherwise it is the domain's, not the visit's.
+          dns.contactMx && dns.domain && dns.contactMx.domain === dns.domain ? 3 : 2,
           "Your domain lists no mail server, so email sent to an address at it is rejected.",
         );
     }
@@ -805,7 +863,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   if (ax?.measured) {
     if (!current) access = { state: "needs-fresh-scan" };
     else {
-      const order = ["critical", "serious", "moderate", "minor"];
+      const order = ["critical", "serious", "moderate", "minor", "unknown"];
       access = {
         state: "measured",
         pagesExamined: ax.pagesExamined,
@@ -815,7 +873,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
           .map((impact) => ({
             impact,
             rules: ax.violations
-              .filter((v) => (v.impact ?? "minor") === impact)
+              .filter((v) => (v.impact ?? "unknown") === impact)
               .map((v) => ({ id: v.id, help: v.help, nodes: v.nodes, pages: arr(v.pages).length })),
           }))
           .filter((g) => g.rules.length > 0),
@@ -901,7 +959,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       email,
       domain,
       access,
-      read: { pages: pages.map((p) => p.url), sitemapUrlCount: base.sitemapUrlCount },
+      read: { pages: pages.map((p) => printableUrl(p.url)), sitemapUrlCount: base.sitemapUrlCount },
     },
   };
 }

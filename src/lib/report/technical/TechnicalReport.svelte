@@ -49,18 +49,22 @@
 </script>
 
 {#snippet rows(list: Row[])}
-  <dl class="m-0 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
-    {#each list as r (r.label)}
-      <dt class="m-0 font-medium text-black">{r.label}</dt>
-      <dd class="m-0 min-w-0 break-words text-black">
-        <span class="sr-only">{mark(r)}: </span>
-        <span aria-hidden="true" class={r.ok === false ? "text-primary" : "text-muted"}>
-          {r.ok === true ? "✓" : r.ok === false ? "✕" : "·"}
-        </span>
-        {r.text}
-      </dd>
-    {/each}
-  </dl>
+  {#if list.length}
+    <dl class="m-0 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+      {#each list as r (r.label)}
+        <dt class="m-0 font-medium text-black">{r.label}</dt>
+        <dd class="m-0 min-w-0 break-words text-black">
+          <span class="sr-only">{mark(r)}: </span>
+          <span aria-hidden="true" class={r.ok === false ? "text-primary" : "text-muted"}>
+            {r.ok === true ? "✓" : r.ok === false ? "✕" : "·"}
+          </span>
+          {r.text}
+        </dd>
+      {/each}
+    </dl>
+  {:else}
+    <p class="m-0 text-muted">Not measured in this scan.</p>
+  {/if}
 {/snippet}
 
 {#snippet finding(f: { text: string; evidence: string | null })}
@@ -90,7 +94,9 @@
       >
         {#if view.incomplete}
           We could not complete this scan of {view.host}, so this page makes no all-clear: what
-          follows is only what we did manage to read.
+          follows is only what we did manage to read{view.brokenTotal
+            ? `, and ${view.brokenTotal === 1 ? "one thing" : `${view.brokenTotal} things`} in it a visitor runs into today`
+            : ""}.
         {:else}
           {view.runningOn ? `${view.host} is ${view.runningOn}, and ` : ""}{view.nothingBroken
             ? "nothing we tested on it is broken."
@@ -130,7 +136,7 @@
           href={schedule}
           class="inline-block rounded-[4px] border-1 border-primary bg-primary px-[15px] py-2.5 text-[14px] text-white hover:bg-white hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
         >
-          Book a call about the first fixes
+          {view.fixFirst.length ? "Book a call about the first fixes" : "Book a call"}
         </a>
       </p>
     </ContentWidth>
@@ -144,7 +150,11 @@
           {#each view.fixFirst as f (f.id)}{@render finding(f)}{/each}
         </ol>
       {:else}
-        <p class="m-0 text-black">Nothing in this scan needs fixing.</p>
+        <p class="m-0 text-black">
+          {view.incomplete
+            ? "This scan did not complete, so we cannot say that nothing needs fixing."
+            : "Nothing in this scan needs fixing."}
+        </p>
       {/if}
     </ContentWidth>
   </section>
@@ -200,7 +210,7 @@
           {@render rows(view.sections.weight.rows)}
           {#if view.sections.weight.heaviest.length}
             <ol class="m-0 flex list-decimal flex-col gap-2 pl-6 text-black">
-              {#each view.sections.weight.heaviest as i (i.url)}
+              {#each view.sections.weight.heaviest as i, n (n)}
                 <li class="min-w-0 break-all">{(i.bytes / 1_000_000).toFixed(1)} MB — {i.url}</li>
               {/each}
             </ol>
@@ -322,7 +332,7 @@
           href={schedule}
           class="inline-block rounded-[4px] border-1 border-white bg-white px-[15px] py-2.5 text-[14px] text-primary hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
-          Book a call about the first fixes
+          {view.fixFirst.length ? "Book a call about the first fixes" : "Book a call"}
         </a>
       </p>
       {#if reference}<p class="type-meta m-0">Report reference: {reference}</p>{/if}

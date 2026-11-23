@@ -313,3 +313,70 @@ describe("W4 review round 1", () => {
     expect(toTechnicalView(r, TODAY).runningOn).toBe("a WordPress site behind cloudflare");
   });
 });
+
+describe("W4 review round 2", () => {
+  type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const row = () => clone(TECHNICAL_REPORT) as Any;
+  const rowText = (view: TechnicalView, label: string) =>
+    [...view.sections.address, ...view.sections.brokenThings].find((r) => r.label === label)?.text;
+
+  it("does not say every link answered when the {{ link came back missing", () => {
+    const r = row();
+    r.assets.data.brokenLinks = [
+      { url: "https://x.example/{{url}}", status: 404, bytes: null, error: null, referencedBy: [] },
+    ];
+    const view = toTechnicalView(r, TODAY);
+    expect(rowText(view, "Links on your pages")).toBe("1 of the 60 we tested came back missing");
+    expect(view.broken.map((f) => f.id)).not.toContain("broken-links");
+  });
+
+  it("counts one file that fails on every page once", () => {
+    const r = row();
+    for (const p of r.crawl.data.pages)
+      p.vitals.failedRequests = [
+        {
+          url: "https://x.example/wp-content/themes/x/fonts/a.woff2",
+          status: 404,
+          firstParty: true,
+        },
+      ];
+    const f = toTechnicalView(r, TODAY).broken.find((x) => x.id === "failed-requests");
+    expect(f?.text).toMatch(/^1 file /);
+  });
+
+  it("does not claim what a phone downloads", () => {
+    const f = toTechnicalView(row(), TODAY).attention.find((x) => x.id === "heavy-image");
+    expect(f?.text).not.toMatch(/phone/);
+  });
+
+  it("does not call a 403 to a made-up address a not-found page", () => {
+    const r = row();
+    r.basics.data.notFound.status = 403;
+    r.basics.data.notFound.linksBackToSite = true;
+    const view = toTechnicalView(r, TODAY);
+    const nf = view.sections.address.find((x) => x.label === "A page that does not exist");
+    expect(nf?.text).toContain("could not judge");
+    expect(nf?.ok).toBeNull();
+  });
+
+  it("only says forged mail is reported when the record sets rua=", () => {
+    const r = row();
+    r.dns.data.dmarc = "v=DMARC1; p=none";
+    const f = toTechnicalView(r, TODAY).attention.find((x) => x.id === "dmarc");
+    expect(f?.text).not.toContain("reported to you");
+    expect(f?.text).toContain("no report address is set");
+  });
+
+  it("strips a version from a file name too", () => {
+    expect(printableUrl("https://x.example/js/jquery-1.12.4.min.js")).toBe(
+      "https://x.example/js/jquery.min.js",
+    );
+  });
+
+  it("reads a bare `all` in SPF as allowing any server", () => {
+    const r = row();
+    r.dns.data.spf = "v=spf1 include:_spf.mail.example all";
+    const spf = toTechnicalView(r, TODAY).sections.email.find((x) => x.label.startsWith("SPF"));
+    expect(spf?.ok).toBe(false);
+  });
+});

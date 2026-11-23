@@ -33,7 +33,7 @@ test.describe("the Technical report fixture", { tag: "@smoke" }, () => {
 
   test("sends its buttons to the scheduler, carrying the reference", async ({ page }) => {
     await page.goto("/dev/audit-report/technical");
-    const links = page.getByRole("link", { name: "Book a call about the first fixes" });
+    const links = page.getByRole("link", { name: /^Book a call/ });
     await expect(links.first()).toBeVisible();
     for (const l of await links.all()) {
       await expect(l).toHaveAttribute("href", "/schedule?ref=technical-0a1b2c3d");
