@@ -828,7 +828,7 @@ describe("post-rebase review round 5", () => {
 
   it("a version after an underscore or a space is stripped from a name", () => {
     expect(printableName("plugin_2.3.1")).toBe("plugin");
-    expect(printableName("Some Plugin 2.3.1")).toBe("Some Plugin");
+    expect(printableName("Web 2.0")).toBe("Web 2.0");
     expect(printableName("some-plugin-2.3.1")).toBe("some-plugin");
     expect(printableName("wp_rocket")).toBe("wp_rocket");
   });
@@ -843,6 +843,11 @@ describe("post-rebase review round 5", () => {
     );
     expect(f).toBeDefined();
     expect(f!.evidence).toBeNull();
+    leak.evidence = "https://harbor.example/contact shows {{ name }} in the footer";
+    const h = toTechnicalView(row as unknown as AuditReport, TODAY).broken.find(
+      (x) => x.id === "template-leakage",
+    );
+    expect(h!.evidence).toBe(printableUrl("https://harbor.example/contact"));
     leak.evidence = "https://harbor.example/about: {{year}}";
     const g = toTechnicalView(row as unknown as AuditReport, TODAY).broken.find(
       (x) => x.id === "template-leakage",

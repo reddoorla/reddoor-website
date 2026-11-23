@@ -243,16 +243,19 @@ const OVERFLOW_TOLERANCE = 4;
 
 /** A stack name as printed. A WordPress theme or plugin is named by its folder,
  *  and a hand-installed one can carry its version there (some-plugin-2.3.1,
- *  plugin_2.3.1, "Some Plugin 2.3.1"). */
+ *  plugin_2.3.1). A space is not a separator: a slug from a path never has
+ *  one, and "Web 2.0" is a name, not a version. */
 export function printableName(name: string): string {
-  return name.replace(/[-._@ ]v?\d+(?:\.\d+)+(?:[-+][\w.]+)?$/i, "") || name;
+  return name.replace(/[-._@]v?\d+(?:\.\d+)+(?:[-+][\w.]+)?$/i, "") || name;
 }
 
 /** The address a stored check's evidence starts with ("<url>: <snippet>"), or
  *  null when it does not start with one: the operator may have edited it into
  *  prose, and prose is not an address. */
 function evidenceAddress(evidence: string | null | undefined): string | null {
-  const head = evidence?.split(": ")[0]?.trim();
+  // Up to the first whitespace: `new URL` would encode prose after an address
+  // into its path rather than refuse it.
+  const head = evidence?.trim().split(/\s/)[0]?.replace(/:$/, "");
   if (!head) return null;
   try {
     const u = new URL(head);
