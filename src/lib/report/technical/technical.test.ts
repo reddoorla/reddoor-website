@@ -1,0 +1,228 @@
+import { describe, expect, it, vi } from "vitest";
+import type { Component } from "svelte";
+import { ssr, renderText } from "../ssr-test-harness";
+import { TECHNICAL_REPORT } from "../fixtures/technical";
+import { toTechnicalView, dmarcState, isDeliberatelyHidden, type TechnicalView } from "./model";
+import { readReleaseLines } from "./release-lines";
+
+// W4, the Technical report. Every assertion here is about what a reader of the
+// page sees, rendered through the real component.
+
+// The unit config has no Svelte plugin, so a component the report imports is
+// compiled by the same harness as the report.
+vi.mock("$lib/components/ContentWidth/ContentWidth.svelte", async () => ({
+  default: await ssr("src/lib/components/ContentWidth/ContentWidth.svelte"),
+}));
+
+const TODAY = new Date("2026-11-23T12:00:00Z");
+type Props = { view: TechnicalView; reference: string | null };
+const component = (): Promise<Component<Props>> =>
+  ssr<Props>("src/lib/report/technical/TechnicalReport.svelte");
+
+const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+const pageText = async (row: Record<string, unknown>) =>
+  renderText(await component(), { view: toTechnicalView(row, TODAY), reference: "0a1b2c3d" });
+
+/** The fixture with every stage a model wrote, or a paid call produced, deleted. */
+const withoutPaidStages = () => {
+  const row = clone(TECHNICAL_REPORT) as Record<string, unknown>;
+  for (const k of ["analyze", "probes", "accuracy", "goalFit"]) delete row[k];
+  return row;
+};
+
+describe("the Technical report prints no model output", () => {
+  it("renders the identical page when every paid stage is deleted", async () => {
+    expect(await pageText(withoutPaidStages())).toBe(await pageText(TECHNICAL_REPORT));
+  });
+
+  it("CONTROL: a change to a stage it does read does change the page", async () => {
+    const row = clone(TECHNICAL_REPORT) as { dns: { data: { dmarc: string } } };
+    row.dns.data.dmarc = "v=DMARC1; p=reject";
+    expect(await pageText(row)).not.toBe(await pageText(TECHNICAL_REPORT));
+  });
+});
+
+describe("no version string reaches the page", () => {
+  it("names the server and its release line, never the build", async () => {
+    const text = await pageText(TECHNICAL_REPORT);
+    expect(text).toContain("Apache");
+    expect(text).toContain("a 2016 long-term release line of Ubuntu");
+    for (const version of ["2.4.18", "6.4.2", "5.9.3"]) expect(text).not.toContain(version);
+    expect(text).not.toMatch(/\b\d+\.\d+\.\d+\b/);
+  });
+});
+
+describe("the wording the legal lens allows", () => {
+  it("never says what anyone can do, or calls the site vulnerable, insecure or an ADA matter", async () => {
+    const text = await pageText(TECHNICAL_REPORT);
+    expect(text).not.toMatch(/\banyone can\b|vulnerab|\binsecure\b|\bADA\b|hack/i);
+  });
+
+  it("says what it is not", async () => {
+    const text = await pageText(TECHNICAL_REPORT);
+    expect(text).toContain("not a security assessment or penetration test");
+    expect(text).toContain("not a compliance assessment");
+    expect(text).toContain("no timing measured");
+  });
+});
+
+describe("the first screen", () => {
+  const view = toTechnicalView(TECHNICAL_REPORT, TODAY);
+
+  it("names the platform without counting HubSpot's banner as a CMS", () => {
+    expect(view.runningOn).toBe("a WordPress site on an Apache server");
+    const cms = view.sections.running.items.find((i) => i.layer === "cms");
+    expect(cms?.names).toEqual(["WordPress"]);
+    expect(view.sections.running.items.find((i) => i.layer === "analytics")?.names).toContain(
+      "HubSpot tracking",
+    );
+  });
+
+  it("reports the {{url}} link as broken now, and nothing else as broken", () => {
+    expect(view.broken.map((f) => f.id)).toEqual(["template-leakage"]);
+    expect(view.nothingBroken).toBe(false);
+  });
+
+  it("puts the old server line, the heavy photo and watch-only DMARC under attention", () => {
+    expect(view.attention.map((f) => f.id).sort()).toEqual(
+      ["dmarc", "heavy-image", "release-server"].sort(),
+    );
+  });
+
+  it("keeps five to three repairs in order for what to fix first", () => {
+    expect(view.fixFirst.length).toBeGreaterThanOrEqual(3);
+    expect(view.fixFirst.length).toBeLessThanOrEqual(5);
+    expect(view.fixFirst[0]!.id).toBe("template-leakage");
+  });
+
+  it("says nothing is broken when nothing is", () => {
+    const row = clone(TECHNICAL_REPORT) as {
+      crawl: { data: { pages: { rendered: { anchors: unknown[] } }[] } };
+    };
+    for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    const clean = toTechnicalView(row, TODAY);
+    expect(clean.nothingBroken).toBe(true);
+    expect(clean.broken).toEqual([]);
+  });
+
+  it("sends both buttons to the scheduler with the report's reference", async () => {
+    const { render } = await import("svelte/server");
+    const html = render(await component(), {
+      props: { view: toTechnicalView(TECHNICAL_REPORT, TODAY), reference: "0a1b2c3d" },
+    }).body;
+    const hrefs = [...html.matchAll(/href="([^"]*schedule[^"]*)"/g)].map((m) => m[1]);
+    expect(hrefs).toEqual(["/schedule?ref=technical-0a1b2c3d", "/schedule?ref=technical-0a1b2c3d"]);
+  });
+});
+
+describe("findings re-derived from raw fields, not the stored verdict", () => {
+  it("reads DMARC in three states", () => {
+    expect(dmarcState(null)).toBe("missing");
+    expect(dmarcState("v=DMARC1; p=none; sp=reject")).toBe("monitoring");
+    expect(dmarcState("v=DMARC1; p=quarantine")).toBe("enforcing");
+  });
+
+  it("does not report a privacy page hidden on purpose", () => {
+    expect(isDeliberatelyHidden("https://harbor-dental.example/privacy")).toBe(true);
+    expect(isDeliberatelyHidden("https://harbor-dental.example/services")).toBe(false);
+    expect(toTechnicalView(TECHNICAL_REPORT, TODAY).fixFirst.map((f) => f.id)).not.toContain(
+      "noindex",
+    );
+  });
+
+  it("does report a services page that asks to be hidden", () => {
+    const row = clone(TECHNICAL_REPORT) as {
+      crawl: { data: { pages: { rendered: { metas: Record<string, string> } }[] } };
+    };
+    row.crawl.data.pages[1]!.rendered.metas = { robots: "noindex" };
+    expect(toTechnicalView(row, TODAY).broken.map((f) => f.id)).toContain("noindex");
+  });
+
+  it("does not print a missing DNS record from before the resolver was proven", () => {
+    const row = clone(TECHNICAL_REPORT) as {
+      generatedAt: string;
+      dns: { data: { spf: string | null; dmarc: string | null } };
+    };
+    row.generatedAt = "2026-10-19T20:19:46.823Z";
+    row.dns.data.spf = null;
+    row.dns.data.dmarc = null;
+    const view = toTechnicalView(row, TODAY);
+    expect(view.sections.email.every((r) => r.ok === null || r.label.startsWith("A mail"))).toBe(
+      true,
+    );
+    expect(view.fixFirst.map((f) => f.id)).not.toContain("spf");
+    expect(view.fixFirst.map((f) => f.id)).not.toContain("dmarc");
+  });
+});
+
+describe("a row crawled before the browser fixes", () => {
+  const old = () => {
+    const row = clone(TECHNICAL_REPORT) as {
+      crawl: { data: { pages: { vitals: Record<string, unknown> }[] } };
+    };
+    for (const p of row.crawl.data.pages) delete p.vitals.scriptErrors;
+    return row;
+  };
+
+  it("does not print its accessibility scan", () => {
+    expect(toTechnicalView(old(), TODAY).sections.access.state).toBe("needs-fresh-scan");
+  });
+
+  it("does not turn its console messages into script errors", () => {
+    const scripts = toTechnicalView(old(), TODAY).sections.brokenThings.find(
+      (r) => r.label === "Scripts",
+    );
+    expect(scripts?.ok).toBeNull();
+  });
+
+  it("CONTROL: the current-shape fixture's scan is printed", () => {
+    expect(toTechnicalView(TECHNICAL_REPORT, TODAY).sections.access.state).toBe("measured");
+  });
+});
+
+describe("the release-line table is read at render time", () => {
+  it("calls a line unsupported only after its end date", () => {
+    const h = { server: "Apache/2.4.52 (Ubuntu)" };
+    expect(readReleaseLines(h, new Date("2027-06-01T00:00:00Z"))[0]?.unsupported).toBe(false);
+    expect(readReleaseLines(h, new Date("2027-07-01T00:00:00Z"))[0]?.unsupported).toBe(true);
+  });
+
+  it("says nothing about a server it has no row for", () => {
+    expect(readReleaseLines({ server: "nginx" }, TODAY)).toEqual([]);
+  });
+});
+
+describe("the not-found check, read apart", () => {
+  type NF = {
+    basics: {
+      data: { notFound: { status: number | null; ok: boolean; linksBackToSite: boolean } };
+    };
+  };
+  const withNotFound = (status: number | null, linksBackToSite: boolean) => {
+    const row = clone(TECHNICAL_REPORT) as unknown as NF;
+    row.basics.data.notFound = { ...row.basics.data.notFound, status, linksBackToSite, ok: false };
+    return toTechnicalView(row as unknown as Record<string, unknown>, TODAY);
+  };
+
+  it("does not say a 404 fails to answer as not found when only the link home is missing", () => {
+    const view = withNotFound(404, false);
+    const row = view.sections.address.find((r) => r.label === "A page that does not exist");
+    expect(row?.text).toContain("answers as not found");
+    expect(view.attention.map((f) => f.id)).not.toContain("not-found");
+    expect(view.housekeeping.map((f) => f.id)).toContain("not-found-dead-end");
+  });
+
+  it("does report an address that answers 200", () => {
+    const view = withNotFound(200, true);
+    const row = view.sections.address.find((r) => r.label === "A page that does not exist");
+    expect(row).toMatchObject({ ok: false, text: "does not answer as not found" });
+  });
+});
+
+describe("the domain row is read against the render date", () => {
+  it("does not present a passed registration date as time in hand", () => {
+    const later = toTechnicalView(TECHNICAL_REPORT, new Date("2027-05-01T00:00:00Z"));
+    expect(later.sections.domain?.text).toContain("has now passed");
+    expect(toTechnicalView(TECHNICAL_REPORT, TODAY).sections.domain?.text).not.toContain("passed");
+  });
+});

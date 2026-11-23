@@ -1,0 +1,852 @@
+import { toReportView, type ReportView } from "../model";
+import type { AuditReport } from "../fetch";
+import { readReleaseLines, type ReleaseLineReading } from "./release-lines";
+
+/**
+ * THE TECHNICAL REPORT: a second view of the same token, for the buyer who says
+ * "it's slow, something is broken, is it secure" (W4; the design is the
+ * 11-23 audit-system review, `04-technical.md` "The report").
+ *
+ * EVERY LINE HAS A RECEIPT. This view reads only the deterministic stages:
+ * crawl, checks, assets, basics, stack, accessibility, dns, http and the
+ * stored site checks. It never reads `analyze`, `probes`, `accuracy` or
+ * `goalFit`, the stages a model wrote, so none of their errors can reach it.
+ * `toReportView` is called for the deterministic projections it already
+ * tests; the paid fields it also returns are dropped on the floor here, and a
+ * test renders a row with those stages deleted and requires the same page.
+ *
+ * RE-CUT, NOT RE-RUN. Stored rows hold verdicts made before five checks were
+ * corrected (TEC-04, 05, 06), so for those findings this view re-derives the
+ * verdict from the raw field instead of trusting the stored row: DMARC from
+ * the record, `noindex` from each page's robots meta, HubSpot from the stack
+ * evidence, `{{` addresses as a template defect. The same rules now live in
+ * reddoor-maintenance's `site-checks.ts` and `stack.ts` for new runs; this
+ * copy exists because a stored row can only be corrected at render time.
+ *
+ * TWO INSTRUMENTS NOT YET PROVEN ON OLD ROWS. Script errors and the
+ * accessibility scan were measured, before 11-23, in a browser that counted
+ * styled `console.error` banners as errors, measured contrast on text still
+ * fading in, and scanned inside other companies' video players. A row from
+ * that crawl does not carry `vitals.scriptErrors`; for it, both sections say
+ * a fresh scan is needed and print nothing from the old one.
+ *
+ * WORDING (the legal lens, LGL-05): an observation plus its ordinary
+ * consequence. Never what "anyone can" do, never "vulnerable" or "insecure",
+ * never "ADA", never a version string.
+ */
+
+/** How much a finding matters, which decides whether it reaches the first
+ *  screen. 3: something a visitor hits today. 2: worth fixing this month.
+ *  1: housekeeping, kept in the folded appendix. */
+export type Weight = 1 | 2 | 3;
+
+export type Finding = {
+  id: string;
+  weight: Weight;
+  /** One sentence: what we saw and what it ordinarily means. */
+  text: string;
+  /** Where to look: a URL or the record, never a version string. */
+  evidence: string | null;
+};
+
+export type Row = { label: string; text: string; ok: boolean | null };
+
+export type TechnicalView = {
+  url: string;
+  host: string;
+  generatedAt: string;
+  /** "a WordPress site on an Apache server", or null when nothing was read. */
+  runningOn: string | null;
+  /** The headline about breakage: true when nothing a visitor hits is broken. */
+  nothingBroken: boolean;
+  /** Things a visitor hits today (weight 3), at most three on the first screen. */
+  broken: Finding[];
+  /** The next things worth attention (weight 2), at most three on the first screen. */
+  attention: Finding[];
+  /** Three to five repairs in order, for "What to fix first". */
+  fixFirst: Finding[];
+  /** Everything else, weight 1, for the appendix. */
+  housekeeping: Finding[];
+  sections: {
+    running: { items: { layer: string; names: string[] }[]; releaseLines: ReleaseLineReading[] };
+    address: Row[];
+    brokenThings: Row[];
+    weight: { rows: Row[]; heaviest: { url: string; bytes: number }[] };
+    phone: Row[];
+    safe: Row[];
+    email: Row[];
+    domain: Row | null;
+    access: Access;
+    read: { pages: string[]; sitemapUrlCount: number | null };
+  };
+};
+
+export type Access =
+  | { state: "not-measured" }
+  | { state: "needs-fresh-scan" }
+  | {
+      state: "measured";
+      pagesExamined: number;
+      rulesFailed: number;
+      byImpact: { impact: string; rules: { help: string; nodes: number; pages: number }[] }[];
+    };
+
+/** The crawl started recording thrown errors apart from console messages in
+ *  the same change that set reduced motion and kept third-party frames out of
+ *  axe. Its presence is the marker of a run measured with the fixed browser. */
+function crawledWithCurrentSettings(pages: RawPage[]): boolean {
+  return pages.some((p) => Array.isArray(p.vitals?.scriptErrors));
+}
+
+/** reddoor-maintenance#1959, 2026-11-05 17:29 UTC: before it, a blind resolver
+ *  answered "no such record" for every domain, so a `null` record in an older
+ *  row is unproven. A record that IS present is never doubted. */
+const DNS_PROVEN_FROM = Date.parse("2026-11-05T17:29:00Z");
+
+// ─── Raw shapes, read defensively ────────────────────────────────────────────
+
+type RawVitals = {
+  consoleErrors?: string[];
+  scriptErrors?: string[];
+  failedRequests?: { url: string; status: number | null; firstParty: boolean }[];
+  overflowAt375?: number | null;
+  tinyText?: { count: number; sample: string | null } | null;
+  oversizedImages?: { src: string; naturalWidth: number; renderedWidth: number }[];
+};
+type RawExtract = { metas?: Record<string, string>; anchors?: { href: string }[] };
+type RawPage = {
+  url: string;
+  vitals?: RawVitals | null;
+  rendered?: RawExtract | null;
+  raw?: RawExtract | null;
+};
+type RawDns = {
+  measured?: boolean;
+  domain?: string | null;
+  spf?: string | null;
+  dmarc?: string | null;
+  mx?: string[];
+  expiresAt?: string;
+};
+type RawHttp = {
+  measured?: boolean;
+  httpUpgrade?: { hops: number; https: boolean } | null;
+  redirectChains?: { checked: number; chained: unknown[] } | null;
+  sitemapUrls?: { checked: number; total: number; broken: { url: string }[] } | null;
+  externalLinks?: { checked: number; total: number; broken: { url: string }[] } | null;
+  favicon?: { verdict: string } | null;
+  trailingSlash?: { settled: boolean } | null;
+  caseAlias?: { duplicate: boolean } | null;
+};
+
+const stageData = <T>(raw: AuditReport, key: string): T | null => {
+  const s = (raw as Record<string, unknown>)[key];
+  if (!s || typeof s !== "object") return null;
+  const r = s as { ok?: unknown; data?: unknown };
+  return r.ok === true && r.data && typeof r.data === "object" ? (r.data as T) : null;
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** "all 12 we tested answered", but "the one we tested answered" and "none
+ *  to test": "all 1" and "all 0" read as a bug in the report. */
+const allOf = (n: number, verb: string) =>
+  n === 0 ? "none to test" : n === 1 ? `the one we tested ${verb}` : `all ${n} we tested ${verb}`;
+const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
+
+/** "Apache/2.4.18 (Ubuntu)" → "Apache". The product, never the build. */
+export function productName(header: string | undefined): string | null {
+  if (!header) return null;
+  const name = header.split(/[\s/,(]/)[0]?.trim();
+  return name && !/\d/.test(name) ? name : null;
+}
+
+/** DMARC in three states (TEC-04). */
+export function dmarcState(record: string | null): "missing" | "monitoring" | "enforcing" {
+  if (record === null) return "missing";
+  const p = /(?:^|;)\s*p\s*=\s*([a-z]+)/i.exec(record)?.[1]?.toLowerCase();
+  return p === "quarantine" || p === "reject" ? "enforcing" : "monitoring";
+}
+
+/** Paths where `noindex` is the owner's choice (TEC-05). Kept in step with
+ *  reddoor-maintenance `isDeliberatelyHiddenPath`. */
+const DELIBERATE =
+  /^(?:privacy(?:-policy|-notice)?|terms(?:-of-(?:use|service))?|terms-and-conditions|legal|disclaimer|cookies?(?:-policy)?|thank-?you|thanks|confirmation|search|login|log-in|signin|sign-in|wp-login\.php|account|my-account)$/i;
+export function isDeliberatelyHidden(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.pathname
+      .split("/")
+      .filter(Boolean)
+      .some((s) => DELIBERATE.test(s.replace(/\.html?$/i, "")));
+  } catch {
+    return false;
+  }
+}
+
+const isPlaceholderUrl = (u: string) => /\{\{|%7B%7B/i.test(u);
+
+/** HubSpot's tracking and banner hosts are not a CMS (TEC-06). */
+const HUBSPOT_TRACKING = /(?:^|\/\/|\.)(?:hs-scripts|hs-banner|hs-analytics)\.(?:com|net)\//;
+
+// ─── The view ────────────────────────────────────────────────────────────────
+
+/**
+ * @param today the render date, for the release-line table. A parameter so a
+ *   test pins it; the routes pass `new Date()`.
+ */
+export function toTechnicalView(raw: AuditReport, today: Date = new Date()): TechnicalView {
+  // The deterministic projections only. The paid fields on `base` are never read.
+  const base: ReportView = toReportView(raw);
+  const crawl = stageData<{
+    homeHeaders?: Record<string, string>;
+    pages?: RawPage[];
+    sitemap?: { urlCount?: number } | null;
+  }>(raw, "crawl");
+  const pages: RawPage[] = (crawl?.pages ?? []).filter((p) => p && typeof p.url === "string");
+  const headers = crawl?.homeHeaders ?? {};
+  const dns = stageData<RawDns>(raw, "dns");
+  const http = stageData<RawHttp>(raw, "http");
+  const current = crawledWithCurrentSettings(pages);
+  const generated = Date.parse(base.generatedAt);
+  const dnsProven = Number.isFinite(generated) && generated >= DNS_PROVEN_FROM;
+
+  const findings: Finding[] = [];
+  const add = (id: string, weight: Weight, text: string, evidence: string | null = null) =>
+    findings.push({ id, weight, text, evidence });
+
+  // ── What you are running ──
+  const items = (base.stack?.items ?? []).map((i) =>
+    i.layer === "cms" && i.name === "HubSpot CMS" && HUBSPOT_TRACKING.test(i.evidence)
+      ? { ...i, layer: "analytics", name: "HubSpot tracking" }
+      : i,
+  );
+  const layers = new Map<string, string[]>();
+  for (const i of items) {
+    const names = layers.get(i.layer) ?? [];
+    if (!names.includes(i.name)) names.push(i.name);
+    layers.set(i.layer, names);
+  }
+  const cms = layers.get("cms") ?? [];
+  const server = productName(headers["server"]);
+  const runningOn =
+    cms.length === 0 && !server
+      ? null
+      : `${cms.length ? `a ${cms.join(" and ")} site` : "a site"}${server ? ` on ${/^(?:[aeiou]|nginx)/i.test(server) ? "an" : "a"} ${server} server` : ""}`;
+
+  const releaseLines = readReleaseLines(headers, today);
+  for (const r of releaseLines) {
+    if (r.unsupported) {
+      add(
+        `release-${r.header}`,
+        2,
+        `Your ${r.header === "server" ? "server" : "site's runtime"} reports ${r.line}, whose makers ended standard support in ${monthYear(r.supportEnds)}. Updates can still be applied to an old line, so this says how old it is, not whether it has been patched.`,
+      );
+    }
+  }
+  const versioned = ["server", "x-powered-by"].filter((h) => /\d+\.\d+/.test(headers[h] ?? ""));
+  if (versioned.length) {
+    add(
+      "version-announced",
+      1,
+      "Your server announces which software version it runs. That costs nothing on its own, and most hosts switch it off.",
+    );
+  }
+
+  // ── Does the address work ──
+  const address: Row[] = [];
+  const b = base.basics;
+  if (b?.insecureEntry.measured) {
+    address.push({
+      label: "Typing the address without https",
+      text: b.insecureEntry.ok ? "lands on the secure site" : "does not reach the secure site",
+      ok: b.insecureEntry.ok,
+    });
+    if (!b.insecureEntry.ok)
+      add(
+        "insecure-entry",
+        3,
+        "Typing your address without https does not land on the secure site.",
+      );
+  }
+  if (b?.hostVariant.measured) {
+    address.push({
+      label: `The address with or without www`,
+      text: b.hostVariant.ok
+        ? "both reach the site"
+        : `${b.hostVariant.host} does not reach the site`,
+      ok: b.hostVariant.ok,
+    });
+    if (!b.hostVariant.ok)
+      add("host-variant", 3, `${b.hostVariant.host} does not reach your site.`, b.hostVariant.url);
+  }
+  if (b?.notFound.measured) {
+    // The stored `ok` folds two things together: whether a made-up address
+    // answers 404, and whether that page links back into the site. Read apart,
+    // because they mean different things to the owner.
+    const answers404 = b.notFound.status === 404 || b.notFound.status === 410;
+    address.push({
+      label: "A page that does not exist",
+      text: !answers404
+        ? "does not answer as not found"
+        : b.notFound.linksBackToSite
+          ? "answers with a proper not-found page"
+          : "answers as not found, but the page has no link back into the site",
+      ok: answers404 && b.notFound.linksBackToSite,
+    });
+    if (!answers404)
+      add(
+        "not-found",
+        2,
+        "A made-up address on your site does not answer as not found, so search engines can list pages that do not exist.",
+      );
+    else if (!b.notFound.linksBackToSite)
+      add(
+        "not-found-dead-end",
+        1,
+        "Your not-found page has no link back into the site, so a visitor who follows a dead link has nowhere to go next.",
+      );
+  }
+  if (http?.redirectChains) {
+    const n = http.redirectChains.chained.length;
+    address.push({
+      label: "Redirects",
+      text:
+        n === 0
+          ? `none of the ${http.redirectChains.checked} we followed chain`
+          : `${plural(n, "address goes", "addresses go")} through more than one redirect`,
+      ok: n === 0,
+    });
+    if (n)
+      add(
+        "redirect-chains",
+        1,
+        `${plural(n, "address goes", "addresses go")} through more than one redirect before arriving.`,
+      );
+  }
+  if (http?.favicon) {
+    const ok = http.favicon.verdict === "ok";
+    address.push({ label: "The browser-tab icon", text: ok ? "loads" : "does not load", ok });
+    if (!ok) add("favicon", 1, "The small icon browsers show in the tab does not load.");
+  }
+
+  // ── Is anything broken ──
+  const brokenThings: Row[] = [];
+  const a = base.assets;
+  if (a) {
+    const bl = a.brokenLinks.length;
+    const bi = a.brokenImages.length;
+    brokenThings.push({
+      label: "Links on your pages",
+      text:
+        bl === 0
+          ? allOf(a.linksChecked, "answered")
+          : `${bl} of the ${a.linksChecked} we tested did not answer`,
+      ok: bl === 0,
+    });
+    brokenThings.push({
+      label: "Images",
+      text:
+        bi === 0
+          ? allOf(a.imagesChecked, "loaded")
+          : `${bi} of the ${a.imagesChecked} we tested did not load`,
+      ok: bi === 0,
+    });
+    for (const l of a.brokenLinks.filter((l) => !isPlaceholderUrl(l.url)).slice(0, 1))
+      add(
+        "broken-links",
+        3,
+        `${plural(bl, "link on your pages leads", "links on your pages lead")} nowhere.`,
+        l.url,
+      );
+    for (const i of a.brokenImages.slice(0, 1))
+      add("broken-images", 3, `${plural(bi, "image does", "images do")} not load.`, i.url);
+  }
+  if (http?.sitemapUrls) {
+    const n = http.sitemapUrls.broken.length;
+    brokenThings.push({
+      label: "Addresses your sitemap lists",
+      text:
+        n === 0
+          ? allOf(http.sitemapUrls.checked, "answered")
+          : `${n} of the ${http.sitemapUrls.checked} we tested did not answer`,
+      ok: n === 0,
+    });
+    if (n)
+      add(
+        "sitemap-broken",
+        2,
+        `${plural(n, "address", "addresses")} in your sitemap did not answer.`,
+        http.sitemapUrls.broken[0]!.url,
+      );
+  }
+  if (http?.externalLinks) {
+    const n = http.externalLinks.broken.length;
+    brokenThings.push({
+      label: "Links to other sites",
+      text:
+        n === 0
+          ? allOf(http.externalLinks.checked, "answered")
+          : `${n} of the ${http.externalLinks.checked} we tested did not answer`,
+      ok: n === 0,
+    });
+    if (n)
+      add(
+        "external-broken",
+        2,
+        `${plural(n, "link", "links")} to other sites did not answer.`,
+        http.externalLinks.broken[0]!.url,
+      );
+  }
+  const withVitals = pages.filter((p) => p.vitals);
+  const failed = withVitals.flatMap((p) =>
+    (p.vitals!.failedRequests ?? [])
+      .filter((r) => r.firstParty)
+      .map((r) => ({ ...r, page: p.url })),
+  );
+  if (withVitals.length) {
+    brokenThings.push({
+      label: "Files your pages ask for",
+      text:
+        failed.length === 0
+          ? "every file your pages asked for came back"
+          : `${plural(failed.length, "file", "files")} your own pages asked for did not come back`,
+      ok: failed.length === 0,
+    });
+    if (failed.length)
+      add(
+        "failed-requests",
+        3,
+        `${plural(failed.length, "file", "files")} your own pages ask for did not come back.`,
+        failed[0]!.url,
+      );
+  }
+  if (current) {
+    const throwing = withVitals.filter((p) => (p.vitals!.scriptErrors ?? []).length > 0);
+    brokenThings.push({
+      label: "Scripts",
+      text:
+        throwing.length === 0
+          ? `no script stopped with an error on the ${withVitals.length} pages we opened`
+          : `a script stopped with an error on ${plural(throwing.length, "page", "pages")}`,
+      ok: throwing.length === 0,
+    });
+    if (throwing.length)
+      add(
+        "script-errors",
+        3,
+        `A script stopped with an error on ${plural(throwing.length, "page", "pages")}, so whatever it ran stops working there.`,
+        throwing[0]!.url,
+      );
+  } else if (withVitals.length) {
+    brokenThings.push({
+      label: "Scripts",
+      text: "not checked: this scan ran before we separated real script errors from messages a script prints, so it needs a fresh scan",
+      ok: null,
+    });
+  }
+  const placeholder = pages
+    .flatMap((p) =>
+      (p.rendered?.anchors ?? p.raw?.anchors ?? []).map((x) => ({ page: p.url, href: x.href })),
+    )
+    .find((x) => isPlaceholderUrl(x.href));
+  const leakage = base.siteChecks?.find((c) => c.key === "template-leakage");
+  if (placeholder || leakage?.status === "fail") {
+    brokenThings.push({ label: "Template code", text: "shows on a page or in a link", ok: false });
+    add(
+      "template-leakage",
+      3,
+      placeholder
+        ? "A link on your site points to an address with unfilled template code in it, so a visitor who follows it lands on a missing page."
+        : "Unfilled template code shows as text on a page.",
+      placeholder?.page ?? leakage?.evidence?.split(": ")[0] ?? null,
+    );
+  } else if (leakage?.status === "pass") {
+    brokenThings.push({ label: "Template code", text: "none showing", ok: true });
+  }
+
+  // ── Weight and images ──
+  const weightRows: Row[] = [
+    {
+      label: "Speed",
+      text: "no timing measured in this scan; what follows is what your pages make a visitor download",
+      ok: null,
+    },
+  ];
+  const heaviest = (a?.heaviestImages ?? [])
+    .filter((i): i is typeof i & { bytes: number } => typeof i.bytes === "number")
+    .slice(0, 3)
+    .map((i) => ({ url: i.url, bytes: i.bytes }));
+  if (a && a.imageBytesMeasured !== null) {
+    weightRows.push({
+      label: "Images we could weigh",
+      text: `${a.imagesWithKnownSize} images, ${mb(a.imageBytesMeasured)} together`,
+      ok: null,
+    });
+  }
+  const top = heaviest[0];
+  if (top && top.bytes >= 1_000_000) {
+    add(
+      "heavy-image",
+      2,
+      `One image weighs ${mb(top.bytes)}, which a visitor on a phone downloads in full.`,
+      top.url,
+    );
+  }
+
+  // ── On a phone ──
+  const phone: Row[] = [];
+  if (base.viewportOk !== null)
+    phone.push({
+      label: "Sized for phones",
+      text: base.viewportOk ? "every page declares it" : "not every page declares it",
+      ok: base.viewportOk,
+    });
+  // Overflow is measured while the page settles, so content that slides in
+  // on load can overflow for a moment. Like the scripts and the scan, it is
+  // printed only from a run whose browser asked for reduced motion.
+  const overflowing = withVitals.filter((p) => (p.vitals!.overflowAt375 ?? 0) > 8);
+  if (withVitals.length) {
+    phone.push({
+      label: "Sideways scrolling on a phone",
+      text: !current
+        ? "not checked: this scan ran before we let content that animates in settle first, so it needs a fresh scan"
+        : overflowing.length === 0
+          ? "none on the pages we opened"
+          : `${plural(overflowing.length, "page scrolls", "pages scroll")} sideways on a phone`,
+      ok: current ? overflowing.length === 0 : null,
+    });
+    if (current && overflowing.length)
+      add(
+        "overflow",
+        overflowing.length > 1 ? 3 : 2,
+        `${plural(overflowing.length, "page scrolls", "pages scroll")} sideways on a phone screen.`,
+        overflowing[0]!.url,
+      );
+    const tiny = withVitals.reduce((n, p) => n + (p.vitals!.tinyText?.count ?? 0), 0);
+    phone.push({
+      label: "Text under 12 pixels",
+      text: tiny === 0 ? "none" : plural(tiny, "passage", "passages"),
+      ok: tiny === 0,
+    });
+    if (tiny >= 10)
+      add("tiny-text", 1, `${tiny} passages of text render under 12 pixels on your pages.`);
+  }
+
+  // ── Is it safe ──
+  const safe: Row[] = [];
+  if (b?.insecureEntry.measured)
+    safe.push({
+      label: "https",
+      text: b.insecureEntry.ok ? "every visit ends up on https" : "plain http is still served",
+      ok: b.insecureEntry.ok,
+    });
+  const has = (h: string) => headers[h] !== undefined;
+  if (Object.keys(headers).length) {
+    const hsts = has("strict-transport-security");
+    safe.push({
+      label: "Telling browsers to always use https",
+      text: hsts ? "your server says so" : "your server does not say so",
+      ok: hsts,
+    });
+    if (!hsts)
+      add(
+        "hsts",
+        2,
+        "Your server does not tell browsers to use https every time, so a first visit can still start over plain http.",
+      );
+    const framing =
+      has("x-frame-options") ||
+      /(?:^|;)\s*frame-ancestors\s/i.test(headers["content-security-policy"] ?? "");
+    safe.push({
+      label: "Protection against framing",
+      text: framing ? "set" : "not set",
+      ok: framing,
+    });
+    if (!framing)
+      add(
+        "framing",
+        1,
+        "Your server does not send X-Frame-Options or a frame-ancestors policy, the standard protection against another site showing yours inside a frame.",
+      );
+    const csp = has("content-security-policy");
+    safe.push({ label: "A content policy for scripts", text: csp ? "set" : "not set", ok: csp });
+    if (!csp)
+      add(
+        "csp",
+        1,
+        "There is no content policy listing where your pages may load scripts from. Most small sites have none; it is a second line of defence, not a fault.",
+      );
+    const nosniff = has("x-content-type-options");
+    safe.push({
+      label: "File types declared, not guessed",
+      text: nosniff ? "set" : "not set",
+      ok: nosniff,
+    });
+    if (!nosniff)
+      add(
+        "nosniff",
+        1,
+        "Your server does not tell browsers to trust the file types it declares, which is the standard setting.",
+      );
+    safe.push({
+      label: "Software version in headers",
+      text: versioned.length ? "announced" : "not announced",
+      ok: versioned.length === 0,
+    });
+  }
+  if (b?.mixedContent.measured) {
+    const n = b.mixedContent.imageUrls.length;
+    safe.push({
+      label: "Images loaded over plain http",
+      text: n === 0 ? "none" : plural(n, "image", "images"),
+      ok: n === 0,
+    });
+    if (n)
+      add(
+        "mixed-content",
+        2,
+        `${plural(n, "image is", "images are")} loaded over plain http on a secure page, so browsers show a warning or drop it.`,
+        b.mixedContent.imageUrls[0]!,
+      );
+  }
+
+  // ── Is your email safe ──
+  const email: Row[] = [];
+  if (dns?.measured) {
+    const unproven = (v: string | null | undefined) =>
+      v === undefined || (v === null && !dnsProven);
+    if (unproven(dns.spf)) {
+      email.push({
+        label: "SPF, the list of servers allowed to send as you",
+        text: "we could not confirm this; check at your DNS host",
+        ok: null,
+      });
+    } else {
+      const spf = dns.spf ?? null;
+      const open = spf !== null && /[+]all\b/.test(spf);
+      email.push({
+        label: "SPF, the list of servers allowed to send as you",
+        text:
+          spf === null
+            ? "not published"
+            : open
+              ? "published, but it allows any server"
+              : "published",
+        ok: spf !== null && !open,
+      });
+      if (spf === null)
+        add(
+          "spf",
+          2,
+          "Your domain publishes no SPF record, so receiving mail servers have less to go on and your own mail is more likely to be filed as spam.",
+        );
+      else if (open)
+        add(
+          "spf",
+          2,
+          "Your SPF record ends in +all, which allows any server to send as your domain.",
+        );
+    }
+    if (unproven(dns.dmarc)) {
+      email.push({
+        label: "DMARC, what receivers do with forged mail",
+        text: "we could not confirm this; check at your DNS host",
+        ok: null,
+      });
+    } else {
+      const state = dmarcState(dns.dmarc ?? null);
+      email.push({
+        label: "DMARC, what receivers do with forged mail",
+        text:
+          state === "missing"
+            ? "not published"
+            : state === "monitoring"
+              ? "published in watch-only mode (p=none)"
+              : "set to turn forged mail away",
+        ok: state === "enforcing",
+      });
+      if (state === "missing")
+        add(
+          "dmarc",
+          2,
+          "Your domain publishes no DMARC policy, so a receiving mail server has no instruction from you about mail that fails its checks.",
+        );
+      if (state === "monitoring")
+        add(
+          "dmarc",
+          2,
+          "Your email domain publishes DMARC in watch-only mode, so a message forged in your name is reported to you but still delivered.",
+        );
+    }
+    if (dns.mx !== undefined && (dns.mx.length > 0 || dnsProven)) {
+      email.push({
+        label: "A mail server for your domain",
+        text: dns.mx.length ? "listed" : "none listed",
+        ok: dns.mx.length > 0,
+      });
+      if (!dns.mx.length)
+        add(
+          "mx",
+          3,
+          "Your domain lists no mail server, so email sent to an address at it is rejected.",
+        );
+    }
+  }
+  const domain: Row | null =
+    dns?.measured && dns.expiresAt
+      ? {
+          label: "Registered through",
+          // Read against the render date: a stored date that has since
+          // passed must not read as time still in hand.
+          text:
+            Date.parse(dns.expiresAt) < today.getTime()
+              ? `${dayMonthYear(dns.expiresAt)}, as the registry listed it when we checked. That date has now passed, so confirm the renewal at your registrar.`
+              : `${dayMonthYear(dns.expiresAt)}. Whether it renews automatically is not public; confirm it at your registrar.`,
+          ok: null,
+        }
+      : null;
+
+  // ── Can everyone use it ──
+  let access: Access = { state: "not-measured" };
+  const ax = base.accessibility;
+  if (ax?.measured) {
+    if (!current) access = { state: "needs-fresh-scan" };
+    else {
+      const order = ["critical", "serious", "moderate", "minor"];
+      access = {
+        state: "measured",
+        pagesExamined: ax.pagesExamined,
+        rulesFailed: ax.violations.length,
+        byImpact: order
+          .map((impact) => ({
+            impact,
+            rules: ax.violations
+              .filter((v) => (v.impact ?? "minor") === impact)
+              .map((v) => ({ help: v.help, nodes: v.nodes, pages: v.pages.length })),
+          }))
+          .filter((g) => g.rules.length > 0),
+      };
+      const critical = ax.violations.filter((v) => v.impact === "critical").length;
+      if (critical)
+        add(
+          "a11y-critical",
+          2,
+          `An automated scan found ${plural(critical, "kind", "kinds")} of critical accessibility failure on your pages.`,
+        );
+    }
+  }
+
+  // ── noindex, re-derived from each page's robots meta ──
+  const hidden = pages.filter(
+    (p) =>
+      /\bnoindex\b/i.test((p.rendered ?? p.raw)?.metas?.["robots"] ?? "") &&
+      !isDeliberatelyHidden(p.url),
+  );
+  if (hidden.length)
+    add(
+      "noindex",
+      3,
+      `${plural(hidden.length, "page asks", "pages ask")} search engines to leave it out of their results.`,
+      hidden[0]!.url,
+    );
+
+  // ── Order ──
+  // Within a weight, a fixed order: what a visitor meets first, then what a
+  // forged email or an unsupported server costs, then the rest. Insertion
+  // order would rank by where a section happens to sit in this function.
+  const rank = (f: Finding) => {
+    const i = PRIORITY.indexOf(f.id);
+    return i === -1 ? PRIORITY.length : i;
+  };
+  const byWeight = (x: Finding, y: Finding) => y.weight - x.weight || rank(x) - rank(y);
+  findings.sort(byWeight);
+  const broken = findings.filter((f) => f.weight === 3);
+  const attention = findings.filter((f) => f.weight === 2);
+  const fixFirst = [...broken, ...attention].slice(0, 5);
+  if (fixFirst.length < 3)
+    fixFirst.push(...findings.filter((f) => f.weight === 1).slice(0, 3 - fixFirst.length));
+
+  const hostOf = (u: string) => {
+    try {
+      return new URL(u).hostname.replace(/^www\./, "");
+    } catch {
+      return u;
+    }
+  };
+
+  return {
+    url: base.url,
+    host: hostOf(base.url),
+    generatedAt: base.generatedAt,
+    runningOn,
+    nothingBroken: broken.length === 0,
+    broken: broken.slice(0, 3),
+    attention: attention.slice(0, 3),
+    fixFirst,
+    housekeeping: findings.filter((f) => f.weight === 1),
+    sections: {
+      running: {
+        items: [...layers].map(([layer, names]) => ({ layer, names })),
+        releaseLines,
+      },
+      address,
+      brokenThings,
+      weight: { rows: weightRows, heaviest },
+      phone,
+      safe,
+      email,
+      domain,
+      access,
+      read: { pages: pages.map((p) => p.url), sitemapUrlCount: base.sitemapUrlCount },
+    },
+  };
+}
+
+const PRIORITY = [
+  "mx",
+  "insecure-entry",
+  "host-variant",
+  "broken-links",
+  "broken-images",
+  "failed-requests",
+  "script-errors",
+  "template-leakage",
+  "noindex",
+  "overflow",
+  "release-server",
+  "release-x-powered-by",
+  "heavy-image",
+  "dmarc",
+  "spf",
+  "mixed-content",
+  "a11y-critical",
+  "not-found",
+  "sitemap-broken",
+  "external-broken",
+  "hsts",
+];
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+function monthYear(iso: string): string {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+function dayMonthYear(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
