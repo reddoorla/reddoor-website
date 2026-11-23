@@ -52,8 +52,9 @@ const CONTRADICTED = row({
   siteQuote: "Founded in 2012, in a garage on East Sixth.",
   sourceDomains: ["yelp.com", "clutch.co"],
 });
-// The engine's wording, our reason and the row's sources are sentinels: none of
-// them may reach the page under a statement the site does not make.
+// Our paraphrase, our reason and the row's sources are sentinels: none of them
+// may reach the page under a statement the site does not make. The engine's
+// own words are what the row prints (W2).
 const ABSENT = row({
   claim: "Example Studio has an office in Denver.",
   engineQuote: "ENGINE-QUOTE-ABSENT",
@@ -136,10 +137,11 @@ const surfaces: Array<[string, string]> = [
 describe.each(surfaces)("%s", (_label, html) => {
   it("reaches every branch on the rich report, so the negatives below test something", () => {
     for (const shown of [
-      CONTRADICTED.claim,
+      CONTRADICTED.engineQuote,
       CONTRADICTED.siteQuote!,
-      ABSENT.claim,
-      UNVERIFIED.claim,
+      ABSENT.engineQuote,
+      // UNVERIFIED names a person, so it is withheld and counted (W2).
+      "named people",
       OTHER_NAME,
       ELSEWHERE,
       String(SITEMAP),
@@ -153,12 +155,15 @@ describe.each(surfaces)("%s", (_label, html) => {
     expect(seen(html)).toContain(ELSEWHERE);
   });
 
-  it("prints each unsourced claim alone, with nothing of ours under it", () => {
+  it("prints each unsourced statement in the assistant's words, with nothing of ours under it", () => {
     expect(html).not.toMatch(/not on your site/i);
     expect(html).not.toMatch(/did not find these on your site|What we could not check/i);
-    expect(html).not.toContain(`${ABSENT.claim}; ${UNVERIFIED.claim}`);
+    // W2: never our paraphrase of a statement the site does not make, and a
+    // withheld statement in neither form.
     for (const sentinel of [
-      ABSENT.engineQuote,
+      ABSENT.claim,
+      CONTRADICTED.claim,
+      UNVERIFIED.claim,
       UNVERIFIED.engineQuote,
       UNVERIFIED.unverifiedReason!,
       "row-source.test",
@@ -192,8 +197,13 @@ describe("the source-check section's links", () => {
     expect(html).toContain(`href="#${TOC_TARGETS.fixes}"`);
   });
 
-  it("points the statements the site confirms at the section that lists them", () => {
-    expect(renderText(sourceCheck, { view: VIEW })).toContain(`href="#${TOC_TARGETS.passes}"`);
+  // W2 (BR-09): listed in the section itself with both quotes, so the reader
+  // can judge them, rather than pointed at a count in the passes.
+  it("lists the statements the site confirms, with both quotes", () => {
+    const html = seen(renderText(sourceCheck, { view: VIEW }));
+    expect(html).toContain("What your site backs up");
+    expect(html).toContain("based in Austin, Texas");
+    expect(html).toContain("Example Studio, Austin, Texas");
   });
 });
 

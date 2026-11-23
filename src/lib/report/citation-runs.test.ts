@@ -209,18 +209,24 @@ const OVERCLAIM = /cited no sources/;
 const RUN_ROWS: Assertion[] = [
   claim({
     claim: "ROWONE has been trading since 1998",
+    // W2: rows print the assistant's words, so the marker is in the quote.
+    engineQuote: "ROWONE has been trading since 1998",
     query: "who is acme",
     engine: "claude",
     sourceDomains: ["yelp.com", "bbb.org"],
   }),
   claim({
     claim: "ROWTWO is based in Dallas",
+    // W2: rows print the assistant's words, so the marker is in the quote.
+    engineQuote: "ROWTWO is based in Dallas",
     query: "who is acme",
     engine: "claude",
     sourceDomains: ["yelp.com", "bbb.org"],
   }),
   claim({
     claim: "ROWTHREE closes on Sundays",
+    // W2: rows print the assistant's words, so the marker is in the quote.
+    engineQuote: "ROWTHREE closes on Sundays",
     query: "when is acme open",
     engine: "claude",
     sourceDomains: [],
@@ -229,6 +235,8 @@ const RUN_ROWS: Assertion[] = [
   // list on both surfaces and the last row has a bound to measure against.
   claim({
     claim: "ROWFOUR has won awards",
+    // W2: rows print the assistant's words, so the marker is in the quote.
+    engineQuote: "ROWFOUR has won awards",
     verdict: "absent",
     siteQuote: null,
     query: "who is acme",
@@ -348,11 +356,15 @@ for (const [label, body, sectionStart] of surfaces) {
 const SAME_LIST_ROWS: Assertion[] = [
   claim({
     claim: "ROWONE has been trading since 1998",
+    // W2: rows print the assistant's words, so the marker is in the quote.
+    engineQuote: "ROWONE has been trading since 1998",
     query: "who is acme",
     sourceDomains: ["yelp.com", "bbb.org"],
   }),
   claim({
     claim: "ROWTWO is based in Dallas",
+    // W2: rows print the assistant's words, so the marker is in the quote.
+    engineQuote: "ROWTWO is based in Dallas",
     query: "is acme any good",
     sourceDomains: ["bbb.org", "yelp.com"],
   }),

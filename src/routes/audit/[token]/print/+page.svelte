@@ -1,6 +1,8 @@
 <script lang="ts">
   import {
     citationRuns,
+    confirmedRows,
+    contradictedRows,
     failedChecksSentence,
     gapClause,
     nameUnsettled,
@@ -16,6 +18,7 @@
     auditedOn,
     collisionBlock,
     displayQuote,
+    heldBackLines,
     headlineFinding,
     passes,
   } from "$lib/report/narrative";
@@ -64,9 +67,8 @@
   // A row prints its sources only when the row above did not already print the
   // same ANSWER's list — keyed in model.ts so this sheet and the screen report
   // cannot disagree about whose sources a line belongs to.
-  const contradictedRows = $derived(
-    citationRuns((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
-  );
+  // W2: the assistant's own words, only about this business, on topics we print.
+  const contradictedList = $derived(citationRuns(contradictedRows(view)));
   // One list, matching the screen report; the heading asserts nothing and the
   // hedge beneath it carries the claim. See `notSourcedFromSite`.
   const notSourced = $derived(notSourcedFromSite(view));
@@ -77,9 +79,8 @@
         accuracy !== null &&
         view.sitemapUrlCount > accuracy.pagesTotal),
   );
-  const confirmed = $derived(
-    (accuracy?.assertions ?? []).filter((a) => a.verdict === "confirmed").length,
-  );
+  const confirmedList = $derived(confirmedRows(view));
+  const held = $derived(heldBackLines(view));
   const collision = $derived(collisionBlock(view));
 
   const healthProblems = $derived(healthRows(view).filter((r) => r.alert));
@@ -190,13 +191,12 @@
           <p class="note">The remedy is the first item under Our recommendations.</p>
         </div>
       {/if}
-      {#each contradictedRows as { row, citations } (row.claim + row.query)}
+      {#each contradictedList as { row, citations } (row.engineQuote + row.query)}
         <div class="fix">
           <p class="fix-t">
-            {row.claim}
+            The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
             <span class="answered contradicted">your site says otherwise</span>
           </p>
-          <p class="fix-w">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
           {#if row.siteQuote}
             <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
           {/if}
@@ -218,17 +218,22 @@
         <h3>What the AI says about you</h3>
         <p class="note">These are claims that seem not to be sourced from your site.</p>
         <ul>
-          {#each notSourced as u (u.claim + u.query)}
-            <li>{u.claim}</li>
+          {#each notSourced as u (u.engineQuote + u.query)}
+            <li>&ldquo;{displayQuote(u.engineQuote)}&rdquo;</li>
           {/each}
         </ul>
       {/if}
-      {#if confirmed > 0}
-        <p class="note">
-          {confirmed}
-          {confirmed === 1 ? "statement" : "statements"} the assistant made
-          {confirmed === 1 ? "matches" : "match"} a passage on your own site — listed under What passes.
-        </p>
+      {#each held as line (line)}
+        <p class="note">{line}</p>
+      {/each}
+      {#if confirmedList.length}
+        <h3>What your site backs up</h3>
+        {#each confirmedList as row (row.engineQuote + row.query)}
+          <div class="fix">
+            <p class="fix-t">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
+            <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+          </div>
+        {/each}
       {/if}
       {#if elsewhere.length}
         <h3>

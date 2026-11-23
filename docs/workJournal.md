@@ -2146,3 +2146,23 @@ The override map takes `hidden: true` on a row key (`analyze.data.fixes[2]`, `si
 Mutations, each turning one named test red: cookie path back to `/audit` (the browser save); ignoring `hidden` in `applyOverrides` (a hidden fix absent from `allFixes`); dropping `analyze` from the all-clear guard (the failed-analysis headline).
 
 Deploy order matters: this half must be on `main` before maintenance's lands, or the editor cannot open a draft (no bearer sent) and a superseded link would 500 instead of redirecting.
+
+## 2026-11-23 — The accuracy section prints the assistant's own words, about the right company (W2, website half)
+
+Stacked on W1's PR (it changes `model.ts` and `narrative.ts` beside these lines). The maintenance half is reddoorla/reddoor-maintenance#2256. Brief: the workspace's `briefs/2026-11-23-audit-w2-accuracy-own-words/worker-brief.md`.
+
+**Why.** "What the AI says about you" printed the accuracy model's paraphrase of each statement, not the assistant's words. Where an answer offered another firm as the "most likely match" and then described it, the paraphrase began "The business…", so the page said those things of the prospect. Every row that is not `confirmed` (the not-sourced list, the contradictions, and the headline that quotes a contradiction) now prints `engineQuote` in quotation marks, never `claim`.
+
+**What else is left out, and counted.** A row prints only when its `subject` is the prospect. Stored rows have no subject and are read as about the prospect, since nothing else is available, which is why the second guard matters: statements about ratings, complaints, accreditation, registration, ownership, named people, revenue or staff numbers, and street addresses are withheld and counted ("The assistant also made two statements about ratings and named people that we have not checked…"). Stored rows have no `topic`, so `withheldTopic` reads the words, erring wide. The branded-answer excerpt on the web page goes through the same rating test, because the "reviews" query put employee scores there.
+
+**Absent.** `toReportView` re-reads a stored row's coverage. Without a sitemap count that the pages read reach, every `absent` becomes `unverified` ("We read 20 of your 95 pages…"). The crawl stops at 20, so most stored rows lose their `absent`. Nothing prints the reason today, and the list puts both verdicts under one hedged heading, so what a reader sees does not change; the stored verdict stops claiming something we did not check.
+
+**Confirmed and the proof sentence.** Confirmed statements are listed under "What your site backs up" with both quotes. The "That is the proof that editing your pages changes the answer" sentence prints only when the branded answers cited the site at least once. On three stored rows it had read "cited your site 0 times. That is the proof…".
+
+**Defect found on the way.** The contradicted headline did not ask whether an answer was read. It showed nothing only because the empty-state fixture's claim never matched its quote. Once the headline printed the quote, the print sheet's "prints no statement out of an answer the report says it did not read" went red. `contradictedRows` and `confirmedRows` now return nothing unless `sourceCheckMeasured`.
+
+**Tests changed, because the brief changes what they pin.** report-copy's "prints each unsourced claim alone" asserted the engine quote was _absent_; it now asserts the paraphrase is absent and the quote present. Its "points confirmed statements at #passes" became "lists them with both quotes". citation-runs' row markers moved into `engineQuote`, which is what rows print. Two fixtures whose claims are now withheld (a legal name, "registered in Texas") were given claims the page prints.
+
+**Instrument note.** The report tests sometimes fail at load with `component is not a function` when many files compile at once. Two re-runs of the same tree passed 509 of 509. It is the SSR harness, not a finding.
+
+**Not done.** Re-judging the 8 stored rows (a paid call and a table write) waits on the operator.

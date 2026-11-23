@@ -53,7 +53,30 @@ export type Assertion = {
   sourceDomains: string[];
   query: string;
   engine: string;
+  /** Who the statement is about (W2). Absent on rows stored before
+   *  2026-11-23, which are read as about the prospect: there is no other
+   *  reading to fall back on, and the quote and the withhold below are what
+   *  keep those rows honest. */
+  subject?: "prospect" | "other" | "unclear";
+  otherName?: string | null;
+  /** What kind of fact it is (W2). Absent on older rows; `withheldTopic`
+   *  reads the text instead. */
+  topic?: AssertionTopic;
+  /** The attribute and the two values, on a `contradicted` that survived the
+   *  producer's value check. */
+  contradiction?: { attribute: string; engineValue: string; siteValue: string } | null;
 };
+
+export type AssertionTopic =
+  | "ratings_reviews"
+  | "complaints"
+  | "accreditation"
+  | "legal_entity"
+  | "ownership"
+  | "named_person"
+  | "revenue_headcount"
+  | "street_address"
+  | "other";
 
 export type SourceVerdict = {
   domain: string;
@@ -67,6 +90,9 @@ export type Accuracy = {
   siteFullyRead: boolean;
   pagesRead: number;
   pagesTotal: number;
+  /** URLs the site's own sitemap lists, or null when we never learned it.
+   *  Absent on rows stored before the producer recorded it. */
+  siteUrlCount?: number | null;
   /** Zero means we had no engine answer to read. The section must then say it
    *  was not measured — never "nothing wrong was found". */
   answersRead: number;
@@ -592,11 +618,172 @@ const LISTING_SITES = [
  * has always used.
  */
 export function notSourcedFromSite(view: ReportView): Assertion[] {
-  const all = view.accuracy?.assertions ?? [];
+  const all = printable(view.accuracy?.assertions ?? []);
   return [
     ...all.filter((a) => a.verdict === "absent"),
     ...all.filter((a) => a.verdict === "unverified"),
   ];
+}
+
+/**
+ * W2. Statements the report prints as being about the prospect: the answer's
+ * own subject, and not a topic we withhold.
+ *
+ * The report used to print the accuracy model's paraphrase of every statement
+ * under "What the AI says about you". Where an answer hedged that another firm
+ * was the "most likely match" and described that firm, the paraphrase began
+ * "The business…", and the page said it of the prospect. Now a row prints only when its subject is the prospect,
+ * and only the assistant's own words, in quotation marks (`displayQuote` of
+ * `engineQuote`, never `claim`). A stored row has no subject and is read as
+ * about the prospect; the withhold is what keeps its worst rows off the page.
+ */
+export function printable(rows: Assertion[]): Assertion[] {
+  return rows.filter((a) => aboutProspect(a) && withheldTopic(a) === null);
+}
+
+function aboutProspect(a: Assertion): boolean {
+  return a.subject === undefined || a.subject === "prospect";
+}
+
+/** Confirmed statements, with both quotes, for the reader to judge (BR-09). */
+export function confirmedRows(view: ReportView): Assertion[] {
+  if (!sourceCheckMeasured(view)) return [];
+  return (view.accuracy?.assertions ?? []).filter(
+    (a) => a.verdict === "confirmed" && aboutProspect(a) && a.siteQuote !== null,
+  );
+}
+
+/** Contradictions printed as about the prospect. */
+export function contradictedRows(view: ReportView): Assertion[] {
+  // Gated like the section: a statement out of an answer the report says it
+  // did not read is not printed anywhere, the headline included.
+  if (!sourceCheckMeasured(view)) return [];
+  return printable(view.accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted");
+}
+
+/**
+ * The topics withheld from the page unless a person has checked the source.
+ * Each harms a business when it is wrong, and nobody has checked it: a rating,
+ * a complaint or alert, accreditation, the legal entity, who owns it, a named
+ * person, revenue or headcount, a street address. The report counts them
+ * instead (LGL-01, B-17).
+ */
+const TOPIC_LABEL: Record<Exclude<AssertionTopic, "other">, string> = {
+  ratings_reviews: "ratings",
+  complaints: "complaints",
+  accreditation: "accreditation",
+  legal_entity: "registration",
+  ownership: "ownership",
+  named_person: "named people",
+  revenue_headcount: "revenue or staff numbers",
+  street_address: "addresses",
+};
+
+/** Read off the words, for rows stored before the producer recorded a topic
+ *  and for a model that files one under `other`. Errs wide: a false match
+ *  withholds a statement, which is the safe direction. */
+const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp][] = [
+  [
+    "ratings_reviews",
+    /\b(ratings?|rated|stars?|reviews?|reviewers?|glassdoor|indeed|yelp|trustpilot|out of (5|five|10|ten))\b|\b\d(\.\d)?\s*\/\s*(5|10)\b/i,
+  ],
+  ["complaints", /\b(complaints?|alerts?|lawsuits?|sued|litigation|scam|fraud\w*)\b/i],
+  ["accreditation", /\b(accredit\w*|bbb|better business bureau)\b/i],
+  [
+    "legal_entity",
+    /\b(llc|l\.l\.c|incorporated|corporation|sole proprietor\w*|dba|d\/b\/a|doing business as|alternate name|legal name|registered (as|in|with)|registration|subsidiary|franchise\w*|entity)\b/i,
+  ],
+  [
+    "named_person",
+    /\b(ceo|cfo|coo|cto|president|chief|director|led by|run by|managed by|headed by|founded by|co-?founders?|founders?)\b|\b(Dr|Mr|Mrs|Ms)\.\s+[A-Z]/,
+  ],
+  ["ownership", /\b(owned|owners?|owns|acquired|acquisition|parent company)\b/i],
+  [
+    "revenue_headcount",
+    /\b(revenue|turnover|funding|raised|valuation|employees|headcount|staff of)\b|\$\s?\d|\b\d[\d,]*\+?\s+(employees|people|staff)\b/i,
+  ],
+  [
+    "street_address",
+    /\b\d{1,6}\s+(?:[A-Z][\w'-]*\s+){1,4}(St|Street|Rd|Road|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Pkwy|Parkway|Hwy|Highway|Ct|Court|Pl|Place)\b|\bsuite\s+\d+/i,
+  ],
+];
+
+export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | null {
+  if (a.topic !== undefined && a.topic !== "other") return a.topic;
+  const text = `${a.claim}\n${a.engineQuote}`;
+  for (const [topic, re] of TOPIC_TEXT) if (re.test(text)) return topic;
+  return null;
+}
+
+/** Does this text carry a withheld topic? For the branded answers' excerpts,
+ *  which are printed whole and on a "reviews" query carry employee scores. */
+export function textWithheld(text: string): boolean {
+  return TOPIC_TEXT.some(([topic, re]) => topic === "ratings_reviews" && re.test(text));
+}
+
+/**
+ * A branded answer's excerpt, as the web page prints it. An answer that gave a
+ * rating or a review score, from customers or employees, is not reprinted:
+ * the "<name> reviews" query brought employee ratings onto a sales document in
+ * front of the person who runs the staff (PR-09).
+ */
+export function brandedExcerpt(probe: Pick<ProbeAnswer, "snippet" | "truncated">): string {
+  if (textWithheld(probe.snippet)) {
+    return "This answer gave ratings or review scores, which we have not checked, so we have not repeated it here.";
+  }
+  return `${probe.snippet}${probe.truncated ? "…" : ""}`;
+}
+
+export type HeldBack = {
+  /** Statements about the prospect on a withheld topic. */
+  withheld: number;
+  /** Their topics, as words, in first-seen order. */
+  topics: string[];
+  /** Statements the answer made about another business, or could not place. */
+  aboutOthers: number;
+};
+
+/** What the page leaves out, counted, so leaving it out is said aloud. */
+export function heldBack(view: ReportView): HeldBack {
+  const all = (view.accuracy?.assertions ?? []).filter((a) => a.verdict !== "confirmed");
+  const topics: string[] = [];
+  let withheld = 0;
+  let aboutOthers = 0;
+  for (const a of all) {
+    if (!aboutProspect(a)) {
+      aboutOthers += 1;
+      continue;
+    }
+    const t = withheldTopic(a);
+    if (t === null) continue;
+    withheld += 1;
+    if (!topics.includes(TOPIC_LABEL[t])) topics.push(TOPIC_LABEL[t]);
+  }
+  return { withheld, topics, aboutOthers };
+}
+
+/**
+ * W2 (BR-07). `absent` is "your site does not say this", and it is ours to
+ * say only of a site we read whole. Stored rows called a site read whole when
+ * every CRAWLED page was read; the crawl stops at 20, so a site whose sitemap
+ * lists 95 was "read whole" at 20. A stored row is re-read here: without a
+ * sitemap count the pages read reach, each `absent` becomes `unverified`.
+ */
+function withCoverage(acc: Accuracy, sitemapUrlCount: number | null): Accuracy {
+  const size = acc.siteUrlCount ?? sitemapUrlCount;
+  const full = acc.siteFullyRead && size !== null && size > 0 && acc.pagesRead >= size;
+  if (full) return acc;
+  const reason =
+    size === null || size <= 0
+      ? `We read ${acc.pagesRead} of your pages and could not learn how many your site has, so we cannot say this is absent from it.`
+      : `We read ${acc.pagesRead} of your ${size} pages, so we cannot say this is absent from your site.`;
+  return {
+    ...acc,
+    siteFullyRead: false,
+    assertions: acc.assertions.map((a) =>
+      a.verdict === "absent" ? { ...a, verdict: "unverified", unverifiedReason: reason } : a,
+    ),
+  };
 }
 
 /**
@@ -1243,8 +1430,15 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
   const accessibility = stage<Accessibility>(r.accessibility);
   const goalFit = stage<GoalFit>(r.goalFit);
   const accuracyRaw = stage<Omit<Accuracy, "conflation"> & { conflation?: Conflation }>(r.accuracy);
+  const sitemapCount =
+    crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
+      ? crawl.sitemap.urlCount
+      : null;
   const accuracy: Accuracy | null = accuracyRaw
-    ? { ...accuracyRaw, conflation: accuracyRaw.conflation ?? NO_CONFLATION }
+    ? withCoverage(
+        { ...accuracyRaw, conflation: accuracyRaw.conflation ?? NO_CONFLATION },
+        sitemapCount,
+      )
     : null;
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
@@ -1309,10 +1503,7 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
           checked: crawl?.agentAccess?.length ?? 0,
         }
       : null,
-    sitemapUrlCount:
-      crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
-        ? crawl.sitemap.urlCount
-        : null,
+    sitemapUrlCount: sitemapCount,
     failedStages: STAGE_KEYS.filter((k) => ranAndFailed(r[k])),
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,

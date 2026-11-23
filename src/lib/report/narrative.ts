@@ -5,6 +5,9 @@ import {
   sourceCheckMeasured,
   stageFailed,
   STAGE_LABEL,
+  confirmedRows,
+  contradictedRows,
+  heldBack,
   type Fix,
   type ReportView,
   type StageKey,
@@ -149,11 +152,13 @@ function headlineFindingGenerated(view: ReportView): Headline {
     }
   }
 
-  const contradicted = acc?.assertions.find((a) => a.verdict === "contradicted");
+  // The assistant's own words, never our paraphrase of them, and only a
+  // statement about this business on a topic we print (W2).
+  const contradicted = contradictedRows(view)[0];
   if (contradicted) {
     return {
       kind: "contradicted",
-      text: `The assistant says “${contradicted.claim}”, and your own site says otherwise.`,
+      text: `The assistant says “${displayQuote(contradicted.engineQuote)}”, and your own site says otherwise.`,
     };
   }
 
@@ -264,7 +269,7 @@ function passesGenerated(view: ReportView): PassGroup[] {
 
   const ai: string[] = [];
   if (acc) {
-    const confirmed = acc.assertions.filter((a) => a.verdict === "confirmed").length;
+    const confirmed = confirmedRows(view).length;
     if (confirmed > 0) {
       ai.push(
         `${numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())} ` +
@@ -787,4 +792,33 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
     "and because an assistant’s answers move, this is worth taking again.";
 
   return { what, how, receipts };
+}
+
+/**
+ * W2. What the accuracy section leaves out, said aloud as counts. A statement
+ * on a withheld topic (a rating, a complaint, who owns the business, a named
+ * person…) is not repeated, and one about another business is not printed as
+ * about this one; leaving them out silently would read as "the assistant said
+ * nothing else".
+ */
+export function heldBackLines(view: ReportView): string[] {
+  const h = heldBack(view);
+  const lines: string[] = [];
+  if (h.withheld > 0) {
+    const them = h.withheld === 1 ? "it" : "them";
+    lines.push(
+      `The assistant also made ${numberWord(h.withheld)} ${h.withheld === 1 ? "statement" : "statements"} ` +
+        `about ${joinList(h.topics)} that we have not checked, so we have not repeated ${them} here. ` +
+        `Ask us for ${them}.`,
+    );
+  }
+  if (h.aboutOthers > 0) {
+    const one = h.aboutOthers === 1;
+    lines.push(
+      `${numberWord(h.aboutOthers).replace(/^./, (c) => c.toUpperCase())} ${one ? "statement" : "statements"} ` +
+        `the assistant made ${one ? "was" : "were"} about another business, or one it could not tell apart from you, ` +
+        `so ${one ? "it is" : "they are"} left out.`,
+    );
+  }
+  return lines;
 }

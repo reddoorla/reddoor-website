@@ -1185,12 +1185,13 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
     const out = notSourcedFromSite(
       view([
         claim("unverified", "A man named Tim leads Acme."),
-        claim("absent", "The legal name is Acme, LLC."),
+        // W2: not a legal-entity statement, which the page now withholds.
+        claim("absent", "Acme opened in 2012."),
         claim("unverified", "Acme is based in Ohio."),
       ]),
     );
     expect(out.map((a) => a.claim)).toEqual([
-      "The legal name is Acme, LLC.",
+      "Acme opened in 2012.",
       "A man named Tim leads Acme.",
       "Acme is based in Ohio.",
     ]);

@@ -14,7 +14,7 @@
   import FixList from "./FixList.svelte";
   import SearchResults from "./SearchResults.svelte";
   import WhatPasses from "./WhatPasses.svelte";
-  import { failedChecksSentence, openingSummary, type ReportView } from "./model";
+  import { brandedExcerpt, failedChecksSentence, openingSummary, type ReportView } from "./model";
   import {
     allFixes,
     auditedOn,
@@ -346,7 +346,7 @@
                       <div class="flex flex-col gap-2">
                         <p class="m-0 font-medium text-black">&ldquo;{probe.query}&rdquo;</p>
                         <p class="type-meta m-0 text-muted">
-                          {probe.snippet}{probe.truncated ? "…" : ""}
+                          {brandedExcerpt(probe)}
                         </p>
                         {#if probe.citedDomains.length}
                           <p class="type-meta m-0 text-muted">

@@ -284,7 +284,11 @@ const sheetWith = (answersRead: number): string => {
     accuracy: { data: { answersRead: number; assertions: Assertion[] } };
   };
   report.accuracy.data.answersRead = answersRead;
-  report.accuracy.data.assertions = [{ ...assertion("contradicted"), engineQuote: QUOTE }];
+  // W2: a claim the page prints. The helper's "registered in Texas" is a
+  // legal-entity statement, which the page withholds behind a count.
+  report.accuracy.data.assertions = [
+    { ...assertion("contradicted"), claim: `${QUOTE}.`, engineQuote: QUOTE },
+  ];
   return renderText(printSheet, { data: { report, overrides: {} } });
 };
 

@@ -1,14 +1,15 @@
 <script lang="ts">
-  import { collisionBlock, displayQuote, numberWord } from "./narrative";
+  import { collisionBlock, displayQuote, heldBackLines, numberWord } from "./narrative";
   import {
     citationRuns,
+    confirmedRows,
+    contradictedRows,
     nameUnsettled,
     namesakeLeads,
     notSourcedFromSite,
     ownSiteCitations,
     sourceCheckMeasured,
     stageFailed,
-    type Assertion,
     type ReportView,
   } from "./model";
 
@@ -40,10 +41,10 @@
   const acc = $derived(view.accuracy);
   const who = $derived(view.businessName ?? "this business");
 
-  const of = (v: Assertion["verdict"]): Assertion[] =>
-    (acc?.assertions ?? []).filter((a) => a.verdict === v);
-
-  const contradicted = $derived(of("contradicted"));
+  // W2. Every list below prints the assistant's own words in quotation marks,
+  // never the accuracy model's paraphrase, and only statements about this
+  // business on topics we print. See `printable` in model.ts.
+  const contradicted = $derived(contradictedRows(view));
   // One list, under a heading that asserts nothing — the hedge in the line
   // beneath it carries the claim, and is true across the grey middle where most
   // of these actually sit. See `notSourcedFromSite`.
@@ -52,7 +53,10 @@
   // the reason and the source lists were three lines of ours under each line of
   // theirs, and they buried the sentence that mattered.
   const notSourced = $derived(notSourcedFromSite(view));
-  const confirmed = $derived(of("confirmed").length);
+  const confirmedList = $derived(confirmedRows(view));
+  const confirmed = $derived(confirmedList.length);
+  const citedOwn = $derived(ownSiteCitations(view));
+  const held = $derived(heldBackLines(view));
 
   // Which rows print their sources, and which say they have none. The run is
   // keyed on the ANSWER, in model.ts, so this section and the print sheet
@@ -155,13 +159,12 @@
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each citationRuns(contradicted) as { row, citations } (row.claim + row.query)}
+          {#each citationRuns(contradicted) as { row, citations } (row.engineQuote + row.query)}
             <li class="flex flex-col gap-2 border-t border-light py-6">
-              <p class="m-0 font-medium text-black">{row.claim}</p>
               <!-- The engine's words, verified as a real substring of its answer
                    rather than paraphrased. A client checking us on this is the
                    best possible outcome, so it has to survive being checked. -->
-              <p class="type-meta m-0 text-muted">
+              <p class="m-0 font-medium text-black">
                 The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
               </p>
               {#if row.siteQuote}
@@ -207,14 +210,38 @@
         </div>
 
         <ul class="m-0 flex list-none flex-col p-0">
-          {#each notSourced as u (u.claim + u.query)}
-            <li class="border-t border-light py-4 font-medium text-black">{u.claim}</li>
+          {#each notSourced as u (u.engineQuote + u.query)}
+            <li class="border-t border-light py-4 font-medium text-black">
+              &ldquo;{displayQuote(u.engineQuote)}&rdquo;
+            </li>
           {/each}
         </ul>
       </div>
     {/if}
 
+    {#each held as line (line)}
+      <p class="type-meta m-0 text-muted">{line}</p>
+    {/each}
+
     {#if confirmed > 0}
+      <!-- W2 (BR-09). Listed with both quotes, so the reader can judge the
+           one verdict that rests on our reading of their site. -->
+      <div class="flex flex-col gap-5">
+        <h4 class="type-question m-0 text-black">What your site backs up</h4>
+        <ul class="m-0 flex list-none flex-col p-0">
+          {#each confirmedList as row (row.engineQuote + row.query)}
+            <li class="flex flex-col gap-2 border-t border-light py-4">
+              <p class="m-0 font-medium text-black">
+                The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
+              </p>
+              <p class="type-meta m-0 text-muted">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+
+    {#if confirmed > 0 && citedOwn > 0}
       <!-- The proof that editing the site changes the answer, in one sentence.
            The statements themselves are in the passes list. It is the summary
            of the lists above, so it takes the h4s' size and colour rather than
@@ -224,9 +251,8 @@
         {confirmed === 1 ? "statement" : "statements"} the assistant made
         {confirmed === 1 ? "matches" : "match"} a passage on your own site, and across the answers we
         checked it cited your site
-        {ownSiteCitations(view) === 1 ? "once" : `${ownSiteCitations(view)} times`}. That is the
-        proof that editing your pages changes the answer; the statements are listed under
-        <a class="underline" href="#passes">what passes</a>.
+        {citedOwn === 1 ? "once" : `${citedOwn} times`}. That is the proof that editing your pages
+        changes the answer; the statements are listed above.
       </p>
     {/if}
 
