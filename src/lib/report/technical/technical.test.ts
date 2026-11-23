@@ -553,7 +553,7 @@ describe("review after the rebase", () => {
     const text = await pageText(row as unknown as Record<string, unknown>);
     expect(text).toContain("✕");
     expect(text).not.toMatch(/nothing we tested[^.]*broken/);
-    expect(text).toContain("nothing a visitor runs into today");
+    expect(text).toContain("nothing we found stops a visitor from using it");
   });
 
   it("printableUrl strips a version under any parameter name on an asset", () => {
@@ -566,5 +566,76 @@ describe("review after the rebase", () => {
     );
     // Not a version: an ordinary parameter on an asset stays.
     expect(printableUrl("https://s.example/app.js?id=42")).toBe("https://s.example/app.js?id=42");
+  });
+});
+
+describe("post-rebase review round 2", () => {
+  type Row2 = Loose & {
+    basics: { data: { insecureEntry: Record<string, unknown> } };
+    dns: { data: Record<string, unknown> };
+  };
+  const viewOf = (row: Row2, hidden: string[] = []) =>
+    JSON.stringify(toTechnicalView(row as unknown as AuditReport, TODAY, new Set(hidden)));
+
+  it("each maintenance check key takes its own finding and rows off the page", () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Row2;
+    row.dns.data.mx = [];
+    row.basics.data.insecureEntry = {
+      measured: true,
+      url: "http://x.example/",
+      ok: false,
+      landedOn: "http://x.example/",
+      error: null,
+    };
+    const cases: [string, string[]][] = [
+      ["header-strict-transport-security", ["Telling browsers to always use https"]],
+      ["header-x-frame-options", ["Protection against framing"]],
+      ["header-content-security-policy", ["A content policy for scripts"]],
+      ["header-x-content-type-options", ["File types declared, not guessed"]],
+      ["dns-mx", ["A mail server for your domain"]],
+      ["https-upgrade", ["Typing the address without https", '"label":"https"']],
+    ];
+    for (const [key, texts] of cases) {
+      const before = viewOf(row);
+      const after = viewOf(row, [key]);
+      for (const t of texts) {
+        expect(before, key).toContain(t);
+        expect(after, key).not.toContain(t);
+      }
+      expect(after.length, key).toBeLessThan(before.length);
+    }
+  });
+
+  it("an SVG image keeps its own address; only an SVG font loses a version", () => {
+    for (const u of [
+      "https://s.example/uploads/2024/05/award-badge-2.0.svg",
+      "https://s.example/img/screenshot-at-10.30.45.svg",
+      "https://s.example/map.svg?zoom=1.5",
+    ])
+      expect(printableUrl(u)).toBe(u);
+    expect(printableUrl("https://s.example/fonts/fontawesome-webfont.svg?v=4.7.0")).toBe(
+      "https://s.example/fonts/fontawesome-webfont.svg",
+    );
+  });
+
+  it("a prerelease or encoded version does not reach the page", () => {
+    expect(printableUrl("https://s.example/b.js?rev=6.6.14-beta")).toBe("https://s.example/b.js");
+    expect(printableUrl("https://s.example/b.js?6.6.14-rc.1")).toBe("https://s.example/b.js");
+    expect(printableUrl("https://s.example/b.css?ver%3D6.4.2")).toBe("https://s.example/b.css");
+  });
+
+  it("the lede claims nothing is broken only when no row is marked broken", async () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Row2;
+    for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    row.http.data.externalLinks = {
+      checked: 15,
+      total: 15,
+      broken: [{ url: "https://partner.example/a" }, { url: "https://partner.example/b" }],
+    };
+    const view = toTechnicalView(row as unknown as AuditReport, TODAY);
+    expect(view.nothingBroken).toBe(true);
+    const text = await pageText(row as unknown as Record<string, unknown>);
+    expect(text).not.toMatch(/nothing (?:we tested|a visitor runs into)[^.]*\./);
+    expect(text).toContain("nothing we found stops a visitor from using it");
   });
 });

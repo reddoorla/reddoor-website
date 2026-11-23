@@ -59,6 +59,9 @@ export type TechnicalView = {
   runningOn: string | null;
   /** The headline about breakage: true when nothing a visitor hits is broken. */
   nothingBroken: boolean;
+  /** Some row in the sections below is marked broken (✕), weight aside. The
+   *  lede may say "nothing we tested is broken" only when this is false. */
+  anyRowBroken: boolean;
   /** The scan itself did not finish: the crawl, assets or basics stage is
    *  missing or failed. The page then claims no all-clear. */
   incomplete: boolean;
@@ -195,16 +198,22 @@ export function printableUrl(url: string): string {
   // a PDF or a page does not, and stripping numbers there prints an address
   // that does not exist (a screenshot named "…-at-10.30.45.png").
   // Fonts too: a theme's font-awesome-4.7.0/…woff2?v=4.7.0 carries its version.
-  // An SVG font (fontawesome-webfont.svg?v=4.7.0) is a font.
-  const asset = /\.(?:js|mjs|css|woff2?|ttf|otf|eot|svg)$/i.test(u.pathname);
-  // On an asset, a version can sit under any name (?rev=6.6.14) or be the
-  // whole query (?6.4.2): any parameter whose value, or bare key, is a dotted
-  // version goes, whatever it is called.
-  const versionLike = /^v?\d+(?:\.\d+)+$/i;
+  // An SVG is an image unless its path says it is a font
+  // (fonts/fontawesome-webfont.svg?v=4.7.0); an image's path is never rewritten.
+  const svgFont = /\.svg$/i.test(u.pathname) && /(?:\/fonts?\/|webfont)/i.test(u.pathname);
+  const asset = /\.(?:js|mjs|css|woff2?|ttf|otf|eot)$/i.test(u.pathname);
+  // On an asset, a version can sit under any name (?rev=6.6.14), carry a
+  // prerelease (6.6.14-beta), or be the whole query (?6.4.2, or ?ver%3D6.4.2,
+  // which decodes to a bare key): any parameter whose value, or bare key, is a
+  // dotted version goes, whatever it is called.
+  const versionLike = /^v?\d+(?:\.\d+)+(?:[-+][\w.]+)?$/i;
+  const bareVersion = (k: string) =>
+    versionLike.test(k) || versionLike.test(k.replace(/^(?:v|ver|version)=/i, ""));
   for (const [k, v] of [...u.searchParams.entries()])
     if (
       /^(?:ver|version)$/i.test(k) ||
-      (asset && (/^v$/i.test(k) || versionLike.test(v) || (v === "" && versionLike.test(k))))
+      ((asset || svgFont) && /^v$/i.test(k)) ||
+      (asset && (versionLike.test(v) || (v === "" && bareVersion(k))))
     )
       u.searchParams.delete(k);
   if (asset) {
@@ -984,11 +993,29 @@ export function toTechnicalView(
     }
   };
 
+  const shownRows = {
+    address: visibleRows(address),
+    brokenThings: visibleRows(brokenThings),
+    phone: visibleRows(phone),
+    safe: visibleRows(safe),
+    email: visibleRows(email),
+    domain: domain && visibleRows([domain]).length ? domain : null,
+  };
+
   return {
     host: hostOf(base.url),
     generatedAt: base.generatedAt,
     runningOn,
     nothingBroken: broken.length === 0 && !incomplete,
+    anyRowBroken: [
+      ...shownRows.address,
+      ...shownRows.brokenThings,
+      ...weightRows,
+      ...shownRows.phone,
+      ...shownRows.safe,
+      ...shownRows.email,
+      ...(shownRows.domain ? [shownRows.domain] : []),
+    ].some((r) => r.ok === false),
     incomplete,
     brokenTotal: broken.length,
     attentionTotal: attention.length,
@@ -1000,15 +1027,10 @@ export function toTechnicalView(
     sections: {
       running: {
         items: [...layers].map(([layer, names]) => ({ layer, names })),
-        releaseLines,
+        releaseLines: hiddenChecks.has("header-version-leak") ? [] : releaseLines,
       },
-      address: visibleRows(address),
-      brokenThings: visibleRows(brokenThings),
+      ...shownRows,
       weight: { rows: weightRows, heaviest },
-      phone: visibleRows(phone),
-      safe: visibleRows(safe),
-      email: visibleRows(email),
-      domain: domain && visibleRows([domain]).length ? domain : null,
       access,
       read: whatWeRead(base, pages),
     },
@@ -1018,8 +1040,13 @@ export function toTechnicalView(
 /**
  * The stored site check each finding and row is read alongside (maintenance's
  * `site-checks.ts` keys). An operator who hides that check on the main report
- * (W1) hides these too. A finding with no check of its own here (the not-found
- * page, the www variant, framing, CSP) has nothing an operator can hide.
+ * (W1) hides these too. Each value is a key from that file, checked by hand
+ * against it on 11-23 (the security headers are `header-<name>`; `dns-mx` is
+ * the site's own domain, `dns-contact-mx` other domains). A finding with no
+ * check of its own (the not-found page, the www variant, broken images, mixed
+ * content, accessibility) has nothing an operator can hide. The heavy-image
+ * finding is unmapped on purpose: it weighs bytes, and `oversized-images`
+ * measures pixels against display size, a different claim.
  */
 const FINDING_CHECK: Record<string, string> = {
   "insecure-entry": "https-upgrade",
@@ -1031,14 +1058,20 @@ const FINDING_CHECK: Record<string, string> = {
   "script-errors": "console-errors",
   "template-leakage": "template-leakage",
   favicon: "favicon-served",
-  "heavy-image": "oversized-images",
   overflow: "mobile-overflow",
   "tiny-text": "tiny-text",
-  hsts: "header-hsts-age",
+  hsts: "header-strict-transport-security",
+  framing: "header-x-frame-options",
+  csp: "header-content-security-policy",
+  nosniff: "header-x-content-type-options",
+  // The release line is read from the same server header the version check
+  // reads: a hide made because that header is a proxy's takes both.
   "version-announced": "header-version-leak",
+  "release-server": "header-version-leak",
+  "release-x-powered-by": "header-version-leak",
   spf: "dns-spf",
   dmarc: "dns-dmarc",
-  mx: "dns-contact-mx",
+  mx: "dns-mx",
   noindex: "meta-noindex",
 };
 const ROW_CHECK: Record<string, string> = {
@@ -1053,11 +1086,15 @@ const ROW_CHECK: Record<string, string> = {
   "Template code": "template-leakage",
   "Sideways scrolling on a phone": "mobile-overflow",
   "Text under 12 pixels": "tiny-text",
-  "Telling browsers to always use https": "header-hsts-age",
+  https: "https-upgrade",
+  "Telling browsers to always use https": "header-strict-transport-security",
+  "Protection against framing": "header-x-frame-options",
+  "A content policy for scripts": "header-content-security-policy",
+  "File types declared, not guessed": "header-x-content-type-options",
   "Software version in headers": "header-version-leak",
   "SPF, the list of servers allowed to send as you": "dns-spf",
   "DMARC, what receivers do with forged mail": "dns-dmarc",
-  "A mail server for your domain": "dns-contact-mx",
+  "A mail server for your domain": "dns-mx",
   "Registered through": "domain-expiry",
 };
 
