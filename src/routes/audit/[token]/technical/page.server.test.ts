@@ -34,6 +34,7 @@ describe("/audit/[token]/technical", () => {
     expect(data.reference).toMatch(/^[0-9a-f]{8}$/);
     expect(JSON.stringify(data)).not.toContain(TOKEN);
     expect(JSON.stringify(data)).not.toContain("A model wrote this sentence.");
+    expect(JSON.stringify(data)).not.toContain("An assistant said this about the business.");
   });
 
   it("keeps the parent route's guards: noindex and no-store", async () => {
@@ -42,5 +43,23 @@ describe("/audit/[token]/technical", () => {
     const headers = Object.assign({}, ...setHeaders.mock.calls.map((c) => c[0]));
     expect(headers["x-robots-tag"]).toContain("noindex");
     expect(headers["cache-control"]).toContain("no-store");
+  });
+
+  it("opens a row from a --technical run, whose paid stages were never run", async () => {
+    const skipped = { ok: false, error: "skipped (--technical)" };
+    const {
+      goalFit: _goalFit,
+      analyze: _analyze,
+      probes: _probes,
+      accuracy: _accuracy,
+      ...rest
+    } = TECHNICAL_REPORT as Record<string, unknown>;
+    const technicalRun = { ...rest, analyze: skipped, probes: skipped, accuracy: skipped };
+    const { evt } = event({ report: technicalRun, overrides: {} });
+    const data = (await load(evt)) as { view: unknown };
+    const full = (await load(event({ report: TECHNICAL_REPORT, overrides: {} }).evt)) as {
+      view: unknown;
+    };
+    expect(data.view).toEqual(full.view);
   });
 });

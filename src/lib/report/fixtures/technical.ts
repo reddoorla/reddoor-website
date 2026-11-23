@@ -259,6 +259,31 @@ export const TECHNICAL_REPORT: AuditReport = {
     },
   },
   probes: { ok: true, data: { answers: [] } },
-  accuracy: { ok: true, data: { claims: [] } },
+  // The stored shape (assertions, not claims): W1's loader runs the main
+  // report's narrative over every route's row, and a shape no row has would
+  // crash it before the Technical view is built.
+  accuracy: {
+    ok: true,
+    data: {
+      assertions: [
+        {
+          claim: "An assistant said this about the business.",
+          verdict: "contradicted",
+          engineQuote: "An assistant said this about the business.",
+          siteQuote: "The site says otherwise.",
+          unverifiedReason: null,
+          nearbyMention: null,
+          sourceDomains: [],
+          query: "who is Harbor Dental",
+          engine: "claude",
+        },
+      ],
+      sources: [],
+      siteFullyRead: false,
+      pagesRead: 4,
+      pagesTotal: 12,
+      answersRead: 1,
+    },
+  },
   goalFit: { ok: true, data: { goal: "book", requirements: [] } },
 };

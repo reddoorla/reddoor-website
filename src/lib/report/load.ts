@@ -89,10 +89,12 @@ export async function loadReport(
   if (!fetched) throw error(404, "Not found");
 
   // W1. The link was replaced by a newer report for the same site: send the
-  // reader there, keeping /print or /edit. 307 so it is not cached as forever.
+  // reader there, keeping /print, /edit or /technical (W4: the Technical view of
+  // a superseded token opens the newer token's Technical view, not its main
+  // report). 307 so it is not cached as forever.
   if ("supersededBy" in fetched) {
-    const suffix = url?.pathname.match(/\/(print|edit)\/?$/)?.[0] ?? "";
-    throw redirect(307, `/audit/${fetched.supersededBy}${suffix}`);
+    const view = url?.pathname.match(/\/(print|edit|technical)\/?$/)?.[1];
+    throw redirect(307, `/audit/${fetched.supersededBy}${view ? `/${view}` : ""}`);
   }
 
   // W1 review round 1. SvelteKit serialises `load` data into the page for
