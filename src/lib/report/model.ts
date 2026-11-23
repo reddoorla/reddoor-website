@@ -822,9 +822,11 @@ export type ReportView = {
     read: number;
     site: number | null;
     siteIsFloor?: boolean;
-    /** Where `site` came from: the sitemap (present), or the pages the home page
-     *  links to. Only a sitemap total may be stated as "your pages" or "all". */
-    siteFrom?: "sitemap" | "links" | null;
+    /** Where `site` came from: the sitemap (present), the pages the home page
+     *  links to (no sitemap), or "found": the union of those links and the
+     *  sitemap's URLs, when the union outgrows the sitemap. Only a sitemap total
+     *  may be stated as "your pages" or "all". */
+    siteFrom?: "sitemap" | "links" | "found" | null;
   } | null;
   /** Stages that RAN AND FAILED, in report order. A stage this era of the
    *  payload lacks, or one the producer skipped on purpose, is not here: both
@@ -1230,6 +1232,16 @@ export function sourceCheckHasStatements(view: ReportView): boolean {
   return sourceCheckMeasured(view) && (view.accuracy?.assertions.length ?? 0) > 0;
 }
 
+/** A legacy crawl's sitemap total is a floor when it was truncated. One stored
+ *  before the flag existed has no `truncated` key, and an absent flag is "we do
+ *  not know", never "not truncated": so a present sitemap with no flag is a floor. */
+function sitemapIsFloor(
+  sitemap: { truncated?: boolean } | undefined,
+  count: number | null,
+): boolean {
+  return sitemap?.truncated === true || (count !== null && typeof sitemap?.truncated !== "boolean");
+}
+
 /** See `ReportView.pagesRead`. A crawl stored before it counted what it knew
  *  of (no `selection`) gives a site count only when the sitemap lists more
  *  pages than were read: a smaller sitemap says nothing about the site, and
@@ -1260,7 +1272,9 @@ function pagesReadOf(
       site: largest,
       // A truncated sitemap makes the site total a floor whichever count was used.
       siteIsFloor: crawl.sitemap?.truncated === true,
-      siteFrom: largest === sitemap ? "sitemap" : "links",
+      // The union of the home page's links and the sitemap outgrows the sitemap:
+      // it is pages we found, which a sitemap-less count of links also is not "your".
+      siteFrom: largest === sitemap ? "sitemap" : sitemap !== null ? "found" : "links",
     };
   }
   // A crawl stored before it counted what it knew of has only the sitemap to go on.
@@ -1269,7 +1283,7 @@ function pagesReadOf(
   return {
     read,
     site: sitemap,
-    siteIsFloor: crawl.sitemap?.truncated === true,
+    siteIsFloor: sitemapIsFloor(crawl.sitemap, sitemap),
     siteFrom: "sitemap",
   };
 }

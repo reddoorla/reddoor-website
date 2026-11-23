@@ -80,10 +80,10 @@ export function absenceTag(view: ReportView): string {
 }
 
 /** The lead of the unsourced-claims line: the pages the check read, or, when it
- *  read none, that we could not read any to check against. */
+ *  read none, that no page could be read for this check (as its footnote says). */
 export function unsourcedLead(view: ReportView): string {
   const clause = inSourceCheckPages(view);
-  return clause ? `, ${clause}` : ", though we could not read any of your pages to check";
+  return clause ? `, ${clause}` : ", though no page could be read for this check";
 }
 
 /**

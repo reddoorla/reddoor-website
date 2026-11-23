@@ -1,6 +1,6 @@
 import type { ReportView } from "./model";
 import { composed } from "./overrides";
-import { acrossPagesRead, readNothing } from "./pages-read";
+import { acrossPagesRead, crawlDenominator, readNothing } from "./pages-read";
 
 /**
  * Whether the site works, checked the way a stranger would check it.
@@ -194,9 +194,10 @@ function healthRowsGenerated(view: ReportView): HealthRow[] {
     // The scope of the measurement, from the pages the crawl read against the
     // site's count. "Not just the first" is claimed only over several pages.
     const scope = acrossPagesRead(view);
+    const onePage = crawlDenominator(view)?.read === 1;
     const measured =
       scope !== null
-        ? scope.startsWith("on your one page")
+        ? onePage
           ? scope
           : `${scope}, not just the first`
         : journey.pagesExamined === 1

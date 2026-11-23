@@ -28,6 +28,7 @@ import {
   sourceCheckFootnote,
   tocEntries,
   TOC_TARGETS,
+  unsourcedLead,
 } from "./narrative";
 import { healthRows } from "./health";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
@@ -1552,17 +1553,15 @@ describe("absences carry their denominator", () => {
 
   it("an absence in every page we read is worded so a negative still reads right", () => {
     const v = view({ ...unanswered, ...crawled(7, 7, 6) });
-    // A sitemap-less total is the pages the home page links to: a count of pages
-    // found, so no "all" and no "your seven pages".
-    expect(inPagesRead(v)).toBe(
-      "in the seven pages we read, of the seven we found linked from your home page",
-    );
+    // The home page's links and the sitemap together outgrow the sitemap: a count
+    // of pages found, so no "all" and no "your seven pages".
+    expect(inPagesRead(v)).toBe("in the seven pages we read, of the seven we found");
     expect(headlineFinding(v).text).toContain(
-      "in the seven pages we read, of the seven we found linked from your home page: ",
+      "in the seven pages we read, of the seven we found: ",
     );
     const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
     expect(questionReceipt(v, no!)).toBe(
-      "not found in the seven pages we read, of the seven we found linked from your home page",
+      "not found in the seven pages we read, of the seven we found",
     );
   });
 
@@ -1746,7 +1745,7 @@ describe("review round 3: the check's own count, zero reads, and floors", () => 
         { pagesConsidered: 50012 },
       ),
     });
-    expect(v.pagesRead).toEqual({ read: 20, site: 50012, siteIsFloor: true, siteFrom: "links" });
+    expect(v.pagesRead).toEqual({ read: 20, site: 50012, siteIsFloor: true, siteFrom: "found" });
     expect(headlineFinding(v).text).toContain(
       "in the 20 pages we read, out of at least 50,012 pages on your site",
     );
@@ -1876,7 +1875,7 @@ describe("review round 4: a floor is never all, a links count is never your page
         { pagesConsidered: 5 },
       ),
     });
-    expect(v.pagesRead).toEqual({ read: 5, site: 5, siteIsFloor: true, siteFrom: "links" });
+    expect(v.pagesRead).toEqual({ read: 5, site: 5, siteIsFloor: true, siteFrom: "found" });
     const text = headlineFinding(v).text;
     expect(text).not.toMatch(/we read them all|\ball\b|Not in any of your/i);
     expect(text).toContain("in the five pages we read");
@@ -1988,5 +1987,153 @@ describe("review round 4: a floor is never all, a links count is never your page
     expect(goalInferenceLead(view(withPages(pagesOf(3), null, { pagesConsidered: 3 })))).toBe(
       "As far as we can tell from reading it",
     );
+  });
+});
+
+// W3 review round 5. Each of these was red before its fix.
+describe("review round 5: one page, a found total, legacy floors, both, the source check's lead", () => {
+  const pageAt = (i: number) => ({
+    url: `https://example.test/p${i}`,
+    raw: { text: "" },
+    rendered: null,
+  });
+  const pagesOf = (n: number) => Array.from({ length: n }, (_, i) => pageAt(i));
+  const withPages = (
+    pages: { url: string; raw: unknown; rendered: unknown }[],
+    sitemap: { present: boolean; urlCount: number; truncated?: boolean },
+    selection?: { pagesConsidered: number },
+  ) => ({
+    crawl: {
+      ok: true,
+      data: {
+        ...(raw.crawl!.data as object),
+        pages,
+        sitemap,
+        selection,
+      },
+    },
+  });
+  const noSitemap = { present: false, urlCount: 0 };
+  const unanswered = stage("analyze", (d) => ({
+    ...d,
+    buyerQuestions: (d.buyerQuestions as BuyerQuestion[]).map((q, i) =>
+      i < 2 ? { ...q, answered: "no", evidence: null, page: null } : q,
+    ),
+  }));
+  /** A view with the journey stage's affordances emptied, over the given overrides. */
+  const noContactAffordances = (over: Record<string, unknown>) =>
+    view({
+      ...over,
+      ...stage("checks", (d) => ({
+        ...d,
+        journey: { ...(d.journey as object), affordances: [] },
+      })),
+    });
+  const contactDetail = (v: ReportView) =>
+    healthRows(v).find((r) => r.label === "Getting hold of you")?.detail ?? "";
+  /** A view whose source check read `pagesRead` of `pagesTotal` pages. */
+  const checked = (over: Record<string, unknown>, pagesRead: number, pagesTotal: number) => {
+    const v = view(over);
+    return { ...v, accuracy: { ...v.accuracy!, pagesRead, pagesTotal } } as ReportView;
+  };
+
+  // Finding 1: "your one page" only when a complete sitemap says the site is one page.
+  it("one page of a 95-page sitemap is not 'your one page', and not 'not just the first'", () => {
+    const v = noContactAffordances(
+      withPages(pagesOf(1), { present: true, urlCount: 95 }, { pagesConsidered: 40 }),
+    );
+    const d = contactDetail(v);
+    expect(d).toContain("so we measured this across the one page we read, of your 95.");
+    expect(d).not.toMatch(/your one page|not just the first/);
+  });
+
+  it("one page of a truncated 50,000-page sitemap says 'out of at least', never 'your one page'", () => {
+    const v = noContactAffordances(
+      withPages(
+        pagesOf(1),
+        { present: true, urlCount: 50000, truncated: true },
+        {
+          pagesConsidered: 1,
+        },
+      ),
+    );
+    const d = contactDetail(v);
+    expect(d).toContain(
+      "so we measured this across the one page we read, out of at least 50,000 pages on your site.",
+    );
+    expect(d).not.toMatch(/your one page|not just the first/);
+  });
+
+  it("one page the home page links to is counted as such, and drops 'not just the first'", () => {
+    const v = noContactAffordances(withPages(pagesOf(1), noSitemap, { pagesConsidered: 5 }));
+    const d = contactDetail(v);
+    expect(d).toContain(
+      "so we measured this across the one page we read, of the five we found linked from your home page.",
+    );
+    expect(d).not.toContain("not just the first");
+  });
+
+  // Finding 2: a total larger than the sitemap is the pages we found, never "linked" nor "your".
+  it("a home-page-and-sitemap total is the pages we found, never 'linked from your home page' or 'your 95'", () => {
+    const v = view({
+      ...unanswered,
+      ...withPages(pagesOf(20), { present: true, urlCount: 60 }, { pagesConsidered: 95 }),
+    });
+    expect(v.pagesRead).toEqual({ read: 20, site: 95, siteIsFloor: false, siteFrom: "found" });
+    const text = headlineFinding(v).text;
+    expect(text).toContain("in the 20 pages we read, of the 95 we found");
+    expect(text).not.toMatch(/linked from your home page|your 95|of your 95/);
+    const how = primer(v, []).how;
+    expect(how).toContain("It read 20 of the 95 pages we found");
+    expect(how).not.toMatch(/linked from your home page|your 95/);
+  });
+
+  // Finding 3: a sitemap stored without its truncated flag is a floor, not a known total.
+  it("a legacy sitemap with no truncated flag is a floor: 'at least', never 'your 66 pages'", () => {
+    const v = view({
+      ...unanswered,
+      crawl: {
+        ok: true,
+        data: {
+          ...(raw.crawl!.data as object),
+          pages: pagesOf(20),
+          sitemap: { present: true, urlCount: 66 },
+          selection: undefined,
+        },
+      },
+    });
+    expect(v.pagesRead).toEqual({ read: 20, site: 66, siteIsFloor: true, siteFrom: "sitemap" });
+    expect(inPagesRead(v)).toBe("in the 20 pages we read, out of at least 66 pages on your site");
+    expect(primer(v, []).how).toContain("20 of at least 66 pages on your site");
+    expect(primer(v, []).how).not.toMatch(/your 66 pages|of your 66/);
+  });
+
+  // Finding 4: two pages, all read, are "both", never "all two".
+  it("a complete two-page sitemap says 'both of your pages', never 'all two'", () => {
+    const v = noContactAffordances(
+      withPages(pagesOf(2), { present: true, urlCount: 2 }, { pagesConsidered: 2 }),
+    );
+    expect(pagesReadPhrase(v)).toBe("both of your pages");
+    expect(contactDetail(v)).toContain("across both of your pages we read, not just the first.");
+    const how = primer(v, []).how;
+    expect(how).toContain("It read both of your pages, each one twice");
+    expect(how).not.toMatch(/all two/);
+  });
+
+  // Finding 5: one page of a larger sitemap reads "one page of your 95".
+  it("one page of a 95-page sitemap reads 'one page of your 95' in every phrase", () => {
+    const v = view(withPages(pagesOf(1), { present: true, urlCount: 95 }, { pagesConsidered: 40 }));
+    expect(pagesReadPhrase(v)).toBe("one page of your 95");
+    expect(inPagesRead(v)).toBe("in the one page we read, of your 95");
+  });
+
+  // Finding 6: a source check that read no page says so, in the words of its footnote.
+  it("a source check that read no page, over a crawl that did, says no page could be read for this check", () => {
+    const v = checked(
+      withPages(pagesOf(20), { present: true, urlCount: 95 }, { pagesConsidered: 40 }),
+      0,
+      20,
+    );
+    expect(unsourcedLead(v)).toBe(", though no page could be read for this check");
   });
 });

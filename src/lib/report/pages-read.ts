@@ -29,13 +29,14 @@ export function readNothing(view: ReportView): boolean {
 /** A count of pages read against the site's, the one shape every phrase below is
  *  made from. `floor` says the site total is "at least" (a truncated sitemap).
  *  `from` says where the site total came from: only a sitemap, present and not
- *  truncated, may carry an "all" claim. A count of pages the home page links to
- *  is "pages we found", never "your pages". */
+ *  truncated, may carry an "all" claim. "links" is a count of pages the home page
+ *  links to; "found" is the union of those links and the sitemap's URLs, which
+ *  outgrows the sitemap. Neither is "your pages". */
 export type PagesDenominator = {
   read: number;
   site: number | null;
   floor: boolean;
-  from: "sitemap" | "links" | null;
+  from: "sitemap" | "links" | "found" | null;
 };
 
 const pages = (n: number): string => `${numberWord(n)} ${n === 1 ? "page" : "pages"}`;
@@ -45,6 +46,16 @@ const pages = (n: number): string => `${numberWord(n)} ${n === 1 ? "page" : "pag
 export function completeOf(d: PagesDenominator): boolean {
   return d.site !== null && d.site <= d.read && d.from === "sitemap" && !d.floor;
 }
+
+/** The whole site is one page, and a complete sitemap says so: the only case that
+ *  may read "your one page". One page of a larger site is counted, never named. */
+function onePageWhole(d: PagesDenominator): boolean {
+  return completeOf(d) && d.read === 1 && d.site === 1;
+}
+
+/** "all of your pages", or "both of your pages" for two: never "all two". */
+const allOfYourPages = (n: number): string =>
+  n === 2 ? "both of your pages" : `all ${numberWord(n)} of your pages`;
 
 /** The crawl's own count: every page it read, against the site's total. */
 export function crawlDenominator(view: ReportView): PagesDenominator | null {
@@ -94,9 +105,16 @@ export function phraseOf(d: PagesDenominator | null): string | null {
     return d.site > d.read
       ? `${numberWord(d.read)} of at least ${numberWord(d.site)} pages on your site`
       : pages(d.read);
-  if (completeOf(d))
-    return d.read === 1 ? "your one page" : `all ${numberWord(d.read)} of your pages`;
-  if (d.from === "sitemap") return `${numberWord(d.read)} of your ${pages(d.site)}`;
+  if (onePageWhole(d)) return "your one page";
+  if (completeOf(d)) return allOfYourPages(d.read);
+  if (d.from === "sitemap")
+    return d.read === 1
+      ? `one page of your ${numberWord(d.site)}`
+      : `${numberWord(d.read)} of your ${pages(d.site)}`;
+  if (d.from === "found")
+    return d.read === 1 && d.site === 1
+      ? "the one page we found"
+      : `${numberWord(d.read)} of the ${numberWord(d.site)} pages we found`;
   if (d.read === 1 && d.site === 1) return "the one page we found linked from your home page";
   return `${numberWord(d.read)} of the ${numberWord(d.site)} pages we found linked from your home page`;
 }
@@ -115,11 +133,14 @@ export function clauseOf(d: PagesDenominator | null): string | null {
     return d.site > d.read
       ? `in the ${pages(d.read)} we read, out of at least ${numberWord(d.site)} pages on your site`
       : `in the ${pages(d.read)} we read`;
-  if (completeOf(d))
+  if (onePageWhole(d)) return "in your one page, which we read";
+  if (completeOf(d)) return `in any of your ${numberWord(d.read)} pages (we read them all)`;
+  if (d.from === "sitemap")
     return d.read === 1
-      ? "in your one page, which we read"
-      : `in any of your ${numberWord(d.read)} pages (we read them all)`;
-  if (d.from === "sitemap") return `in the ${numberWord(d.read)} of your ${pages(d.site)} we read`;
+      ? `in the one page we read, of your ${numberWord(d.site)}`
+      : `in the ${numberWord(d.read)} of your ${pages(d.site)} we read`;
+  if (d.from === "found")
+    return `in the ${pages(d.read)} we read, of the ${numberWord(d.site)} we found`;
   return `in the ${pages(d.read)} we read, of the ${numberWord(d.site)} we found linked from your home page`;
 }
 
@@ -147,8 +168,8 @@ export function inSourceCheckPages(view: ReportView): string | null {
 export function acrossPagesRead(view: ReportView): string | null {
   const d = crawlDenominator(view);
   if (!d || d.read < 1) return null;
-  if (d.read === 1) return "on your one page, which we read";
-  if (completeOf(d)) return `across all ${numberWord(d.read)} of your pages we read`;
+  if (onePageWhole(d)) return "on your one page, which we read";
+  if (completeOf(d)) return `across ${allOfYourPages(d.read)} we read`;
   const clause = clauseOf(d);
   return clause ? clause.replace(/^in /, "across ") : null;
 }
