@@ -17,8 +17,10 @@
     collisionBlock,
     displayQuote,
     headlineFinding,
+    answerLabel,
     inPagesRead,
     pagesReadPhrase,
+    readNothing,
     passes,
     questionReceipt,
     sourceCheckFootnote,
@@ -34,12 +36,6 @@
 
   const auditDate = $derived(auditedOn(view));
 
-  const ANSWERED_LABEL = {
-    yes: "Yes",
-    partial: "Partial",
-    no: "No",
-    unknown: "Not measured",
-  } as const;
   const EFFORT_LABEL = {
     low: "About an hour",
     medium: "A few days",
@@ -221,7 +217,11 @@
       {/each}
       {#if notSourced.length}
         <h3>What the AI says about you</h3>
-        <p class="note">These are claims that seem not to be sourced from your site.</p>
+        <p class="note">
+          These are claims that seem not to be sourced from your site{inPagesRead(view)
+            ? `, ${inPagesRead(view)}`
+            : ""}.
+        </p>
         <ul>
           {#each notSourced as u (u.claim + u.query)}
             <li>{u.claim}</li>
@@ -315,8 +315,10 @@
       <h3>Does your site do its job</h3>
       {#if view.goalFit.goal === "unknown"}
         <p>
-          We read {pagesReadPhrase(view) ?? "your pages"} and could not tell what {who} wants a visitor
-          to do.
+          {readNothing(view)
+            ? "We could not read any of your pages, so we could not tell"
+            : `We read ${pagesReadPhrase(view) ?? "your pages"} and could not tell`} what {who} wants
+          a visitor to do.
         </p>
       {:else if goalMissing.length === 0}
         <p class="note">Everything the site needs for that job is in place — see What passes.</p>
@@ -347,7 +349,7 @@
             <tr>
               <td>{q.question}</td>
               <td class="answered {q.answered}">
-                {q.answered === "unknown" && q.notFound ? "Unclear" : ANSWERED_LABEL[q.answered]}
+                {answerLabel(q)}
               </td>
               <td class="evidence">
                 {questionReceipt(view, q)}

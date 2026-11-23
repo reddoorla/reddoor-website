@@ -397,15 +397,18 @@ export const GOAL_LABELS: Record<string, string> = {
  */
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
 
-export function goalVerdict(missing: number, judged: number): string {
+export function goalVerdict(missing: number, judged: number, where: string | null = null): string {
+  // `where` is the clause an absence carries ("in the 20 of your 95 pages we
+  // read"): an absence states the pages it rests on, or says nothing of them.
+  const clause = where ? ` ${where}` : "";
   if (judged === 0) return "We could not judge any of what it needs to do that.";
   if (missing === 0) return "Everything it needs to do that is in place.";
-  if (missing >= judged) return "None of what it needs to do that is in place.";
+  if (missing >= judged) return `None of what it needs to do that is in place${clause}.`;
   const word = NUMBER_WORDS[missing] ?? String(missing);
   const subject = word.charAt(0).toUpperCase() + word.slice(1);
   const verb = missing === 1 ? "is" : "are";
   const total = NUMBER_WORDS[judged] ?? String(judged);
-  return `${subject} of the ${total} things it needs ${verb} not in place.`;
+  return `${subject} of the ${total} things it needs ${verb} not in place${clause}.`;
 }
 
 /**

@@ -656,3 +656,59 @@ describe("the print sheet carries the denominator", () => {
     expect(text).toContain("though “pricing” appears on /services");
   });
 });
+
+// W3 review round 2. The components themselves, rendered: the GoalFit wiring
+// (the verdict and row carry the count), its unknown-goal line, and the
+// source-check line about unsourced claims, on the web and in print.
+describe("the rendered absences carry their denominator", () => {
+  const goalData = (
+    ALL_PASS_REPORT as unknown as {
+      goalFit: { data: { requirements: { status: string }[] } & Record<string, unknown> };
+    }
+  ).goalFit.data;
+  const withMissingFirst: AuditReport = {
+    ...READ,
+    goalFit: {
+      ok: true,
+      data: {
+        ...goalData,
+        requirements: goalData.requirements.map((r, i) =>
+          i === 0 ? { ...r, status: "missing" } : r,
+        ),
+      },
+    } as AuditReport["goalFit"],
+  };
+  const gfText = (report: AuditReport): string =>
+    seen(renderText(goalFit, { view: toReportView(report) }));
+
+  it("a missing goal row and the verdict above it both say what was read", () => {
+    const text = gfText(withMissingFirst);
+    expect(text).toContain("Not in the three of your 95 pages we read");
+    expect(text).not.toContain("Not on the site");
+    expect(text).toMatch(
+      /One of the \w+ things it needs is not in place in the three of your 95 pages we read\./,
+    );
+  });
+
+  it("a goal-unknown line says how much was read, never 'every page'", () => {
+    const text = gfText(UNKNOWN_GOAL);
+    expect(text).toContain("We read three of your 95 pages and could not tell what");
+    expect(text).not.toContain("every page");
+  });
+
+  it("a goal-unknown line over zero pages read claims no reading", () => {
+    const text = gfText({
+      ...UNKNOWN_GOAL,
+      crawl: { ok: true, data: { ...READ_CRAWL.data, pages: [] } } as AuditReport["crawl"],
+    });
+    expect(text).toContain("could not tell what");
+    expect(text).not.toMatch(/\bzero\b|We read/);
+  });
+
+  it("the unsourced-claims line says which pages it rests on, web and print", () => {
+    const line =
+      "These are claims that seem not to be sourced from your site, in the three of your 95 pages we read.";
+    expect(seen(renderText(sourceCheck, { view: toReportView(READ) }))).toContain(line);
+    expect(seen(printed(READ))).toContain(line);
+  });
+});

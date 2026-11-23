@@ -14,9 +14,16 @@ const WORDS = [
   "ten",
 ];
 
-/** "two", "ten", then digits — the reader's register, not the instrument's. */
+/** "two", "ten", then digits with a thousands separator ("11", "50,000") — the
+ *  reader's register, not the instrument's. */
 export function numberWord(n: number): string {
-  return WORDS[n] ?? String(n);
+  return WORDS[n] ?? n.toLocaleString("en-US");
+}
+
+/** True when the crawl read no page at all. There is then no count to state,
+ *  and no absence may be worded as resting on a page we read. */
+export function readNothing(view: ReportView): boolean {
+  return view.pagesRead !== null && view.pagesRead.read < 1;
 }
 
 /**
@@ -31,7 +38,7 @@ export function numberWord(n: number): string {
  */
 export function pagesReadPhrase(view: ReportView): string | null {
   const p = view.pagesRead;
-  if (!p) return null;
+  if (!p || p.read < 1) return null;
   const pages = (n: number): string => `${numberWord(n)} ${n === 1 ? "page" : "pages"}`;
   if (p.site === null) return pages(p.read);
   if (p.site <= p.read)
@@ -39,7 +46,10 @@ export function pagesReadPhrase(view: ReportView): string | null {
   return `${numberWord(p.read)} of your ${p.siteIsFloor ? "at least " : ""}${pages(p.site)}`;
 }
 
-/** "in the 20 of your 95 pages we read", the clause an absence carries. */
+/** "in the 20 of your 95 pages we read", the clause an absence carries. Read
+ *  as the negative it always is ("not in ...", "not found in ..."): "in any of
+ *  your seven pages" means in none of them, and "(we read them all)" says why
+ *  the reader can rely on that. */
 export function inPagesRead(view: ReportView): string | null {
   const p = view.pagesRead;
   const phrase = pagesReadPhrase(view);
@@ -47,6 +57,6 @@ export function inPagesRead(view: ReportView): string | null {
   if (p.site !== null && p.site <= p.read)
     return p.read === 1
       ? "in your one page, which we read"
-      : `in each of your ${numberWord(p.read)} pages, all of which we read`;
+      : `in any of your ${numberWord(p.read)} pages (we read them all)`;
   return `in the ${phrase} we read`;
 }

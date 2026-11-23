@@ -6,7 +6,7 @@
     type GoalRequirement,
     type ReportView,
   } from "./model";
-  import { numberWord, inPagesRead, pagesReadPhrase } from "./narrative";
+  import { numberWord, inPagesRead, pagesReadPhrase, readNothing } from "./narrative";
   import { composed } from "./overrides";
 
   // Whether the site does the one job it exists to do.
@@ -62,7 +62,11 @@
   // string offered to `composed` is the string rendered below. Rendering it
   // through the harness with that override would close that.
   const verdict = $derived(
-    composed(view.overrides, "composed:goalVerdict", goalVerdict(missing.length, judged.length)),
+    composed(
+      view.overrides,
+      "composed:goalVerdict",
+      goalVerdict(missing.length, judged.length, inPagesRead(view)),
+    ),
   );
 </script>
 
@@ -79,8 +83,10 @@
        guess as their failing. -->
   <div class="flex flex-col gap-5">
     <p class="type-lede m-0 text-primary">
-      We read {pagesReadPhrase(view) ?? "your pages"} and could not tell what {who} wants a visitor to
-      actually do.
+      {readNothing(view)
+        ? "We could not read any of your pages, so we could not tell"
+        : `We read ${pagesReadPhrase(view) ?? "your pages"} and could not tell`} what {who} wants a visitor
+      to actually do.
     </p>
     <p class="m-0 text-muted">
       That is not a criticism of the writing — it is a finding about the structure. Sites that

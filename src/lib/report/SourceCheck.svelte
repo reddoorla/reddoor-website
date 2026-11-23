@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { collisionBlock, displayQuote, numberWord, sourceCheckFootnote } from "./narrative";
+  import {
+    collisionBlock,
+    displayQuote,
+    inPagesRead,
+    numberWord,
+    sourceCheckFootnote,
+  } from "./narrative";
   import {
     citationRuns,
     nameUnsettled,
@@ -203,7 +209,9 @@
         <div class="flex flex-col gap-1.5">
           <h4 class="type-question m-0 text-black">What the AI says about you</h4>
           <p class="type-meta m-0 text-muted">
-            These are claims that seem not to be sourced from your site.
+            These are claims that seem not to be sourced from your site{inPagesRead(view)
+              ? `, ${inPagesRead(view)}`
+              : ""}.
           </p>
         </div>
 

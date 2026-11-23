@@ -1,5 +1,5 @@
 import { healthRows, type HealthRow } from "./health";
-import { inPagesRead, numberWord, pagesReadPhrase } from "./pages-read";
+import { inPagesRead, numberWord, pagesReadPhrase, readNothing } from "./pages-read";
 import {
   GOAL_LABELS,
   nameUnsettled,
@@ -48,7 +48,7 @@ export type Headline = { kind: HeadlineKind; text: string };
  *  answers, and the check of what those answers say. */
 const ALL_CLEAR_NEEDS: StageKey[] = ["analyze", "probes", "accuracy"];
 
-export { inPagesRead, numberWord, pagesReadPhrase };
+export { inPagesRead, numberWord, pagesReadPhrase, readNothing };
 
 /**
  * The source check's closing line, on the web and in print. It used to end
@@ -59,7 +59,9 @@ export { inPagesRead, numberWord, pagesReadPhrase };
 export function sourceCheckFootnote(view: ReportView): string | null {
   const acc = view.accuracy;
   if (!acc) return null;
-  const site = view.pagesRead?.site ?? view.sitemapUrlCount;
+  // A legacy crawl (no `selection`) has a deliberate null site count, which
+  // must not fall back to the sitemap: that is the claim the null exists to avoid.
+  const site = view.pagesRead ? view.pagesRead.site : view.sitemapUrlCount;
   // Every page of the site was read: the hedge would say a page was missed
   // that was not, so it is dropped.
   if (site !== null && site <= acc.pagesRead)
@@ -78,17 +80,39 @@ export function questionReceipt(view: ReportView, q: BuyerQuestion): string {
   const where = inPagesRead(view);
   if (q.answered === "unknown" && q.notFound) {
     let path = q.notFound.page;
+    let pathname: string | null = null;
     try {
-      const { pathname } = new URL(q.notFound.page);
-      path = pathname === "/" ? "your home page" : decodeURIComponent(pathname);
+      pathname = new URL(q.notFound.page).pathname;
     } catch {
-      // Keep the address as stored.
+      // Not a URL: keep the address as stored.
+    }
+    if (pathname === "/") path = "your home page";
+    else if (pathname !== null) {
+      // A malformed escape ("%-off") cannot decode: the raw path is still the page.
+      try {
+        path = decodeURIComponent(pathname);
+      } catch {
+        path = pathname;
+      }
     }
     return `no direct answer found${where ? ` ${where}` : ""}, though “${q.notFound.term}” appears on ${path}`;
   }
   if (q.answered === "unknown") return "not judged on this audit";
   if (q.answered === "no" && where) return `not found ${where}`;
   return "no passage an assistant could quote";
+}
+
+/** The "On your site" label, shared by the web and print question tables.
+ *  "Unclear" is a found-but-unread answer, not a measured one. */
+export const ANSWERED_LABEL = {
+  yes: "Yes",
+  partial: "Partial",
+  no: "No",
+  unknown: "Not measured",
+} as const;
+
+export function answerLabel(q: BuyerQuestion): string {
+  return q.answered === "unknown" && q.notFound ? "Unclear" : ANSWERED_LABEL[q.answered];
 }
 
 /** "a, b and c" — a list a sentence can carry. */
@@ -154,7 +178,9 @@ function headlineFindingGenerated(view: ReportView): Headline {
   if (fit?.goal === "unknown") {
     return {
       kind: "goal-unknown",
-      text: `We read ${pagesReadPhrase(view) ?? "your pages"} and could not tell what ${who} wants a visitor to do.`,
+      text: readNothing(view)
+        ? `We could not read any of your pages, so we could not tell what ${who} wants a visitor to do.`
+        : `We read ${pagesReadPhrase(view) ?? "your pages"} and could not tell what ${who} wants a visitor to do.`,
     };
   }
 
@@ -772,13 +798,14 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   // With nothing to report the clause goes rather than softening to "its
   // named checks": a count is the whole point of the sentence, and a report
   // whose battery never ran should not imply it did.
-  const fetched =
-    `Most of it is machinery, not an AI’s opinion. It read ${pagesReadPhrase(view) ?? "your pages"}, ${view.pagesRead?.read === 1 ? "twice" : "each one twice"}, plain and ` +
-    "in a real browser" +
-    (ran
-      ? `, then ran ${ran} named checks on what came back, from dead links to structured ` +
-        "data to whether a phone can fill in your forms."
-      : ".");
+  const fetched = readNothing(view)
+    ? "Most of it is machinery, not an AI’s opinion. We could not read any of your pages this time."
+    : `Most of it is machinery, not an AI’s opinion. It read ${pagesReadPhrase(view) ?? "your pages"}, ${view.pagesRead?.read === 1 ? "twice" : "each one twice"}, plain and ` +
+      "in a real browser" +
+      (ran
+        ? `, then ran ${ran} named checks on what came back, from dead links to structured ` +
+          "data to whether a phone can fill in your forms."
+        : ".");
 
   // The assistant, last, and only the parts that ran. The accuracy stage is
   // the "check each statement" claim — SourceCheck.svelte gates its section

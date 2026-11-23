@@ -20,6 +20,7 @@
     auditedOn,
     headlineFinding,
     primer,
+    answerLabel,
     questionReceipt,
     tocEntries,
     TOC_TARGETS,
@@ -168,13 +169,6 @@
   });
 
   const auditDate = $derived(auditedOn(view));
-
-  const ANSWERED_LABEL = {
-    yes: "Yes",
-    partial: "Partial",
-    no: "No",
-    unknown: "Not measured",
-  } as const;
 
   /**
    * The domains one answer cited, most-cited first, each named once. The raw
@@ -497,9 +491,7 @@
                               ? 'text-primary'
                               : 'text-muted'}"
                           >
-                            {q.answered === "unknown" && q.notFound
-                              ? "Unclear"
-                              : ANSWERED_LABEL[q.answered]}
+                            {answerLabel(q)}
                           </td>
                           <!-- The receipt. A verdict with no passage beside it
                              is a claim the reader cannot check. -->

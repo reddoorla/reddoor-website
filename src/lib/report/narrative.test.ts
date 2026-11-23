@@ -11,11 +11,14 @@ import {
 import type { AuditReport } from "./fetch";
 import {
   allFixes,
+  answerLabel,
   auditedOn,
   collisionFix,
   displayQuote,
   headlineFinding,
   healthFixes,
+  inPagesRead,
+  pagesReadPhrase,
   passes,
   passCount,
   primer,
@@ -1361,7 +1364,8 @@ describe("absences carry their denominator", () => {
 
   it("says so plainly when it read every page it knew of", () => {
     const h = headlineFinding(view({ ...unanswered, ...crawled(7, 7, 6) }));
-    expect(h.text).toContain("in each of your seven pages, all of which we read");
+    expect(h.text).toContain("in any of your seven pages (we read them all)");
+    expect(h.text).not.toContain("in each of");
   });
 
   it("the primer no longer claims every page was fetched", () => {
@@ -1513,5 +1517,100 @@ describe("absences carry their denominator", () => {
         notFound: { term: "pricing", page: "https://example.test/our%20services" },
       }),
     ).toContain("appears on /our services");
+  });
+
+  // W3 review round 2. Each of these was red before its fix.
+
+  it("the footnote of a legacy crawl never reads its sitemap as the site", () => {
+    const v = view(
+      withPages(
+        Array.from({ length: 20 }, (_, i) => pageAt(i)),
+        { present: true, urlCount: 12 },
+      ),
+    );
+    expect(v.pagesRead?.site).toBeNull();
+    expect(
+      sourceCheckFootnote({
+        ...v,
+        accuracy: { ...v.accuracy!, pagesRead: 15, pagesTotal: 20 },
+      } as ReportView),
+    ).toBe(
+      "We read 15 of the 20 pages we crawled for this check. A statement listed above may be on a page we did not read.",
+    );
+  });
+
+  it("an absence in every page we read is worded so a negative still reads right", () => {
+    const v = view({ ...unanswered, ...crawled(7, 7, 6) });
+    expect(inPagesRead(v)).toBe("in any of your seven pages (we read them all)");
+    expect(headlineFinding(v).text).toContain("in any of your seven pages (we read them all): ");
+    const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
+    expect(questionReceipt(v, no!)).toBe("not found in any of your seven pages (we read them all)");
+  });
+
+  it("a zero-page crawl states no count, and makes no claim about reading", () => {
+    const v = view(
+      withPages(
+        [{ url: "https://example.test/a", raw: null, rendered: null }],
+        { present: true, urlCount: 95 },
+        { pagesConsidered: 40 },
+      ),
+    );
+    expect(v.pagesRead).toEqual({ read: 0, site: 95, siteIsFloor: false });
+    expect(pagesReadPhrase(v)).toBeNull();
+    expect(inPagesRead(v)).toBeNull();
+    const how = primer(v, []).how;
+    expect(how).toContain("We could not read any of your pages this time.");
+    expect(how).not.toMatch(/zero|twice|\bread \d/);
+    const h = headlineFinding(
+      view({
+        ...stage("goalFit", (d) => ({ ...d, goal: "unknown", requirements: [] }) as StageData),
+        ...withPages(
+          [{ url: "https://example.test/a", raw: null, rendered: null }],
+          { present: true, urlCount: 95 },
+          { pagesConsidered: 40 },
+        ),
+      }),
+    );
+    expect(h.kind).toBe("goal-unknown");
+    expect(h.text).not.toMatch(/\bzero\b|We read/);
+    expect(h.text).toContain("could not tell what");
+  });
+
+  it("counts above ten carry a thousands separator, and 'at least' stays", () => {
+    const v = view(
+      withPages(
+        Array.from({ length: 20 }, (_, i) => pageAt(i)),
+        { present: true, urlCount: 50000, truncated: true },
+        { pagesConsidered: 40 },
+      ),
+    );
+    expect(pagesReadPhrase(v)).toBe("20 of your at least 50,000 pages");
+  });
+
+  it("a receipt whose address will not decode prints the raw path, not the URL", () => {
+    const v = view({ ...unanswered, ...crawled(20, 40, 95) });
+    const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
+    expect(
+      questionReceipt(v, {
+        ...no!,
+        answered: "unknown",
+        notFound: { term: "pricing", page: "https://example.test/100%-off" },
+      }),
+    ).toBe(
+      "no direct answer found in the 20 of your 95 pages we read, though “pricing” appears on /100%-off",
+    );
+  });
+
+  it("the question table's label is one function, 'Unclear' only for a found-but-unread answer", () => {
+    const v = view({ ...unanswered, ...crawled(20, 40, 95) });
+    const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
+    expect(answerLabel(no!)).toBe("No");
+    const hedged = {
+      ...no!,
+      answered: "unknown" as const,
+      notFound: { term: "pricing", page: "https://example.test/services" },
+    };
+    expect(answerLabel(hedged)).toBe("Unclear");
+    expect(answerLabel({ ...hedged, notFound: undefined })).toBe("Not measured");
   });
 });

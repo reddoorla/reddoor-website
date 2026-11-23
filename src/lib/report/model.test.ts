@@ -772,6 +772,16 @@ describe("goalVerdict", () => {
   it("falls back to digits past the number words", () => {
     expect(goalVerdict(12, 20)).toBe("12 of the 20 things it needs are not in place.");
   });
+
+  // W3 review round 2: an absence states the pages it rests on.
+  it("names the pages it rests on, after 'in place'", () => {
+    expect(goalVerdict(1, 4, "in the 20 of your 95 pages we read")).toBe(
+      "One of the four things it needs is not in place in the 20 of your 95 pages we read.",
+    );
+    expect(goalVerdict(4, 4, "in any of your seven pages (we read them all)")).toBe(
+      "None of what it needs to do that is in place in any of your seven pages (we read them all).",
+    );
+  });
 });
 
 describe("fieldShape", () => {
