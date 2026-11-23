@@ -380,3 +380,54 @@ describe("W4 review round 2", () => {
     expect(spf?.ok).toBe(false);
   });
 });
+
+describe("W4 review round 3", () => {
+  type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const row = () => clone(TECHNICAL_REPORT) as Any;
+  const proven = (r: Any) => {
+    r.dns.data.mx = [];
+    r.checks.data.consistency = { emails: [{ normalized: "info@elsewhere.example" }] };
+    return r;
+  };
+
+  it("puts a missing mail server under broken now when the site publishes an address at its own domain", () => {
+    const r = proven(row());
+    r.checks.data.consistency.emails.push({
+      normalized: "hello@harbordentalandorthodonticsofsouthbay.example",
+    });
+    expect(toTechnicalView(r, TODAY).broken.map((f) => f.id)).toContain("mx");
+  });
+
+  it("CONTROL: not when every published address is elsewhere", () => {
+    const view = toTechnicalView(proven(row()), TODAY);
+    expect(view.broken.map((f) => f.id)).not.toContain("mx");
+  });
+
+  it("says standard support ended, never that all support did", () => {
+    const f = toTechnicalView(row(), TODAY).attention.find((x) => x.id === "release-server");
+    expect(f?.text).toContain("ended standard support");
+  });
+
+  it("does not quote +all when the record says all", () => {
+    const r = row();
+    r.dns.data.spf = "v=spf1 include:_spf.mail.example all";
+    const f = toTechnicalView(r, TODAY)
+      .fixFirst.concat(toTechnicalView(r, TODAY).more)
+      .find((x) => x.id === "spf");
+    expect(f?.text).not.toContain("+all");
+  });
+
+  it("strips versions from directories, and keeps a video id", () => {
+    expect(
+      printableUrl(
+        "https://x.example/wp-content/themes/t/vendor/bootstrap-4.6.0/js/bootstrap.min.js",
+      ),
+    ).toBe("https://x.example/wp-content/themes/t/vendor/bootstrap/js/bootstrap.min.js");
+    expect(printableUrl("https://x.example/js/jquery-ui-1.12.1.custom.min.js")).toBe(
+      "https://x.example/js/jquery-ui.custom.min.js",
+    );
+    expect(printableUrl("https://www.youtube.com/watch?v=abc123")).toBe(
+      "https://www.youtube.com/watch?v=abc123",
+    );
+  });
+});

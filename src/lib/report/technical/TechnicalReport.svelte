@@ -94,9 +94,9 @@
       >
         {#if view.incomplete}
           We could not complete this scan of {view.host}, so this page makes no all-clear: what
-          follows is only what we did manage to read{view.brokenTotal
-            ? `, and ${view.brokenTotal === 1 ? "one thing" : `${view.brokenTotal} things`} in it a visitor runs into today`
-            : ""}.
+          follows is only what we did manage to read.{view.brokenTotal
+            ? ` Even so, we found ${view.brokenTotal === 1 ? "one thing" : `${view.brokenTotal} things`} a visitor runs into today.`
+            : ""}
         {:else}
           {view.runningOn ? `${view.host} is ${view.runningOn}, and ` : ""}{view.nothingBroken
             ? "nothing we tested on it is broken."

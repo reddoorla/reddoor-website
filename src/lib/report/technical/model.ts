@@ -181,10 +181,13 @@ const noneMissing = (n: number) =>
 export function printableUrl(url: string): string {
   try {
     const u = new URL(url);
+    // `v=` is a version only on an asset; on youtube.com/watch it is the video.
+    const asset = /\.(?:js|mjs|css)$/i.test(u.pathname);
     for (const k of [...u.searchParams.keys()])
-      if (/^(?:ver|version|v)$/i.test(k)) u.searchParams.delete(k);
-    // A version in the file name too: jquery-1.12.4.min.js → jquery.min.js.
-    u.pathname = u.pathname.replace(/[-.@]v?\d+(?:\.\d+)+(?=(?:\.min)?\.(?:js|css|mjs)$)/i, "");
+      if (/^(?:ver|version)$/i.test(k) || (asset && /^v$/i.test(k))) u.searchParams.delete(k);
+    // A version anywhere in the path: jquery-1.12.4.min.js, bootstrap-4.6.0/,
+    // lib@1.2.3/ and jquery-ui-1.12.1.custom.min.js all lose the version.
+    u.pathname = u.pathname.replace(/[-.@]v?\d+(?:\.\d+)+(?=[./]|$)/gi, "");
     return u.toString();
   } catch {
     return url.replace(/[?&](?:ver|version|v)=[^&#]*/gi, "");
@@ -315,7 +318,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       add(
         `release-${r.header}`,
         2,
-        `Your ${r.header === "server" ? "server" : "site's runtime"} reports ${r.line}, whose makers ended support in ${monthYear(r.supportEnds)}. Updates can still be applied to an old line, so this says how old it is, not whether it has been patched.`,
+        `Your ${r.header === "server" ? "server" : "site's runtime"} reports ${r.line}, whose makers ended standard support in ${monthYear(r.supportEnds)}. Updates can still be applied to an old line, so this says how old it is, not whether it has been patched.`,
       );
     }
   }
@@ -488,7 +491,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       add(
         "sitemap-broken",
         2,
-        `${plural(n, "address", "addresses")} in your sitemap did not answer.`,
+        `${plural(n, "address", "addresses")} in your sitemap came back missing.`,
         printableUrl(sb[0]!.url),
       );
   }
@@ -507,7 +510,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       add(
         "external-broken",
         2,
-        `${plural(n, "link", "links")} to other sites did not answer.`,
+        `${plural(n, "link", "links")} to other sites came back missing.`,
         printableUrl(eb[0]!.url),
       );
   }
@@ -583,7 +586,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       "template-leakage",
       3,
       "Unfilled template code shows as text on a page.",
-      leakage.evidence?.split(": ")[0] ?? null,
+      leakage.evidence ? printableUrl(leakage.evidence.split(": ")[0]!) : null,
     );
   } else if (leakage?.status === "fail") {
     brokenThings.push({
@@ -750,6 +753,13 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
 
   // ── Is your email safe ──
   const email: Row[] = [];
+  const checks = stageData<{ consistency?: { emails?: { normalized?: string }[] } }>(raw, "checks");
+  const publishesOwnAddress = arr(checks?.consistency?.emails).some(
+    (e) =>
+      typeof e.normalized === "string" &&
+      !!dns?.domain &&
+      e.normalized.toLowerCase().endsWith(`@${dns.domain.toLowerCase()}`),
+  );
   if (dns?.measured) {
     const unproven = (v: string | null | undefined) =>
       v === undefined || (v === null && !dnsProven);
@@ -783,7 +793,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         add(
           "spf",
           2,
-          "Your SPF record ends in +all, which allows any server to send as your domain.",
+          "Your SPF record ends in an `all` that allows any server to send as your domain.",
         );
     }
     if (unproven(dns.dmarc)) {
@@ -837,8 +847,9 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         add(
           "mx",
           // A visitor meets this only if the site publishes an address at
-          // its own domain; otherwise it is the domain's, not the visit's.
-          dns.contactMx && dns.domain && dns.contactMx.domain === dns.domain ? 3 : 2,
+          // its own domain (read from the checks stage, as the pipeline's
+          // DNS lookup is; `contactMx` covers only OTHER domains).
+          publishesOwnAddress ? 3 : 2,
           "Your domain lists no mail server, so email sent to an address at it is rejected.",
         );
     }
