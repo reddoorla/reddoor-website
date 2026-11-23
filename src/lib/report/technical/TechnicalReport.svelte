@@ -289,13 +289,7 @@
       <details class="border-t border-dark/20 pt-4">
         <summary class="cursor-pointer font-medium text-black">What we read</summary>
         <div class="mt-4 flex flex-col gap-2 text-black">
-          <p class="m-0">
-            We opened {view.sections.read.pages.length}
-            {view.sections.read.pages.length === 1 ? "page" : "pages"}{view.sections.read
-              .sitemapUrlCount
-              ? `; your sitemap lists ${view.sections.read.sitemapUrlCount}`
-              : ""}.
-          </p>
+          <p class="m-0">{view.sections.read.sentence}</p>
           <ul class="m-0 flex flex-col gap-1 pl-6 text-[14px]">
             {#each view.sections.read.pages as p (p)}<li class="min-w-0 break-all">{p}</li>{/each}
           </ul>

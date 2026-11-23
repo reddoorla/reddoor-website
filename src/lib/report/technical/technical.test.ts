@@ -464,3 +464,52 @@ describe("W4 review round 5: a font carries its version too", () => {
     ).toBe("https://site.example/wp-content/themes/t/font-awesome/fonts/fontawesome-webfont.woff2");
   });
 });
+
+describe("what we read says what W3's report says", () => {
+  const crawlOf = (row: Record<string, unknown>) =>
+    (row.crawl as { data: Record<string, unknown> }).data;
+  const readLine = async (row: Record<string, unknown>) => {
+    const text = await pageText(row);
+    return text.slice(text.indexOf("What we read"));
+  };
+
+  it("states the pages read against the sitemap's complete count", async () => {
+    const line = await readLine(clone(TECHNICAL_REPORT) as Record<string, unknown>);
+    expect(line).toContain("We read five of your 41 pages.");
+    expect(line).not.toContain("sitemap lists");
+  });
+
+  it("a truncated sitemap is a floor, never 'your pages'", async () => {
+    const row = clone(TECHNICAL_REPORT) as Record<string, unknown>;
+    crawlOf(row).sitemap = { present: true, urlCount: 50000, truncated: true };
+    const line = await readLine(row);
+    expect(line).toContain("We read five of at least 50,000 pages on your site.");
+    expect(line).not.toMatch(/of your 50,000/);
+  });
+
+  it("with no sitemap, the count is the pages linked from the home page", async () => {
+    const row = clone(TECHNICAL_REPORT) as Record<string, unknown>;
+    crawlOf(row).sitemap = { present: false };
+    crawlOf(row).selection = { pagesConsidered: 9 };
+    const line = await readLine(row);
+    expect(line).toContain("We read five of the nine pages we found linked from your home page.");
+    expect(line).not.toContain("of your");
+  });
+
+  it("lists only the pages that came back, and says so when none did", async () => {
+    const row = clone(TECHNICAL_REPORT) as Record<string, unknown>;
+    const pages = crawlOf(row).pages as Record<string, unknown>[];
+    pages[2]!.rendered = null;
+    pages[2]!.raw = null;
+    pages[2]!.status = null;
+    const some = await readLine(row);
+    expect(some).toContain("We read four of your 41 pages.");
+    expect(some).not.toContain("/about");
+
+    for (const p of pages) {
+      p.rendered = null;
+      p.raw = null;
+    }
+    expect(await readLine(row)).toContain("We could not read any of your pages.");
+  });
+});

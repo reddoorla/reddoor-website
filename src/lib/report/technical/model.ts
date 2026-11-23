@@ -1,6 +1,7 @@
 import { toReportView, type ReportView } from "../model";
 import type { AuditReport } from "../fetch";
 import { readReleaseLines, type ReleaseLineReading } from "./release-lines";
+import { crawlDenominator, phraseOf, readNothing } from "../pages-read";
 
 /**
  * THE TECHNICAL REPORT: a second view of the same token, for the buyer who says
@@ -86,7 +87,11 @@ export type TechnicalView = {
     email: Row[];
     domain: Row | null;
     access: Access;
-    read: { pages: string[]; sitemapUrlCount: number | null };
+    /** `sentence` is the main report's own count of what we read (W3's
+     *  `phraseOf`), so the two views of one token cannot disagree, and a
+     *  truncated sitemap or a count of links is never "your pages". `pages`
+     *  are the pages that came back, which is what `sentence` counts. */
+    read: { sentence: string; pages: string[] };
   };
 };
 
@@ -981,8 +986,18 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       email,
       domain,
       access,
-      read: { pages: pages.map((p) => printableUrl(p.url)), sitemapUrlCount: base.sitemapUrlCount },
+      read: whatWeRead(base, pages),
     },
+  };
+}
+
+/** The pages that came back, counted the way the main report counts them. */
+function whatWeRead(base: ReportView, pages: RawPage[]): TechnicalView["sections"]["read"] {
+  const read = pages.filter((p) => p.raw || p.rendered).map((p) => printableUrl(p.url));
+  const phrase = readNothing(base) ? null : phraseOf(crawlDenominator(base));
+  return {
+    sentence: phrase ? `We read ${phrase}.` : "We could not read any of your pages.",
+    pages: phrase ? read : [],
   };
 }
 
