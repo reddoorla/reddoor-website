@@ -7,6 +7,7 @@ import {
   dmarcState,
   isDeliberatelyHidden,
   printableUrl,
+  printableName,
   type TechnicalView,
 } from "./model";
 import { readReleaseLines } from "./release-lines";
@@ -752,5 +753,100 @@ describe("post-rebase review round 4", () => {
     const text = await pageText(row as unknown as Record<string, unknown>);
     expect(text).toContain("some-plugin");
     expect(text).not.toContain("2.3.1");
+  });
+});
+
+describe("post-rebase review round 5", () => {
+  type Row5 = Loose & {
+    crawl: {
+      data: {
+        homeHeaders: Record<string, string>;
+        pages: { rendered: { metas: Record<string, string> }; vitals: Record<string, unknown> }[];
+      };
+    };
+    assets: { data: { heaviestImages: unknown[] } };
+    accessibility: { data: { violations: { impact: string }[]; violationsTotal?: number } };
+    dns: { data: { dmarc: string } };
+    siteChecks: { data: { key: string; status: string; evidence: string }[] };
+  };
+
+  /** The round-5 reviewer's input: a clean site whose only failure is a serious
+   *  accessibility rule. */
+  const seriousOnly = () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Row5;
+    row.crawl.data.homeHeaders = {
+      server: "Apache",
+      "strict-transport-security": "max-age=31536000",
+      "x-frame-options": "SAMEORIGIN",
+      "content-security-policy": "default-src 'self'; frame-ancestors 'self'",
+      "x-content-type-options": "nosniff",
+    };
+    for (const p of row.crawl.data.pages) {
+      p.rendered.anchors = [];
+      p.rendered.metas = {};
+      p.vitals.overflowAt375 = 0;
+      p.vitals.tinyText = { count: 0, sample: null };
+    }
+    row.assets.data.heaviestImages = [];
+    row.dns.data.dmarc = "v=DMARC1; p=reject";
+    row.accessibility.data.violations = row.accessibility.data.violations.filter(
+      (v) => v.impact === "serious",
+    );
+    row.accessibility.data.violationsTotal = 1;
+    return row;
+  };
+
+  it("a serious-only accessibility failure is something to fix, never 'nothing needs fixing'", async () => {
+    const row = seriousOnly();
+    const v = toTechnicalView(row as unknown as AuditReport, TODAY);
+    expect(v.accessFails).toBe(true);
+    expect(v.fixFirst.some((f) => f.id === "a11y-critical")).toBe(true);
+    expect(v.attention.some((f) => f.id === "a11y-critical")).toBe(true);
+    const text = await pageText(row as unknown as Record<string, unknown>);
+    expect(text).toContain("accessibility failures that can stop some visitors");
+    expect(text).not.toContain("Nothing in this scan needs fixing");
+    expect(text).toMatch(/serious or critical accessibility failure/);
+  });
+
+  it("CONTROL: with no failing rule the same site does say nothing needs fixing", async () => {
+    const row = seriousOnly();
+    row.accessibility.data.violations = [];
+    row.accessibility.data.violationsTotal = 0;
+    const v = toTechnicalView(row as unknown as AuditReport, TODAY);
+    expect(v.accessFails).toBe(false);
+    const text = await pageText(row as unknown as Record<string, unknown>);
+    expect(text).toContain("Nothing in this scan needs fixing");
+  });
+
+  it("a moderate-only failure stays out of what to fix first", () => {
+    const row = seriousOnly();
+    for (const x of row.accessibility.data.violations) x.impact = "moderate";
+    const v = toTechnicalView(row as unknown as AuditReport, TODAY);
+    expect(v.accessFails).toBe(false);
+    expect(v.fixFirst.some((f) => f.id === "a11y-critical")).toBe(false);
+  });
+
+  it("a version after an underscore or a space is stripped from a name", () => {
+    expect(printableName("plugin_2.3.1")).toBe("plugin");
+    expect(printableName("Some Plugin 2.3.1")).toBe("Some Plugin");
+    expect(printableName("some-plugin-2.3.1")).toBe("some-plugin");
+    expect(printableName("wp_rocket")).toBe("wp_rocket");
+  });
+
+  it("the template-code finding prints no address from evidence that is not one", () => {
+    const row = seriousOnly();
+    const leak = row.siteChecks.data.find((c) => c.key === "template-leakage")!;
+    leak.status = "fail";
+    leak.evidence = "the footer shows {{year}} on every page";
+    const f = toTechnicalView(row as unknown as AuditReport, TODAY).broken.find(
+      (x) => x.id === "template-leakage",
+    );
+    expect(f).toBeDefined();
+    expect(f!.evidence).toBeNull();
+    leak.evidence = "https://harbor.example/about: {{year}}";
+    const g = toTechnicalView(row as unknown as AuditReport, TODAY).broken.find(
+      (x) => x.id === "template-leakage",
+    );
+    expect(g!.evidence).toBe(printableUrl("https://harbor.example/about"));
   });
 });

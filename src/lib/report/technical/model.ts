@@ -242,9 +242,24 @@ export function printableUrl(url: string): string {
 const OVERFLOW_TOLERANCE = 4;
 
 /** A stack name as printed. A WordPress theme or plugin is named by its folder,
- *  and a hand-installed one can carry its version there (some-plugin-2.3.1). */
+ *  and a hand-installed one can carry its version there (some-plugin-2.3.1,
+ *  plugin_2.3.1, "Some Plugin 2.3.1"). */
 export function printableName(name: string): string {
-  return name.replace(/[-.@]v?\d+(?:\.\d+)+(?:[-+][\w.]+)?$/i, "") || name;
+  return name.replace(/[-._@ ]v?\d+(?:\.\d+)+(?:[-+][\w.]+)?$/i, "") || name;
+}
+
+/** The address a stored check's evidence starts with ("<url>: <snippet>"), or
+ *  null when it does not start with one: the operator may have edited it into
+ *  prose, and prose is not an address. */
+function evidenceAddress(evidence: string | null | undefined): string | null {
+  const head = evidence?.split(": ")[0]?.trim();
+  if (!head) return null;
+  try {
+    const u = new URL(head);
+    return u.protocol === "http:" || u.protocol === "https:" ? printableUrl(head) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** "Apache/2.4.18 (Ubuntu)" → "Apache". The product, never the build. */
@@ -647,7 +662,7 @@ export function toTechnicalView(
       "template-leakage",
       3,
       "Unfilled template code shows as text on a page.",
-      leakage.evidence ? printableUrl(leakage.evidence.split(": ")[0]!) : null,
+      evidenceAddress(leakage.evidence),
     );
   } else if (leakage?.status === "fail") {
     brokenThings.push({
@@ -950,12 +965,16 @@ export function toTechnicalView(
           }))
           .filter((g) => g.rules.length > 0),
       };
-      const critical = ax.violations.filter((v) => v.impact === "critical").length;
-      if (critical)
+      // Serious counts as well as critical: the lede names both as failures
+      // that can stop some visitors, so both must reach what to fix first.
+      const failing = ax.violations.filter(
+        (v) => v.impact === "critical" || v.impact === "serious",
+      ).length;
+      if (failing)
         add(
           "a11y-critical",
           2,
-          `An automated scan found ${plural(critical, "kind", "kinds")} of critical accessibility failure on your pages.`,
+          `An automated scan found ${plural(failing, "kind", "kinds")} of serious or critical accessibility failure on your pages.`,
         );
     }
   }
