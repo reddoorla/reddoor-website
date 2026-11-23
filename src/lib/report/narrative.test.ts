@@ -158,7 +158,7 @@ describe("headlineFinding — priority", () => {
       })),
       ...stage("accuracy", (d) => ({
         ...d,
-        conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+        conflation: { detected: true, settled: false, otherNames: ["Other Co"], engineQuote: null },
       })),
     });
     const h = headlineFinding(v);
@@ -170,7 +170,12 @@ describe("headlineFinding — priority", () => {
     const v = view({
       ...stage("accuracy", (d) => ({
         ...d,
-        conflation: { detected: true, otherNames: ["Other Co", "Another Co"], engineQuote: null },
+        conflation: {
+          detected: true,
+          settled: false,
+          otherNames: ["Other Co", "Another Co"],
+          engineQuote: null,
+        },
       })),
       ...stage("goalFit", (d) => ({
         ...d,
@@ -182,7 +187,7 @@ describe("headlineFinding — priority", () => {
     const h = headlineFinding(v);
     expect(h.kind).toBe("name-collision");
     expect(h.text).toMatch(/not sure which Example Studio you are/);
-    expect(h.text).toMatch(/two other businesses/);
+    expect(h.text).toMatch(/two others with a similar name/);
   });
 
   it("an unidentifiable goal outranks a missing requirement", () => {
@@ -307,7 +312,7 @@ describe("passes", () => {
     const v = view(
       stage("accuracy", (d) => ({
         ...d,
-        conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+        conflation: { detected: true, settled: false, otherNames: ["Other Co"], engineQuote: null },
       })),
     );
     const ai = passes(v).find((g) => g.title === "What AI is saying about you");
@@ -348,7 +353,7 @@ describe("collisionFix / allFixes", () => {
     const v = view(
       stage("accuracy", (d) => ({
         ...d,
-        conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+        conflation: { detected: true, settled: false, otherNames: ["Other Co"], engineQuote: null },
       })),
     );
     const fix = collisionFix(v);
@@ -769,7 +774,7 @@ describe("composed sentences honour operator overrides", () => {
   const conflated = view(
     stage("accuracy", (d) => ({
       ...d,
-      conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+      conflation: { detected: true, settled: false, otherNames: ["Other Co"], engineQuote: null },
     })),
   );
 
@@ -928,7 +933,7 @@ describe("a map that overrides nothing changes nothing", () => {
     ...raw,
     ...stage("accuracy", (d) => ({
       ...d,
-      conflation: { detected: true, otherNames: ["Other Co"], engineQuote: null },
+      conflation: { detected: true, settled: false, otherNames: ["Other Co"], engineQuote: null },
     })),
     ...stage("checks", (d) => ({ ...d, viewportOk: false })),
   };

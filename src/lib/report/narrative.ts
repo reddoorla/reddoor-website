@@ -1,5 +1,11 @@
 import { healthRows, type HealthRow } from "./health";
-import { GOAL_LABELS, sourceCheckMeasured, type Fix, type ReportView } from "./model";
+import {
+  GOAL_LABELS,
+  nameUnsettled,
+  sourceCheckMeasured,
+  type Fix,
+  type ReportView,
+} from "./model";
 import { composed } from "./overrides";
 
 /**
@@ -98,10 +104,12 @@ function headlineFindingGenerated(view: ReportView): Headline {
     };
   }
 
-  if (acc?.conflation.detected) {
+  if (acc && nameUnsettled(acc)) {
+    // What the others are is the answer's to say: a stored one's were a cancer
+    // biomarker and a billing credential. So no noun of ours is put on them.
     const n = acc.conflation.otherNames.length;
     const others = n
-      ? ` It described ${numberWord(n)} other ${n === 1 ? "business" : "businesses"} with a similar name.`
+      ? ` It also described ${numberWord(n)} ${n === 1 ? "other" : "others"} with a similar name.`
       : "";
     return {
       kind: "name-collision",
@@ -241,7 +249,7 @@ function passesGenerated(view: ReportView): PassGroup[] {
       );
     }
     // Knowing who you are is not a pass when it also thought you were someone else.
-    if (view.brandedRecognized === true && !acc.conflation.detected) {
+    if (view.brandedRecognized === true && !nameUnsettled(acc)) {
       ai.push("Asked about you by name, the assistant knew who you are");
     }
   }
@@ -323,7 +331,7 @@ export function displayQuote(text: string): string {
  */
 function collisionFixGenerated(view: ReportView): Fix | null {
   const acc = view.accuracy;
-  if (!acc?.conflation.detected && view.namesake === null) return null;
+  if (!nameUnsettled(acc) && view.namesake === null) return null;
   const who = view.businessName ?? "your business";
   return {
     title: `Say which ${who} you are, in one sentence, on your own pages`,
@@ -337,6 +345,45 @@ function collisionFixGenerated(view: ReportView): Fix | null {
     effort: "low",
     tier: "content",
     origin: "measured",
+  };
+}
+
+/** The name-collision block under "What AI is saying about you": its heading,
+ *  and, when the branded answer did not settle which one this business is,
+ *  one sentence naming what else it described, in the answer's own words. */
+export type CollisionBlock = { heading: string; detail: string | null };
+
+function collisionBlockGenerated(view: ReportView): CollisionBlock | null {
+  const unsure = nameUnsettled(view.accuracy);
+  if (!unsure && view.namesake === null) return null;
+  if (!unsure) return { heading: "Someone else is answering to your name", detail: null };
+  // With no name on record, "which your business you are" is not a sentence,
+  // and "business" is the one word this block must not supply.
+  const name = view.businessName;
+  const names = view.accuracy?.conflation.otherNames ?? [];
+  const described = names.length
+    ? `Asked about you by name, it also described ${joinList(names)}.`
+    : "Asked about you by name, it could not say which one you are.";
+  return {
+    heading: name
+      ? `The assistant is not sure which ${name} you are`
+      : "The assistant is not sure which one you are",
+    detail:
+      `${described} Until your own pages make the name, the place and the work unambiguous, ` +
+      `anything it says about ${name ? `“${name}”` : "you"} may be about someone else.`,
+  };
+}
+
+/** The collision block, with the operator's wording where they wrote one. The
+ *  screen report and the print sheet both read it here, so they cannot word
+ *  it differently. */
+export function collisionBlock(view: ReportView): CollisionBlock | null {
+  const b = collisionBlockGenerated(view);
+  if (!b) return null;
+  return {
+    heading: composed(view.overrides, "composed:collision.heading", b.heading),
+    detail:
+      b.detail === null ? null : composed(view.overrides, "composed:collision.detail", b.detail),
   };
 }
 
