@@ -212,3 +212,72 @@ describe("applyOverrides", () => {
     expect(applyOverrides(raw, {})).toBe(raw);
   });
 });
+
+describe("W1: hidden rows", () => {
+  const report = {
+    analyze: {
+      ok: true,
+      data: {
+        fixes: [
+          { title: "Fix one", why: "w1" },
+          { title: "Fix two", why: "w2" },
+          { title: "Fix three", why: "w3" },
+        ],
+      },
+    },
+    accuracy: {
+      ok: true,
+      data: {
+        assertions: [{ claim: "A claim" }],
+        sources: [{ domain: "a.example" }, { domain: "b.example" }],
+        conflation: { detected: true, otherNames: ["Other Co"], engineQuote: "There are two." },
+      },
+    },
+  } as unknown as Parameters<typeof applyOverrides>[0];
+  const fixes = (r: unknown) =>
+    (r as { analyze: { data: { fixes: { title: string }[] } } }).analyze.data.fixes.map(
+      (f) => f.title,
+    );
+
+  it("hides a row whose identifying text still matches, and leaves the input untouched", () => {
+    const out = applyOverrides(report, {
+      "analyze.data.fixes[1]": { original: "Fix two", text: "", hidden: true },
+    });
+    expect(fixes(out)).toEqual(["Fix one", "Fix three"]);
+    expect(fixes(report)).toEqual(["Fix one", "Fix two", "Fix three"]);
+  });
+
+  it("WITHHOLDS a hide whose original no longer matches the row", () => {
+    const out = applyOverrides(report, {
+      "analyze.data.fixes[1]": { original: "Something else", text: "", hidden: true },
+    });
+    expect(fixes(out)).toEqual(["Fix one", "Fix two", "Fix three"]);
+  });
+
+  it("applies text overrides by stored index before removing hidden rows", () => {
+    const out = applyOverrides(report, {
+      "analyze.data.fixes[0]": { original: "Fix one", text: "", hidden: true },
+      "analyze.data.fixes[2].title": { original: "Fix three", text: "Reworded three" },
+    });
+    expect(fixes(out)).toEqual(["Fix two", "Reworded three"]);
+  });
+
+  it("hides a source and the name-collision block", () => {
+    const out = applyOverrides(report, {
+      "accuracy.data.sources[0]": { original: "a.example", text: "", hidden: true },
+      "accuracy.data.conflation": { original: "There are two.", text: "", hidden: true },
+    }) as unknown as {
+      accuracy: { data: { sources: unknown[]; conflation: { detected: boolean } } };
+    };
+    expect(out.accuracy.data.sources).toEqual([{ domain: "b.example" }]);
+    expect(out.accuracy.data.conflation.detected).toBe(false);
+  });
+
+  it("ignores a hide on a path that is not a hideable list", () => {
+    const out = applyOverrides(
+      report,
+      wire({ "crawl.data.pages[0]": { original: "x", text: "", hidden: true } }),
+    );
+    expect(out).toEqual(report);
+  });
+});

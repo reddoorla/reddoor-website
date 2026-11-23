@@ -1,12 +1,15 @@
-import { error } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import * as env from "$app/env/private";
 import { fetchReport, REPORT_TOKEN_PATTERN, type AuditReport, type OverrideMap } from "./fetch";
-import { EDIT_COOKIE } from "./edit-auth";
+import { EDIT_COOKIE, configuredEditKey, keyMatches } from "./edit-auth";
 
 /** The subset of a SvelteKit load event this needs. Declared structurally so
  *  both routes can pass their own event without a type dance. */
 type LoadLike = {
   params: { token: string };
+  /** Present on a real SvelteKit event; used to keep /print and /edit on the
+   *  same suffix when a superseded link is followed. Optional for tests. */
+  url?: URL;
   fetch: typeof globalThis.fetch;
   setHeaders: (headers: Record<string, string>) => void;
   /** Present on a real SvelteKit event. Optional so a caller in a test can omit
@@ -22,12 +25,12 @@ type LoadLike = {
  * audience in different formats, so a difference in what either accepts, or in
  * what it tells crawlers, is a security difference and not a stylistic one.
  */
-export async function loadReport({
-  params,
-  fetch,
-  setHeaders,
-  cookies,
-}: LoadLike): Promise<{ report: AuditReport; overrides: OverrideMap; meta_referrer: string }> {
+export async function loadReport({ params, url, fetch, setHeaders, cookies }: LoadLike): Promise<{
+  report: AuditReport;
+  overrides: OverrideMap;
+  approved: boolean;
+  meta_referrer: string;
+}> {
   // Reject before fetching. fetchReport validates too, but these routes build a
   // URL from a public path segment and should not rely on a callee to catch it.
   if (!REPORT_TOKEN_PATTERN.test(params.token)) throw error(404, "Not found");
@@ -51,12 +54,22 @@ export async function loadReport({
   // The edit ROUTE verifies the key before rendering anything, and the worst a
   // forged cookie buys on the read path is suppressing one's own read receipt —
   // which anyone holding the link could do by simply not opening it.
-  const editing = Boolean(cookies?.get(EDIT_COOKIE));
+  const cookie = cookies?.get(EDIT_COOKIE);
+  const editing = Boolean(cookie);
+
+  // W1. A DRAFT is served by maintenance only to a request carrying
+  // PROSPECT_EDIT_TOKEN, and that token goes out only when the cookie is not
+  // merely present but VERIFIED against REPORT_EDIT_KEY: presence is enough to
+  // skip a read receipt (above), never enough to read a report nobody has
+  // approved. A forged cookie gets exactly what the public gets.
+  const expected = cookie ? configuredEditKey(env.REPORT_EDIT_KEY) : null;
+  const verified = Boolean(cookie && expected && keyMatches(cookie, expected));
 
   const fetched = await fetchReport(params.token, {
     baseUrl: env.PROSPECT_REPORT_URL ?? "",
     fetch,
     editSession: editing,
+    ...(verified && env.PROSPECT_EDIT_TOKEN ? { editToken: env.PROSPECT_EDIT_TOKEN } : {}),
   });
 
   // Only a genuine 404 lands here as null. An upstream outage throws out of
@@ -64,9 +77,17 @@ export async function loadReport({
   // are broken" must not look the same to the person holding the link.
   if (!fetched) throw error(404, "Not found");
 
+  // W1. The link was replaced by a newer report for the same site: send the
+  // reader there, keeping /print or /edit. 307 so it is not cached as forever.
+  if ("supersededBy" in fetched) {
+    const suffix = url?.pathname.match(/\/(print|edit)\/?$/)?.[0] ?? "";
+    throw redirect(307, `/audit/${fetched.supersededBy}${suffix}`);
+  }
+
   return {
     report: fetched.report,
     overrides: fetched.overrides,
+    approved: fetched.approved,
     // Rendered by the root layout as <meta name="referrer">. The URL is the
     // credential, so it must not travel in a Referer header when the reader
     // follows a link out of the report — the same reason /cancel, /calendar,

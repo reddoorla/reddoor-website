@@ -1,4 +1,5 @@
 import type { AuditReport, OverrideMap } from "./fetch";
+import { CONFLATION_KEY, HIDEABLE } from "./overrides";
 import { openingSummary, type ReportView } from "./model";
 import { headlineFinding, passes, collisionBlock, collisionFix, healthFixes } from "./narrative";
 import { healthRows } from "./health";
@@ -193,4 +194,67 @@ export function resolveTargets<T>(
   }
 
   return { resolved, ambiguous };
+}
+
+/** One row an operator can take off the report (W1). */
+export type HideTarget = {
+  key: string;
+  /** The row's identifying text in the STORED payload; the hide entry's
+   *  `original`, which the renderer checks before hiding. */
+  original: string;
+  /** What kind of row, for the list ("Fix", "Source", …). */
+  noun: string;
+  hidden: boolean;
+};
+
+/**
+ * Every row on this report that can be hidden, read from the payload as stored
+ * (`raw`, before overrides), so a hidden row is still listed and can be put
+ * back. Rows with no identifying text are left out: there is nothing to show
+ * the operator, and nothing for the stale-original guard to compare.
+ */
+export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
+  const out: HideTarget[] = [];
+  for (const { path, field, noun } of HIDEABLE) {
+    const list = at(raw, path);
+    if (!Array.isArray(list)) continue;
+    list.forEach((row, i) => {
+      const original = (row as Record<string, unknown> | null)?.[field];
+      if (typeof original !== "string" || original.trim() === "") return;
+      const key = `${path}[${i}]`;
+      out.push({
+        key,
+        original,
+        noun,
+        hidden: map[key]?.hidden === true && map[key]!.original === original,
+      });
+    });
+  }
+  const c = at(raw, "accuracy.data.conflation") as
+    { detected?: unknown; engineQuote?: unknown } | undefined;
+  if (c && c.detected === true) {
+    const original = typeof c.engineQuote === "string" ? c.engineQuote : "";
+    out.push({
+      key: CONFLATION_KEY,
+      original,
+      noun: "Name collision (the assistant is not sure which business you are)",
+      hidden: map[CONFLATION_KEY]?.hidden === true && map[CONFLATION_KEY]!.original === original,
+    });
+  }
+  return out;
+}
+
+/** One entry of the override map, as the changes list shows it. */
+export type ChangeRow = { key: string; kind: "hidden" | "reworded"; before: string; after: string };
+
+/** Every override on this report, for the changes list with its Revert. */
+export function changeList(map: OverrideMap): ChangeRow[] {
+  return Object.entries(map).flatMap(([key, ov]): ChangeRow[] => {
+    if (!ov || typeof ov.original !== "string") return [];
+    return ov.hidden === true
+      ? [{ key, kind: "hidden", before: ov.original, after: "" }]
+      : typeof ov.text === "string"
+        ? [{ key, kind: "reworded", before: ov.original, after: ov.text }]
+        : [];
+  });
 }

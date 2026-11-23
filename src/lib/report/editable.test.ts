@@ -155,3 +155,30 @@ describe("resolveTargets", () => {
     expect(ambiguous).toBe(2);
   });
 });
+
+describe("W1: hide targets and the changes list", () => {
+  it("lists hideable rows from the stored payload, marking the hidden ones", async () => {
+    const { hideTargets, changeList } = await import("./editable");
+    const raw = {
+      analyze: { ok: true, data: { fixes: [{ title: "Fix one" }, { title: "Fix two" }] } },
+      accuracy: {
+        ok: true,
+        data: { conflation: { detected: true, otherNames: [], engineQuote: "Two of them." } },
+      },
+    } as never;
+    const map = {
+      "analyze.data.fixes[1]": { original: "Fix two", text: "", hidden: true as const },
+      "composed:headlineFinding": { original: "Old.", text: "New." },
+    };
+    const targets = hideTargets(raw, map);
+    expect(targets.map((t) => [t.key, t.hidden])).toEqual([
+      ["analyze.data.fixes[0]", false],
+      ["analyze.data.fixes[1]", true],
+      ["accuracy.data.conflation", false],
+    ]);
+    expect(changeList(map)).toEqual([
+      { key: "analyze.data.fixes[1]", kind: "hidden", before: "Fix two", after: "" },
+      { key: "composed:headlineFinding", kind: "reworded", before: "Old.", after: "New." },
+    ]);
+  });
+});

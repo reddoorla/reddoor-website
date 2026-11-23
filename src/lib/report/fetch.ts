@@ -34,17 +34,31 @@ export type FetchReportOptions = {
   /** Marks this fetch as an operator preview, so maintenance does not record it
    *  as the report having been opened by its recipient. */
   editSession?: boolean;
+  /** W1. PROSPECT_EDIT_TOKEN, sent as a bearer ONLY when the caller has
+   *  verified the edit cookie. Maintenance serves a draft only to a request
+   *  carrying it. */
+  editToken?: string;
 };
 
 /** One replaced string, with the generated text it replaced. `original` is kept
  *  so the cockpit can show what changed, and so an override can be withheld if
  *  it no longer matches what it claims to replace. */
-export type Override = { original: string; text: string };
+export type Override = { original: string; text: string; hidden?: true };
 export type OverrideMap = Record<string, Override>;
 
 /** What one report fetch yields. `overrides` is always an object, never null,
  *  so no caller has to branch on absence. */
-export type FetchedReport = { report: AuditReport; overrides: OverrideMap };
+export type FetchedReport = {
+  report: AuditReport;
+  overrides: OverrideMap;
+  /** W1. False for a draft, which maintenance serves only to the editor. A
+   *  body from before the field existed reads as approved: every report then
+   *  was served to anyone. */
+  approved: boolean;
+};
+
+/** W1. The link was replaced by a newer report for the same site. */
+export type Superseded = { supersededBy: string };
 
 /**
  * The maintenance API served a bare report before overrides existed and serves
@@ -62,9 +76,14 @@ export type FetchedReport = { report: AuditReport; overrides: OverrideMap };
  */
 export function unwrap(body: unknown): FetchedReport {
   if (body && typeof body === "object" && "report" in body) {
-    const { report, overrides } = body as { report: unknown; overrides?: unknown };
+    const { report, overrides, approvedAt } = body as {
+      report: unknown;
+      overrides?: unknown;
+      approvedAt?: unknown;
+    };
     return {
       report: report as AuditReport,
+      approved: approvedAt === undefined || typeof approvedAt === "string",
       // `typeof [] === "object"`, so proving object-ness alone would let an
       // array through as an OverrideMap.
       overrides:
@@ -73,7 +92,7 @@ export function unwrap(body: unknown): FetchedReport {
           : {},
     };
   }
-  return { report: body as AuditReport, overrides: {} };
+  return { report: body as AuditReport, overrides: {}, approved: true };
 }
 
 /**
@@ -88,7 +107,7 @@ export function unwrap(body: unknown): FetchedReport {
 export async function fetchReport(
   token: string,
   opts: FetchReportOptions,
-): Promise<FetchedReport | null> {
+): Promise<FetchedReport | Superseded | null> {
   // Validated here as well as at the route, because this function builds a URL
   // from the value and must not depend on a caller having checked first.
   if (!REPORT_TOKEN_PATTERN.test(token)) {
@@ -112,11 +131,23 @@ export async function fetchReport(
   // working, and `opened_at` starts recording the operator's own previews as the
   // prospect having read the report, which is the one thing that timestamp
   // exists to tell you.
+  const headers: Record<string, string> = {};
+  if (opts.editSession) headers["x-reddoor-edit-session"] = "1";
+  if (opts.editToken) headers.authorization = `Bearer ${opts.editToken}`;
   const res = await opts.fetch(`${opts.baseUrl.replace(/\/$/, "")}/api/audit-report/${token}`, {
-    headers: opts.editSession ? { "x-reddoor-edit-session": "1" } : {},
+    headers,
   });
 
   if (res.status === 404) return null;
+  // W1. A superseded report answers 410 with the newer token. Anything else in
+  // a 410 is treated as gone: a pointer that is not a token is never followed.
+  if (res.status === 410) {
+    const body = (await res.json().catch(() => null)) as { supersededBy?: unknown } | null;
+    const next = body?.supersededBy;
+    return typeof next === "string" && REPORT_TOKEN_PATTERN.test(next)
+      ? { supersededBy: next }
+      : null;
+  }
   if (!res.ok) throw new Error(`fetchReport: upstream responded ${res.status}`);
 
   const fetched = unwrap(await res.json());

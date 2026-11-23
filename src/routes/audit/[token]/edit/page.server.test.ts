@@ -82,7 +82,8 @@ describe("the edit route", () => {
     expect(e._set).toHaveBeenCalledWith(
       "reddoor_report_edit",
       "s3cret",
-      expect.objectContaining({ httpOnly: true, sameSite: "strict", path: "/audit" }),
+      // W1 (TEC-02): "/", so the cookie reaches the save at /api/audit-edit.
+      expect.objectContaining({ httpOnly: true, sameSite: "strict", path: "/" }),
     );
   });
 

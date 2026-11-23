@@ -28,7 +28,7 @@ describe("fetchReport", () => {
   it("returns the parsed report on 200", async () => {
     const fetch = respondWith(200, REPORT);
     const fetched = await fetchReport("aB3-_xY9zQ1rS2tU4vW6xY", { ...OPTS, fetch });
-    expect(fetched).toEqual({ report: REPORT, overrides: {} });
+    expect(fetched).toEqual({ report: REPORT, overrides: {}, approved: true });
   });
 
   it("calls the audit-report endpoint for the token", async () => {
@@ -114,7 +114,11 @@ describe("fetchReport — response shapes", () => {
 
   it("reads a bare report body, the shape served before overrides existed", async () => {
     const got = await fetchReport(TOKEN, opts({ url: "https://acme.test/", scores: {} }));
-    expect(got).toEqual({ report: { url: "https://acme.test/", scores: {} }, overrides: {} });
+    expect(got).toEqual({
+      report: { url: "https://acme.test/", scores: {} },
+      overrides: {},
+      approved: true,
+    });
   });
 
   // The two-key stub above cannot detect the discriminator colliding, which is
@@ -123,7 +127,7 @@ describe("fetchReport — response shapes", () => {
   // top-level `report` key, this fails instead of the prospect's page.
   it("reads a real report body as bare — no stored report has a top-level `report` key", async () => {
     const got = await fetchReport(TOKEN, opts(ALL_PASS_REPORT));
-    expect(got).toEqual({ report: ALL_PASS_REPORT, overrides: {} });
+    expect(got).toEqual({ report: ALL_PASS_REPORT, overrides: {}, approved: true });
   });
 
   it("reads a wrapped body and returns its overrides", async () => {
@@ -139,6 +143,8 @@ describe("fetchReport — response shapes", () => {
     expect(got).toEqual({
       report: { url: "https://acme.test/" },
       overrides: { "composed:headlineFinding": { original: "a", text: "b" } },
+      // W1: a body from before `approvedAt` existed reads as approved.
+      approved: true,
     });
   });
 
@@ -147,7 +153,7 @@ describe("fetchReport — response shapes", () => {
       TOKEN,
       opts({ report: { url: "https://acme.test/" }, overrides: null }),
     );
-    expect(got).toEqual({ report: { url: "https://acme.test/" }, overrides: {} });
+    expect(got).toEqual({ report: { url: "https://acme.test/" }, overrides: {}, approved: true });
   });
 
   // `typeof [] === "object"`, so an object test alone lets an array through as
@@ -157,7 +163,7 @@ describe("fetchReport — response shapes", () => {
       TOKEN,
       opts({ report: { url: "https://acme.test/" }, overrides: [] }),
     );
-    expect(got).toEqual({ report: { url: "https://acme.test/" }, overrides: {} });
+    expect(got).toEqual({ report: { url: "https://acme.test/" }, overrides: {}, approved: true });
   });
 
   it("refuses a 200 that carries no report, in either shape", async () => {

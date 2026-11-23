@@ -3,8 +3,11 @@ import {
   GOAL_LABELS,
   nameUnsettled,
   sourceCheckMeasured,
+  stageFailed,
+  STAGE_LABEL,
   type Fix,
   type ReportView,
+  type StageKey,
 } from "./model";
 import { composed } from "./overrides";
 
@@ -34,9 +37,14 @@ export type HeadlineKind =
   | "partial"
   | "site-check"
   | "all-clear"
+  | "incomplete"
   | "unmeasured";
 
 export type Headline = { kind: HeadlineKind; text: string };
+
+/** W1. The stages an all-clear stands on: the reading of the site, the AI
+ *  answers, and the check of what those answers say. */
+const ALL_CLEAR_NEEDS: StageKey[] = ["analyze", "probes", "accuracy"];
 
 const WORDS = [
   "zero",
@@ -199,6 +207,21 @@ function headlineFindingGenerated(view: ReportView): Headline {
       text:
         "Most of this audit could not run, so there is little here to report. " +
         "That is a gap in our measurement, not a finding about your site.",
+    };
+  }
+
+  // W1 (B-03): "checks out" is a claim about the whole audit, so it needs the
+  // parts that read the site and the AI answers to have run. Eight stored
+  // reports led with it while their analysis had failed (an API usage limit),
+  // five with no AI answers behind them at all. Say which parts did not run
+  // instead.
+  const missingParts = ALL_CLEAR_NEEDS.filter((k) => stageFailed(view, k));
+  if (missingParts.length > 0) {
+    return {
+      kind: "incomplete",
+      text:
+        `Part of this audit did not run: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
+        "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
     };
   }
 

@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("$app/env/private", () => ({ PROSPECT_REPORT_URL: "https://ops.test" }));
+vi.mock("$app/env/private", () => ({
+  PROSPECT_REPORT_URL: "https://ops.test",
+  // W1: read only when an edit cookie is present, to decide whether to send
+  // the edit token upstream.
+  REPORT_EDIT_KEY: "the-edit-key",
+  PROSPECT_EDIT_TOKEN: "the-edit-token",
+}));
 
 const { loadReport } = await import("./load");
 import { EDIT_COOKIE } from "./edit-auth";
@@ -28,6 +34,7 @@ describe("loadReport — the guards both routes share", () => {
       report: REPORT,
       // Always an object, never absent, so no caller has to branch on it.
       overrides: {},
+      approved: true,
       // The URL is the credential; it must not travel in a Referer header.
       meta_referrer: "no-referrer",
     });
@@ -93,6 +100,7 @@ describe("both routes use the shared loader", () => {
       await expect(route.load(evt as never)).resolves.toEqual({
         report: REPORT,
         overrides: {},
+        approved: true,
         meta_referrer: "no-referrer",
         // Every report shares the static audit card.
         meta_image: "/og/site/audit.png",
@@ -179,5 +187,64 @@ describe("loadReport — edit sessions are not readers", () => {
       setHeaders: () => {},
     } as never);
     expect(seen["x-reddoor-edit-session"]).toBeUndefined();
+  });
+});
+
+describe("W1: drafts reach only a verified editor; superseded links redirect", () => {
+  function captured(cookieValue: string | undefined, res: Response, pathname = `/audit/${TOKEN}`) {
+    const seen: Record<string, string>[] = [];
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      seen.push({ ...(init?.headers as Record<string, string>) });
+      return res;
+    });
+    return {
+      seen,
+      evt: {
+        params: { token: TOKEN },
+        url: new URL(`https://reddoorla.test${pathname}`),
+        fetch: fetchImpl,
+        setHeaders: vi.fn(),
+        cookies: { get: (n: string) => (n === EDIT_COOKIE ? cookieValue : undefined) },
+      },
+    };
+  }
+  const ok = () =>
+    new Response(JSON.stringify({ report: REPORT, overrides: null, approvedAt: null }));
+
+  it("sends the edit token only when the cookie matches REPORT_EDIT_KEY", async () => {
+    const good = captured("the-edit-key", ok());
+    await loadReport(good.evt);
+    expect(good.seen[0]!.authorization).toBe("Bearer the-edit-token");
+
+    const forged = captured("not-the-key", ok());
+    await loadReport(forged.evt);
+    expect(forged.seen[0]!.authorization).toBeUndefined();
+
+    const reader = captured(undefined, ok());
+    await loadReport(reader.evt);
+    expect(reader.seen[0]!.authorization).toBeUndefined();
+  });
+
+  it("marks a draft as not approved", async () => {
+    const { evt } = captured("the-edit-key", ok());
+    await expect(loadReport(evt)).resolves.toMatchObject({ approved: false });
+  });
+
+  it("redirects a superseded link to the newer report, keeping /print", async () => {
+    const NEXT = "zZ9-_yX8wQ0rS2tU4vW6xY";
+    const gone = new Response(JSON.stringify({ error: "superseded", supersededBy: NEXT }), {
+      status: 410,
+    });
+    const { evt } = captured(undefined, gone, `/audit/${TOKEN}/print`);
+    await expect(loadReport(evt)).rejects.toMatchObject({
+      status: 307,
+      location: `/audit/${NEXT}/print`,
+    });
+  });
+
+  it("404s a 410 whose pointer is not a token", async () => {
+    const gone = new Response(JSON.stringify({ supersededBy: "../../etc" }), { status: 410 });
+    const { evt } = captured(undefined, gone);
+    await expect(loadReport(evt)).rejects.toMatchObject({ status: 404 });
   });
 });

@@ -91,7 +91,11 @@ export const load: PageServerLoad = async (event) => {
       httpOnly: true,
       sameSite: "strict",
       secure: true,
-      path: "/audit",
+      // "/", not "/audit" (W1, TEC-02): the editor saves to /api/audit-edit,
+      // and a cookie scoped to /audit is never sent there (RFC 6265 5.1.4), so
+      // every save answered "Save failed (404)". SameSite=Strict, HttpOnly and
+      // Secure still bound where it goes.
+      path: "/",
       maxAge: EDIT_COOKIE_MAX_AGE,
     });
     // 303 so a refresh does not re-submit the key, and so the address bar stops

@@ -1,13 +1,26 @@
 <script lang="ts">
   import { invalidateAll } from "$app/navigation";
-  import { resolveTargets, type EditTarget } from "./editable";
+  import { changeList, resolveTargets, type EditTarget, type HideTarget } from "./editable";
   import type { OverrideMap } from "./fetch";
 
   let {
     targets,
+    hideable = [],
     token,
     overrides,
-  }: { targets: EditTarget[]; token: string; overrides: OverrideMap } = $props();
+    approved = true,
+  }: {
+    targets: EditTarget[];
+    /** W1: rows the operator can take off the report. */
+    hideable?: HideTarget[];
+    token: string;
+    overrides: OverrideMap;
+    /** W1: false for a draft, which no prospect can open yet. */
+    approved?: boolean;
+  } = $props();
+
+  const changes = $derived(changeList(overrides));
+  let panel = $state<"" | "changes" | "hide">("");
 
   let resolved = $state(0);
   let ambiguous = $state(0);
@@ -38,6 +51,8 @@
       // Leaves only: a container whose text happens to equal a target's would
       // otherwise swallow the child that actually renders it.
       if (el.querySelector(LEAF)) continue;
+      // The editor's own panels quote report lines; they are not the report.
+      if (el.closest(".rd-edit-bar")) continue;
       leaves.push(el);
     }
 
@@ -71,7 +86,25 @@
     // storing a no-op, so a report can always be returned to what was measured.
     if (text === original) delete next[key];
     else next[key] = { original, text };
+    await save(next);
+  }
 
+  /** W1: take a row off the report, or put it back. */
+  async function toggleHidden(t: HideTarget): Promise<void> {
+    const next: OverrideMap = { ...overrides };
+    if (t.hidden) delete next[t.key];
+    else next[t.key] = { original: t.original, text: "", hidden: true };
+    await save(next);
+  }
+
+  /** W1: undo one change, whatever kind it is. */
+  async function revert(key: string): Promise<void> {
+    const next: OverrideMap = { ...overrides };
+    delete next[key];
+    await save(next);
+  }
+
+  async function save(next: OverrideMap): Promise<void> {
     saving = true;
     failed = "";
     try {
@@ -101,11 +134,58 @@
   });
 </script>
 
-<aside class="rd-edit-bar">
-  <strong>Editing.</strong>
-  {resolved} lines editable{ambiguous > 0 ? `, ${ambiguous} skipped as ambiguous` : ""}.
-  {#if saving}<span>Saving…</span>{/if}
-  {#if failed}<span class="rd-edit-failed">{failed}</span>{/if}
+<aside class="rd-edit-bar" aria-label="Report editor">
+  {#if panel === "changes"}
+    <div class="rd-edit-panel">
+      {#if changes.length === 0}
+        <p>No changes yet. This report shows exactly what the audit wrote.</p>
+      {:else}
+        <ul>
+          {#each changes as c (c.key)}
+            <li>
+              {#if c.kind === "hidden"}<span>Hidden: {c.before}</span>{:else}<span>
+                  “{c.before}” → “{c.after}”
+                </span>{/if}
+              <button type="button" disabled={saving} onclick={() => revert(c.key)}>Revert</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  {:else if panel === "hide"}
+    <div class="rd-edit-panel">
+      {#if hideable.length === 0}
+        <p>Nothing on this report can be hidden.</p>
+      {:else}
+        <ul>
+          {#each hideable as t (t.key)}
+            <li>
+              <span class:rd-edit-gone={t.hidden}>{t.noun}: {t.original || "(no quote)"}</span>
+              <button type="button" disabled={saving} onclick={() => toggleHidden(t)}>
+                {t.hidden ? "Show" : "Hide"}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  {/if}
+  <div class="rd-edit-row">
+    {#if approved}
+      <strong>Editing a live report.</strong> Every save shows to whoever holds the link.
+    {:else}
+      <strong>Draft, not approved.</strong> Only the editor can open this report.
+    {/if}
+    {resolved} lines editable{ambiguous > 0 ? `, ${ambiguous} skipped as ambiguous` : ""}.
+    <button type="button" onclick={() => (panel = panel === "changes" ? "" : "changes")}>
+      Changes ({changes.length})
+    </button>
+    <button type="button" onclick={() => (panel = panel === "hide" ? "" : "hide")}>
+      Hide a row
+    </button>
+    {#if saving}<span>Saving…</span>{/if}
+    {#if failed}<span class="rd-edit-failed" role="alert">{failed}</span>{/if}
+  </div>
 </aside>
 
 <style>
@@ -123,6 +203,43 @@
   }
   .rd-edit-failed {
     color: #ff9a9a;
+  }
+  .rd-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: baseline;
+  }
+  .rd-edit-bar button {
+    color: inherit;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    padding: 0.1rem 0.5rem;
+    font: inherit;
+    cursor: pointer;
+  }
+  .rd-edit-panel {
+    max-height: 40vh;
+    overflow-y: auto;
+    margin-bottom: 0.5rem;
+  }
+  .rd-edit-panel ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .rd-edit-panel li {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #333;
+  }
+  .rd-edit-gone {
+    text-decoration: line-through;
+    opacity: 0.7;
   }
   :global(.rd-editable:focus) {
     outline: 2px solid #d71920;

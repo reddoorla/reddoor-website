@@ -1,5 +1,6 @@
 import { defineConfig } from "@playwright/test";
 import base from "@reddoorla/maintenance/configs/playwright-a11y";
+import { EDIT_STUB } from "./tests/smoke/edit-stub";
 
 // Emulate reduced motion in tests: instant scrollIntoView (no long animated
 // smooth-scroll that flakes Playwright's actionability checks under parallel
@@ -30,6 +31,33 @@ process.env.UV_THREADPOOL_SIZE ??= "64";
 // edit never turns the gate red. Inherited by the webServer like the line above.
 process.env.FUNNEL_COPY_BUILTIN ??= "1";
 
+// W1 (TEC-02): the report editor is driven end to end against a local stand-in
+// for maintenance's report API (tests/smoke/maintenance-stub.mjs), so the dev
+// server is pointed at it with throwaway keys. Set unconditionally rather than
+// `??=`: a smoke run must never reach a real report store. Inherited by the
+// webServer like the two lines above. Skipped when E2E_AUDIT_TOKEN is set,
+// which is a run deliberately aimed at a real deploy.
+if (EDIT_STUB.enabled) {
+  process.env.PROSPECT_REPORT_URL = EDIT_STUB.url;
+  process.env.REPORT_EDIT_KEY = EDIT_STUB.editKey;
+  process.env.PROSPECT_EDIT_TOKEN = EDIT_STUB.editToken;
+}
+const stubServer = {
+  command: `node tests/smoke/maintenance-stub.mjs`,
+  url: `${EDIT_STUB.url}/health`,
+  reuseExistingServer: !process.env.CI,
+  timeout: 10_000,
+};
+
+const siteServer = smokePort
+  ? {
+      command: `npm run vite:dev -- --port ${smokePort} --strictPort`,
+      url: `http://localhost:${smokePort}/dev/a11y-fixtures`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    }
+  : base.webServer;
+
 export default defineConfig({
   ...base,
   // Compiles every route the suite uses before any worker starts, so the first
@@ -54,14 +82,10 @@ export default defineConfig({
     // overrides the context value in both directions.
     ...(smokePort ? { baseURL: `http://localhost:${smokePort}` } : {}),
   },
-  ...(smokePort
-    ? {
-        webServer: {
-          command: `npm run vite:dev -- --port ${smokePort} --strictPort`,
-          url: `http://localhost:${smokePort}/dev/a11y-fixtures`,
-          reuseExistingServer: !process.env.CI,
-          timeout: 120_000,
-        },
-      }
-    : {}),
+  // Playwright starts every entry and waits for each; the stub is a few lines
+  // of node and is up long before the dev server.
+  webServer: [
+    ...(EDIT_STUB.enabled ? [stubServer] : []),
+    ...(Array.isArray(siteServer) ? siteServer : siteServer ? [siteServer] : []),
+  ],
 });
