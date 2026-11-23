@@ -101,7 +101,7 @@
           {view.runningOn ? `${view.host} is ${view.runningOn}, and ` : ""}{view.nothingBroken
             ? view.anyRowBroken
               ? "nothing we found stops a visitor from using it, though some of what follows is broken or wants attention."
-              : "nothing we tested on it is broken."
+              : "we found nothing broken that a visitor runs into."
             : `we found ${view.brokenTotal === 1 ? "one thing" : `${view.brokenTotal} things`} a visitor runs into today${view.brokenTotal > 3 ? "; the first three are below" : ""}.`}
         {/if}
       </p>

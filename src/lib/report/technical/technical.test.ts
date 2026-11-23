@@ -593,7 +593,6 @@ describe("post-rebase review round 2", () => {
       ["header-content-security-policy", ["A content policy for scripts"]],
       ["header-x-content-type-options", ["File types declared, not guessed"]],
       ["dns-mx", ["A mail server for your domain"]],
-      ["https-upgrade", ["Typing the address without https", '"label":"https"']],
     ];
     for (const [key, texts] of cases) {
       const before = viewOf(row);
@@ -641,16 +640,64 @@ describe("post-rebase review round 2", () => {
 });
 
 describe("the lede after round 2: breakage, not configuration", () => {
-  it("a site whose only ✕ rows are headers and settings still reads 'nothing we tested on it is broken'", async () => {
-    const row = clone(TECHNICAL_REPORT) as unknown as Loose;
+  it("a site whose only ✕ rows are headers and settings reads 'nothing broken that a visitor runs into'", async () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Loose & {
+      accessibility: { data: { violations: unknown[]; violationsTotal?: number } };
+    };
     for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    row.accessibility.data.violations = [];
+    row.accessibility.data.violationsTotal = 0;
     const view = toTechnicalView(row as unknown as AuditReport, TODAY);
     expect(view.nothingBroken).toBe(true);
     // The fixture's server sends no HSTS, framing or content policy: ✕ rows in "Is it safe".
     expect(view.sections.safe.some((r) => r.ok === false)).toBe(true);
     expect(view.anyRowBroken).toBe(false);
-    expect(await pageText(row as unknown as Record<string, unknown>)).toContain(
-      "nothing we tested on it is broken.",
-    );
+    const text = await pageText(row as unknown as Record<string, unknown>);
+    expect(text).toContain("we found nothing broken that a visitor runs into.");
+    expect(text).not.toContain("nothing we tested");
+  });
+});
+
+describe("post-rebase review round 3", () => {
+  type Row3 = Loose & {
+    assets: { data: { brokenLinks: { url: string; status: number }[] } };
+    accessibility: { data: { violations: unknown[]; violationsTotal?: number } };
+    basics: { data: { insecureEntry: Record<string, unknown> } };
+  };
+  const view = (row: Row3, hidden: string[] = []) =>
+    toTechnicalView(row as unknown as AuditReport, TODAY, new Set(hidden));
+
+  it("hiding dead-links (void anchors) keeps a real 404 on the page", () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Row3;
+    row.assets.data.brokenLinks = [{ url: "https://harbor.example/old-page", status: 404 }];
+    const text = JSON.stringify(view(row, ["dead-links"]));
+    expect(text).toContain("harbor.example/old-page");
+    expect(text).toContain("Links on your pages");
+  });
+
+  it("hiding https-upgrade (redirect hops) keeps the insecure-entry finding and rows", () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Row3;
+    row.basics.data.insecureEntry = {
+      measured: true,
+      url: "http://x.example/",
+      ok: false,
+      landedOn: "http://x.example/",
+      error: null,
+    };
+    const v = view(row, ["https-upgrade"]);
+    expect(v.broken.some((f) => f.id === "insecure-entry")).toBe(true);
+    expect(JSON.stringify(v)).toContain('"label":"https"');
+  });
+
+  it("a serious or critical accessibility failure keeps the lede from saying nothing is broken", async () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Row3;
+    for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    const v = view(row);
+    expect(v.nothingBroken).toBe(true);
+    expect(v.sections.access.state).toBe("measured");
+    expect(v.anyRowBroken).toBe(true);
+    const text = await pageText(row as unknown as Record<string, unknown>);
+    expect(text).not.toContain("we found nothing broken that a visitor runs into");
+    expect(text).toContain("nothing we found stops a visitor from using it");
   });
 });

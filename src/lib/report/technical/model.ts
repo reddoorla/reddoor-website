@@ -59,11 +59,12 @@ export type TechnicalView = {
   runningOn: string | null;
   /** The headline about breakage: true when nothing a visitor hits is broken. */
   nothingBroken: boolean;
-  /** Something a visitor meets is marked broken (✕) below, whatever its
-   *  weight: a row in "Does the address work" or "Is anything broken", or
-   *  sideways scrolling or images dropped over plain http. The lede may say
-   *  "nothing we tested on it is broken" only when this is false. A ✕ on a
-   *  header, a mail record or small text is a setting to change, not a break. */
+  /** Something a visitor meets is marked broken below, whatever its weight: a
+   *  ✕ row in "Does the address work" or "Is anything broken", sideways
+   *  scrolling, images dropped over plain http, or a serious or critical
+   *  accessibility failure. The lede says "nothing broken that a visitor runs
+   *  into" only when this is false. A ✕ on a header, a mail record or small
+   *  text is a setting to change, and the lede does not claim otherwise. */
   anyRowBroken: boolean;
   /** The scan itself did not finish: the crawl, assets or basics stage is
    *  missing or failed. The page then claims no all-clear. */
@@ -1010,11 +1011,16 @@ export function toTechnicalView(
     generatedAt: base.generatedAt,
     runningOn,
     nothingBroken: broken.length === 0 && !incomplete,
-    anyRowBroken: [
-      ...shownRows.address,
-      ...shownRows.brokenThings,
-      ...[...shownRows.phone, ...shownRows.safe].filter((r) => VISITOR_ROWS.has(r.label)),
-    ].some((r) => r.ok === false),
+    anyRowBroken:
+      [
+        ...shownRows.address,
+        ...shownRows.brokenThings,
+        ...[...shownRows.phone, ...shownRows.safe].filter((r) => VISITOR_ROWS.has(r.label)),
+      ].some((r) => r.ok === false) ||
+      (access.state === "measured" &&
+        access.byImpact.some(
+          (g) => (g.impact === "critical" || g.impact === "serious") && g.rules.length > 0,
+        )),
     incomplete,
     brokenTotal: broken.length,
     attentionTotal: attention.length,
@@ -1042,8 +1048,12 @@ export function toTechnicalView(
  * (W1) hides these too. Each value is a key from that file, checked by hand
  * against it on 11-23 (the security headers are `header-<name>`; `dns-mx` is
  * the site's own domain, `dns-contact-mx` other domains). A finding with no
- * check of its own (the not-found page, the www variant, broken images, mixed
- * content, accessibility) has nothing an operator can hide. The heavy-image
+ * check of its own (the not-found page, the www variant, broken links and
+ * images, mixed content, accessibility) has nothing an operator can hide, and
+ * the main report keeps those too. Two near misses are left unmapped on
+ * purpose: `dead-links` counts only javascript:void anchors, not the crawl's
+ * broken links, and `https-upgrade` counts redirect hops on http, not where
+ * http lands (`basics.insecureEntry`, read here and on the main report). The heavy-image
  * finding is unmapped on purpose: it weighs bytes, and `oversized-images`
  * measures pixels against display size, a different claim.
  */
@@ -1051,9 +1061,7 @@ export function toTechnicalView(
 const VISITOR_ROWS = new Set(["Sideways scrolling on a phone", "Images loaded over plain http"]);
 
 const FINDING_CHECK: Record<string, string> = {
-  "insecure-entry": "https-upgrade",
   "redirect-chains": "redirect-chains",
-  "broken-links": "dead-links",
   "sitemap-broken": "sitemap-urls-live",
   "external-broken": "external-links-live",
   "failed-requests": "failed-requests",
@@ -1077,10 +1085,8 @@ const FINDING_CHECK: Record<string, string> = {
   noindex: "meta-noindex",
 };
 const ROW_CHECK: Record<string, string> = {
-  "Typing the address without https": "https-upgrade",
   Redirects: "redirect-chains",
   "The browser-tab icon": "favicon-served",
-  "Links on your pages": "dead-links",
   "Addresses your sitemap lists": "sitemap-urls-live",
   "Links to other sites": "external-links-live",
   "Files your pages ask for": "failed-requests",
@@ -1088,7 +1094,6 @@ const ROW_CHECK: Record<string, string> = {
   "Template code": "template-leakage",
   "Sideways scrolling on a phone": "mobile-overflow",
   "Text under 12 pixels": "tiny-text",
-  https: "https-upgrade",
   "Telling browsers to always use https": "header-strict-transport-security",
   "Protection against framing": "header-x-frame-options",
   "A content policy for scripts": "header-content-security-policy",
