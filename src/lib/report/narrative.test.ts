@@ -1272,7 +1272,7 @@ describe("W1 (B-03): no all-clear when the parts it stands on failed", () => {
     expect(headlineFinding(toReportView(asReport(raw))).kind).toBe("all-clear");
   });
 
-  it("a failed-analysis fixture must not return all-clear, and names what did not run", () => {
+  it("a failed-analysis fixture must not return all-clear, and names what failed", () => {
     const h = headlineFinding(failed("analyze"));
     expect(h.kind).not.toBe("all-clear");
     expect(h.text).not.toContain("checks out");

@@ -10,20 +10,27 @@
 // The bearer is PROSPECT_EDIT_TOKEN, the same contract maintenance enforces.
 import { createServer } from "node:http";
 
+/** @typedef {import("node:http").IncomingMessage} Req */
+/** @typedef {import("node:http").ServerResponse} Res */
+
 const PORT = Number(process.env.EDIT_STUB_PORT || 5197);
 const TOKEN = process.env.PROSPECT_EDIT_TOKEN || "smoke-edit-token";
+/** @type {Map<string, { report: unknown; overrides: unknown; approvedAt: string | null }>} */
 const reports = new Map();
 
+/** @param {Res} res @param {number} status @param {unknown} body */
 const json = (res, status, body) => {
   res.writeHead(status, { "content-type": "application/json" });
   res.end(JSON.stringify(body));
 };
+/** @param {Req} req @returns {Promise<string>} */
 const read = (req) =>
   new Promise((resolve) => {
     let s = "";
-    req.on("data", (c) => (s += c));
+    req.on("data", (/** @type {Buffer} */ c) => (s += c));
     req.on("end", () => resolve(s));
   });
+/** @param {Req} req */
 const bearer = (req) => (req.headers.authorization ?? "") === `Bearer ${TOKEN}`;
 
 createServer(async (req, res) => {

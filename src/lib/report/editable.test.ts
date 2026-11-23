@@ -163,7 +163,14 @@ describe("W1: hide targets and the changes list", () => {
       analyze: { ok: true, data: { fixes: [{ title: "Fix one" }, { title: "Fix two" }] } },
       accuracy: {
         ok: true,
-        data: { conflation: { detected: true, otherNames: [], engineQuote: "Two of them." } },
+        data: {
+          conflation: {
+            detected: true,
+            settled: false,
+            otherNames: [],
+            engineQuote: "Two of them.",
+          },
+        },
       },
     } as never;
     const map = {
@@ -176,9 +183,68 @@ describe("W1: hide targets and the changes list", () => {
       ["analyze.data.fixes[1]", true],
       ["accuracy.data.conflation", false],
     ]);
-    expect(changeList(map)).toEqual([
+    const onScreen = [{ key: "composed:headlineFinding", text: "New.", original: "Old." }];
+    expect(changeList(map, onScreen)).toEqual([
       { key: "analyze.data.fixes[1]", kind: "hidden", before: "Fix two", after: "" },
       { key: "composed:headlineFinding", kind: "reworded", before: "Old.", after: "New." },
     ]);
+  });
+});
+
+describe("W1 review round 1: a rewording the page withholds", () => {
+  it("is listed as stale, not as in force, and a retype records the generated text", async () => {
+    const { changeList } = await import("./editable");
+    const map = { "composed:passes[1].items[14]": { original: "Old line", text: "REWORDED" } };
+    // On screen now, under that key, is a different generated line.
+    const targets = [
+      { key: "composed:passes[1].items[14]", text: "Another line", original: "Another line" },
+    ];
+    expect(changeList(map, targets)).toEqual([
+      { key: "composed:passes[1].items[14]", kind: "stale", before: "Old line", after: "REWORDED" },
+    ]);
+    // In force when the target shows it.
+    const inForce = [
+      { key: "composed:passes[1].items[14]", text: "REWORDED", original: "Old line" },
+    ];
+    expect(changeList(map, inForce)[0]!.kind).toBe("reworded");
+  });
+});
+
+describe("W1 review round 2: hiding stops at the last row, and a hidden row is not a target", () => {
+  const raw = {
+    analyze: {
+      ok: true,
+      data: {
+        fixes: [
+          { title: "Fix one", why: "w1" },
+          { title: "Fix two", why: "w2" },
+        ],
+      },
+    },
+  } as never;
+
+  it("the last visible row of a section cannot be hidden", async () => {
+    const { hideTargets } = await import("./editable");
+    const map = {
+      "analyze.data.fixes[0]": { original: "Fix one", text: "", hidden: true as const },
+    };
+    const t = hideTargets(raw, map);
+    expect(t.find((x) => x.key === "analyze.data.fixes[1]")!.canHide).toBe(false);
+    // With nothing hidden, both can be.
+    expect(hideTargets(raw, {}).every((x) => x.canHide)).toBe(true);
+  });
+
+  it("a rewording on a hidden row is listed as stale, not in force", async () => {
+    const { changeList, editableTargets } = await import("./editable");
+    const { toReportView } = await import("./model");
+    const map = {
+      "analyze.data.fixes[0]": { original: "Fix one", text: "", hidden: true as const },
+      "analyze.data.fixes[0].why": { original: "w1", text: "W1 edited" },
+    };
+    const targets = editableTargets(toReportView(raw, map), raw);
+    expect(targets.some((t) => t.key.startsWith("analyze.data.fixes[0]"))).toBe(false);
+    expect(changeList(map, targets).find((c) => c.key === "analyze.data.fixes[0].why")!.kind).toBe(
+      "stale",
+    );
   });
 });

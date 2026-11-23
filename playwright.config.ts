@@ -49,14 +49,14 @@ const stubServer = {
   timeout: 10_000,
 };
 
-const siteServer = smokePort
-  ? {
-      command: `npm run vite:dev -- --port ${smokePort} --strictPort`,
-      url: `http://localhost:${smokePort}/dev/a11y-fixtures`,
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    }
-  : base.webServer;
+// The shared base sets REDDOOR_SMOKE_PORT as it is imported (its
+// resolvePort), so the site server is always this local dev server.
+const siteServer = {
+  command: `npm run vite:dev -- --port ${smokePort} --strictPort`,
+  url: `http://localhost:${smokePort}/dev/a11y-fixtures`,
+  reuseExistingServer: !process.env.CI,
+  timeout: 120_000,
+};
 
 export default defineConfig({
   ...base,
@@ -84,8 +84,5 @@ export default defineConfig({
   },
   // Playwright starts every entry and waits for each; the stub is a few lines
   // of node and is up long before the dev server.
-  webServer: [
-    ...(EDIT_STUB.enabled ? [stubServer] : []),
-    ...(Array.isArray(siteServer) ? siteServer : siteServer ? [siteServer] : []),
-  ],
+  webServer: [...(EDIT_STUB.enabled ? [stubServer] : []), siteServer],
 });
