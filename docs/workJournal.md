@@ -2146,3 +2146,32 @@ The override map takes `hidden: true` on a row key (`analyze.data.fixes[2]`, `si
 Mutations, each turning one named test red: cookie path back to `/audit` (the browser save); ignoring `hidden` in `applyOverrides` (a hidden fix absent from `allFixes`); dropping `analyze` from the all-clear guard (the failed-analysis headline).
 
 Deploy order matters: this half must be on `main` before maintenance's lands, or the editor cannot open a draft (no bearer sent) and a superseded link would 500 instead of redirecting.
+
+## 2026-11-23 — Every absence on the audit report says how many pages it rests on (W3, `claude/w3-read-pages-website`)
+
+The audit-system review (B-04, LG-12, BR-07) found the report printing "We read every page and could not tell…" over crawls of one and twelve pages, and "not on your site" over twenty pages of a ninety-five-page site. An absence is a statement about the pages we read, not the site, and a reader can only weigh it if we say how many. Every absence sentence on the web report and the print sheet now carries that count: the unanswered and goal-missing headlines, the opening summary, the goal verdict and its rows, the question table's receipt, the source check's lead line and footnote, the primer, and the contact row's detail. The counts come from `pagesReadOf` in `model.ts`, and the wording lives in one place, `pages-read.ts`.
+
+The first draft was one sentence shape, "in the N of your M pages we read". Seven review rounds showed how many ways that shape could say something false, and most of the code is now about the source of M:
+
+- **A present, untruncated sitemap.** Only this source may say "your M pages", "all" or "we read them all".
+- **A truncated sitemap.** It is a floor: "at least M pages on your site".
+- **Stored rows from before 2026-09-08.** These carry no `truncated` flag, and the absence of a flag means we do not know, so they are floors too.
+- **No sitemap.** M counts only what the home page links to, so it is "the M we found linked from your home page".
+- **A sitemap smaller than the links and sitemap together.** M is "the M we found".
+- **Zero pages read.** No count is printed. The absences become "Could not check", because a home page that answers 200 as `text/plain` gives a crawl with nothing read, and the goal checks used to call everything on it missing.
+- **One page, or two.** "Your one page" appears only when the site is one page, and two pages read "both".
+
+The source check reads fewer pages than the crawl. It skips empty pages and stops at a character budget, so its lead line and footnote use its own count, not the crawl's. In round 3 the two sentences in that section disagreed: twenty pages in the lead, eight in the footnote.
+
+Corrected on contact:
+
+- **"All" is not about arithmetic.** I believed `read >= site` was enough to say "all of your pages". It was wrong three ways: the site total can be a floor, it can be a count of home-page links, and a legacy row's sitemap can be smaller than the twenty pages read (`pagesReadOf` used to take `max(read, sitemap)` and printed "all 20 of your pages").
+- **A clause written for negatives breaks in a positive sentence.** "In each of your seven pages" read as "missing from some" after "not in place". The contact row's "we measured this in any of your seven pages" read as nonsense.
+
+One question-level design was considered and kept. A buyer-question absence says "not found in the N pages we read" over the crawl's count, though the model sees at most twelve pages of 1,500 characters each. The brief specifies it, and maintenance's keyword search over all crawled text backs it.
+
+Mutation: removing the count from the unanswered headline turned 10 tests red. Each review round's fixes carried one mutation per major, and every one went red. Unit tests went from 479 to 1205 in the report directory's suite and its neighbours.
+
+The branch is stacked on W1 (#379), because both change `model.ts` and `narrative.ts`. It was rebased onto W1 under a new branch name, since rewriting the first session's `claude/w3-read-pages-that-matter` was refused. Generated headlines changed wording, so an operator's edit on a stored report whose `original` no longer matches is dropped.
+
+Rounds: seven. Rounds 1 to 5 were dirty, and at five the session stopped and asked. Round 6 ran on the operator's yes (decision `2026-11-23-2105-w3-website-round-5-stop` in the workspace) and found one latent major, so it asked again. Round 7 ran on his second yes and was clean, with two nits filed as issues.
