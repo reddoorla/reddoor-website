@@ -1,7 +1,9 @@
 import { error, redirect } from "@sveltejs/kit";
 import * as env from "$app/env/private";
 import { fetchReport, REPORT_TOKEN_PATTERN, type AuditReport, type OverrideMap } from "./fetch";
-import { applyOverrides, digest } from "./overrides";
+import { applyOverrides, composed, digest } from "./overrides";
+import { goalVerdict, toReportView } from "./model";
+import { editableTargets } from "./editable";
 import { EDIT_COOKIE, configuredEditKey, keyMatches } from "./edit-auth";
 
 /** The subset of a SvelteKit load event this needs. Declared structurally so
@@ -109,14 +111,17 @@ export async function loadReport(
   // still ship the old words as `original`.
   const overrides = opts.forEditor
     ? fetched.overrides
-    : Object.fromEntries(
-        Object.entries(fetched.overrides).flatMap(([k, ov]) =>
-          k.startsWith("composed:") &&
-          ov &&
-          typeof ov.original === "string" &&
-          typeof ov.text === "string"
-            ? [[k, { original: "", text: ov.text, originalDigest: digest(ov.original) }]]
-            : [],
+    : composedInForce(
+        report,
+        Object.fromEntries(
+          Object.entries(fetched.overrides).flatMap(([k, ov]) =>
+            k.startsWith("composed:") &&
+            ov &&
+            typeof ov.original === "string" &&
+            typeof ov.text === "string"
+              ? [[k, { original: "", text: ov.text, originalDigest: digest(ov.original) }]]
+              : [],
+          ),
         ),
       );
 
@@ -131,4 +136,32 @@ export async function loadReport(
     // the URL out of analytics; this keeps it out of other people's logs.
     meta_referrer: "no-referrer",
   };
+}
+
+/**
+ * W1 review round 3. A reader gets only the composed rewordings that render
+ * now. One written against a sentence that is no longer generated (its row was
+ * hidden, or the data under it changed) is withheld from the page by
+ * `composed`, but it was still shipped, so its text sat in the page data and
+ * view-source. The test is the renderer's own: a key applies when, with this
+ * map, the line it names displays the override's text.
+ */
+function composedInForce(report: AuditReport, map: OverrideMap): OverrideMap {
+  const view = toReportView(report, map);
+  const lines = editableTargets(view, report).map((t) => ({ key: t.key, text: t.text }));
+  // GoalFit.svelte wraps the one composed line `editableTargets` does not list.
+  // Only where GoalFit shows a verdict at all (review round 4).
+  if (view.goalFit && view.goalFit.goal !== "unknown") {
+    const judged = view.goalFit.requirements.filter((r) => r.status !== "unmeasured");
+    const missing = judged.filter((r) => r.status === "missing");
+    const verdictKey = "composed:goalVerdict";
+    lines.push({
+      key: verdictKey,
+      text: composed(map, verdictKey, goalVerdict(missing.length, judged.length)),
+    });
+  }
+  const shown = new Set(
+    lines.filter((t) => map[t.key] && map[t.key]!.text === t.text).map((t) => t.key),
+  );
+  return Object.fromEntries(Object.entries(map).filter(([k]) => shown.has(k)));
 }

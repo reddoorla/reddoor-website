@@ -4,6 +4,7 @@ import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 import type { AuditReport, OverrideMap } from "./fetch";
 import { brandedExcerpt, toReportView, withheldTopic, type Assertion } from "./model";
 import { headlineFinding } from "./narrative";
+import { editableTargets } from "./editable";
 
 /**
  * W2: the accuracy section says what the assistant said, about the right
@@ -263,5 +264,41 @@ describe("absent needs the whole site, by its own sitemap", () => {
   it("keeps absent when the pages read cover the sitemap (positive control)", () => {
     const view = toReportView(reportWith([absent]));
     expect(view.accuracy?.assertions[0]?.verdict).toBe("absent");
+  });
+});
+
+describe("the editor cannot put a paraphrase back (W1 interaction)", () => {
+  const claim = "Example Studio is rated 2.1 stars by its former staff.";
+  const report = reportWith([
+    row({
+      claim: "Example Studio is a bakery in Lakeside.",
+      verdict: "unverified",
+      engineQuote: "Most likely match: Example Bakery (Lakeside)",
+      unverifiedReason: "We could not find the passage this was based on.",
+    }),
+    row({ claim, verdict: "unverified", engineQuote: "former staff rate it 2.1 out of 5" }),
+  ]);
+
+  it("offers no assertion's claim as a line to reword", () => {
+    const keys = editableTargets(toReportView(report), report).map((t) => t.key);
+    expect(keys.some((k) => /^accuracy\.data\.assertions\[\d+\]\.claim$/.test(k))).toBe(false);
+  });
+
+  it("never prints a reworded claim, even when an override for one is stored", () => {
+    const overrides: OverrideMap = {
+      "accuracy.data.assertions[0].claim": {
+        original: "Example Studio is a bakery in Lakeside.",
+        text: "OPERATOR REWORDING",
+      },
+      "accuracy.data.assertions[1].claim": { original: claim, text: "A friendly studio." },
+    };
+    const onScreen = seen(renderText(sourceCheck, { view: toReportView(report, overrides) }));
+    const onPrint = seen(renderText(printSheet, { data: { report, overrides } }));
+    for (const text of [onScreen, onPrint]) {
+      expect(text).not.toContain("OPERATOR REWORDING");
+      expect(text).not.toContain("A friendly studio.");
+      // The rating row stays withheld: its quote still carries the topic.
+      expect(text).not.toContain("2.1 out of 5");
+    }
   });
 });

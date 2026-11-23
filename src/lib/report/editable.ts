@@ -1,7 +1,13 @@
 import type { AuditReport, OverrideMap } from "./fetch";
 import { CONFLATION_KEY, HIDEABLE, hiddenRowKeys } from "./overrides";
 import { openingSummary, type ReportView } from "./model";
-import { headlineFinding, passes, collisionBlock, collisionFix, healthFixes } from "./narrative";
+import {
+  headlineFinding,
+  passes,
+  collisionBlock,
+  collisionFix,
+  healthFixEntries,
+} from "./narrative";
 import { healthRows } from "./health";
 
 /** One line an operator can rewrite. */
@@ -24,11 +30,15 @@ export type EditTarget = {
 /** The payload fields an operator may rewrite, as `[stage path, field names]`.
  *  Verbatim quotes are absent on purpose: `engineQuote` and `siteQuote` are
  *  verified substrings of somebody else's words, and editing one forges a
- *  receipt rather than rewording an opinion. */
+ *  receipt rather than rewording an opinion. An assertion's `claim` is absent
+ *  too (W2): the page prints the assistant's quote and never our paraphrase,
+ *  so a rewording of `claim` would be an edit that changes nothing on the
+ *  page, and on a row stored without a `topic` it could move the row out of
+ *  the withheld count. */
 const PAYLOAD_FIELDS: { path: string; fields: string[] }[] = [
   { path: "siteChecks.data", fields: ["label", "why", "evidence"] },
   { path: "analyze.data.fixes", fields: ["title", "why"] },
-  { path: "accuracy.data.assertions", fields: ["claim", "unverifiedReason"] },
+  { path: "accuracy.data.assertions", fields: ["unverifiedReason"] },
   { path: "goalFit.data.requirements", fields: ["label", "why", "evidence"] },
 ];
 
@@ -140,9 +150,10 @@ export function editableTargets(view: ReportView, raw?: AuditReport): EditTarget
     push(out, map, "composed:collisionFix.why", collision.why);
   }
 
-  healthFixes(view).forEach((f, i) => {
-    push(out, map, `composed:healthFix[${i}].title`, f.title);
-    push(out, map, `composed:healthFix[${i}].why`, f.why);
+  // Keyed by the row, as `healthFixes` looks them up (W1 review round 4).
+  healthFixEntries(view).forEach(({ rowKey, fix }) => {
+    push(out, map, `composed:healthFix[${rowKey}].title`, fix.title);
+    push(out, map, `composed:healthFix[${rowKey}].why`, fix.why);
   });
 
   return out;
