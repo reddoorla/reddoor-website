@@ -943,6 +943,7 @@ export type StageKey = (typeof STAGE_KEYS)[number];
  */
 const SKIPPED = new Set([
   "skipped (--no-probes)", // PROBES_SKIPPED
+  "skipped (--technical)", // TECHNICAL_SKIPPED: analyze and probes on a technical-only run
   "skipped — the checks stage failed", // ANALYZE_SKIPPED, ASSETS_SKIPPED
   "skipped — no branded answers to check", // ACCURACY_SKIPPED
   "no goal supplied and none could be inferred", // GOAL_UNRESOLVED

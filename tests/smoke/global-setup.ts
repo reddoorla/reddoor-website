@@ -57,6 +57,7 @@ const ROUTES = [
   "/calendar/AAAAAAAAAAAA",
   "/dev/audit-report",
   "/dev/audit-report/print",
+  "/dev/audit-report/technical",
   "/dev/video-fixture",
 ];
 
