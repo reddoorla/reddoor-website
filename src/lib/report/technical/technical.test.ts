@@ -639,3 +639,18 @@ describe("post-rebase review round 2", () => {
     expect(text).toContain("nothing we found stops a visitor from using it");
   });
 });
+
+describe("the lede after round 2: breakage, not configuration", () => {
+  it("a site whose only ✕ rows are headers and settings still reads 'nothing we tested on it is broken'", async () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Loose;
+    for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    const view = toTechnicalView(row as unknown as AuditReport, TODAY);
+    expect(view.nothingBroken).toBe(true);
+    // The fixture's server sends no HSTS, framing or content policy: ✕ rows in "Is it safe".
+    expect(view.sections.safe.some((r) => r.ok === false)).toBe(true);
+    expect(view.anyRowBroken).toBe(false);
+    expect(await pageText(row as unknown as Record<string, unknown>)).toContain(
+      "nothing we tested on it is broken.",
+    );
+  });
+});

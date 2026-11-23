@@ -59,8 +59,11 @@ export type TechnicalView = {
   runningOn: string | null;
   /** The headline about breakage: true when nothing a visitor hits is broken. */
   nothingBroken: boolean;
-  /** Some row in the sections below is marked broken (✕), weight aside. The
-   *  lede may say "nothing we tested is broken" only when this is false. */
+  /** Something a visitor meets is marked broken (✕) below, whatever its
+   *  weight: a row in "Does the address work" or "Is anything broken", or
+   *  sideways scrolling or images dropped over plain http. The lede may say
+   *  "nothing we tested on it is broken" only when this is false. A ✕ on a
+   *  header, a mail record or small text is a setting to change, not a break. */
   anyRowBroken: boolean;
   /** The scan itself did not finish: the crawl, assets or basics stage is
    *  missing or failed. The page then claims no all-clear. */
@@ -1010,11 +1013,7 @@ export function toTechnicalView(
     anyRowBroken: [
       ...shownRows.address,
       ...shownRows.brokenThings,
-      ...weightRows,
-      ...shownRows.phone,
-      ...shownRows.safe,
-      ...shownRows.email,
-      ...(shownRows.domain ? [shownRows.domain] : []),
+      ...[...shownRows.phone, ...shownRows.safe].filter((r) => VISITOR_ROWS.has(r.label)),
     ].some((r) => r.ok === false),
     incomplete,
     brokenTotal: broken.length,
@@ -1048,6 +1047,9 @@ export function toTechnicalView(
  * finding is unmapped on purpose: it weighs bytes, and `oversized-images`
  * measures pixels against display size, a different claim.
  */
+/** Rows outside the address and breakage sections that a visitor meets. */
+const VISITOR_ROWS = new Set(["Sideways scrolling on a phone", "Images loaded over plain http"]);
+
 const FINDING_CHECK: Record<string, string> = {
   "insecure-entry": "https-upgrade",
   "redirect-chains": "redirect-chains",
