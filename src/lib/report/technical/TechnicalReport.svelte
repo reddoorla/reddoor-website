@@ -99,9 +99,11 @@
             : ""}
         {:else}
           {view.runningOn ? `${view.host} is ${view.runningOn}, and ` : ""}{view.nothingBroken
-            ? view.anyRowBroken
-              ? "nothing we found stops a visitor from using it, though some of what follows is broken or wants attention."
-              : "we found nothing broken that a visitor runs into."
+            ? view.accessFails
+              ? "nothing we found stops most visitors from using it, though an automated scan found accessibility failures that can stop some visitors; they are below with anything else that wants attention."
+              : view.anyRowBroken
+                ? "nothing we found stops a visitor from using it, though some of what follows is broken or wants attention."
+                : "we found nothing broken that a visitor runs into."
             : `we found ${view.brokenTotal === 1 ? "one thing" : `${view.brokenTotal} things`} a visitor runs into today${view.brokenTotal > 3 ? "; the first three are below" : ""}.`}
         {/if}
       </p>

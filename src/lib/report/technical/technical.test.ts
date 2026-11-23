@@ -547,6 +547,15 @@ describe("review after the rebase", () => {
   it("the opening sentence never says nothing tested is broken over a row marked broken", async () => {
     const row = clone(TECHNICAL_REPORT) as unknown as Loose;
     for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    // No accessibility failure: this test is about the row-breakage branch.
+    (
+      row as unknown as {
+        accessibility: { data: { violations: unknown[]; violationsTotal?: number } };
+      }
+    ).accessibility.data.violations = [];
+    (
+      row as unknown as { accessibility: { data: { violationsTotal?: number } } }
+    ).accessibility.data.violationsTotal = 0;
     row.http.data.sitemapUrls = { checked: 12, total: 41, broken: [{ url: `${row.url}gone` }] };
     const view = toTechnicalView(row as unknown as AuditReport, TODAY);
     expect(view.nothingBroken).toBe(true);
@@ -626,6 +635,15 @@ describe("post-rebase review round 2", () => {
   it("the lede claims nothing is broken only when no row is marked broken", async () => {
     const row = clone(TECHNICAL_REPORT) as unknown as Row2;
     for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    // No accessibility failure: this test is about the row-breakage branch.
+    (
+      row as unknown as {
+        accessibility: { data: { violations: unknown[]; violationsTotal?: number } };
+      }
+    ).accessibility.data.violations = [];
+    (
+      row as unknown as { accessibility: { data: { violationsTotal?: number } } }
+    ).accessibility.data.violationsTotal = 0;
     row.http.data.externalLinks = {
       checked: 15,
       total: 15,
@@ -698,6 +716,41 @@ describe("post-rebase review round 3", () => {
     expect(v.anyRowBroken).toBe(true);
     const text = await pageText(row as unknown as Record<string, unknown>);
     expect(text).not.toContain("we found nothing broken that a visitor runs into");
-    expect(text).toContain("nothing we found stops a visitor from using it");
+    expect(text).not.toContain("nothing we found stops a visitor");
+    expect(text).toContain("nothing we found stops most visitors from using it");
+    expect(text).toContain("accessibility failures that can stop some visitors");
+  });
+});
+
+describe("post-rebase review round 4", () => {
+  type Row4 = Loose & {
+    crawl: { data: { pages: { vitals: Record<string, unknown> }[] } };
+    assets: { data: Record<string, unknown> };
+  };
+
+  it("a page 6px too wide is sideways scrolling, as maintenance's check says (tolerance 4px)", () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Row4;
+    for (const p of row.crawl.data.pages) p.vitals.overflowAt375 = 0;
+    row.crawl.data.pages[2]!.vitals.overflowAt375 = 6;
+    const v = toTechnicalView(row as unknown as AuditReport, TODAY);
+    const r = v.sections.phone.find((x) => x.label === "Sideways scrolling on a phone");
+    expect(r?.ok).toBe(false);
+    row.crawl.data.pages[2]!.vitals.overflowAt375 = 4;
+    const ok = toTechnicalView(row as unknown as AuditReport, TODAY).sections.phone.find(
+      (x) => x.label === "Sideways scrolling on a phone",
+    );
+    expect(ok?.ok).toBe(true);
+  });
+
+  it("a plugin folder carrying its version prints without it", async () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as { stack: { data: { items: unknown[] } } };
+    row.stack.data.items.push({
+      layer: "plugin",
+      name: "some-plugin-2.3.1",
+      evidence: "https://x.example/wp-content/plugins/some-plugin-2.3.1/a.js",
+    });
+    const text = await pageText(row as unknown as Record<string, unknown>);
+    expect(text).toContain("some-plugin");
+    expect(text).not.toContain("2.3.1");
   });
 });

@@ -66,6 +66,9 @@ export type TechnicalView = {
    *  into" only when this is false. A ✕ on a header, a mail record or small
    *  text is a setting to change, and the lede does not claim otherwise. */
   anyRowBroken: boolean;
+  /** A serious or critical accessibility failure is among the breakage: it
+   *  can stop some visitors, so the lede may not say nothing stops a visitor. */
+  accessFails: boolean;
   /** The scan itself did not finish: the crawl, assets or basics stage is
    *  missing or failed. The page then claims no all-clear. */
   incomplete: boolean;
@@ -232,6 +235,18 @@ export function printableUrl(url: string): string {
   return url.startsWith("http") ? out : out.replace("https://relative.invalid", "");
 }
 
+/** Pixels wider than a 375px screen before a page counts as scrolling
+ *  sideways. Kept in step with maintenance's `mobile-overflow` check
+ *  (`OVERFLOW_TOLERANCE` in site-checks.ts), so the two views of one token
+ *  agree on the same page. */
+const OVERFLOW_TOLERANCE = 4;
+
+/** A stack name as printed. A WordPress theme or plugin is named by its folder,
+ *  and a hand-installed one can carry its version there (some-plugin-2.3.1). */
+export function printableName(name: string): string {
+  return name.replace(/[-.@]v?\d+(?:\.\d+)+(?:[-+][\w.]+)?$/i, "") || name;
+}
+
 /** "Apache/2.4.18 (Ubuntu)" → "Apache". The product, never the build. */
 export function productName(header: string | undefined): string | null {
   if (!header) return null;
@@ -345,7 +360,8 @@ export function toTechnicalView(
   const layers = new Map<string, string[]>();
   for (const i of items) {
     const names = layers.get(i.layer) ?? [];
-    if (!names.includes(i.name)) names.push(i.name);
+    const name = printableName(i.name);
+    if (!names.includes(name)) names.push(name);
     layers.set(i.layer, names);
   }
   const cms = layers.get("cms") ?? [];
@@ -683,7 +699,7 @@ export function toTechnicalView(
   // Overflow is measured while the page settles, so content that slides in
   // on load can overflow for a moment. Like the scripts and the scan, it is
   // printed only from a run whose browser asked for reduced motion.
-  const overflowing = withVitals.filter((p) => (p.vitals!.overflowAt375 ?? 0) > 8);
+  const overflowing = withVitals.filter((p) => (p.vitals!.overflowAt375 ?? 0) > OVERFLOW_TOLERANCE);
   if (withVitals.length) {
     phone.push({
       label: "Sideways scrolling on a phone",
@@ -997,6 +1013,11 @@ export function toTechnicalView(
     }
   };
 
+  const accessFails =
+    access.state === "measured" &&
+    access.byImpact.some(
+      (g) => (g.impact === "critical" || g.impact === "serious") && g.rules.length > 0,
+    );
   const shownRows = {
     address: visibleRows(address),
     brokenThings: visibleRows(brokenThings),
@@ -1016,11 +1037,8 @@ export function toTechnicalView(
         ...shownRows.address,
         ...shownRows.brokenThings,
         ...[...shownRows.phone, ...shownRows.safe].filter((r) => VISITOR_ROWS.has(r.label)),
-      ].some((r) => r.ok === false) ||
-      (access.state === "measured" &&
-        access.byImpact.some(
-          (g) => (g.impact === "critical" || g.impact === "serious") && g.rules.length > 0,
-        )),
+      ].some((r) => r.ok === false) || accessFails,
+    accessFails,
     incomplete,
     brokenTotal: broken.length,
     attentionTotal: attention.length,
