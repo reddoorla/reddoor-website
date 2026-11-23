@@ -1,4 +1,5 @@
 import { healthRows, type HealthRow } from "./health";
+import { inPagesRead, numberWord, pagesReadPhrase } from "./pages-read";
 import {
   GOAL_LABELS,
   nameUnsettled,
@@ -47,53 +48,7 @@ export type Headline = { kind: HeadlineKind; text: string };
  *  answers, and the check of what those answers say. */
 const ALL_CLEAR_NEEDS: StageKey[] = ["analyze", "probes", "accuracy"];
 
-const WORDS = [
-  "zero",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "six",
-  "seven",
-  "eight",
-  "nine",
-  "ten",
-];
-
-/** "two", "ten", then digits — the reader's register, not the instrument's. */
-export function numberWord(n: number): string {
-  return WORDS[n] ?? String(n);
-}
-
-/**
- * How much of the site we read, as a phrase: "20 of your 95 pages", or "12
- * pages" when we know no total. Null when there is no crawl to count.
- *
- * Every absence this report prints is a statement about the pages we read,
- * not about the site, and a reader who knows their site has 95 pages can only
- * weigh "your site does not say" against the 20 it rests on if we say so. "We
- * read every page" was printed over crawls of 1 and 12 pages (the audit-system
- * review, LG-12).
- */
-export function pagesReadPhrase(view: ReportView): string | null {
-  const p = view.pagesRead;
-  if (!p) return null;
-  const pages = (n: number): string => `${numberWord(n)} ${n === 1 ? "page" : "pages"}`;
-  if (p.site === null) return pages(p.read);
-  if (p.site <= p.read)
-    return p.read === 1 ? "your one page" : `all ${numberWord(p.read)} of your pages`;
-  return `${numberWord(p.read)} of your ${pages(p.site)}`;
-}
-
-/** "in the 20 of your 95 pages we read", the clause an absence carries. */
-export function inPagesRead(view: ReportView): string | null {
-  const p = view.pagesRead;
-  const phrase = pagesReadPhrase(view);
-  if (!p || phrase === null) return null;
-  if (p.site !== null && p.site <= p.read) return `in ${phrase}, which we read`;
-  return `in the ${phrase} we read`;
-}
+export { inPagesRead, numberWord, pagesReadPhrase };
 
 /**
  * The source check's closing line, on the web and in print. It used to end
@@ -105,10 +60,14 @@ export function sourceCheckFootnote(view: ReportView): string | null {
   const acc = view.accuracy;
   if (!acc) return null;
   const site = view.pagesRead?.site ?? view.sitemapUrlCount;
+  // Every page of the site was read: the hedge would say a page was missed
+  // that was not, so it is dropped.
+  if (site !== null && site <= acc.pagesRead)
+    return `We read all ${numberWord(acc.pagesRead)} of your pages for this check.`;
   const count =
     site !== null
-      ? `${acc.pagesRead} of your ${Math.max(site, acc.pagesRead)} pages`
-      : `${acc.pagesRead} of the ${acc.pagesTotal} pages we crawled`;
+      ? `${numberWord(acc.pagesRead)} of your ${view.pagesRead?.siteIsFloor ? "at least " : ""}${numberWord(site)} pages`
+      : `${numberWord(acc.pagesRead)} of the ${numberWord(acc.pagesTotal)} pages we crawled`;
   return `We read ${count} for this check. A statement listed above may be on a page we did not read.`;
 }
 
@@ -120,7 +79,8 @@ export function questionReceipt(view: ReportView, q: BuyerQuestion): string {
   if (q.answered === "unknown" && q.notFound) {
     let path = q.notFound.page;
     try {
-      path = new URL(q.notFound.page).pathname;
+      const { pathname } = new URL(q.notFound.page);
+      path = pathname === "/" ? "your home page" : decodeURIComponent(pathname);
     } catch {
       // Keep the address as stored.
     }
@@ -210,7 +170,7 @@ function headlineFindingGenerated(view: ReportView): Headline {
         kind: "goal-missing",
         text:
           `Your site is built to get a visitor to ${GOAL_LABELS[fit.goal] ?? fit.goal}, and ${count} ` +
-          `not in place: ${joinList(missing.map((r) => inline(r.label)))}.`,
+          `not in place${inPagesRead(view) ? ` ${inPagesRead(view)}` : ""}: ${joinList(missing.map((r) => inline(r.label)))}.`,
       };
     }
   }
@@ -813,7 +773,7 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   // named checks": a count is the whole point of the sentence, and a report
   // whose battery never ran should not imply it did.
   const fetched =
-    `Most of it is machinery, not an AI’s opinion. It read ${pagesReadPhrase(view) ?? "your pages"}, each one twice, plain and ` +
+    `Most of it is machinery, not an AI’s opinion. It read ${pagesReadPhrase(view) ?? "your pages"}, ${view.pagesRead?.read === 1 ? "twice" : "each one twice"}, plain and ` +
     "in a real browser" +
     (ran
       ? `, then ran ${ran} named checks on what came back, from dead links to structured ` +

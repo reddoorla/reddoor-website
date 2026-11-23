@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { toReportView, type Fix, type ReportView } from "./model";
 import type { AuditReport } from "./fetch";
+import { numberWord } from "./pages-read";
 import type { Component } from "svelte";
 import { ssr, renderText } from "./ssr-test-harness";
 
@@ -483,7 +484,7 @@ describe("a sitemap the crawl found", () => {
     // not read", beside verdicts that were exactly that. The sitemap's count
     // is now the denominator itself, and the hedge says what is true.
     expect(crawled).toBeLessThanOrEqual(count);
-    const sentence = `We read ${read_} of your ${count} pages for this check. A statement listed above may be on a page we did not read.`;
+    const sentence = `We read ${numberWord(read_)} of your ${numberWord(count)} pages for this check. A statement listed above may be on a page we did not read.`;
     expect(read(sourceCheck, "adverse-blocked")).toContain(sentence);
     expect(printed("adverse-blocked")).toContain(sentence);
   });

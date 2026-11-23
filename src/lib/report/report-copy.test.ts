@@ -568,3 +568,89 @@ describe("the name-collision finding follows the branded answer's own verdict", 
     expect(seen(renderText(sourceCheck, { view: edited }))).toContain("EDITED-HEADING");
   });
 });
+
+// W3 review round 1. A crawl with pages and a selection (the shape the new
+// crawl stores), one of them failed (neither extract), so the count is read
+// from the pages and the site's count from its sitemap.
+const READ_CRAWL = {
+  ok: true,
+  data: {
+    ...allPass.crawl.data,
+    pages: [
+      { url: "https://example.test/", raw: {}, rendered: null },
+      { url: "https://example.test/services", raw: {}, rendered: null },
+      { url: "https://example.test/about", raw: null, rendered: {} },
+      { url: "https://example.test/gone", raw: null, rendered: null },
+    ],
+    sitemap: { present: true, urlCount: 95, truncated: false },
+    selection: { pagesConsidered: 40 },
+  },
+};
+const READ: AuditReport = { ...RICH, crawl: READ_CRAWL as AuditReport["crawl"] };
+const UNKNOWN_GOAL: AuditReport = {
+  ...READ,
+  goalFit: {
+    ok: true,
+    data: { goal: "unknown", source: "operator", requirements: [] },
+  } as AuditReport["goalFit"],
+};
+
+describe("the print sheet carries the denominator", () => {
+  it("a goal-unknown report says what it read, never 'every page'", () => {
+    const text = seen(printed(UNKNOWN_GOAL));
+    expect(text).toContain("We read three of your 95 pages and could not tell what");
+    expect(text).not.toContain("We read every page");
+  });
+
+  it("a goal-unknown report with no crawl says 'your pages', never 'every page'", () => {
+    const text = seen(printed({ ...RICH, goalFit: UNKNOWN_GOAL.goalFit }));
+    expect(text).toContain("We read your pages and could not tell what");
+    expect(text).not.toContain("We read every page");
+  });
+
+  it("a missing goal requirement says where it looked, not 'Not on the site' alone", () => {
+    const goalFit = (
+      ALL_PASS_REPORT as unknown as { goalFit: { data: { requirements: { status: string }[] } } }
+    ).goalFit.data;
+    const missing: AuditReport = {
+      ...READ,
+      goalFit: {
+        ok: true,
+        data: {
+          ...goalFit,
+          requirements: goalFit.requirements.map((r, i) =>
+            i === 0 ? { ...r, status: "missing" } : r,
+          ),
+        },
+      } as AuditReport["goalFit"],
+    };
+    const text = seen(printed(missing));
+    expect(text).toContain("Not in the three of your 95 pages we read");
+    expect(text).not.toContain("Not on the site");
+  });
+
+  it("a row whose page was unread is labelled unclear, not 'not measured', once it has a notFound", () => {
+    const withNotFound = {
+      ...READ,
+      analyze: {
+        ok: true,
+        data: {
+          ...allPass.analyze.data,
+          buyerQuestions: allPass.analyze.data.buyerQuestions.map((q, i) =>
+            i === 0
+              ? {
+                  ...q,
+                  answered: "unknown",
+                  evidence: null,
+                  notFound: { term: "pricing", page: "https://example.test/services" },
+                }
+              : q,
+          ),
+        },
+      },
+    } as unknown as AuditReport;
+    const text = seen(printed(withNotFound));
+    expect(text).toContain("Unclear");
+    expect(text).toContain("though “pricing” appears on /services");
+  });
+});

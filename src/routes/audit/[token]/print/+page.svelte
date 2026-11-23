@@ -17,6 +17,8 @@
     collisionBlock,
     displayQuote,
     headlineFinding,
+    inPagesRead,
+    pagesReadPhrase,
     passes,
     questionReceipt,
     sourceCheckFootnote,
@@ -312,13 +314,18 @@
     {#if view.goalFit}
       <h3>Does your site do its job</h3>
       {#if view.goalFit.goal === "unknown"}
-        <p>We read every page and could not tell what {who} wants a visitor to do.</p>
+        <p>
+          We read {pagesReadPhrase(view) ?? "your pages"} and could not tell what {who} wants a visitor
+          to do.
+        </p>
       {:else if goalMissing.length === 0}
         <p class="note">Everything the site needs for that job is in place — see What passes.</p>
       {:else}
         {#each goalMissing as row (row.key)}
           <div class="fix">
-            <p class="fix-t">{row.label} <span class="answered no">Not on the site</span></p>
+            <p class="fix-t">
+              {row.label} <span class="answered no">Not {inPagesRead(view) ?? "on the site"}</span>
+            </p>
             <p class="fix-w">{row.why}</p>
             {#if row.evidence}<p class="fix-w">{row.evidence}</p>{/if}
           </div>
@@ -339,7 +346,9 @@
           {#each view.buyerQuestions as q (q.question)}
             <tr>
               <td>{q.question}</td>
-              <td class="answered {q.answered}">{ANSWERED_LABEL[q.answered]}</td>
+              <td class="answered {q.answered}">
+                {q.answered === "unknown" && q.notFound ? "Unclear" : ANSWERED_LABEL[q.answered]}
+              </td>
               <td class="evidence">
                 {questionReceipt(view, q)}
               </td>

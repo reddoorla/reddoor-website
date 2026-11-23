@@ -1,5 +1,6 @@
 import type { AuditReport } from "./fetch";
 import { applyOverrides, composed, type OverrideMap } from "./overrides";
+import { inPagesRead } from "./pages-read";
 
 /**
  * The shape the report components consume.
@@ -477,7 +478,8 @@ function openingSummaryText(view: ReportView): string | null {
       unanswered.length === 1
         ? unanswered[0]
         : `${unanswered.slice(0, -1).join(", ")}, or ${unanswered.at(-1)}`;
-    parts.push(`It does not answer: ${list}.`);
+    const where = inPagesRead(view);
+    parts.push(`It does not answer${where ? `, ${where}` : ""}: ${list}.`);
   }
   return parts.join(" ");
 }
@@ -808,7 +810,7 @@ export type ReportView = {
    * is no sitemap and the report predates the crawl counting what it knew of.
    * Null when there is no crawl.
    */
-  pagesRead: { read: number; site: number | null } | null;
+  pagesRead: { read: number; site: number | null; siteIsFloor?: boolean } | null;
   /** Stages that RAN AND FAILED, in report order. A stage this era of the
    *  payload lacks, or one the producer skipped on purpose, is not here: both
    *  are "never ran", and only this list may say "ran and failed". */
@@ -1213,23 +1215,41 @@ export function sourceCheckHasStatements(view: ReportView): boolean {
   return sourceCheckMeasured(view) && (view.accuracy?.assertions.length ?? 0) > 0;
 }
 
-/** See `ReportView.pagesRead`. */
+/** See `ReportView.pagesRead`. A crawl stored before it counted what it knew
+ *  of (no `selection`) gives a site count only when the sitemap lists more
+ *  pages than were read: a smaller sitemap says nothing about the site, and
+ *  "all 20 of your pages" over a 12-URL sitemap was the old report's claim. */
 function pagesReadOf(
   crawl: {
-    sitemap?: { present?: boolean; urlCount?: number };
+    sitemap?: { present?: boolean; urlCount?: number; truncated?: boolean };
     pages?: { raw?: unknown; rendered?: unknown }[];
     selection?: { pagesConsidered?: number };
   } | null,
 ): ReportView["pagesRead"] {
   if (!crawl || !Array.isArray(crawl.pages)) return null;
   const read = crawl.pages.filter((p) => p && (p.raw || p.rendered)).length;
-  const known = [
+  const sitemap =
     crawl.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
       ? crawl.sitemap.urlCount
-      : null,
-    typeof crawl.selection?.pagesConsidered === "number" ? crawl.selection.pagesConsidered : null,
-  ].filter((n): n is number => n !== null);
-  return { read, site: known.length ? Math.max(read, ...known) : null };
+      : null;
+  const considered =
+    typeof crawl.selection?.pagesConsidered === "number" ? crawl.selection.pagesConsidered : null;
+  const known = [sitemap, considered].filter((n): n is number => n !== null);
+  if (crawl.selection) {
+    const site = known.length ? Math.max(read, ...known) : null;
+    return {
+      read,
+      site,
+      siteIsFloor: site !== null && site === sitemap && crawl.sitemap?.truncated === true,
+    };
+  }
+  const largest = known.length ? Math.max(...known) : null;
+  if (largest === null || largest <= read) return { read, site: null, siteIsFloor: false };
+  return {
+    read,
+    site: largest,
+    siteIsFloor: largest === sitemap && crawl.sitemap?.truncated === true,
+  };
 }
 
 export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {
@@ -1266,7 +1286,7 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
   // crawlers we checked".
   const crawl = stage<{
     agentAccess?: { agent: string }[];
-    sitemap?: { present?: boolean; urlCount?: number };
+    sitemap?: { present?: boolean; urlCount?: number; truncated?: boolean };
     pages?: { raw?: unknown; rendered?: unknown }[];
     selection?: { pagesConsidered?: number };
   }>(r.crawl);

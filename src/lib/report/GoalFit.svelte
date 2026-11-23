@@ -6,7 +6,7 @@
     type GoalRequirement,
     type ReportView,
   } from "./model";
-  import { numberWord, pagesReadPhrase } from "./narrative";
+  import { numberWord, inPagesRead, pagesReadPhrase } from "./narrative";
   import { composed } from "./overrides";
 
   // Whether the site does the one job it exists to do.
@@ -126,7 +126,9 @@
           <li class="flex flex-col gap-1.5 border-t border-light py-6">
             <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
               <p class="type-eyebrow m-0 text-primary">{row.label}</p>
-              <p class="type-question m-0 text-primary">Not on the site</p>
+              <p class="type-question m-0 text-primary">
+                Not {inPagesRead(view) ?? "on the site"}
+              </p>
             </div>
             <p class="type-meta m-0 text-muted">{row.why}</p>
             <!-- A missing row can carry evidence too: it names the stranded

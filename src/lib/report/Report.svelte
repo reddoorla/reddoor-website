@@ -497,7 +497,9 @@
                               ? 'text-primary'
                               : 'text-muted'}"
                           >
-                            {ANSWERED_LABEL[q.answered]}
+                            {q.answered === "unknown" && q.notFound
+                              ? "Unclear"
+                              : ANSWERED_LABEL[q.answered]}
                           </td>
                           <!-- The receipt. A verdict with no passage beside it
                              is a claim the reader cannot check. -->
