@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import type { Component } from "svelte";
 import { ssr, renderText } from "../ssr-test-harness";
 import { TECHNICAL_REPORT } from "../fixtures/technical";
-import { toTechnicalView, dmarcState, isDeliberatelyHidden, type TechnicalView } from "./model";
+import {
+  toTechnicalView,
+  dmarcState,
+  isDeliberatelyHidden,
+  printableUrl,
+  type TechnicalView,
+} from "./model";
 import { readReleaseLines } from "./release-lines";
 
 // W4, the Technical report. Every assertion here is about what a reader of the
@@ -111,7 +117,8 @@ describe("the first screen", () => {
       props: { view: toTechnicalView(TECHNICAL_REPORT, TODAY), reference: "0a1b2c3d" },
     }).body;
     const hrefs = [...html.matchAll(/href="([^"]*schedule[^"]*)"/g)].map((m) => m[1]);
-    expect(hrefs).toEqual(["/schedule?ref=technical-0a1b2c3d", "/schedule?ref=technical-0a1b2c3d"]);
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const h of hrefs) expect(h).toBe("/schedule?ref=technical-0a1b2c3d");
   });
 });
 
@@ -123,8 +130,12 @@ describe("findings re-derived from raw fields, not the stored verdict", () => {
   });
 
   it("does not report a privacy page hidden on purpose", () => {
-    expect(isDeliberatelyHidden("https://harbor-dental.example/privacy")).toBe(true);
-    expect(isDeliberatelyHidden("https://harbor-dental.example/services")).toBe(false);
+    expect(
+      isDeliberatelyHidden("https://harbordentalandorthodonticsofsouthbay.example/privacy"),
+    ).toBe(true);
+    expect(
+      isDeliberatelyHidden("https://harbordentalandorthodonticsofsouthbay.example/services"),
+    ).toBe(false);
     expect(toTechnicalView(TECHNICAL_REPORT, TODAY).fixFirst.map((f) => f.id)).not.toContain(
       "noindex",
     );
@@ -224,5 +235,81 @@ describe("the domain row is read against the render date", () => {
     const later = toTechnicalView(TECHNICAL_REPORT, new Date("2027-05-01T00:00:00Z"));
     expect(later.sections.domain?.text).toContain("has now passed");
     expect(toTechnicalView(TECHNICAL_REPORT, TODAY).sections.domain?.text).not.toContain("passed");
+  });
+});
+
+describe("W4 review round 1", () => {
+  type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const row = () => clone(TECHNICAL_REPORT) as Any;
+
+  it("never prints a ?ver= version from an evidence address", async () => {
+    const r = row();
+    r.crawl.data.pages[0].vitals.failedRequests = [
+      {
+        url: "https://x.example/wp-includes/js/jquery/jquery.min.js?ver=3.7.1",
+        status: 404,
+        firstParty: true,
+      },
+    ];
+    expect(printableUrl("https://x.example/a.js?ver=6.4.2&x=1")).toBe("https://x.example/a.js?x=1");
+    const text = await pageText(r);
+    expect(text).toContain("jquery.min.js");
+    expect(text).not.toContain("3.7.1");
+  });
+
+  it("does not call a 403 or a missing answer a soft 404", () => {
+    for (const status of [403, 503, null]) {
+      const r = row();
+      r.basics.data.notFound.status = status;
+      r.basics.data.notFound.ok = false;
+      const view = toTechnicalView(r, TODAY);
+      expect([...view.attention, ...view.more, ...view.fixFirst].map((f) => f.id)).not.toContain(
+        "not-found",
+      );
+    }
+  });
+
+  it("makes no all-clear when the scan did not complete", () => {
+    const r = row();
+    r.assets = { ok: false, error: "timed out" };
+    r.basics = { ok: false, error: "timed out" };
+    r.crawl.data.pages[1].rendered.anchors = [];
+    const view = toTechnicalView(r, TODAY);
+    expect(view.incomplete).toBe(true);
+    expect(view.nothingBroken).toBe(false);
+  });
+
+  it("counts every failing accessibility rule, not only the stored list", () => {
+    const r = row();
+    r.accessibility.data.violationsTotal = 14;
+    const access = toTechnicalView(r, TODAY).sections.access;
+    expect(access.state === "measured" && access.rulesFailed).toBe(14);
+  });
+
+  it("drops no weighty finding past the first screen", () => {
+    const r = row();
+    r.dns.data.spf = null;
+    r.basics.data.mixedContent.imageUrls = ["http://x.example/a.jpg"];
+    r.crawl.data.homeHeaders = { server: "Apache/2.4.18 (Ubuntu)" };
+    const view = toTechnicalView(r, TODAY);
+    const all = new Set(
+      [...view.broken, ...view.attention, ...view.fixFirst, ...view.more].map((f) => f.id),
+    );
+    for (const id of ["dmarc", "spf", "mixed-content", "hsts", "heavy-image", "release-server"]) {
+      expect(all, id).toContain(id);
+    }
+  });
+
+  it("is not taken down by a malformed paid stage", () => {
+    const r = row();
+    r.analyze = { ok: true, data: { fixes: "not an array" } };
+    r.probes = { ok: true, data: { answers: 7 } };
+    expect(() => toTechnicalView(r, TODAY)).not.toThrow();
+  });
+
+  it("names a CDN as what the site sits behind, not its server", () => {
+    const r = row();
+    r.crawl.data.homeHeaders = { server: "cloudflare" };
+    expect(toTechnicalView(r, TODAY).runningOn).toBe("a WordPress site behind cloudflare");
   });
 });

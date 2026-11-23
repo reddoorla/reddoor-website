@@ -74,19 +74,28 @@
   <section class="bg-paper w-full pt-32 pb-12 md:pb-16">
     <ContentWidth class="flex flex-col gap-6">
       <p class="type-meta m-0 flex flex-wrap gap-x-6 gap-y-1 text-muted">
-        <span class="type-eyebrow text-primary">Technical report for: {view.host}</span>
+        <span class="type-eyebrow min-w-0 break-words text-primary">
+          Technical report for: {view.host}
+        </span>
         {#if auditDate}<span>Checked {auditDate}</span>{/if}
       </p>
-      <h1 class="type-hero m-0 max-w-[20ch] text-black">Is anything on {view.host} broken?</h1>
+      <h1 class="type-hero m-0 max-w-[20ch] [overflow-wrap:anywhere] text-black">
+        Is anything on {view.host} broken?
+      </h1>
 
       <p
-        class="type-lede m-0 border-l-2 pl-6 text-black {view.nothingBroken
+        class="type-lede m-0 border-l-2 pl-6 [overflow-wrap:anywhere] text-black {view.nothingBroken
           ? 'border-dark'
           : 'border-primary'}"
       >
-        {view.runningOn ? `${view.host} is ${view.runningOn}, and ` : ""}{view.nothingBroken
-          ? "nothing we tested on it is broken."
-          : `we found ${view.broken.length === 1 ? "one thing" : `${view.broken.length} things`} a visitor runs into today.`}
+        {#if view.incomplete}
+          We could not complete this scan of {view.host}, so this page makes no all-clear: what
+          follows is only what we did manage to read.
+        {:else}
+          {view.runningOn ? `${view.host} is ${view.runningOn}, and ` : ""}{view.nothingBroken
+            ? "nothing we tested on it is broken."
+            : `we found ${view.brokenTotal === 1 ? "one thing" : `${view.brokenTotal} things`} a visitor runs into today${view.brokenTotal > 3 ? "; the first three are below" : ""}.`}
+        {/if}
       </p>
 
       {#if view.broken.length}
@@ -100,9 +109,10 @@
       {#if view.attention.length}
         <div>
           <h2 class="type-h4 m-0 mb-2 text-black">
-            {view.attention.length === 1
-              ? "One thing wants"
-              : `${view.attention.length} things want`} attention
+            {view.attentionTotal === 1 ? "One thing wants" : `${view.attentionTotal} things want`} attention{view.attentionTotal >
+            3
+              ? "; the first three"
+              : ""}
           </h2>
           <ol class="m-0 flex list-decimal flex-col gap-2 pl-6 text-black">
             {#each view.attention as f (f.id)}{@render finding(f)}{/each}
@@ -111,8 +121,9 @@
       {/if}
 
       <p class="m-0 text-black">
-        Send this to whoever looks after the site. If that is nobody, we will fix the first three
-        for a fixed price and tell you what the rest would take.
+        Send this to whoever looks after the site.{view.fixFirst.length
+          ? ` If that is nobody, we will fix ${view.fixFirst.length >= 3 ? "the first three" : view.fixFirst.length === 1 ? "it" : "both"} for a fixed price${view.fixFirst.length > 3 ? " and tell you what the rest would take" : ""}.`
+          : ""}
       </p>
       <p class="m-0">
         <a
@@ -230,16 +241,20 @@
         <div class="mt-4 flex flex-col gap-4 text-black">
           {#if view.sections.access.state === "measured"}
             <p class="m-0">
-              An automated scan of {view.sections.access.pagesExamined} pages found
-              {view.sections.access.rulesFailed} kinds of accessibility failure. A scan like this finds
-              only part of what a person using assistive technology would meet, and this is not a compliance
-              assessment.
+              An automated scan of {view.sections.access.pagesExamined === 1
+                ? "one page"
+                : `${view.sections.access.pagesExamined} pages`}
+              {view.sections.access.rulesFailed === 0
+                ? "found no accessibility failures."
+                : `found ${view.sections.access.rulesFailed === 1 ? "one kind" : `${view.sections.access.rulesFailed} kinds`} of accessibility failure${view.sections.access.rulesListed < view.sections.access.rulesFailed ? `; the ${view.sections.access.rulesListed} most serious are listed` : ""}.`}
+              A scan like this finds only part of what a person using assistive technology would meet,
+              and this is not a compliance assessment.
             </p>
             {#each view.sections.access.byImpact as g (g.impact)}
               <div>
                 <h3 class="type-h5 m-0 mb-1 capitalize">{g.impact}</h3>
                 <ul class="m-0 flex flex-col gap-1 pl-6">
-                  {#each g.rules as r (r.help)}
+                  {#each g.rules as r (r.id)}
                     <li class="min-w-0 break-words">
                       {r.help}: {r.nodes}
                       {r.nodes === 1 ? "element" : "elements"} on {r.pages}
@@ -277,6 +292,15 @@
         </div>
       </details>
 
+      {#if view.more.length}
+        <details class="border-t border-dark/20 pt-4">
+          <summary class="cursor-pointer font-medium text-black">More to fix</summary>
+          <ul class="mt-4 flex flex-col gap-2 pl-6 text-black">
+            {#each view.more as f (f.id)}{@render finding(f)}{/each}
+          </ul>
+        </details>
+      {/if}
+
       {#if view.housekeeping.length}
         <details class="border-t border-dark/20 pt-4">
           <summary class="cursor-pointer font-medium text-black">Housekeeping</summary>
@@ -290,7 +314,9 @@
 
   <section class="w-full bg-primary py-12 text-white">
     <ContentWidth class="flex flex-col gap-4">
-      <p class="type-lede m-0">Want the first three fixed?</p>
+      <p class="type-lede m-0">
+        {view.fixFirst.length ? "Want these fixed?" : "Questions about the site?"}
+      </p>
       <p class="m-0">
         <a
           href={schedule}

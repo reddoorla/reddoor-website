@@ -52,19 +52,28 @@ export type Finding = {
 export type Row = { label: string; text: string; ok: boolean | null };
 
 export type TechnicalView = {
-  url: string;
   host: string;
   generatedAt: string;
   /** "a WordPress site on an Apache server", or null when nothing was read. */
   runningOn: string | null;
   /** The headline about breakage: true when nothing a visitor hits is broken. */
   nothingBroken: boolean;
+  /** The scan itself did not finish: the crawl, assets or basics stage is
+   *  missing or failed. The page then claims no all-clear. */
+  incomplete: boolean;
+  /** How many weight-3 and weight-2 findings there are in all; the first
+   *  screen shows at most three of each. */
+  brokenTotal: number;
+  attentionTotal: number;
   /** Things a visitor hits today (weight 3), at most three on the first screen. */
   broken: Finding[];
   /** The next things worth attention (weight 2), at most three on the first screen. */
   attention: Finding[];
   /** Three to five repairs in order, for "What to fix first". */
   fixFirst: Finding[];
+  /** Weight-3 and weight-2 findings the first screen and the fix list had no
+   *  room for, so none is dropped from the page. */
+  more: Finding[];
   /** Everything else, weight 1, for the appendix. */
   housekeeping: Finding[];
   sections: {
@@ -87,8 +96,14 @@ export type Access =
   | {
       state: "measured";
       pagesExamined: number;
+      /** `violationsTotal`: every failing rule, not only the stored list. */
       rulesFailed: number;
-      byImpact: { impact: string; rules: { help: string; nodes: number; pages: number }[] }[];
+      /** How many of those the stored list carries. */
+      rulesListed: number;
+      byImpact: {
+        impact: string;
+        rules: { id: string; help: string; nodes: number; pages: number }[];
+      }[];
     };
 
 /** The crawl started recording thrown errors apart from console messages in
@@ -116,27 +131,24 @@ type RawVitals = {
 type RawExtract = { metas?: Record<string, string>; anchors?: { href: string }[] };
 type RawPage = {
   url: string;
+  status?: number | null;
   vitals?: RawVitals | null;
   rendered?: RawExtract | null;
   raw?: RawExtract | null;
 };
 type RawDns = {
   measured?: boolean;
-  domain?: string | null;
   spf?: string | null;
   dmarc?: string | null;
-  mx?: string[];
+  mx?: string[] | null;
   expiresAt?: string;
 };
 type RawHttp = {
   measured?: boolean;
-  httpUpgrade?: { hops: number; https: boolean } | null;
   redirectChains?: { checked: number; chained: unknown[] } | null;
   sitemapUrls?: { checked: number; total: number; broken: { url: string }[] } | null;
   externalLinks?: { checked: number; total: number; broken: { url: string }[] } | null;
   favicon?: { verdict: string } | null;
-  trailingSlash?: { settled: boolean } | null;
-  caseAlias?: { duplicate: boolean } | null;
 };
 
 const stageData = <T>(raw: AuditReport, key: string): T | null => {
@@ -152,6 +164,23 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 const allOf = (n: number, verb: string) =>
   n === 0 ? "none to test" : n === 1 ? `the one we tested ${verb}` : `all ${n} we tested ${verb}`;
 const mb = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
+const arr = <T>(x: T[] | null | undefined): T[] => (Array.isArray(x) ? x : []);
+
+/**
+ * An address as printed: version-like query parameters removed, because a
+ * WordPress asset carries the core or plugin version as `?ver=6.4.2` and the
+ * page never prints a version string (LGL-05).
+ */
+export function printableUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const k of [...u.searchParams.keys()])
+      if (/^(?:ver|version|v)$/i.test(k)) u.searchParams.delete(k);
+    return u.toString();
+  } catch {
+    return url.replace(/[?&](?:ver|version|v)=[^&#]*/gi, "");
+  }
+}
 
 /** "Apache/2.4.18 (Ubuntu)" → "Apache". The product, never the build. */
 export function productName(header: string | undefined): string | null {
@@ -160,28 +189,48 @@ export function productName(header: string | undefined): string | null {
   return name && !/\d/.test(name) ? name : null;
 }
 
-/** DMARC in three states (TEC-04). */
+const dmarcPolicy = (record: string) =>
+  /(?:^|;)\s*p\s*=\s*([a-z]+)/i.exec(record)?.[1]?.toLowerCase() ?? null;
+
+/** DMARC in three states (TEC-04). A record with no readable `p=` applies no
+ *  policy, the same outcome as `p=none`, but is not worded as `p=none`. */
 export function dmarcState(record: string | null): "missing" | "monitoring" | "enforcing" {
   if (record === null) return "missing";
-  const p = /(?:^|;)\s*p\s*=\s*([a-z]+)/i.exec(record)?.[1]?.toLowerCase();
+  const p = dmarcPolicy(record);
   return p === "quarantine" || p === "reject" ? "enforcing" : "monitoring";
 }
 
 /** Paths where `noindex` is the owner's choice (TEC-05). Kept in step with
- *  reddoor-maintenance `isDeliberatelyHiddenPath`. */
+ *  reddoor-maintenance `isDeliberatelyHiddenPath`: the LAST path segment only,
+ *  so `/legal/terms` is a legal page and `/search/boise-homes` is content. */
 const DELIBERATE =
-  /^(?:privacy(?:-policy|-notice)?|terms(?:-of-(?:use|service))?|terms-and-conditions|legal|disclaimer|cookies?(?:-policy)?|thank-?you|thanks|confirmation|search|login|log-in|signin|sign-in|wp-login\.php|account|my-account)$/i;
+  /^(?:privacy(?:-policy|-notice|-statement)?|terms(?:-of-(?:use|service))?|terms-(?:and-)?conditions|legal|disclaimer|cookies?(?:-policy|-notice)?|thank-?you(?:-[a-z0-9-]+)?|thanks|confirmation|search|login|log-in|signin|sign-in|wp-login|account|my-account)$/i;
 export function isDeliberatelyHidden(url: string): boolean {
   try {
-    const u = new URL(url);
-    return u.pathname
-      .split("/")
-      .filter(Boolean)
-      .some((s) => DELIBERATE.test(s.replace(/\.html?$/i, "")));
+    const last = new URL(url).pathname.split("/").filter(Boolean).pop();
+    return last !== undefined && DELIBERATE.test(last.replace(/\.(?:html?|php|aspx?)$/i, ""));
   } catch {
     return false;
   }
 }
+
+/** Whether a content policy's frame-ancestors actually restricts framing:
+ *  `*`, `http:` and `https:` allow every site. Kept in step with
+ *  reddoor-maintenance `restrictsFraming`. */
+function restrictsFraming(csp: string | undefined): boolean {
+  if (!csp) return false;
+  return csp.split(",").some((policy) =>
+    policy.split(";").some((d) => {
+      const [name, ...sources] = d.trim().split(/\s+/);
+      if (name?.toLowerCase() !== "frame-ancestors" || sources.length === 0) return false;
+      return !sources.some((x) => /^(?:\*|https?:)$/i.test(x));
+    }),
+  );
+}
+
+/** Server headers that name a CDN in front of the site, not its server. */
+const CDN_SERVERS = /^(?:cloudflare|cloudfront|akamaighost|fastly|varnish)$/i;
+const article = (word: string) => (/^(?:[aeiou]|nginx)/i.test(word) ? "an" : "a");
 
 const isPlaceholderUrl = (u: string) => /\{\{|%7B%7B/i.test(u);
 
@@ -195,8 +244,17 @@ const HUBSPOT_TRACKING = /(?:^|\/\/|\.)(?:hs-scripts|hs-banner|hs-analytics)\.(?
  *   test pins it; the routes pass `new Date()`.
  */
 export function toTechnicalView(raw: AuditReport, today: Date = new Date()): TechnicalView {
-  // The deterministic projections only. The paid fields on `base` are never read.
-  const base: ReportView = toReportView(raw);
+  // The deterministic projections only, from a copy with the stages a model
+  // wrote removed: so they are never read, and a malformed one cannot throw
+  // here and take the Technical page down with it.
+  const {
+    analyze: _a,
+    probes: _p,
+    accuracy: _c,
+    goalFit: _g,
+    ...deterministic
+  } = raw as Record<string, unknown>;
+  const base: ReportView = toReportView(deterministic as AuditReport);
   const crawl = stageData<{
     homeHeaders?: Record<string, string>;
     pages?: RawPage[];
@@ -227,11 +285,13 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
     layers.set(i.layer, names);
   }
   const cms = layers.get("cms") ?? [];
-  const server = productName(headers["server"]);
+  const product = productName(headers["server"]);
+  const cdn = product !== null && CDN_SERVERS.test(product);
+  const server = cdn ? null : product;
   const runningOn =
-    cms.length === 0 && !server
+    cms.length === 0 && !server && !cdn
       ? null
-      : `${cms.length ? `a ${cms.join(" and ")} site` : "a site"}${server ? ` on ${/^(?:[aeiou]|nginx)/i.test(server) ? "an" : "a"} ${server} server` : ""}`;
+      : `${cms.length ? `${article(cms[0]!)} ${cms.join(" and ")} site` : "a site"}${server ? ` on ${article(server)} ${server} server` : cdn ? ` behind ${product}` : ""}`;
 
   const releaseLines = readReleaseLines(headers, today);
   for (const r of releaseLines) {
@@ -283,23 +343,31 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
     // The stored `ok` folds two things together: whether a made-up address
     // answers 404, and whether that page links back into the site. Read apart,
     // because they mean different things to the owner.
-    const answers404 = b.notFound.status === 404 || b.notFound.status === 410;
+    // Only a status under 400 is a soft 404, as health.ts reads it: a 403
+    // from a firewall or a 5xx is not a page search engines list. A null
+    // status is our missing answer, not theirs.
+    const status = b.notFound.status;
+    const soft = status !== null && status < 400;
+    const answers404 = status !== null && !soft;
     address.push({
       label: "A page that does not exist",
-      text: !answers404
-        ? "does not answer as not found"
-        : b.notFound.linksBackToSite
-          ? "answers with a proper not-found page"
-          : "answers as not found, but the page has no link back into the site",
-      ok: answers404 && b.notFound.linksBackToSite,
+      text:
+        status === null
+          ? "we could not get an answer for it"
+          : soft
+            ? "does not answer as not found"
+            : b.notFound.linksBackToSite
+              ? "answers as not found, with a way back into the site"
+              : "answers as not found, but the page has no link back into the site",
+      ok: status === null ? null : answers404 && b.notFound.linksBackToSite,
     });
-    if (!answers404)
+    if (soft)
       add(
         "not-found",
         2,
         "A made-up address on your site does not answer as not found, so search engines can list pages that do not exist.",
       );
-    else if (!b.notFound.linksBackToSite)
+    else if (answers404 && !b.notFound.linksBackToSite)
       add(
         "not-found-dead-end",
         1,
@@ -307,7 +375,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       );
   }
   if (http?.redirectChains) {
-    const n = http.redirectChains.chained.length;
+    const n = arr(http.redirectChains.chained).length;
     address.push({
       label: "Redirects",
       text:
@@ -333,7 +401,9 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   const brokenThings: Row[] = [];
   const a = base.assets;
   if (a) {
-    const bl = a.brokenLinks.length;
+    // `{{` links are counted once, as template code below, not twice.
+    const realBroken = a.brokenLinks.filter((l) => !isPlaceholderUrl(l.url));
+    const bl = realBroken.length;
     const bi = a.brokenImages.length;
     brokenThings.push({
       label: "Links on your pages",
@@ -351,18 +421,24 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
           : `${bi} of the ${a.imagesChecked} we tested did not load`,
       ok: bi === 0,
     });
-    for (const l of a.brokenLinks.filter((l) => !isPlaceholderUrl(l.url)).slice(0, 1))
+    for (const l of realBroken.slice(0, 1))
       add(
         "broken-links",
         3,
         `${plural(bl, "link on your pages leads", "links on your pages lead")} nowhere.`,
-        l.url,
+        printableUrl(l.url),
       );
     for (const i of a.brokenImages.slice(0, 1))
-      add("broken-images", 3, `${plural(bi, "image does", "images do")} not load.`, i.url);
+      add(
+        "broken-images",
+        3,
+        `${plural(bi, "image does", "images do")} not load.`,
+        printableUrl(i.url),
+      );
   }
   if (http?.sitemapUrls) {
-    const n = http.sitemapUrls.broken.length;
+    const sb = arr(http.sitemapUrls.broken);
+    const n = sb.length;
     brokenThings.push({
       label: "Addresses your sitemap lists",
       text:
@@ -376,11 +452,12 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         "sitemap-broken",
         2,
         `${plural(n, "address", "addresses")} in your sitemap did not answer.`,
-        http.sitemapUrls.broken[0]!.url,
+        printableUrl(sb[0]!.url),
       );
   }
   if (http?.externalLinks) {
-    const n = http.externalLinks.broken.length;
+    const eb = arr(http.externalLinks.broken);
+    const n = eb.length;
     brokenThings.push({
       label: "Links to other sites",
       text:
@@ -394,7 +471,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         "external-broken",
         2,
         `${plural(n, "link", "links")} to other sites did not answer.`,
-        http.externalLinks.broken[0]!.url,
+        printableUrl(eb[0]!.url),
       );
   }
   const withVitals = pages.filter((p) => p.vitals);
@@ -417,7 +494,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         "failed-requests",
         3,
         `${plural(failed.length, "file", "files")} your own pages ask for did not come back.`,
-        failed[0]!.url,
+        printableUrl(failed[0]!.url),
       );
   }
   if (current) {
@@ -426,7 +503,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       label: "Scripts",
       text:
         throwing.length === 0
-          ? `no script stopped with an error on the ${withVitals.length} pages we opened`
+          ? `no script stopped with an error on ${withVitals.length === 1 ? "the one page" : `the ${withVitals.length} pages`} we opened`
           : `a script stopped with an error on ${plural(throwing.length, "page", "pages")}`,
       ok: throwing.length === 0,
     });
@@ -450,16 +527,31 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
     )
     .find((x) => isPlaceholderUrl(x.href));
   const leakage = base.siteChecks?.find((c) => c.key === "template-leakage");
-  if (placeholder || leakage?.status === "fail") {
-    brokenThings.push({ label: "Template code", text: "shows on a page or in a link", ok: false });
+  // Re-derived from the anchors. A stored fail that no anchor confirms may
+  // have come from a link or a script template before the check was fixed,
+  // so it is not repeated as a finding from an old crawl.
+  if (placeholder) {
+    brokenThings.push({ label: "Template code", text: "shows in a link", ok: false });
     add(
       "template-leakage",
       3,
-      placeholder
-        ? "A link on your site points to an address with unfilled template code in it, so a visitor who follows it lands on a missing page."
-        : "Unfilled template code shows as text on a page.",
-      placeholder?.page ?? leakage?.evidence?.split(": ")[0] ?? null,
+      "A link on your site points to an address with unfilled template code in it, so a visitor who follows it lands on a missing page.",
+      placeholder.page,
     );
+  } else if (leakage?.status === "fail" && current) {
+    brokenThings.push({ label: "Template code", text: "shows on a page", ok: false });
+    add(
+      "template-leakage",
+      3,
+      "Unfilled template code shows as text on a page.",
+      leakage.evidence?.split(": ")[0] ?? null,
+    );
+  } else if (leakage?.status === "fail") {
+    brokenThings.push({
+      label: "Template code",
+      text: "not checked: the stored result predates a fix to this check, so it needs a fresh scan",
+      ok: null,
+    });
   } else if (leakage?.status === "pass") {
     brokenThings.push({ label: "Template code", text: "none showing", ok: true });
   }
@@ -468,18 +560,18 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   const weightRows: Row[] = [
     {
       label: "Speed",
-      text: "no timing measured in this scan; what follows is what your pages make a visitor download",
+      text: "no timing measured for this report; what follows is what your pages make a visitor download",
       ok: null,
     },
   ];
   const heaviest = (a?.heaviestImages ?? [])
     .filter((i): i is typeof i & { bytes: number } => typeof i.bytes === "number")
     .slice(0, 3)
-    .map((i) => ({ url: i.url, bytes: i.bytes }));
-  if (a && a.imageBytesMeasured !== null) {
+    .map((i) => ({ url: printableUrl(i.url), bytes: i.bytes }));
+  if (a && a.imageBytesMeasured !== null && a.imagesWithKnownSize > 0) {
     weightRows.push({
       label: "Images we could weigh",
-      text: `${a.imagesWithKnownSize} images, ${mb(a.imageBytesMeasured)} together`,
+      text: `${plural(a.imagesWithKnownSize, "image", "images")}, ${mb(a.imageBytesMeasured)} together`,
       ok: null,
     });
   }
@@ -552,11 +644,9 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       add(
         "hsts",
         2,
-        "Your server does not tell browsers to use https every time, so a first visit can still start over plain http.",
+        "Your server does not tell browsers to use https every time, so a visitor who types your address can start over plain http on any visit.",
       );
-    const framing =
-      has("x-frame-options") ||
-      /(?:^|;)\s*frame-ancestors\s/i.test(headers["content-security-policy"] ?? "");
+    const framing = has("x-frame-options") || restrictsFraming(headers["content-security-policy"]);
     safe.push({
       label: "Protection against framing",
       text: framing ? "set" : "not set",
@@ -606,7 +696,7 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         "mixed-content",
         2,
         `${plural(n, "image is", "images are")} loaded over plain http on a secure page, so browsers show a warning or drop it.`,
-        b.mixedContent.imageUrls[0]!,
+        printableUrl(b.mixedContent.imageUrls[0]!),
       );
   }
 
@@ -661,7 +751,9 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
           state === "missing"
             ? "not published"
             : state === "monitoring"
-              ? "published in watch-only mode (p=none)"
+              ? dmarcPolicy(dns.dmarc!) === "none"
+                ? "published in watch-only mode (p=none)"
+                : "published, but with no policy we can read, so receivers apply none"
               : "set to turn forged mail away",
         ok: state === "enforcing",
       });
@@ -678,13 +770,14 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
           "Your email domain publishes DMARC in watch-only mode, so a message forged in your name is reported to you but still delivered.",
         );
     }
-    if (dns.mx !== undefined && (dns.mx.length > 0 || dnsProven)) {
+    const mx = Array.isArray(dns.mx) ? dns.mx : null;
+    if (mx && (mx.length > 0 || dnsProven)) {
       email.push({
         label: "A mail server for your domain",
-        text: dns.mx.length ? "listed" : "none listed",
-        ok: dns.mx.length > 0,
+        text: mx.length ? "listed" : "none listed",
+        ok: mx.length > 0,
       });
-      if (!dns.mx.length)
+      if (!mx.length)
         add(
           "mx",
           3,
@@ -716,13 +809,14 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       access = {
         state: "measured",
         pagesExamined: ax.pagesExamined,
-        rulesFailed: ax.violations.length,
+        rulesFailed: Math.max(ax.violationsTotal ?? 0, ax.violations.length),
+        rulesListed: ax.violations.length,
         byImpact: order
           .map((impact) => ({
             impact,
             rules: ax.violations
               .filter((v) => (v.impact ?? "minor") === impact)
-              .map((v) => ({ help: v.help, nodes: v.nodes, pages: v.pages.length })),
+              .map((v) => ({ id: v.id, help: v.help, nodes: v.nodes, pages: arr(v.pages).length })),
           }))
           .filter((g) => g.rules.length > 0),
       };
@@ -737,8 +831,10 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   }
 
   // ── noindex, re-derived from each page's robots meta ──
+  // Only pages that loaded: a robots meta on an error page says nothing.
   const hidden = pages.filter(
     (p) =>
+      (typeof p.status !== "number" || (p.status >= 200 && p.status < 300)) &&
       /\bnoindex\b/i.test((p.rendered ?? p.raw)?.metas?.["robots"] ?? "") &&
       !isDeliberatelyHidden(p.url),
   );
@@ -746,8 +842,10 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
     add(
       "noindex",
       3,
-      `${plural(hidden.length, "page asks", "pages ask")} search engines to leave it out of their results.`,
-      hidden[0]!.url,
+      hidden.length === 1
+        ? "A page asks search engines to leave it out of their results."
+        : `${hidden.length} pages ask search engines to leave them out of their results.`,
+      printableUrl(hidden[0]!.url),
     );
 
   // ── Order ──
@@ -765,6 +863,9 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   const fixFirst = [...broken, ...attention].slice(0, 5);
   if (fixFirst.length < 3)
     fixFirst.push(...findings.filter((f) => f.weight === 1).slice(0, 3 - fixFirst.length));
+  const shown = new Set([...broken.slice(0, 3), ...attention.slice(0, 3), ...fixFirst]);
+  const more = [...broken, ...attention].filter((f) => !shown.has(f));
+  const incomplete = !crawl || pages.length === 0 || !base.assets || !base.basics;
 
   const hostOf = (u: string) => {
     try {
@@ -775,15 +876,18 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
   };
 
   return {
-    url: base.url,
     host: hostOf(base.url),
     generatedAt: base.generatedAt,
     runningOn,
-    nothingBroken: broken.length === 0,
+    nothingBroken: broken.length === 0 && !incomplete,
+    incomplete,
+    brokenTotal: broken.length,
+    attentionTotal: attention.length,
     broken: broken.slice(0, 3),
     attention: attention.slice(0, 3),
     fixFirst,
-    housekeeping: findings.filter((f) => f.weight === 1),
+    more,
+    housekeeping: findings.filter((f) => f.weight === 1 && !fixFirst.includes(f)),
     sections: {
       running: {
         items: [...layers].map(([layer, names]) => ({ layer, names })),

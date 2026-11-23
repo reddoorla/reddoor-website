@@ -14,7 +14,7 @@ import type { AuditReport } from "../fetch";
  * purpose: the Technical view must never read them, and a test deletes them
  * and requires the identical page.
  */
-const HOME = "https://harbor-dental.example/";
+const HOME = "https://harbordentalandorthodonticsofsouthbay.example/";
 const page = (
   path: string,
   extra: Record<string, unknown> = {},
@@ -44,7 +44,7 @@ export const TECHNICAL_REPORT: AuditReport = {
   crawl: {
     ok: true,
     data: {
-      origin: "https://harbor-dental.example",
+      origin: "https://harbordentalandorthodonticsofsouthbay.example",
       homeHeaders: {
         server: "Apache/2.4.18 (Ubuntu)",
         "content-encoding": "gzip",
@@ -53,7 +53,9 @@ export const TECHNICAL_REPORT: AuditReport = {
       sitemap: { present: true, urlCount: 41, truncated: false },
       pages: [
         page("/", {}, { consoleErrors: ["%c%d font-size:0;color:transparent NaN"] }),
-        page("/services", { anchors: [{ href: "https://harbor-dental.example/{{url}}" }] }),
+        page("/services", {
+          anchors: [{ href: "https://harbordentalandorthodonticsofsouthbay.example/{{url}}" }],
+        }),
         page("/about", {}, { overflowAt375: 4 }),
         page("/privacy", { metas: { robots: "noindex, follow" } }),
         page("/contact"),
@@ -80,14 +82,14 @@ export const TECHNICAL_REPORT: AuditReport = {
       imagesUnverified: { count: 0, groups: [] },
       heaviestImages: [
         {
-          url: "https://harbor-dental.example/wp-content/uploads/2019/04/team-photo.jpg",
+          url: "https://harbordentalandorthodonticsofsouthbay.example/wp-content/uploads/2019/04/team-photo.jpg",
           status: 200,
           bytes: 5_192_308,
           error: null,
-          referencedBy: ["https://harbor-dental.example/about"],
+          referencedBy: ["https://harbordentalandorthodonticsofsouthbay.example/about"],
         },
         {
-          url: "https://harbor-dental.example/wp-content/uploads/2024/01/hero.png",
+          url: "https://harbordentalandorthodonticsofsouthbay.example/wp-content/uploads/2024/01/hero.png",
           status: 200,
           bytes: 640_000,
           error: null,
@@ -107,24 +109,24 @@ export const TECHNICAL_REPORT: AuditReport = {
     data: {
       insecureEntry: {
         measured: true,
-        url: "http://harbor-dental.example/",
+        url: "http://harbordentalandorthodonticsofsouthbay.example/",
         ok: true,
         landedOn: HOME,
         error: null,
       },
       hostVariant: {
         measured: true,
-        url: "https://www.harbor-dental.example/",
-        host: "www.harbor-dental.example",
+        url: "https://www.harbordentalandorthodonticsofsouthbay.example/",
+        host: "www.harbordentalandorthodonticsofsouthbay.example",
         ok: true,
         landedOn: HOME,
         error: null,
       },
       notFound: {
         measured: true,
-        url: "https://harbor-dental.example/no-such-page",
+        url: "https://harbordentalandorthodonticsofsouthbay.example/no-such-page",
         ok: true,
-        landedOn: "https://harbor-dental.example/no-such-page",
+        landedOn: "https://harbordentalandorthodonticsofsouthbay.example/no-such-page",
         error: null,
         status: 404,
         linksBackToSite: true,
@@ -151,7 +153,7 @@ export const TECHNICAL_REPORT: AuditReport = {
           layer: "plugin",
           name: "contact-form-7",
           evidence:
-            "https://harbor-dental.example/wp-content/plugins/contact-form-7/includes/js/index.js?ver=5.9.3",
+            "https://harbordentalandorthodonticsofsouthbay.example/wp-content/plugins/contact-form-7/includes/js/index.js?ver=5.9.3",
         },
         { layer: "hosting", name: "Apache", evidence: "server: Apache/2.4.18 (Ubuntu)" },
       ],
@@ -214,9 +216,9 @@ export const TECHNICAL_REPORT: AuditReport = {
     ok: true,
     data: {
       measured: true,
-      domain: "harbor-dental.example",
+      domain: "harbordentalandorthodonticsofsouthbay.example",
       spf: "v=spf1 include:_spf.mail.example -all",
-      dmarc: "v=DMARC1; p=none; rua=mailto:dmarc@harbor-dental.example",
+      dmarc: "v=DMARC1; p=none; rua=mailto:dmarc@harbordentalandorthodonticsofsouthbay.example",
       mx: ["mx1.mail.example"],
       contactMx: null,
       expiresAt: "2027-04-27T22:47:47Z",

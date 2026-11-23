@@ -123,7 +123,6 @@ export type ReleaseLineReading = {
   /** Which header it was read from. */
   header: "server" | "x-powered-by";
   line: string;
-  released: number;
   supportEnds: string;
   /** Standard support has ended as of the render date. */
   unsupported: boolean;
@@ -143,7 +142,6 @@ export function readReleaseLines(
     out.push({
       header,
       line: hit.line,
-      released: hit.released,
       supportEnds: hit.supportEnds,
       unsupported: new Date(`${hit.supportEnds}T23:59:59Z`).getTime() < today.getTime(),
     });
