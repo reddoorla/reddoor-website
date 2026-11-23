@@ -1249,3 +1249,20 @@ describe("toReportView — overrides", () => {
     expect(toReportView(raw, map).overrides).toEqual(map);
   });
 });
+
+describe("W1: a hidden fix through the whole view", () => {
+  it("a hidden fix is absent from allFixes", async () => {
+    const { allFixes } = await import("./narrative");
+    const { ALL_PASS_REPORT } = await import("./fixtures/all-pass");
+    const raw = ALL_PASS_REPORT as unknown as {
+      analyze: { data: { fixes: { title: string }[] } };
+    };
+    const target = raw.analyze.data.fixes[0]!.title;
+    // Positive control: the fix is there without the hide.
+    expect(allFixes(toReportView(ALL_PASS_REPORT)).map((f) => f.title)).toContain(target);
+    const v = toReportView(ALL_PASS_REPORT, {
+      "analyze.data.fixes[0]": { original: target, text: "", hidden: true },
+    });
+    expect(allFixes(v).map((f) => f.title)).not.toContain(target);
+  });
+});

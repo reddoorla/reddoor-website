@@ -943,7 +943,7 @@ export function gapClause(
     : `${subject} did not run on this audit`;
 }
 
-const STAGE_LABEL: Record<StageKey, string> = {
+export const STAGE_LABEL: Record<StageKey, string> = {
   checks: "the page checks",
   analyze: "the content analysis",
   probes: "the visibility test",

@@ -3,8 +3,11 @@ import {
   GOAL_LABELS,
   nameUnsettled,
   sourceCheckMeasured,
+  stageFailed,
+  STAGE_LABEL,
   type Fix,
   type ReportView,
+  type StageKey,
 } from "./model";
 import { composed } from "./overrides";
 
@@ -34,9 +37,17 @@ export type HeadlineKind =
   | "partial"
   | "site-check"
   | "all-clear"
+  | "incomplete"
   | "unmeasured";
 
 export type Headline = { kind: HeadlineKind; text: string };
+
+/** W1. The stages an all-clear stands on: the reading of the site, the AI
+ *  answers, and the check of what those answers say. */
+// W1 review round 3: `checks` too. When the page checks fail, the producer
+// writes analyze as "skipped — the checks stage failed", one of its deliberate
+// skips, so without `checks` here a site nobody read still "checked out".
+const ALL_CLEAR_NEEDS: StageKey[] = ["checks", "analyze", "probes", "accuracy"];
 
 const WORDS = [
   "zero",
@@ -199,6 +210,21 @@ function headlineFindingGenerated(view: ReportView): Headline {
       text:
         "Most of this audit could not run, so there is little here to report. " +
         "That is a gap in our measurement, not a finding about your site.",
+    };
+  }
+
+  // W1 (B-03): "checks out" is a claim about the whole audit, so it needs the
+  // parts that read the site and the AI answers to have run. Eight stored
+  // reports led with it while their analysis had failed (an API usage limit),
+  // five with no AI answers behind them at all. Say which parts failed
+  // instead: "ran and failed", never "did not run" (the distinction #893 drew).
+  const missingParts = ALL_CLEAR_NEEDS.filter((k) => stageFailed(view, k));
+  if (missingParts.length > 0) {
+    return {
+      kind: "incomplete",
+      text:
+        `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
+        "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
     };
   }
 
@@ -569,8 +595,18 @@ const HEALTH_FIXES: Record<string, HealthFixSpec> = {
  * fragment here would match nothing.
  */
 export function healthFixes(view: ReportView): Fix[] {
+  return healthFixEntries(view).map((e) => e.fix);
+}
+
+/**
+ * The health fixes with the row each was written for. The edit list keys its
+ * targets by that row (W1 review round 4): it used to key them by position,
+ * which this renderer never looks up, so an operator's edit to a health fix
+ * saved and then never rendered.
+ */
+export function healthFixEntries(view: ReportView): { rowKey: string; fix: Fix }[] {
   const written = view.fixes.map((f) => f.title);
-  const out: Fix[] = [];
+  const out: { rowKey: string; fix: Fix }[] = [];
   for (const row of healthRows(view)) {
     if (!row.alert) continue;
     const spec = HEALTH_FIXES[row.key];
@@ -578,20 +614,23 @@ export function healthFixes(view: ReportView): Fix[] {
     const title = spec.title(row, view);
     const why = `${spec.what} ${row.detail}`.trim();
     out.push({
-      // Keyed by the ROW's key, not by this fix's position in `out`. The two
-      // lists are COMPACTED apart: a row that does not alert, and a row whose
-      // fix the audit already wrote, are both skipped — so `healthFix[2]` is
-      // not `health[2]`, and the offset shifts with the audit's own content.
-      // An editing UI holding a row could not derive the positional key, while
-      // `row.key` is stable and is already the join key between a row and its
-      // fix spec. (Positional keys stay fine where the list is the list, as
-      // `passes` is; see the module doc in `overrides.ts`.)
-      title: composed(view.overrides, `composed:healthFix[${row.key}].title`, title),
-      why: composed(view.overrides, `composed:healthFix[${row.key}].why`, why),
-      impact: spec.impact,
-      effort: spec.effort,
-      tier: spec.tier,
-      origin: "measured",
+      rowKey: row.key,
+      fix: {
+        // Keyed by the ROW's key, not by this fix's position in `out`. The two
+        // lists are COMPACTED apart: a row that does not alert, and a row whose
+        // fix the audit already wrote, are both skipped — so `healthFix[2]` is
+        // not `health[2]`, and the offset shifts with the audit's own content.
+        // An editing UI holding a row could not derive the positional key, while
+        // `row.key` is stable and is already the join key between a row and its
+        // fix spec. (Positional keys stay fine where the list is the list, as
+        // `passes` is; see the module doc in `overrides.ts`.)
+        title: composed(view.overrides, `composed:healthFix[${row.key}].title`, title),
+        why: composed(view.overrides, `composed:healthFix[${row.key}].why`, why),
+        impact: spec.impact,
+        effort: spec.effort,
+        tier: spec.tier,
+        origin: "measured",
+      },
     });
   }
   return out;

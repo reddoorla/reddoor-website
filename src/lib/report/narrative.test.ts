@@ -1258,3 +1258,49 @@ describe("primer", () => {
     expect(primer(v, []).how).not.toContain("robots.txt");
   });
 });
+
+describe("W1 (B-03): no all-clear when the parts it stands on failed", () => {
+  const failed = (key: "analyze" | "probes" | "accuracy") =>
+    toReportView(
+      asReport({
+        ...raw,
+        [key]: { ok: false, error: "400 You have reached your specified API usage limits" },
+      }),
+    );
+
+  it("positive control: the all-pass fixture is all clear", () => {
+    expect(headlineFinding(toReportView(asReport(raw))).kind).toBe("all-clear");
+  });
+
+  it("a failed-analysis fixture must not return all-clear, and names what failed", () => {
+    const h = headlineFinding(failed("analyze"));
+    expect(h.kind).not.toBe("all-clear");
+    expect(h.text).not.toContain("checks out");
+    expect(h.text).toContain("the content analysis");
+  });
+
+  it.each(["probes", "accuracy"] as const)("a failed %s stage is not all clear either", (key) => {
+    expect(headlineFinding(failed(key)).kind).toBe("incomplete");
+  });
+
+  it("review round 3: failed page checks (analysis skipped as a cascade) are not all clear", () => {
+    const v = toReportView(
+      asReport({
+        ...raw,
+        checks: { ok: false, error: "fetch failed: ECONNRESET" },
+        analyze: { ok: false, error: "skipped — the checks stage failed" },
+      }),
+    );
+    const h = headlineFinding(v);
+    expect(h.kind).toBe("incomplete");
+    expect(h.text).not.toContain("checks out");
+    expect(h.text).toContain("the page checks");
+  });
+
+  it("a stage skipped on purpose is not a failure: --no-probes stays all clear", () => {
+    const v = toReportView(
+      asReport({ ...raw, probes: { ok: false, error: "skipped (--no-probes)" } }),
+    );
+    expect(headlineFinding(v).kind).toBe("all-clear");
+  });
+});
