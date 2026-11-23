@@ -213,14 +213,14 @@ function headlineFindingGenerated(view: ReportView): Headline {
   // W1 (B-03): "checks out" is a claim about the whole audit, so it needs the
   // parts that read the site and the AI answers to have run. Eight stored
   // reports led with it while their analysis had failed (an API usage limit),
-  // five with no AI answers behind them at all. Say which parts did not run
-  // instead.
+  // five with no AI answers behind them at all. Say which parts failed
+  // instead: "ran and failed", never "did not run" (the distinction #893 drew).
   const missingParts = ALL_CLEAR_NEEDS.filter((k) => stageFailed(view, k));
   if (missingParts.length > 0) {
     return {
       kind: "incomplete",
       text:
-        `Part of this audit did not run: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
+        `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
         "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
     };
   }

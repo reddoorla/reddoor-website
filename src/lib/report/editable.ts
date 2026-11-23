@@ -41,8 +41,14 @@ function at(obj: unknown, path: string): unknown {
   return node;
 }
 
+/** The generated text behind a line: the override's `original` only while
+ *  that override is the one on screen. A withheld override (its line moved,
+ *  for instance because a row above it was hidden) shows the generated text,
+ *  and recording the stale `original` against it would store an edit that can
+ *  never render (W1 review round 1). */
 function originalFor(map: OverrideMap, key: string, displayed: string): string {
-  return map[key]?.original ?? displayed;
+  const ov = map[key];
+  return ov && ov.text === displayed ? ov.original : displayed;
 }
 
 function push(out: EditTarget[], map: OverrideMap, key: string, text: unknown): void {
@@ -231,8 +237,10 @@ export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
     });
   }
   const c = at(raw, "accuracy.data.conflation") as
-    { detected?: unknown; engineQuote?: unknown } | undefined;
-  if (c && c.detected === true) {
+    { detected?: unknown; settled?: unknown; engineQuote?: unknown } | undefined;
+  // Offered only when the block is on the page: since #375 it renders only for
+  // an answer that did not settle which business it means.
+  if (c && c.detected === true && c.settled === false) {
     const original = typeof c.engineQuote === "string" ? c.engineQuote : "";
     out.push({
       key: CONFLATION_KEY,
@@ -244,17 +252,27 @@ export function hideTargets(raw: AuditReport, map: OverrideMap): HideTarget[] {
   return out;
 }
 
-/** One entry of the override map, as the changes list shows it. */
-export type ChangeRow = { key: string; kind: "hidden" | "reworded"; before: string; after: string };
+/** One entry of the override map, as the changes list shows it. `stale` is a
+ *  rewording the page is withholding, because the line it named no longer
+ *  reads as it did (a hide above it moved it, or a row it was built from was
+ *  reworded): listed so it can be reverted, never shown as in force. */
+export type ChangeRow = {
+  key: string;
+  kind: "hidden" | "reworded" | "stale";
+  before: string;
+  after: string;
+};
 
-/** Every override on this report, for the changes list with its Revert. */
-export function changeList(map: OverrideMap): ChangeRow[] {
+/** Every override on this report, for the changes list with its Revert.
+ *  `targets` are the lines as rendered now (`editableTargets`), which is how a
+ *  rewording is told apart from one the page withholds. */
+export function changeList(map: OverrideMap, targets: EditTarget[] = []): ChangeRow[] {
+  const shown = new Set(targets.map((t) => `${t.key}\u0000${t.text}`));
   return Object.entries(map).flatMap(([key, ov]): ChangeRow[] => {
     if (!ov || typeof ov.original !== "string") return [];
-    return ov.hidden === true
-      ? [{ key, kind: "hidden", before: ov.original, after: "" }]
-      : typeof ov.text === "string"
-        ? [{ key, kind: "reworded", before: ov.original, after: ov.text }]
-        : [];
+    if (ov.hidden === true) return [{ key, kind: "hidden", before: ov.original, after: "" }];
+    if (typeof ov.text !== "string") return [];
+    const kind = shown.has(`${key}\u0000${ov.text}`) ? "reworded" : "stale";
+    return [{ key, kind, before: ov.original, after: ov.text }];
   });
 }

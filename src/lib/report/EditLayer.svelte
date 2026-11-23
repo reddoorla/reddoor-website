@@ -19,7 +19,7 @@
     approved?: boolean;
   } = $props();
 
-  const changes = $derived(changeList(overrides));
+  const changes = $derived(changeList(overrides, targets));
   let panel = $state<"" | "changes" | "hide">("");
 
   let resolved = $state(0);
@@ -143,9 +143,11 @@
         <ul>
           {#each changes as c (c.key)}
             <li>
-              {#if c.kind === "hidden"}<span>Hidden: {c.before}</span>{:else}<span>
-                  “{c.before}” → “{c.after}”
-                </span>{/if}
+              {#if c.kind === "hidden"}<span>
+                  Hidden: {c.before}
+                </span>{:else if c.kind === "stale"}<span class="rd-edit-gone">
+                  “{c.after}”: no longer applies, the line it reworded has changed
+                </span>{:else}<span>“{c.before}” → “{c.after}”</span>{/if}
               <button type="button" disabled={saving} onclick={() => revert(c.key)}>Revert</button>
             </li>
           {/each}

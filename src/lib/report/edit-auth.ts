@@ -1,7 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
-/** The operator's edit session. Scoped to /audit in the `set` call, so it is
- *  never sent with a request to any other part of the site. */
+/** The operator's edit session. Path "/" in the `set` call (W1, TEC-02): the
+ *  save posts to /api/audit-edit, which a cookie scoped to /audit never
+ *  reaches. HttpOnly, Secure and SameSite=Strict bound where it goes. */
 export const EDIT_COOKIE = "reddoor_report_edit";
 
 /** Short by design. This grants the ability to rewrite what a prospect reads,

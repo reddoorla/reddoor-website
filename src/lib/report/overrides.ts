@@ -64,9 +64,10 @@ export const HIDEABLE: { path: string; field: string; noun: string }[] = [
 ];
 
 /** The name-collision block is one object, not a list item. Hiding it reads as
- *  "the assistant did not confuse you with anyone", which takes the red
- *  callout, the collision headline and the collision fix off together. Its
- *  identifying field is the quote it rests on (empty when it has none). */
+ *  "the assistant did not confuse you with anyone": the block, its headline
+ *  and its fix come off when they came from this verdict. A namesake found
+ *  among the cited domains is a separate finding and stays. Its identifying
+ *  field is the quote it rests on (empty when it has none). */
 export const CONFLATION_KEY = "accuracy.data.conflation";
 
 function getAt(root: unknown, path: (string | number)[]): unknown {

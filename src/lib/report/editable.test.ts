@@ -163,7 +163,14 @@ describe("W1: hide targets and the changes list", () => {
       analyze: { ok: true, data: { fixes: [{ title: "Fix one" }, { title: "Fix two" }] } },
       accuracy: {
         ok: true,
-        data: { conflation: { detected: true, otherNames: [], engineQuote: "Two of them." } },
+        data: {
+          conflation: {
+            detected: true,
+            settled: false,
+            otherNames: [],
+            engineQuote: "Two of them.",
+          },
+        },
       },
     } as never;
     const map = {
@@ -176,9 +183,29 @@ describe("W1: hide targets and the changes list", () => {
       ["analyze.data.fixes[1]", true],
       ["accuracy.data.conflation", false],
     ]);
-    expect(changeList(map)).toEqual([
+    const onScreen = [{ key: "composed:headlineFinding", text: "New.", original: "Old." }];
+    expect(changeList(map, onScreen)).toEqual([
       { key: "analyze.data.fixes[1]", kind: "hidden", before: "Fix two", after: "" },
       { key: "composed:headlineFinding", kind: "reworded", before: "Old.", after: "New." },
     ]);
+  });
+});
+
+describe("W1 review round 1: a rewording the page withholds", () => {
+  it("is listed as stale, not as in force, and a retype records the generated text", async () => {
+    const { changeList } = await import("./editable");
+    const map = { "composed:passes[1].items[14]": { original: "Old line", text: "REWORDED" } };
+    // On screen now, under that key, is a different generated line.
+    const targets = [
+      { key: "composed:passes[1].items[14]", text: "Another line", original: "Another line" },
+    ];
+    expect(changeList(map, targets)).toEqual([
+      { key: "composed:passes[1].items[14]", kind: "stale", before: "Old line", after: "REWORDED" },
+    ]);
+    // In force when the target shows it.
+    const inForce = [
+      { key: "composed:passes[1].items[14]", text: "REWORDED", original: "Old line" },
+    ];
+    expect(changeList(map, inForce)[0]!.kind).toBe("reworded");
   });
 });

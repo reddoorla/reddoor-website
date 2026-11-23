@@ -248,3 +248,35 @@ describe("W1: drafts reach only a verified editor; superseded links redirect", (
     await expect(loadReport(evt)).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe("W1 review round 1: a hidden row never reaches a reader's page data", () => {
+  const HIDDEN_TITLE = "A finding the reviewer judged wrong";
+  const body = {
+    report: {
+      url: "https://acme.example/",
+      analyze: { ok: true, data: { fixes: [{ title: HIDDEN_TITLE }, { title: "Keep me" }] } },
+    },
+    overrides: {
+      "analyze.data.fixes[0]": { original: HIDDEN_TITLE, text: "", hidden: true },
+      "composed:headlineFinding": { original: "Generated.", text: "Edited." },
+    },
+    approvedAt: "2026-11-23T20:00:00.000Z",
+  };
+
+  it("the reader's load carries neither the hidden row nor its override", async () => {
+    const { evt } = event(TOKEN, respondWith(200, body));
+    const data = await loadReport(evt);
+    expect(JSON.stringify(data)).not.toContain(HIDDEN_TITLE);
+    // The composed rewording still reaches the renderer, which matches it.
+    expect(data.overrides).toEqual({
+      "composed:headlineFinding": { original: "Generated.", text: "Edited." },
+    });
+  });
+
+  it("the editor's load keeps the stored payload and the whole map, to put a row back", async () => {
+    const { evt } = event(TOKEN, respondWith(200, body));
+    const data = await loadReport(evt, { forEditor: true });
+    expect(JSON.stringify(data.report)).toContain(HIDDEN_TITLE);
+    expect(Object.keys(data.overrides)).toHaveLength(2);
+  });
+});
