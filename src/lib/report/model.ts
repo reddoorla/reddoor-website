@@ -818,7 +818,14 @@ export type ReportView = {
    * is no sitemap and the report predates the crawl counting what it knew of.
    * Null when there is no crawl.
    */
-  pagesRead: { read: number; site: number | null; siteIsFloor?: boolean } | null;
+  pagesRead: {
+    read: number;
+    site: number | null;
+    siteIsFloor?: boolean;
+    /** Where `site` came from: the sitemap (present), or the pages the home page
+     *  links to. Only a sitemap total may be stated as "your pages" or "all". */
+    siteFrom?: "sitemap" | "links" | null;
+  } | null;
   /** Stages that RAN AND FAILED, in report order. A stage this era of the
    *  payload lacks, or one the producer skipped on purpose, is not here: both
    *  are "never ran", and only this list may say "ran and failed". */
@@ -1243,21 +1250,27 @@ function pagesReadOf(
   const considered =
     typeof crawl.selection?.pagesConsidered === "number" ? crawl.selection.pagesConsidered : null;
   const known = [sitemap, considered].filter((n): n is number => n !== null);
+  // A count below the pages read says nothing of the site's total: no total then.
   if (crawl.selection) {
-    const site = known.length ? Math.max(read, ...known) : null;
+    const largest = known.length ? Math.max(...known) : null;
+    if (largest === null || largest < read)
+      return { read, site: null, siteIsFloor: false, siteFrom: null };
     return {
       read,
-      site,
+      site: largest,
       // A truncated sitemap makes the site total a floor whichever count was used.
-      siteIsFloor: site !== null && crawl.sitemap?.truncated === true,
+      siteIsFloor: crawl.sitemap?.truncated === true,
+      siteFrom: largest === sitemap ? "sitemap" : "links",
     };
   }
-  const largest = known.length ? Math.max(...known) : null;
-  if (largest === null || largest <= read) return { read, site: null, siteIsFloor: false };
+  // A crawl stored before it counted what it knew of has only the sitemap to go on.
+  if (sitemap === null || sitemap <= read)
+    return { read, site: null, siteIsFloor: false, siteFrom: null };
   return {
     read,
-    site: largest,
+    site: sitemap,
     siteIsFloor: crawl.sitemap?.truncated === true,
+    siteFrom: "sitemap",
   };
 }
 

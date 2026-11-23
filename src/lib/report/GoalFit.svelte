@@ -2,6 +2,7 @@
   import { GOAL_LABELS, gapClause, type GoalRequirement, type ReportView } from "./model";
   import {
     absenceTag,
+    goalInferenceLead,
     goalVerdictLine,
     numberWord,
     pagesReadPhrase,
@@ -107,7 +108,7 @@
           You told us your site is built to get a visitor to
           <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
         {:else}
-          As far as we can tell from reading it, your site is built to get a visitor to
+          {goalInferenceLead(view)}, your site is built to get a visitor to
           <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
         {/if}
         {verdict}

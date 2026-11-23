@@ -19,6 +19,7 @@ import {
   healthFixes,
   inPagesRead,
   inSourceCheckPages,
+  goalInferenceLead,
   pagesReadPhrase,
   passes,
   passCount,
@@ -1334,9 +1335,12 @@ describe("absences carry their denominator", () => {
     expect(h.text).toContain("in the 20 of your 95 pages we read");
   });
 
-  it("uses every page the crawl knew of when there is no sitemap", () => {
+  it("with no sitemap, says how many pages it found linked, never 'your 30 pages'", () => {
     const h = headlineFinding(view({ ...unanswered, ...crawled(12, 30) }));
-    expect(h.text).toContain("in the 12 of your 30 pages we read");
+    expect(h.text).toContain(
+      "in the 12 pages we read, of the 30 we found linked from your home page",
+    );
+    expect(h.text).not.toMatch(/your 30 pages/);
   });
 
   it("an unidentifiable goal says how much was read, never 'every page'", () => {
@@ -1346,7 +1350,9 @@ describe("absences carry their denominator", () => {
     });
     const h = headlineFinding(v);
     expect(h.text).not.toMatch(/every page/);
-    expect(h.text).toContain("We read your one page and could not tell");
+    expect(h.text).toContain(
+      "We read the one page we found linked from your home page and could not tell",
+    );
   });
 
   it("a question row says where it looked, and names the word on the page when there was one", () => {
@@ -1363,10 +1369,12 @@ describe("absences carry their denominator", () => {
     );
   });
 
-  it("says so plainly when it read every page it knew of", () => {
-    const h = headlineFinding(view({ ...unanswered, ...crawled(7, 7, 6) }));
+  it("says so plainly when a sitemap says it read every page, and never on a count of links", () => {
+    const h = headlineFinding(view({ ...unanswered, ...crawled(7, 7, 7) }));
     expect(h.text).toContain("in any of your seven pages (we read them all)");
     expect(h.text).not.toContain("in each of");
+    const linked = headlineFinding(view({ ...unanswered, ...crawled(7, 7, 6) }));
+    expect(linked.text).not.toMatch(/we read them all|your seven pages/);
   });
 
   it("the primer no longer claims every page was fetched", () => {
@@ -1412,7 +1420,7 @@ describe("absences carry their denominator", () => {
         { pagesConsidered: 40 },
       ),
     );
-    expect(v.pagesRead).toEqual({ read: 2, site: 95, siteIsFloor: false });
+    expect(v.pagesRead).toEqual({ read: 2, site: 95, siteIsFloor: false, siteFrom: "sitemap" });
     expect(primer(v, []).how).toContain("It read two of your 95 pages");
   });
 
@@ -1423,7 +1431,7 @@ describe("absences carry their denominator", () => {
         { present: true, urlCount: 12 },
       ),
     );
-    expect(v.pagesRead).toEqual({ read: 20, site: null, siteIsFloor: false });
+    expect(v.pagesRead).toEqual({ read: 20, site: null, siteIsFloor: false, siteFrom: null });
     const how = primer(v, []).how;
     expect(how).not.toMatch(/\ball\b/);
     expect(how).toContain("It read 20 pages, each one twice");
@@ -1499,7 +1507,7 @@ describe("absences carry their denominator", () => {
 
   it("the primer says twice, not each one twice, when the site is one page", () => {
     const how = primer(view(crawled(1, 1)), []).how;
-    expect(how).toContain("It read your one page, twice");
+    expect(how).toContain("It read the one page we found linked from your home page, twice");
     expect(how).not.toContain("each one twice");
   });
 
@@ -1544,10 +1552,18 @@ describe("absences carry their denominator", () => {
 
   it("an absence in every page we read is worded so a negative still reads right", () => {
     const v = view({ ...unanswered, ...crawled(7, 7, 6) });
-    expect(inPagesRead(v)).toBe("in any of your seven pages (we read them all)");
-    expect(headlineFinding(v).text).toContain("in any of your seven pages (we read them all): ");
+    // A sitemap-less total is the pages the home page links to: a count of pages
+    // found, so no "all" and no "your seven pages".
+    expect(inPagesRead(v)).toBe(
+      "in the seven pages we read, of the seven we found linked from your home page",
+    );
+    expect(headlineFinding(v).text).toContain(
+      "in the seven pages we read, of the seven we found linked from your home page: ",
+    );
     const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
-    expect(questionReceipt(v, no!)).toBe("not found in any of your seven pages (we read them all)");
+    expect(questionReceipt(v, no!)).toBe(
+      "not found in the seven pages we read, of the seven we found linked from your home page",
+    );
   });
 
   it("a zero-page crawl states no count, and makes no claim about reading", () => {
@@ -1558,7 +1574,7 @@ describe("absences carry their denominator", () => {
         { pagesConsidered: 40 },
       ),
     );
-    expect(v.pagesRead).toEqual({ read: 0, site: 95, siteIsFloor: false });
+    expect(v.pagesRead).toEqual({ read: 0, site: 95, siteIsFloor: false, siteFrom: "sitemap" });
     expect(pagesReadPhrase(v)).toBeNull();
     expect(inPagesRead(v)).toBeNull();
     const how = primer(v, []).how;
@@ -1692,7 +1708,10 @@ describe("review round 3: the check's own count, zero reads, and floors", () => 
   // Finding 8: one page is a page, not "all one of your pages".
   it("a one-page site the check read is 'your one page', never 'all one of your pages'", () => {
     const v = checked(crawled(1, 1), 1, 1);
-    expect(sourceCheckFootnote(v)).toBe("We read your one page for this check.");
+    // Counted from links, not a sitemap: a page may be missed, so the hedge stays.
+    expect(sourceCheckFootnote(v)).toBe(
+      "We read the one page we found linked from your home page for this check. A statement listed above may be on a page we did not read.",
+    );
   });
 
   // Finding 7: a crawl stored without its pages falls back to the crawled wording, never "all".
@@ -1727,7 +1746,7 @@ describe("review round 3: the check's own count, zero reads, and floors", () => 
         { pagesConsidered: 50012 },
       ),
     });
-    expect(v.pagesRead).toEqual({ read: 20, site: 50012, siteIsFloor: true });
+    expect(v.pagesRead).toEqual({ read: 20, site: 50012, siteIsFloor: true, siteFrom: "links" });
     expect(headlineFinding(v).text).toContain(
       "in the 20 pages we read, out of at least 50,012 pages on your site",
     );
@@ -1743,7 +1762,7 @@ describe("review round 3: the check's own count, zero reads, and floors", () => 
       })),
     });
     const contact = healthRows(v).find((r) => r.key === "contact");
-    expect(contact?.detail).toContain("in the 20 of your 95 pages we read");
+    expect(contact?.detail).toContain("across the 20 of your 95 pages we read");
     expect(contact?.detail).not.toContain("all 20 pages");
   });
 
@@ -1805,5 +1824,169 @@ describe("review round 3: the check's own count, zero reads, and floors", () => 
     const v = view({ ...unanswered, ...zero });
     const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
     expect(answerLabel(no!, v)).toBe("Not measured");
+  });
+});
+
+// W3 review round 4. Each of these was red before its fix.
+describe("review round 4: a floor is never all, a links count is never your pages, the contact scope, zero reads", () => {
+  const pageAt = (i: number) => ({
+    url: `https://example.test/p${i}`,
+    raw: { text: "" },
+    rendered: null,
+  });
+  const pagesOf = (n: number) => Array.from({ length: n }, (_, i) => pageAt(i));
+  const withPages = (
+    pages: { url: string; raw: unknown; rendered: unknown }[],
+    sitemap: { present: boolean; urlCount: number; truncated?: boolean } | null,
+    selection?: { pagesConsidered: number },
+  ) => ({
+    crawl: {
+      ok: true,
+      data: {
+        ...(raw.crawl!.data as object),
+        pages,
+        ...(sitemap ? { sitemap } : {}),
+        ...(selection ? { selection } : {}),
+      },
+    },
+  });
+  const unanswered = stage("analyze", (d) => ({
+    ...d,
+    buyerQuestions: (d.buyerQuestions as BuyerQuestion[]).map((q, i) =>
+      i < 2 ? { ...q, answered: "no", evidence: null, page: null } : q,
+    ),
+  }));
+  /** A view with the journey stage's affordances emptied, over the given overrides. */
+  const noContactAffordances = (over: Record<string, unknown>) =>
+    view({
+      ...over,
+      ...stage("checks", (d) => ({
+        ...d,
+        journey: { ...(d.journey as object), affordances: [] },
+      })),
+    });
+
+  // Finding A: a floor total (truncated sitemap) never yields an "all" claim.
+  it("a truncated sitemap under the pages read is a floor, never 'all of your pages'", () => {
+    const v = view({
+      ...unanswered,
+      ...withPages(
+        pagesOf(5),
+        { present: true, urlCount: 3, truncated: true },
+        { pagesConsidered: 5 },
+      ),
+    });
+    expect(v.pagesRead).toEqual({ read: 5, site: 5, siteIsFloor: true, siteFrom: "links" });
+    const text = headlineFinding(v).text;
+    expect(text).not.toMatch(/we read them all|\ball\b|Not in any of your/i);
+    expect(text).toContain("in the five pages we read");
+    expect(primer(v, []).how).not.toMatch(/\ball\b/);
+    expect(
+      sourceCheckFootnote({
+        ...v,
+        accuracy: { ...v.accuracy!, pagesRead: 5, pagesTotal: 5 },
+      } as ReportView),
+    ).toBe(
+      "We read five pages for this check. A statement listed above may be on a page we did not read.",
+    );
+  });
+
+  it("a truncated sitemap equal to the pages read is still a floor: no 'all', and the hedge stays", () => {
+    const v = view(
+      withPages(
+        pagesOf(5),
+        { present: true, urlCount: 5, truncated: true },
+        { pagesConsidered: 5 },
+      ),
+    );
+    expect(v.pagesRead).toEqual({ read: 5, site: 5, siteIsFloor: true, siteFrom: "sitemap" });
+    expect(
+      sourceCheckFootnote({
+        ...v,
+        accuracy: { ...v.accuracy!, pagesRead: 5, pagesTotal: 5 },
+      } as ReportView),
+    ).toBe(
+      "We read five pages for this check. A statement listed above may be on a page we did not read.",
+    );
+  });
+
+  // Finding B: a total counted from the home page's links is never "your pages".
+  it("with no sitemap, a count of linked pages reads as pages found, never 'your seven pages' or 'all'", () => {
+    const v = view({
+      ...unanswered,
+      ...withPages(pagesOf(7), null, { pagesConsidered: 7 }),
+    });
+    expect(v.pagesRead).toEqual({ read: 7, site: 7, siteIsFloor: false, siteFrom: "links" });
+    const text = headlineFinding(v).text;
+    expect(text).toContain(
+      "in the seven pages we read, of the seven we found linked from your home page",
+    );
+    expect(text).not.toMatch(/your seven pages|we read them all|\ball\b/);
+    const how = primer(v, []).how;
+    expect(how).toContain("It read seven of the seven pages we found linked from your home page");
+    expect(how).not.toMatch(/your seven pages|\ball\b/);
+  });
+
+  it("a present, untruncated sitemap that is the total still reads as all of your pages", () => {
+    const v = view({
+      ...unanswered,
+      ...withPages(pagesOf(7), { present: true, urlCount: 7 }, { pagesConsidered: 7 }),
+    });
+    expect(v.pagesRead).toEqual({ read: 7, site: 7, siteIsFloor: false, siteFrom: "sitemap" });
+    expect(headlineFinding(v).text).toContain("in any of your seven pages (we read them all): ");
+  });
+
+  // Finding C: the contact detail states its own scope, and drops "not just the first" for one page.
+  it("the contact detail names the pages it read, and says 'not just the first' only over several", () => {
+    const v = noContactAffordances(
+      withPages(pagesOf(20), { present: true, urlCount: 95 }, { pagesConsidered: 40 }),
+    );
+    const contact = healthRows(v).find((r) => r.label === "Getting hold of you");
+    expect(contact?.detail).toContain(
+      "across the 20 of your 95 pages we read, not just the first.",
+    );
+    expect(contact?.detail).not.toMatch(/\(we read them all\)|\ball\b/);
+  });
+
+  it("the contact detail over one page reads 'on your one page', without 'not just the first'", () => {
+    const v = noContactAffordances(
+      withPages(pagesOf(1), { present: true, urlCount: 1 }, { pagesConsidered: 1 }),
+    );
+    const contact = healthRows(v).find((r) => r.label === "Getting hold of you");
+    expect(contact?.detail).toContain("so we measured this on your one page, which we read.");
+    expect(contact?.detail).not.toContain("not just the first");
+  });
+
+  it("the contact detail over linked pages never claims it read them all", () => {
+    const v = noContactAffordances(withPages(pagesOf(7), null, { pagesConsidered: 7 }));
+    const contact = healthRows(v).find((r) => r.label === "Getting hold of you");
+    expect(contact?.detail).toContain(
+      "across the seven pages we read, of the seven we found linked from your home page, not just the first.",
+    );
+  });
+
+  // Finding D: zero pages read means no contact row at all.
+  it("a crawl that read no page drops the contact row, even when the journey stage is present", () => {
+    const v = noContactAffordances(
+      withPages(
+        [{ url: "https://example.test/a", raw: null, rendered: null }],
+        { present: true, urlCount: 95 },
+        { pagesConsidered: 40 },
+      ),
+    );
+    expect(v.journey).not.toBeNull();
+    expect(v.pagesRead?.read).toBe(0);
+    // The journey row is "Getting hold of you"; the Tier 0 battery has its own "contact" key.
+    expect(healthRows(v).find((r) => r.label === "Getting hold of you")).toBeUndefined();
+  });
+
+  // Finding E: the lede claims no reading when no page was read.
+  it("the goal lede says 'from reading it' only when a page was read", () => {
+    expect(goalInferenceLead(view(withPages(pagesOf(0), null, { pagesConsidered: 0 })))).toBe(
+      "As far as we can tell",
+    );
+    expect(goalInferenceLead(view(withPages(pagesOf(3), null, { pagesConsidered: 3 })))).toBe(
+      "As far as we can tell from reading it",
+    );
   });
 });

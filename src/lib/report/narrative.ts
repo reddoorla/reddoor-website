@@ -1,5 +1,6 @@
 import { healthRows, type HealthRow } from "./health";
 import {
+  completeOf,
   inPagesRead,
   inSourceCheckPages,
   numberWord,
@@ -67,6 +68,12 @@ export function goalVerdictLine(view: ReportView, missing: number, judged: numbe
   return goalVerdict(missing, judged, inPagesRead(view));
 }
 
+/** The lead of the goal sentence: "As far as we can tell from reading it" claims a
+ *  reading, so over zero pages read it drops the claim to "As far as we can tell". */
+export function goalInferenceLead(view: ReportView): string {
+  return readNothing(view) ? "As far as we can tell" : "As far as we can tell from reading it";
+}
+
 /** The tag on a missing goal requirement: where we looked, or that we could not look. */
 export function absenceTag(view: ReportView): string {
   return readNothing(view) ? "Could not check" : `Not ${inPagesRead(view) ?? "on the site"}`;
@@ -96,8 +103,9 @@ export function sourceCheckFootnote(view: ReportView): string | null {
   // The site total is unknown: the count is against the pages the crawl took.
   if (d.site === null)
     return `We read ${numberWord(d.read)} of the ${numberWord(acc.pagesTotal)} pages we crawled for this check. ${hedge}`;
-  // Every page of the site was read: the hedge would say a page was missed that was not.
-  if (d.site <= d.read) return `We read ${phraseOf(d)} for this check.`;
+  // Every page of the site was read, by a sitemap that is the whole of it: the
+  // hedge would say a page was missed that was not. Anything less keeps it.
+  if (completeOf(d)) return `We read ${phraseOf(d)} for this check.`;
   return `We read ${phraseOf(d)} for this check. ${hedge}`;
 }
 
