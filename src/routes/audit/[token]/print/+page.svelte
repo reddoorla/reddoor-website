@@ -18,6 +18,8 @@
     displayQuote,
     headlineFinding,
     passes,
+    questionReceipt,
+    sourceCheckFootnote,
   } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
   import type { PageData } from "./$types";
@@ -75,7 +77,8 @@
     Boolean(accuracy && !accuracy.siteFullyRead) ||
       (view.sitemapUrlCount !== null &&
         accuracy !== null &&
-        view.sitemapUrlCount > accuracy.pagesTotal),
+        view.sitemapUrlCount > accuracy.pagesTotal) ||
+      (accuracy !== null && (view.pagesRead?.site ?? 0) > accuracy.pagesRead),
   );
   const confirmed = $derived(
     (accuracy?.assertions ?? []).filter((a) => a.verdict === "confirmed").length,
@@ -241,10 +244,7 @@
       {/if}
       {#if sampled}
         <p class="fix-w">
-          We read {accuracy.pagesRead} of the {accuracy.pagesTotal} pages we crawled for this check{view.sitemapUrlCount !==
-          null
-            ? `; your sitemap lists ${view.sitemapUrlCount}`
-            : ""}. Nothing above is reported as missing on the strength of pages we did not read.
+          {sourceCheckFootnote(view)}
         </p>
       {/if}
     </section>
@@ -341,8 +341,7 @@
               <td>{q.question}</td>
               <td class="answered {q.answered}">{ANSWERED_LABEL[q.answered]}</td>
               <td class="evidence">
-                {#if q.evidence}&ldquo;{q.evidence}&rdquo;{:else if q.answered === "unknown"}not
-                  judged on this audit{:else}no passage an assistant could quote{/if}
+                {questionReceipt(view, q)}
               </td>
             </tr>
           {/each}

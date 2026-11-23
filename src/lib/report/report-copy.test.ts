@@ -167,8 +167,15 @@ describe.each(surfaces)("%s", (_label, html) => {
     }
   });
 
-  it("counts the pages we crawled, never the pages the site has", () => {
-    expect(html).not.toMatch(/of your \d+ pages/);
+  // W3 (the audit-system review, BR-07 and LG-12). This read "counts the pages
+  // we crawled, never the pages the site has" and forbade "of your N pages",
+  // because N was once the crawl's own count, our cap presented as their site.
+  // The brief now asks for exactly "N of your M pages", with M the site's
+  // count (its sitemap, or every page the crawl knew of), so that is pinned
+  // instead, with the crawl's count still kept out of "your".
+  it("states what we read against the site's page count, never the crawl's", () => {
+    expect(seen(html)).toMatch(new RegExp(`of your ${SITEMAP} pages`));
+    expect(html).not.toMatch(new RegExp(`of your ${VIEW.accuracy!.pagesTotal} pages`));
   });
 
   it("never says what was 'cited on that answer', or who it was cited 'instead of'", () => {

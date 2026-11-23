@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { collisionBlock, displayQuote, numberWord } from "./narrative";
+  import { collisionBlock, displayQuote, numberWord, sourceCheckFootnote } from "./narrative";
   import {
     citationRuns,
     nameUnsettled,
@@ -80,7 +80,8 @@
   // is, when there is one.
   const sampled = $derived(
     Boolean(acc && !acc.siteFullyRead) ||
-      (view.sitemapUrlCount !== null && acc !== null && view.sitemapUrlCount > acc.pagesTotal),
+      (view.sitemapUrlCount !== null && acc !== null && view.sitemapUrlCount > acc.pagesTotal) ||
+      (acc !== null && (view.pagesRead?.site ?? 0) > acc.pagesRead),
   );
 </script>
 
@@ -260,15 +261,14 @@
     {/if}
 
     {#if sampled}
-      <!-- Ours, not theirs. The crawl reads a capped number of pages, so the
-           count is "pages we crawled", never "your pages" — and the sitemap
-           says how many there really are. -->
+      <!-- Ours, not theirs. The crawl reads a capped number of pages, and the
+           sentence that stood here ("Nothing above is reported as missing from
+           your site on the strength of pages we did not read") was printed
+           beside "absent" verdicts resting on 20 of 95 pages (the audit-system
+           review, BR-07). It now says what is true: the count, against the
+           site's, and what a statement listed as absent may mean. -->
       <p class="type-meta m-0 border-t border-light pt-6 text-muted">
-        We read {acc.pagesRead} of the {acc.pagesTotal} pages we crawled for this check{view.sitemapUrlCount !==
-        null
-          ? `; your sitemap lists ${view.sitemapUrlCount}`
-          : ""}. Nothing above is reported as missing from your site on the strength of pages we did
-        not read.
+        {sourceCheckFootnote(view)}
       </p>
     {/if}
   </div>
