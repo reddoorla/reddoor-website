@@ -24,9 +24,12 @@ export const prerender = false;
  * leaves the report.
  */
 export const load: PageServerLoad = async (event) => {
-  const { report, meta_referrer } = await loadReport(event);
+  const { report, hiddenChecks, meta_referrer } = await loadReport(event, {
+    withHiddenChecks: true,
+  });
   return {
-    view: toTechnicalView(report, new Date()),
+    // A check the operator hid on the report is hidden here too (W1).
+    view: toTechnicalView(report, new Date(), new Set(hiddenChecks ?? [])),
     reference: createHash("sha256").update(event.params.token).digest("hex").slice(0, 8),
     meta_referrer,
     meta_image: ogCardPath("site", "audit"),

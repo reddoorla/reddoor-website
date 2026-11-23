@@ -45,6 +45,25 @@ describe("/audit/[token]/technical", () => {
     expect(headers["cache-control"]).toContain("no-store");
   });
 
+  it("a check the operator hid on the report is off the Technical page too", async () => {
+    const hide = {
+      "siteChecks.data[1]": {
+        original: "Not advertising your software versions",
+        text: "",
+        hidden: true,
+      },
+    };
+    const shown = (await load(event({ report: TECHNICAL_REPORT, overrides: {} }).evt)) as {
+      view: unknown;
+    };
+    expect(JSON.stringify(shown.view)).toContain("Software version in headers");
+    const data = (await load(event({ report: TECHNICAL_REPORT, overrides: hide }).evt)) as {
+      view: unknown;
+    };
+    expect(JSON.stringify(data.view)).not.toContain("Software version in headers");
+    expect(JSON.stringify(data.view)).not.toContain("announces which software version");
+  });
+
   it("opens a row from a --technical run, whose paid stages were never run", async () => {
     const skipped = { ok: false, error: "skipped (--technical)" };
     const {

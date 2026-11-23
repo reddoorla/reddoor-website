@@ -195,9 +195,18 @@ export function printableUrl(url: string): string {
   // a PDF or a page does not, and stripping numbers there prints an address
   // that does not exist (a screenshot named "…-at-10.30.45.png").
   // Fonts too: a theme's font-awesome-4.7.0/…woff2?v=4.7.0 carries its version.
-  const asset = /\.(?:js|mjs|css|woff2?|ttf|otf|eot)$/i.test(u.pathname);
-  for (const k of [...u.searchParams.keys()])
-    if (/^(?:ver|version)$/i.test(k) || (asset && /^v$/i.test(k))) u.searchParams.delete(k);
+  // An SVG font (fontawesome-webfont.svg?v=4.7.0) is a font.
+  const asset = /\.(?:js|mjs|css|woff2?|ttf|otf|eot|svg)$/i.test(u.pathname);
+  // On an asset, a version can sit under any name (?rev=6.6.14) or be the
+  // whole query (?6.4.2): any parameter whose value, or bare key, is a dotted
+  // version goes, whatever it is called.
+  const versionLike = /^v?\d+(?:\.\d+)+$/i;
+  for (const [k, v] of [...u.searchParams.entries()])
+    if (
+      /^(?:ver|version)$/i.test(k) ||
+      (asset && (/^v$/i.test(k) || versionLike.test(v) || (v === "" && versionLike.test(k))))
+    )
+      u.searchParams.delete(k);
   if (asset) {
     // A whole version directory (cdnjs's /3.6.0/), then a version inside a
     // name: jquery-1.12.4.min.js, bootstrap-4.6.0/, lib@1.2.3/,
@@ -277,8 +286,15 @@ const HUBSPOT_TRACKING = /(?:^|\/\/|\.)(?:hs-scripts|hs-banner|hs-analytics)\.(?
 /**
  * @param today the render date, for the release-line table. A parameter so a
  *   test pins it; the routes pass `new Date()`.
+ * @param hiddenChecks the site-check keys the operator hid on this report
+ *   (W1). This view re-derives its findings from the raw fields, so removing
+ *   the check from `siteChecks` alone would not take them off the page.
  */
-export function toTechnicalView(raw: AuditReport, today: Date = new Date()): TechnicalView {
+export function toTechnicalView(
+  raw: AuditReport,
+  today: Date = new Date(),
+  hiddenChecks: ReadonlySet<string> = new Set(),
+): TechnicalView {
   // The deterministic projections only, from a copy with the stages a model
   // wrote removed: so they are never read, and a malformed one cannot throw
   // here and take the Technical page down with it.
@@ -933,6 +949,14 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
       printableUrl(hidden[0]!.url),
     );
 
+  // ── What the operator hid ──
+  // A hidden site check takes the finding read from the same fields with it.
+  const hiddenFinding = (f: Finding) => hiddenChecks.has(FINDING_CHECK[f.id] ?? "");
+  for (let i = findings.length - 1; i >= 0; i--)
+    if (hiddenFinding(findings[i]!)) findings.splice(i, 1);
+  const visibleRows = (rows: Row[]) =>
+    rows.filter((r) => !hiddenChecks.has(ROW_CHECK[r.label] ?? ""));
+
   // ── Order ──
   // Within a weight, a fixed order: what a visitor meets first, then what a
   // forged email or an unsupported server costs, then the rest. Insertion
@@ -978,18 +1002,64 @@ export function toTechnicalView(raw: AuditReport, today: Date = new Date()): Tec
         items: [...layers].map(([layer, names]) => ({ layer, names })),
         releaseLines,
       },
-      address,
-      brokenThings,
+      address: visibleRows(address),
+      brokenThings: visibleRows(brokenThings),
       weight: { rows: weightRows, heaviest },
-      phone,
-      safe,
-      email,
-      domain,
+      phone: visibleRows(phone),
+      safe: visibleRows(safe),
+      email: visibleRows(email),
+      domain: domain && visibleRows([domain]).length ? domain : null,
       access,
       read: whatWeRead(base, pages),
     },
   };
 }
+
+/**
+ * The stored site check each finding and row is read alongside (maintenance's
+ * `site-checks.ts` keys). An operator who hides that check on the main report
+ * (W1) hides these too. A finding with no check of its own here (the not-found
+ * page, the www variant, framing, CSP) has nothing an operator can hide.
+ */
+const FINDING_CHECK: Record<string, string> = {
+  "insecure-entry": "https-upgrade",
+  "redirect-chains": "redirect-chains",
+  "broken-links": "dead-links",
+  "sitemap-broken": "sitemap-urls-live",
+  "external-broken": "external-links-live",
+  "failed-requests": "failed-requests",
+  "script-errors": "console-errors",
+  "template-leakage": "template-leakage",
+  favicon: "favicon-served",
+  "heavy-image": "oversized-images",
+  overflow: "mobile-overflow",
+  "tiny-text": "tiny-text",
+  hsts: "header-hsts-age",
+  "version-announced": "header-version-leak",
+  spf: "dns-spf",
+  dmarc: "dns-dmarc",
+  mx: "dns-contact-mx",
+  noindex: "meta-noindex",
+};
+const ROW_CHECK: Record<string, string> = {
+  "Typing the address without https": "https-upgrade",
+  Redirects: "redirect-chains",
+  "The browser-tab icon": "favicon-served",
+  "Links on your pages": "dead-links",
+  "Addresses your sitemap lists": "sitemap-urls-live",
+  "Links to other sites": "external-links-live",
+  "Files your pages ask for": "failed-requests",
+  Scripts: "console-errors",
+  "Template code": "template-leakage",
+  "Sideways scrolling on a phone": "mobile-overflow",
+  "Text under 12 pixels": "tiny-text",
+  "Telling browsers to always use https": "header-hsts-age",
+  "Software version in headers": "header-version-leak",
+  "SPF, the list of servers allowed to send as you": "dns-spf",
+  "DMARC, what receivers do with forged mail": "dns-dmarc",
+  "A mail server for your domain": "dns-contact-mx",
+  "Registered through": "domain-expiry",
+};
 
 /** The pages that came back, counted the way the main report counts them. */
 function whatWeRead(base: ReportView, pages: RawPage[]): TechnicalView["sections"]["read"] {

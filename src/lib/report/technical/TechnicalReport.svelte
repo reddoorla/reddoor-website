@@ -99,7 +99,7 @@
             : ""}
         {:else}
           {view.runningOn ? `${view.host} is ${view.runningOn}, and ` : ""}{view.nothingBroken
-            ? "nothing we tested on it is broken."
+            ? "we found nothing a visitor runs into today."
             : `we found ${view.brokenTotal === 1 ? "one thing" : `${view.brokenTotal} things`} a visitor runs into today${view.brokenTotal > 3 ? "; the first three are below" : ""}.`}
         {/if}
       </p>
@@ -291,7 +291,9 @@
         <div class="mt-4 flex flex-col gap-2 text-black">
           <p class="m-0">{view.sections.read.sentence}</p>
           <ul class="m-0 flex flex-col gap-1 pl-6 text-[14px]">
-            {#each view.sections.read.pages as p (p)}<li class="min-w-0 break-all">{p}</li>{/each}
+            {#each view.sections.read.pages as p, i (i)}<li class="min-w-0 break-all">
+                {p}
+              </li>{/each}
           </ul>
         </div>
       </details>

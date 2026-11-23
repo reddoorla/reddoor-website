@@ -10,6 +10,7 @@ import {
   type TechnicalView,
 } from "./model";
 import { readReleaseLines } from "./release-lines";
+import type { AuditReport } from "../fetch";
 
 // W4, the Technical report. Every assertion here is about what a reader of the
 // page sees, rendered through the real component.
@@ -511,5 +512,59 @@ describe("what we read says what W3's report says", () => {
       p.raw = null;
     }
     expect(await readLine(row)).toContain("We could not read any of your pages.");
+  });
+});
+
+/** The fields the post-rebase tests change, typed loosely enough to write. */
+type Loose = {
+  url: string;
+  crawl: { data: { pages: { rendered: { anchors: unknown[] } }[] } };
+  http: { data: Record<string, unknown> };
+};
+
+describe("review after the rebase", () => {
+  it("a hidden site check takes its finding and its row off the Technical page", async () => {
+    const hidden = new Set(["header-version-leak", "external-links-live"]);
+    const row = clone(TECHNICAL_REPORT) as unknown as Loose;
+    row.http.data.externalLinks = {
+      checked: 15,
+      total: 15,
+      broken: [{ url: "https://partner.example/gone" }],
+    };
+    const shown = await pageText(row as unknown as Record<string, unknown>);
+    expect(shown).toContain("Software version in headers");
+    expect(shown).toContain("Links to other sites");
+    const text = renderText(await component(), {
+      view: toTechnicalView(row as unknown as AuditReport, TODAY, hidden),
+      reference: "0a1b2c3d",
+    });
+    expect(text).not.toContain("Software version in headers");
+    expect(text).not.toContain("announces which software version");
+    expect(text).not.toContain("Links to other sites");
+    expect(text).not.toContain("partner.example/gone");
+  });
+
+  it("the opening sentence never says nothing tested is broken over a row marked broken", async () => {
+    const row = clone(TECHNICAL_REPORT) as unknown as Loose;
+    for (const p of row.crawl.data.pages) p.rendered.anchors = [];
+    row.http.data.sitemapUrls = { checked: 12, total: 41, broken: [{ url: `${row.url}gone` }] };
+    const view = toTechnicalView(row as unknown as AuditReport, TODAY);
+    expect(view.nothingBroken).toBe(true);
+    const text = await pageText(row as unknown as Record<string, unknown>);
+    expect(text).toContain("✕");
+    expect(text).not.toMatch(/nothing we tested[^.]*broken/);
+    expect(text).toContain("nothing a visitor runs into today");
+  });
+
+  it("printableUrl strips a version under any parameter name on an asset", () => {
+    expect(printableUrl("https://s.example/rbtools.min.js?rev=6.6.14")).toBe(
+      "https://s.example/rbtools.min.js",
+    );
+    expect(printableUrl("https://s.example/style.css?6.4.2")).toBe("https://s.example/style.css");
+    expect(printableUrl("https://s.example/fonts/fontawesome-webfont.svg?v=4.7.0")).toBe(
+      "https://s.example/fonts/fontawesome-webfont.svg",
+    );
+    // Not a version: an ordinary parameter on an asset stays.
+    expect(printableUrl("https://s.example/app.js?id=42")).toBe("https://s.example/app.js?id=42");
   });
 });
