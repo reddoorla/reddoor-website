@@ -1,3 +1,4 @@
+import { numberWord } from "./pages-read";
 import { describe, it, expect } from "vitest";
 import { ssr, renderText } from "./ssr-test-harness";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
@@ -176,6 +177,7 @@ describe.each(surfaces)("%s", (_label, html) => {
   it("states what we read against the site's page count, never the crawl's", () => {
     expect(seen(html)).toMatch(new RegExp(`of your ${SITEMAP} pages`));
     expect(html).not.toMatch(new RegExp(`of your ${VIEW.accuracy!.pagesTotal} pages`));
+    expect(html).not.toMatch(new RegExp(`of your ${numberWord(VIEW.accuracy!.pagesTotal)} pages`));
   });
 
   it("never says what was 'cited on that answer', or who it was cited 'instead of'", () => {
