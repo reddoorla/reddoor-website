@@ -10,7 +10,8 @@ import {
   type Assertion,
   type ReportView,
 } from "./model";
-import { allFixes, auditedOn, headlineFinding, TOC_TARGETS } from "./narrative";
+import { allFixes, auditedOn, collisionBlock, headlineFinding, TOC_TARGETS } from "./narrative";
+import { editableTargets } from "./editable";
 
 /**
  * Sentences the report must and must not contain, asserted on what renders.
@@ -511,6 +512,40 @@ describe("the name-collision finding follows the branded answer's own verdict", 
     const h = headlineFinding(toReportView(unsureCredential)).text;
     expect(h).toContain(`not sure which ${WHO} you are`);
     expect(h).not.toMatch(/\bbusiness(es)?\b/i);
+  });
+
+  it("lists the block's two lines for the editor, and honours both on screen and in print", () => {
+    const view = toReportView(unsureCredential);
+    const targets = editableTargets(view, unsureCredential);
+    const heading = targets.find((t) => t.key === "composed:collision.heading");
+    const detail = targets.find((t) => t.key === "composed:collision.detail");
+    expect(heading?.text).toBe(HEADING);
+    expect(detail?.text).toContain(CREDENTIAL);
+    const overrides = {
+      "composed:collision.heading": { original: HEADING, text: "EDITED-HEADING" },
+      "composed:collision.detail": { original: detail!.text, text: "EDITED-DETAIL" },
+    };
+    const screen = seen(renderText(sourceCheck, { view: { ...view, overrides } }));
+    const print = seen(renderText(printSheet, { data: { report: unsureCredential, overrides } }));
+    for (const text of [screen, print]) {
+      expect(text).toContain("EDITED-HEADING");
+      expect(text).toContain("EDITED-DETAIL");
+      expect(text).not.toContain(CREDENTIAL);
+    }
+    // An override recorded against other generated words is withheld.
+    const stale = {
+      "composed:collision.heading": { original: "SOMETHING ELSE", text: "STALE-EDIT" },
+    };
+    expect(seen(renderText(sourceCheck, { view: { ...view, overrides: stale } }))).not.toContain(
+      "STALE-EDIT",
+    );
+  });
+
+  it("does not put 'business' in the block when the report has no name on record", () => {
+    const anon = { ...unsureCredential, businessName: null } as AuditReport;
+    const b = collisionBlock(toReportView(anon))!;
+    expect(b.heading).toBe("The assistant is not sure which one you are");
+    expect(`${b.heading} ${b.detail}`).not.toMatch(/\bbusiness(es)?\b/i);
   });
 
   it("lets the report's editor reword the block, per report", () => {

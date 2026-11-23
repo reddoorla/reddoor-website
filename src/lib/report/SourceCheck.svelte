@@ -69,8 +69,9 @@
     yours: "yours",
   } as const;
 
-  // The collision, from either instrument: the branded answer describing more
-  // than one business, or a namesake domain cited across the buyer searches.
+  // The collision, from either instrument: a branded answer that gave this
+  // name to something else and did not settle which one it meant
+  // (`nameUnsettled`), or a namesake domain cited across the buyer searches.
   // One block, because a reader does not care which of our checks noticed.
   const collision = $derived(collisionBlock(view));
 

@@ -357,16 +357,20 @@ function collisionBlockGenerated(view: ReportView): CollisionBlock | null {
   const unsure = nameUnsettled(view.accuracy);
   if (!unsure && view.namesake === null) return null;
   if (!unsure) return { heading: "Someone else is answering to your name", detail: null };
-  const who = view.businessName ?? "your business";
+  // With no name on record, "which your business you are" is not a sentence,
+  // and "business" is the one word this block must not supply.
+  const name = view.businessName;
   const names = view.accuracy?.conflation.otherNames ?? [];
   const described = names.length
     ? `Asked about you by name, it also described ${joinList(names)}.`
     : "Asked about you by name, it could not say which one you are.";
   return {
-    heading: `The assistant is not sure which ${who} you are`,
+    heading: name
+      ? `The assistant is not sure which ${name} you are`
+      : "The assistant is not sure which one you are",
     detail:
       `${described} Until your own pages make the name, the place and the work unambiguous, ` +
-      `anything it says about “${who}” may be about someone else.`,
+      `anything it says about ${name ? `“${name}”` : "you"} may be about someone else.`,
   };
 }
 
