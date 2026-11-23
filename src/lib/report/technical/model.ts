@@ -186,10 +186,11 @@ export function printableUrl(url: string): string {
   } catch {
     return url;
   }
-  // Only a script or stylesheet carries a version in its address. An image,
+  // Only a script, stylesheet or font carries a version in its address. An image,
   // a PDF or a page does not, and stripping numbers there prints an address
   // that does not exist (a screenshot named "…-at-10.30.45.png").
-  const asset = /\.(?:js|mjs|css)$/i.test(u.pathname);
+  // Fonts too: a theme's font-awesome-4.7.0/…woff2?v=4.7.0 carries its version.
+  const asset = /\.(?:js|mjs|css|woff2?|ttf|otf|eot)$/i.test(u.pathname);
   for (const k of [...u.searchParams.keys()])
     if (/^(?:ver|version)$/i.test(k) || (asset && /^v$/i.test(k))) u.searchParams.delete(k);
   if (asset) {

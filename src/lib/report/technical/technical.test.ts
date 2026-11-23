@@ -454,3 +454,13 @@ describe("W4 review round 4: printableUrl leaves ordinary addresses alone", () =
     expect(printableUrl(url)).toBe(want);
   });
 });
+
+describe("W4 review round 5: a font carries its version too", () => {
+  it("strips the version from a theme's font address", () => {
+    expect(
+      printableUrl(
+        "https://site.example/wp-content/themes/t/font-awesome-4.7.0/fonts/fontawesome-webfont.woff2?v=4.7.0",
+      ),
+    ).toBe("https://site.example/wp-content/themes/t/font-awesome/fonts/fontawesome-webfont.woff2");
+  });
+});
