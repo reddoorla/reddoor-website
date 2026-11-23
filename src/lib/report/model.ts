@@ -29,6 +29,10 @@ export type BuyerQuestion = {
   quotable: boolean;
   page: string | null;
   evidence: string | null;
+  /** Set when the model said `no` but the question's key words are on a page
+   *  we crawled: the producer then made the verdict `unknown`. The word and the
+   *  page, so the table can say where it looked. Absent on older reports. */
+  notFound?: { term: string; page: string };
 };
 
 /**
@@ -796,6 +800,15 @@ export type ReportView = {
    *  at most a fixed number of pages, so "we read 14 of your 20 pages" was
    *  the crawl cap presented as the site; this is the honest denominator. */
   sitemapUrlCount: number | null;
+  /**
+   * The denominator every absence is stated against: `read` is how many pages
+   * the crawl actually read (an extract came back), `site` how many pages of
+   * the site we know exist, the largest of the sitemap's count, the pages the
+   * crawl knew of before its cap, and `read` itself. `site` is null when there
+   * is no sitemap and the report predates the crawl counting what it knew of.
+   * Null when there is no crawl.
+   */
+  pagesRead: { read: number; site: number | null } | null;
   /** Stages that RAN AND FAILED, in report order. A stage this era of the
    *  payload lacks, or one the producer skipped on purpose, is not here: both
    *  are "never ran", and only this list may say "ran and failed". */
@@ -1200,6 +1213,25 @@ export function sourceCheckHasStatements(view: ReportView): boolean {
   return sourceCheckMeasured(view) && (view.accuracy?.assertions.length ?? 0) > 0;
 }
 
+/** See `ReportView.pagesRead`. */
+function pagesReadOf(
+  crawl: {
+    sitemap?: { present?: boolean; urlCount?: number };
+    pages?: { raw?: unknown; rendered?: unknown }[];
+    selection?: { pagesConsidered?: number };
+  } | null,
+): ReportView["pagesRead"] {
+  if (!crawl || !Array.isArray(crawl.pages)) return null;
+  const read = crawl.pages.filter((p) => p && (p.raw || p.rendered)).length;
+  const known = [
+    crawl.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
+      ? crawl.sitemap.urlCount
+      : null,
+    typeof crawl.selection?.pagesConsidered === "number" ? crawl.selection.pagesConsidered : null,
+  ].filter((n): n is number => n !== null);
+  return { read, site: known.length ? Math.max(read, ...known) : null };
+}
+
 export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {
   const r = applyOverrides(raw, overrides) as Record<string, unknown>;
 
@@ -1235,6 +1267,8 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
   const crawl = stage<{
     agentAccess?: { agent: string }[];
     sitemap?: { present?: boolean; urlCount?: number };
+    pages?: { raw?: unknown; rendered?: unknown }[];
+    selection?: { pagesConsidered?: number };
   }>(r.crawl);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
@@ -1313,6 +1347,7 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
       crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
         ? crawl.sitemap.urlCount
         : null,
+    pagesRead: pagesReadOf(crawl),
     failedStages: STAGE_KEYS.filter((k) => ranAndFailed(r[k])),
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,

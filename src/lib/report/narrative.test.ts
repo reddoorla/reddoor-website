@@ -19,6 +19,7 @@ import {
   passes,
   passCount,
   primer,
+  questionReceipt,
   tocEntries,
   TOC_TARGETS,
 } from "./narrative";
@@ -1256,5 +1257,84 @@ describe("primer", () => {
       crawlerReach: { measured: false, blocked: [], checked: 8 },
     };
     expect(primer(v, []).how).not.toContain("robots.txt");
+  });
+});
+
+// W3, from the audit-system review (B-04, LG-12, BR-07): every absence is a
+// statement about the pages we read, so it says how many, against the site's.
+describe("absences carry their denominator", () => {
+  /** A crawl that read `read` pages and knew of `considered`, with a sitemap
+   *  listing `sitemap` when given. */
+  const crawled = (read: number, considered: number, sitemap?: number) => ({
+    crawl: {
+      ok: true,
+      data: {
+        ...(raw.crawl!.data as object),
+        pages: Array.from({ length: read }, (_, i) => ({
+          url: `https://example.test/p${i}`,
+          raw: { text: "" },
+          rendered: null,
+        })),
+        sitemap:
+          sitemap === undefined
+            ? { present: false, urlCount: 0 }
+            : { present: true, urlCount: sitemap },
+        selection: { pagesConsidered: considered },
+      },
+    },
+  });
+  const unanswered = stage("analyze", (d) => ({
+    ...d,
+    buyerQuestions: (d.buyerQuestions as BuyerQuestion[]).map((q, i) =>
+      i < 2 ? { ...q, answered: "no", evidence: null, page: null } : q,
+    ),
+  }));
+
+  it("an unanswered-questions headline says how many of the site's pages it rests on", () => {
+    const h = headlineFinding(view({ ...unanswered, ...crawled(20, 40, 95) }));
+    expect(h.kind).toBe("unanswered");
+    expect(h.text).toContain("of your");
+    expect(h.text).toContain("in the 20 of your 95 pages we read");
+  });
+
+  it("uses every page the crawl knew of when there is no sitemap", () => {
+    const h = headlineFinding(view({ ...unanswered, ...crawled(12, 30) }));
+    expect(h.text).toContain("in the 12 of your 30 pages we read");
+  });
+
+  it("an unidentifiable goal says how much was read, never 'every page'", () => {
+    const v = view({
+      ...stage("goalFit", (d) => ({ ...d, goal: "unknown", requirements: [] })),
+      ...crawled(1, 1),
+    });
+    const h = headlineFinding(v);
+    expect(h.text).not.toMatch(/every page/);
+    expect(h.text).toContain("We read your one page and could not tell");
+  });
+
+  it("a question row says where it looked, and names the word on the page when there was one", () => {
+    const v = view({ ...unanswered, ...crawled(20, 40, 95) });
+    const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
+    expect(questionReceipt(v, no!)).toBe("not found in the 20 of your 95 pages we read");
+    const hedged: BuyerQuestion = {
+      ...no!,
+      answered: "unknown",
+      notFound: { term: "pricing", page: "https://example.test/services" },
+    };
+    expect(questionReceipt(v, hedged)).toBe(
+      "no direct answer found in the 20 of your 95 pages we read, though “pricing” appears on /services",
+    );
+  });
+
+  it("says so plainly when it read every page it knew of", () => {
+    const h = headlineFinding(view({ ...unanswered, ...crawled(7, 7, 6) }));
+    expect(h.text).toContain("in all seven of your pages, which we read");
+  });
+
+  it("the primer no longer claims every page was fetched", () => {
+    const v = view(crawled(20, 40, 95));
+    const how = primer(v, []).how;
+    expect(how).not.toMatch(/every page/);
+    expect(how).toContain("It read 20 of your 95 pages, each one twice");
   });
 });

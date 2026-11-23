@@ -477,7 +477,13 @@ describe("a sitemap the crawl found", () => {
     const crawled = at(raw, "accuracy.data.pagesTotal") as number;
     const read_ = at(raw, "accuracy.data.pagesRead") as number;
     expect(viewFor("adverse-blocked").sitemapUrlCount).toBe(count);
-    const sentence = `We read ${read_} of the ${crawled} pages we crawled for this check; your sitemap lists ${count}.`;
+    // W3 (the audit-system review, BR-07): this sentence used to read "We read
+    // 3 of the 3 pages we crawled for this check; your sitemap lists 12.
+    // Nothing above is reported as missing on the strength of pages we did
+    // not read", beside verdicts that were exactly that. The sitemap's count
+    // is now the denominator itself, and the hedge says what is true.
+    expect(crawled).toBeLessThanOrEqual(count);
+    const sentence = `We read ${read_} of your ${count} pages for this check. A statement listed above may be on a page we did not read.`;
     expect(read(sourceCheck, "adverse-blocked")).toContain(sentence);
     expect(printed("adverse-blocked")).toContain(sentence);
   });

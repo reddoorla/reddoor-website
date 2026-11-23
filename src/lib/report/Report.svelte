@@ -20,6 +20,7 @@
     auditedOn,
     headlineFinding,
     primer,
+    questionReceipt,
     tocEntries,
     TOC_TARGETS,
   } from "./narrative";
@@ -501,13 +502,7 @@
                           <!-- The receipt. A verdict with no passage beside it
                              is a claim the reader cannot check. -->
                           <td class="type-meta border-b border-light py-2.5 align-top text-muted">
-                            {#if q.evidence}
-                              &ldquo;{q.evidence}&rdquo;
-                            {:else if q.answered === "unknown"}
-                              not judged on this audit
-                            {:else}
-                              no passage an assistant could quote
-                            {/if}
+                            {questionReceipt(view, q)}
                           </td>
                         </tr>
                       {/each}

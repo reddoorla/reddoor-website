@@ -6,7 +6,7 @@
     type GoalRequirement,
     type ReportView,
   } from "./model";
-  import { numberWord } from "./narrative";
+  import { numberWord, pagesReadPhrase } from "./narrative";
   import { composed } from "./overrides";
 
   // Whether the site does the one job it exists to do.
@@ -72,14 +72,15 @@
     about your site.
   </p>
 {:else if fit.goal === "unknown"}
-  <!-- A real measurement, not a failure. We read every page and could not tell
+  <!-- A real measurement, not a failure. We read the pages we could and could not tell
        what the site is for — which is a finding about the site, so it must not
        be dressed up as an apology from us. No checklist is rendered on purpose:
        grading against a purpose we could not identify would report our own
        guess as their failing. -->
   <div class="flex flex-col gap-5">
     <p class="type-lede m-0 text-primary">
-      We read every page and could not tell what {who} wants a visitor to actually do.
+      We read {pagesReadPhrase(view) ?? "your pages"} and could not tell what {who} wants a visitor to
+      actually do.
     </p>
     <p class="m-0 text-muted">
       That is not a criticism of the writing — it is a finding about the structure. Sites that
