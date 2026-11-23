@@ -2161,9 +2161,9 @@ Mutations, each turning one named test red: cookie path back to `/audit` (the br
 
 Deploy order matters: this half must be on `main` before maintenance's lands, or the editor cannot open a draft (no bearer sent) and a superseded link would 500 instead of redirecting.
 
-## 2026-11-23 — W1 review rounds 1 to 4: what changed after the entry above (#379, `claude/w1-approve-before-link`)
+## 2026-11-23 — W1 review rounds 1 to 7: what changed after the entry above (#379, `claude/w1-approve-before-link`)
 
-The entry above was written before review and is left as it was. Four rounds of review changed what it describes, all of them dirty.
+The entry above was written before review and is left as it was. Seven rounds of review changed what it describes; the first six were dirty.
 
 Round 1 found that a row the operator hid was still in the reader's page: SvelteKit serialises `load` data for hydration, so a hidden fix sat in `__data.json` and view-source. Readers now get the payload with every override already applied on the server, and only the `composed:` entries, which name sentences this repo writes and can be matched only at render time. The editor alone gets the stored payload and the whole map, to show and revert. The same round made the smoke spec's tokens per run, after it failed 2 times in 40 at six workers by racing itself.
 
@@ -2174,5 +2174,9 @@ Round 3 found two more, both reproduced. A run whose page checks failed still sa
 Mutations for round 3, each turning its test red: dropping `checks` from the guard; shipping every composed entry; leaving the goal verdict out of the filter; following a self-pointer.
 
 Round 4 found that round 3's filter dropped health-fix rewordings that did render. The renderer looks a health fix up by its row (`composed:healthFix[viewport].title`), and the edit list had always offered it by position (`composed:healthFix[0].title`), a key nothing reads. So the filter, built on the edit list, threw away the row-keyed ones, and every health-fix edit an operator saved from the browser had never rendered on any page, the editor's included. The edit list now keys health fixes by row, through `healthFixEntries`, which `healthFixes` also uses. A test saves each health-fix target under its own key and checks it renders; putting the positional key back turns it and the reader test red. Any positional health-fix entry already stored stays dead, as it always was. The same round stopped the goal-verdict line being kept where `GoalFit` shows no verdict (no goal fit, or an unknown goal).
+
+Round 5 found that round 3's filter had a second hole. An operator who emptied a composed line saw it gone in the editor, because `composed` returned the empty text, but the filter lists only lines with text, so it dropped the entry and the prospect read the generated sentence. `composed` now treats a blank override as none, for both, and the editor reverts an emptied line. That was the fifth dirty round, and the fix changed behaviour, so the operator was asked; he chose a sixth round. Round 6 found that the editor's new revert-on-empty also caught payload fields. Emptying one goal requirement's evidence, or one check's "why", has always blanked that one line for every reader, and the editor was now silently undoing it. The revert is limited to `composed:` keys. He chose a seventh round, which was clean; its one nit, pre-existing, is #384. `onBlur` lives in a Svelte component this repo's vitest cannot load, so that last line has no unit test, only two reviews' reading.
+
+The pattern worth keeping: rounds 3 to 6 each found a defect in the previous round's fix, and the last three were all in code this PR added to keep readers from seeing stale text. A filter that decides what a reader receives has to agree with the renderer on every key and every empty case, and the only test that settles that is one rendering both ways.
 
 Belief corrected: "a stage skipped on purpose still allows all clear" was true of `--no-probes` and false of a skip that another stage's failure caused. The skip strings say why a stage did not run, and only some of the reasons are the operator's choice.
