@@ -94,10 +94,11 @@
     const next: OverrideMap = { ...overrides };
     // Typing the generated text back in REMOVES the override rather than
     // storing a no-op, so a report can always be returned to what was measured.
-    // An emptied line reverts too (review round 5): a blank override renders
-    // as the generated text everywhere, so storing one would only mislead.
-    // Taking a line off the page is "Hide a row".
-    if (text === original || text === "") delete next[key];
+    // An emptied COMPOSED line reverts too (review round 5): a blank composed
+    // override renders as the generated text everywhere, so storing one would
+    // only mislead. A payload field emptied still blanks that one field for
+    // every reader (review round 6), as it always did.
+    if (text === original || (text === "" && key.startsWith("composed:"))) delete next[key];
     else next[key] = { original, text };
     await save(next);
   }
