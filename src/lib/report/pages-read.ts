@@ -90,7 +90,7 @@ export function sourceCheckDenominator(view: ReportView): PagesDenominator | nul
   return {
     read: acc.pagesRead,
     site: known ? sitemap : null,
-    floor: false,
+    floor: known && view.sitemapIsFloor === true,
     from: known ? "sitemap" : null,
   };
 }
@@ -111,11 +111,12 @@ export function phraseOf(d: PagesDenominator | null): string | null {
     return d.read === 1
       ? `one page of your ${numberWord(d.site)}`
       : `${numberWord(d.read)} of your ${pages(d.site)}`;
+  // Every page we found was read: name them once, with no "of the" count to repeat.
   if (d.from === "found")
-    return d.read === 1 && d.site === 1
-      ? "the one page we found"
+    return d.site === d.read
+      ? `the ${pages(d.read)} we found`
       : `${numberWord(d.read)} of the ${numberWord(d.site)} pages we found`;
-  if (d.read === 1 && d.site === 1) return "the one page we found linked from your home page";
+  if (d.site === d.read) return `the ${pages(d.read)} we found linked from your home page`;
   return `${numberWord(d.read)} of the ${numberWord(d.site)} pages we found linked from your home page`;
 }
 
@@ -139,8 +140,13 @@ export function clauseOf(d: PagesDenominator | null): string | null {
     return d.read === 1
       ? `in the one page we read, of your ${numberWord(d.site)}`
       : `in the ${numberWord(d.read)} of your ${pages(d.site)} we read`;
+  // Every page we found was read: "which we read" says so, after a negative too.
   if (d.from === "found")
-    return `in the ${pages(d.read)} we read, of the ${numberWord(d.site)} we found`;
+    return d.site === d.read
+      ? `in the ${pages(d.read)} we found, which we read`
+      : `in the ${pages(d.read)} we read, of the ${numberWord(d.site)} we found`;
+  if (d.site === d.read)
+    return `in the ${pages(d.read)} we found linked from your home page, which we read`;
   return `in the ${pages(d.read)} we read, of the ${numberWord(d.site)} we found linked from your home page`;
 }
 

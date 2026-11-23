@@ -1555,14 +1555,10 @@ describe("absences carry their denominator", () => {
     const v = view({ ...unanswered, ...crawled(7, 7, 6) });
     // The home page's links and the sitemap together outgrow the sitemap: a count
     // of pages found, so no "all" and no "your seven pages".
-    expect(inPagesRead(v)).toBe("in the seven pages we read, of the seven we found");
-    expect(headlineFinding(v).text).toContain(
-      "in the seven pages we read, of the seven we found: ",
-    );
+    expect(inPagesRead(v)).toBe("in the seven pages we found, which we read");
+    expect(headlineFinding(v).text).toContain("in the seven pages we found, which we read: ");
     const [no] = v.buyerQuestions.filter((q) => q.answered === "no");
-    expect(questionReceipt(v, no!)).toBe(
-      "not found in the seven pages we read, of the seven we found",
-    );
+    expect(questionReceipt(v, no!)).toBe("not found in the seven pages we found, which we read");
   });
 
   it("a zero-page crawl states no count, and makes no claim about reading", () => {
@@ -1917,12 +1913,10 @@ describe("review round 4: a floor is never all, a links count is never your page
     });
     expect(v.pagesRead).toEqual({ read: 7, site: 7, siteIsFloor: false, siteFrom: "links" });
     const text = headlineFinding(v).text;
-    expect(text).toContain(
-      "in the seven pages we read, of the seven we found linked from your home page",
-    );
+    expect(text).toContain("in the seven pages we found linked from your home page, which we read");
     expect(text).not.toMatch(/your seven pages|we read them all|\ball\b/);
     const how = primer(v, []).how;
-    expect(how).toContain("It read seven of the seven pages we found linked from your home page");
+    expect(how).toContain("It read the seven pages we found linked from your home page");
     expect(how).not.toMatch(/your seven pages|\ball\b/);
   });
 
@@ -1960,7 +1954,7 @@ describe("review round 4: a floor is never all, a links count is never your page
     const v = noContactAffordances(withPages(pagesOf(7), null, { pagesConsidered: 7 }));
     const contact = healthRows(v).find((r) => r.label === "Getting hold of you");
     expect(contact?.detail).toContain(
-      "across the seven pages we read, of the seven we found linked from your home page, not just the first.",
+      "across the seven pages we found linked from your home page, which we read, not just the first.",
     );
   });
 
@@ -2106,6 +2100,83 @@ describe("review round 5: one page, a found total, legacy floors, both, the sour
     expect(inPagesRead(v)).toBe("in the 20 pages we read, out of at least 66 pages on your site");
     expect(primer(v, []).how).toContain("20 of at least 66 pages on your site");
     expect(primer(v, []).how).not.toMatch(/your 66 pages|of your 66/);
+  });
+
+  // Review round 6, finding 1: a crawl stored without its pages keeps the sitemap's floor.
+  describe("no stored pages: the source check keeps the sitemap's floor", () => {
+    const legacyWith = (sitemap: Record<string, unknown>) => {
+      const base = view({
+        crawl: { ok: true, data: { ...(raw.crawl!.data as object), pages: undefined, sitemap } },
+      });
+      return {
+        ...base,
+        accuracy: { ...base.accuracy!, pagesRead: 12, pagesTotal: 15 },
+      } as ReportView;
+    };
+
+    it("a truncated sitemap makes the source check's total a floor: 'at least', never 'your 66'", () => {
+      const v = legacyWith({ present: true, urlCount: 66, truncated: true });
+      expect(v.pagesRead).toBeNull();
+      expect(sourceCheckFootnote(v)).toBe(
+        "We read 12 of at least 66 pages on your site for this check. A statement listed above may be on a page we did not read.",
+      );
+      expect(inSourceCheckPages(v)).toBe(
+        "in the 12 pages we read, out of at least 66 pages on your site",
+      );
+    });
+
+    it("a sitemap with no truncated key is a floor too: absent means unknown, never 'your 66'", () => {
+      const v = legacyWith({ present: true, urlCount: 66 });
+      expect(sourceCheckFootnote(v)).toBe(
+        "We read 12 of at least 66 pages on your site for this check. A statement listed above may be on a page we did not read.",
+      );
+      expect(inSourceCheckPages(v)).toBe(
+        "in the 12 pages we read, out of at least 66 pages on your site",
+      );
+    });
+
+    // Positive control: a sitemap known to be complete keeps the exact count.
+    it("an untruncated sitemap keeps the exact count, 'your 66'", () => {
+      const v = legacyWith({ present: true, urlCount: 66, truncated: false });
+      expect(sourceCheckFootnote(v)).toBe(
+        "We read 12 of your 66 pages for this check. A statement listed above may be on a page we did not read.",
+      );
+      expect(inSourceCheckPages(v)).toBe("in the 12 of your 66 pages we read");
+    });
+  });
+
+  // Review round 6, finding 2: a total equal to the pages read names them once.
+  it("pages found and read in full are named once, never 'of the two we found'", () => {
+    const found = view(
+      withPages(pagesOf(2), { present: true, urlCount: 1 }, { pagesConsidered: 2 }),
+    );
+    expect(found.pagesRead).toEqual({ read: 2, site: 2, siteIsFloor: false, siteFrom: "found" });
+    expect(pagesReadPhrase(found)).toBe("the two pages we found");
+    expect(inPagesRead(found)).toBe("in the two pages we found, which we read");
+
+    const one = view(withPages(pagesOf(1), { present: true, urlCount: 0 }, { pagesConsidered: 1 }));
+    expect(one.pagesRead).toEqual({ read: 1, site: 1, siteIsFloor: false, siteFrom: "found" });
+    expect(pagesReadPhrase(one)).toBe("the one page we found");
+    expect(inPagesRead(one)).toBe("in the one page we found, which we read");
+
+    const many = view(
+      withPages(pagesOf(20), { present: true, urlCount: 5 }, { pagesConsidered: 20 }),
+    );
+    expect(pagesReadPhrase(many)).toBe("the 20 pages we found");
+    expect(inPagesRead(many)).toBe("in the 20 pages we found, which we read");
+    for (const v of [found, one, many]) {
+      expect(inPagesRead(v)).not.toMatch(/\ball\b|your|of the \w+ we found/);
+    }
+  });
+
+  it("pages the home page links to, all read, are named once, with the link", () => {
+    const two = view(withPages(pagesOf(2), noSitemap, { pagesConsidered: 2 }));
+    expect(two.pagesRead).toEqual({ read: 2, site: 2, siteIsFloor: false, siteFrom: "links" });
+    expect(pagesReadPhrase(two)).toBe("the two pages we found linked from your home page");
+    expect(inPagesRead(two)).toBe(
+      "in the two pages we found linked from your home page, which we read",
+    );
+    expect(inPagesRead(two)).not.toMatch(/of the two|\ball\b|your pages/);
   });
 
   // Finding 4: two pages, all read, are "both", never "all two".

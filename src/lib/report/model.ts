@@ -810,6 +810,10 @@ export type ReportView = {
    *  at most a fixed number of pages, so "we read 14 of your 20 pages" was
    *  the crawl cap presented as the site; this is the honest denominator. */
   sitemapUrlCount: number | null;
+  /** True when `sitemapUrlCount` is a floor: the sitemap was truncated, or a
+   *  legacy row stored no `truncated` flag (absent means unknown). Read by the
+   *  source check's total when the crawl kept no pages to count. */
+  sitemapIsFloor?: boolean;
   /**
    * The denominator every absence is stated against: `read` is how many pages
    * the crawl actually read (an extract came back), `site` how many pages of
@@ -1403,6 +1407,12 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
       crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
         ? crawl.sitemap.urlCount
         : null,
+    sitemapIsFloor: sitemapIsFloor(
+      crawl?.sitemap,
+      crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
+        ? crawl.sitemap.urlCount
+        : null,
+    ),
     pagesRead: pagesReadOf(crawl),
     failedStages: STAGE_KEYS.filter((k) => ranAndFailed(r[k])),
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,

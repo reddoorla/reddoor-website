@@ -173,9 +173,12 @@ describe.each(surfaces)("%s", (_label, html) => {
   // because N was once the crawl's own count, our cap presented as their site.
   // The brief now asks for exactly "N of your M pages", with M the site's
   // count (its sitemap, or every page the crawl knew of), so that is pinned
-  // instead, with the crawl's count still kept out of "your".
+  // instead, with the crawl's count still kept out of "your". The fixture's
+  // sitemap carries no `truncated` flag, and absent means unknown: a floor, so
+  // "at least 137", never "your 137" (review round 6).
   it("states what we read against the site's page count, never the crawl's", () => {
-    expect(seen(html)).toMatch(new RegExp(`of your ${SITEMAP} pages`));
+    expect(seen(html)).toMatch(new RegExp(`at least ${SITEMAP} pages on your site`));
+    expect(seen(html)).not.toMatch(new RegExp(`of your ${SITEMAP} pages`));
     expect(html).not.toMatch(new RegExp(`of your ${VIEW.accuracy!.pagesTotal} pages`));
     expect(html).not.toMatch(new RegExp(`of your ${numberWord(VIEW.accuracy!.pagesTotal)} pages`));
   });
