@@ -1,5 +1,13 @@
 import type { AuditReport } from "./fetch";
 import { applyOverrides, composed, type OverrideMap } from "./overrides";
+import {
+  checkDenominatorOf,
+  completeOf,
+  inPagesRead,
+  phraseOf,
+  readNothing,
+  type PagesDenominator,
+} from "./pages-read";
 
 /**
  * The shape the report components consume.
@@ -29,6 +37,10 @@ export type BuyerQuestion = {
   quotable: boolean;
   page: string | null;
   evidence: string | null;
+  /** Set when the model said `no` but the question's key words are on a page
+   *  we crawled: the producer then made the verdict `unknown`. The word and the
+   *  page, so the table can say where it looked. Absent on older reports. */
+  notFound?: { term: string; page: string };
 };
 
 /**
@@ -418,15 +430,18 @@ export const GOAL_LABELS: Record<string, string> = {
  */
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
 
-export function goalVerdict(missing: number, judged: number): string {
+export function goalVerdict(missing: number, judged: number, where: string | null = null): string {
+  // `where` is the clause an absence carries ("in the 20 of your 95 pages we
+  // read"): an absence states the pages it rests on, or says nothing of them.
+  const clause = where ? ` ${where}` : "";
   if (judged === 0) return "We could not judge any of what it needs to do that.";
   if (missing === 0) return "Everything it needs to do that is in place.";
-  if (missing >= judged) return "None of what it needs to do that is in place.";
+  if (missing >= judged) return `None of what it needs to do that is in place${clause}.`;
   const word = NUMBER_WORDS[missing] ?? String(missing);
   const subject = word.charAt(0).toUpperCase() + word.slice(1);
   const verb = missing === 1 ? "is" : "are";
   const total = NUMBER_WORDS[judged] ?? String(judged);
-  return `${subject} of the ${total} things it needs ${verb} not in place.`;
+  return `${subject} of the ${total} things it needs ${verb} not in place${clause}.`;
 }
 
 /**
@@ -499,7 +514,13 @@ function openingSummaryText(view: ReportView): string | null {
       unanswered.length === 1
         ? unanswered[0]
         : `${unanswered.slice(0, -1).join(", ")}, or ${unanswered.at(-1)}`;
-    parts.push(`It does not answer: ${list}.`);
+    const where = inPagesRead(view);
+    // Over zero pages read there is no absence to state: we never looked.
+    parts.push(
+      readNothing(view)
+        ? `We could not read any of your pages, so we could not check whether it answers ${list}.`
+        : `It does not answer${where ? `, ${where}` : ""}: ${list}.`,
+    );
   }
   return parts.join(" ");
 }
@@ -1006,14 +1027,19 @@ export function heldBack(view: ReportView): HeldBack {
  * lists 95 was "read whole" at 20. A stored row is re-read here: without a
  * sitemap count the pages read reach, each `absent` becomes `unverified`.
  */
-function withCoverage(acc: Accuracy, sitemapUrlCount: number | null): Accuracy {
-  const size = acc.siteUrlCount ?? sitemapUrlCount;
-  const full = acc.siteFullyRead && size !== null && size > 0 && acc.pagesRead >= size;
-  if (full) return acc;
+function withCoverage(acc: Accuracy, d: PagesDenominator): Accuracy {
+  // One rule with the sentences around it (W3's `pages-read.ts`): an absence
+  // stands only where "we read them all" may print, a complete, untruncated
+  // sitemap the source check's pages reach. A floor, a count of links, or no
+  // count at all is not a site read whole.
+  if (acc.siteFullyRead && completeOf(d)) return acc;
+  const phrase = phraseOf(d);
   const reason =
-    size === null || size <= 0
-      ? `We read ${acc.pagesRead} of your pages and could not learn how many your site has, so we cannot say this is absent from it.`
-      : `We read ${acc.pagesRead} of your ${size} pages, so we cannot say this is absent from your site.`;
+    phrase === null
+      ? "We could not read any of your pages for this check, so we cannot say this is absent from your site."
+      : d.site === null
+        ? `We read ${phrase} and could not learn how many your site has, so we cannot say this is absent from it.`
+        : `We read ${phrase}, so we cannot say this is absent from your site.`;
   return {
     ...acc,
     siteFullyRead: false,
@@ -1220,6 +1246,28 @@ export type ReportView = {
    *  at most a fixed number of pages, so "we read 14 of your 20 pages" was
    *  the crawl cap presented as the site; this is the honest denominator. */
   sitemapUrlCount: number | null;
+  /** True when `sitemapUrlCount` is a floor: the sitemap was truncated, or a
+   *  legacy row stored no `truncated` flag (absent means unknown). Read by the
+   *  source check's total when the crawl kept no pages to count. */
+  sitemapIsFloor?: boolean;
+  /**
+   * The denominator every absence is stated against: `read` is how many pages
+   * the crawl actually read (an extract came back), `site` how many pages of
+   * the site we know exist, the largest of the sitemap's count, the pages the
+   * crawl knew of before its cap, and `read` itself. `site` is null when there
+   * is no sitemap and the report predates the crawl counting what it knew of.
+   * Null when there is no crawl.
+   */
+  pagesRead: {
+    read: number;
+    site: number | null;
+    siteIsFloor?: boolean;
+    /** Where `site` came from: the sitemap (present), the pages the home page
+     *  links to (no sitemap), or "found": the union of those links and the
+     *  sitemap's URLs, when the union outgrows the sitemap. Only a sitemap total
+     *  may be stated as "your pages" or "all". */
+    siteFrom?: "sitemap" | "links" | "found" | null;
+  } | null;
   /** Stages that RAN AND FAILED, in report order. A stage this era of the
    *  payload lacks, or one the producer skipped on purpose, is not here: both
    *  are "never ran", and only this list may say "ran and failed". */
@@ -1639,6 +1687,62 @@ export function sourceCheckHasRows(view: ReportView): boolean {
   return sourceCheckMeasured(view) && statements(view).length > 0;
 }
 
+/** A legacy crawl's sitemap total is a floor when it was truncated. One stored
+ *  before the flag existed has no `truncated` key, and an absent flag is "we do
+ *  not know", never "not truncated": so a present sitemap with no flag is a floor. */
+function sitemapIsFloor(
+  sitemap: { truncated?: boolean } | undefined,
+  count: number | null,
+): boolean {
+  return sitemap?.truncated === true || (count !== null && typeof sitemap?.truncated !== "boolean");
+}
+
+/** See `ReportView.pagesRead`. A crawl stored before it counted what it knew
+ *  of (no `selection`) gives a site count only when the sitemap lists more
+ *  pages than were read: a smaller sitemap says nothing about the site, and
+ *  "all 20 of your pages" over a 12-URL sitemap was the old report's claim. */
+function pagesReadOf(
+  crawl: {
+    sitemap?: { present?: boolean; urlCount?: number; truncated?: boolean };
+    pages?: { raw?: unknown; rendered?: unknown }[];
+    selection?: { pagesConsidered?: number };
+  } | null,
+): ReportView["pagesRead"] {
+  if (!crawl || !Array.isArray(crawl.pages)) return null;
+  const read = crawl.pages.filter((p) => p && (p.raw || p.rendered)).length;
+  const sitemap =
+    crawl.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
+      ? crawl.sitemap.urlCount
+      : null;
+  const considered =
+    typeof crawl.selection?.pagesConsidered === "number" ? crawl.selection.pagesConsidered : null;
+  const known = [sitemap, considered].filter((n): n is number => n !== null);
+  // A count below the pages read says nothing of the site's total: no total then.
+  if (crawl.selection) {
+    const largest = known.length ? Math.max(...known) : null;
+    if (largest === null || largest < read)
+      return { read, site: null, siteIsFloor: false, siteFrom: null };
+    return {
+      read,
+      site: largest,
+      // A truncated sitemap makes the site total a floor whichever count was used.
+      siteIsFloor: crawl.sitemap?.truncated === true,
+      // The union of the home page's links and the sitemap outgrows the sitemap:
+      // it is pages we found, which a sitemap-less count of links also is not "your".
+      siteFrom: largest === sitemap ? "sitemap" : sitemap !== null ? "found" : "links",
+    };
+  }
+  // A crawl stored before it counted what it knew of has only the sitemap to go on.
+  if (sitemap === null || sitemap <= read)
+    return { read, site: null, siteIsFloor: false, siteFrom: null };
+  return {
+    read,
+    site: sitemap,
+    siteIsFloor: sitemapIsFloor(crawl.sitemap, sitemap),
+    siteFrom: "sitemap",
+  };
+}
+
 export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): ReportView {
   const r = applyOverrides(raw, overrides) as Record<string, unknown>;
 
@@ -1673,7 +1777,9 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
   // crawlers we checked".
   const crawl = stage<{
     agentAccess?: { agent: string }[];
-    sitemap?: { present?: boolean; urlCount?: number };
+    sitemap?: { present?: boolean; urlCount?: number; truncated?: boolean };
+    pages?: { raw?: unknown; rendered?: unknown }[];
+    selection?: { pagesConsidered?: number };
   }>(r.crawl);
   const assets = stage<Assets>(r.assets);
   const basics = stage<Basics>(r.basics);
@@ -1686,10 +1792,18 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
     crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
       ? crawl.sitemap.urlCount
       : null;
+  const pagesRead = pagesReadOf(crawl);
+  const siteIsFloor = sitemapIsFloor(crawl?.sitemap, sitemapCount);
   const accuracy: Accuracy | null = accuracyRaw
     ? withCoverage(
         { ...accuracyRaw, conflation: accuracyRaw.conflation ?? NO_CONFLATION },
-        sitemapCount,
+        checkDenominatorOf(
+          accuracyRaw.pagesRead,
+          pagesRead,
+          // A row whose crawl kept no sitemap count still has the producer's.
+          sitemapCount ?? accuracyRaw.siteUrlCount ?? null,
+          sitemapCount === null ? true : siteIsFloor,
+        ),
       )
     : null;
 
@@ -1756,6 +1870,8 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
         }
       : null,
     sitemapUrlCount: sitemapCount,
+    sitemapIsFloor: siteIsFloor,
+    pagesRead,
     failedStages: STAGE_KEYS.filter((k) => ranAndFailed(r[k])),
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,

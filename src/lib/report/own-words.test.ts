@@ -44,14 +44,21 @@ const row = (over: Partial<Assertion>): Assertion => ({
 });
 
 /** The all-pass report with these assertions, its site read whole by its own
- *  sitemap so an `absent` can stand. */
+ *  sitemap so an `absent` can stand. Since W3 the rule is the one its sentences
+ *  use (`completeOf`): a complete, untruncated sitemap that the crawl's count
+ *  of what it knew of (`selection`) reaches, with every page read. */
 function reportWith(assertions: Assertion[], over: Partial<Data> = {}): AuditReport {
   const pages = allPass.accuracy.data.pagesRead as number;
   return {
     ...ALL_PASS_REPORT,
     crawl: {
       ok: true,
-      data: { ...allPass.crawl.data, sitemap: { present: true, urlCount: pages } },
+      data: {
+        ...allPass.crawl.data,
+        sitemap: { present: true, urlCount: pages, truncated: false },
+        selection: { pagesConsidered: pages },
+        pages: Array.from({ length: pages }, (_, i) => ({ url: `/p${i}`, raw: { text: "x" } })),
+      },
     },
     accuracy: { ok: true, data: { ...allPass.accuracy.data, assertions, ...over } },
   } as AuditReport;
@@ -261,7 +268,7 @@ describe("absent needs the whole site, by its own sitemap", () => {
       ...base,
       crawl: {
         ok: true,
-        data: { ...allPass.crawl.data, sitemap: { present: true, urlCount: 95 } },
+        data: { ...allPass.crawl.data, sitemap: { present: true, urlCount: 95, truncated: false } },
       },
     } as AuditReport;
     const view = toReportView(r);
@@ -276,6 +283,19 @@ describe("absent needs the whole site, by its own sitemap", () => {
   it("keeps absent when the pages read cover the sitemap (positive control)", () => {
     const view = toReportView(reportWith([absent]));
     expect(view.accuracy?.assertions[0]?.verdict).toBe("absent");
+  });
+
+  // One rule with W3's sentences: "we read them all" never prints over a row
+  // stored before the crawl counted what it knew of, or a sitemap with no
+  // `truncated` flag, so an absence may not rest on it either. W2's own rule
+  // (sitemap count at or below the pages read) kept this one `absent`.
+  it("makes an absent unverified on a row stored before the crawl counted its pages", () => {
+    const base = reportWith([absent]);
+    const data = (base.crawl as { data: Record<string, unknown> }).data;
+    const { selection: _s, ...legacy } = data;
+    const { truncated: _t, ...sitemap } = data.sitemap as Record<string, unknown>;
+    const r = { ...base, crawl: { ok: true, data: { ...legacy, sitemap } } } as AuditReport;
+    expect(toReportView(r).accuracy?.assertions[0]?.verdict).toBe("unverified");
   });
 });
 

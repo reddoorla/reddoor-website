@@ -1,12 +1,13 @@
 <script lang="ts">
+  import { GOAL_LABELS, gapClause, type GoalRequirement, type ReportView } from "./model";
   import {
-    GOAL_LABELS,
-    gapClause,
-    goalVerdict,
-    type GoalRequirement,
-    type ReportView,
-  } from "./model";
-  import { numberWord } from "./narrative";
+    absenceTag,
+    goalInferenceLead,
+    goalVerdictLine,
+    numberWord,
+    pagesReadPhrase,
+    readNothing,
+  } from "./narrative";
   import { composed } from "./overrides";
 
   // Whether the site does the one job it exists to do.
@@ -62,7 +63,11 @@
   // string offered to `composed` is the string rendered below. Rendering it
   // through the harness with that override would close that.
   const verdict = $derived(
-    composed(view.overrides, "composed:goalVerdict", goalVerdict(missing.length, judged.length)),
+    composed(
+      view.overrides,
+      "composed:goalVerdict",
+      goalVerdictLine(view, missing.length, judged.length),
+    ),
   );
 </script>
 
@@ -72,14 +77,17 @@
     about your site.
   </p>
 {:else if fit.goal === "unknown"}
-  <!-- A real measurement, not a failure. We read every page and could not tell
+  <!-- A real measurement, not a failure. We read the pages we could and could not tell
        what the site is for — which is a finding about the site, so it must not
        be dressed up as an apology from us. No checklist is rendered on purpose:
        grading against a purpose we could not identify would report our own
        guess as their failing. -->
   <div class="flex flex-col gap-5">
     <p class="type-lede m-0 text-primary">
-      We read every page and could not tell what {who} wants a visitor to actually do.
+      {readNothing(view)
+        ? "We could not read any of your pages, so we could not tell"
+        : `We read ${pagesReadPhrase(view) ?? "your pages"} and could not tell`} what {who} wants a visitor
+      to actually do.
     </p>
     <p class="m-0 text-muted">
       That is not a criticism of the writing — it is a finding about the structure. Sites that
@@ -100,7 +108,7 @@
           You told us your site is built to get a visitor to
           <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
         {:else}
-          As far as we can tell from reading it, your site is built to get a visitor to
+          {goalInferenceLead(view)}, your site is built to get a visitor to
           <strong>{GOAL_LABELS[fit.goal] ?? fit.goal}</strong>.
         {/if}
         {verdict}
@@ -125,7 +133,9 @@
           <li class="flex flex-col gap-1.5 border-t border-light py-6">
             <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
               <p class="type-eyebrow m-0 text-primary">{row.label}</p>
-              <p class="type-question m-0 text-primary">Not on the site</p>
+              <p class="type-question m-0 text-primary">
+                {absenceTag(view)}
+              </p>
             </div>
             <p class="type-meta m-0 text-muted">{row.why}</p>
             <!-- A missing row can carry evidence too: it names the stranded

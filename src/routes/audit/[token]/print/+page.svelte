@@ -20,7 +20,14 @@
     displayQuote,
     heldBackLines,
     headlineFinding,
+    absenceTag,
+    answerLabel,
+    pagesReadPhrase,
+    readNothing,
+    unsourcedLead,
     passes,
+    questionReceipt,
+    sourceCheckFootnote,
   } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
   import type { PageData } from "./$types";
@@ -33,12 +40,6 @@
 
   const auditDate = $derived(auditedOn(view));
 
-  const ANSWERED_LABEL = {
-    yes: "Yes",
-    partial: "Partial",
-    no: "No",
-    unknown: "Not measured",
-  } as const;
   const EFFORT_LABEL = {
     low: "About an hour",
     medium: "A few days",
@@ -77,7 +78,8 @@
     Boolean(accuracy && !accuracy.siteFullyRead) ||
       (view.sitemapUrlCount !== null &&
         accuracy !== null &&
-        view.sitemapUrlCount > accuracy.pagesTotal),
+        view.sitemapUrlCount > accuracy.pagesTotal) ||
+      (accuracy !== null && (view.pagesRead?.site ?? 0) > accuracy.pagesRead),
   );
   const confirmedList = $derived(confirmedRows(view));
   const held = $derived(heldBackLines(view));
@@ -216,7 +218,9 @@
       {/each}
       {#if notSourced.length}
         <h3>What the AI says about you</h3>
-        <p class="note">These are claims that seem not to be sourced from your site.</p>
+        <p class="note">
+          These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
+        </p>
         <ul>
           {#each notSourced as u, i (i)}
             <li>&ldquo;{displayQuote(u.engineQuote)}&rdquo;</li>
@@ -246,10 +250,7 @@
       {/if}
       {#if sampled}
         <p class="fix-w">
-          We read {accuracy.pagesRead} of the {accuracy.pagesTotal} pages we crawled for this check{view.sitemapUrlCount !==
-          null
-            ? `; your sitemap lists ${view.sitemapUrlCount}`
-            : ""}. Nothing above is reported as missing on the strength of pages we did not read.
+          {sourceCheckFootnote(view)}
         </p>
       {/if}
     </section>
@@ -317,13 +318,20 @@
     {#if view.goalFit}
       <h3>Does your site do its job</h3>
       {#if view.goalFit.goal === "unknown"}
-        <p>We read every page and could not tell what {who} wants a visitor to do.</p>
+        <p>
+          {readNothing(view)
+            ? "We could not read any of your pages, so we could not tell"
+            : `We read ${pagesReadPhrase(view) ?? "your pages"} and could not tell`} what {who} wants
+          a visitor to do.
+        </p>
       {:else if goalMissing.length === 0}
         <p class="note">Everything the site needs for that job is in place — see What passes.</p>
       {:else}
         {#each goalMissing as row (row.key)}
           <div class="fix">
-            <p class="fix-t">{row.label} <span class="answered no">Not on the site</span></p>
+            <p class="fix-t">
+              {row.label} <span class="answered no">{absenceTag(view)}</span>
+            </p>
             <p class="fix-w">{row.why}</p>
             {#if row.evidence}<p class="fix-w">{row.evidence}</p>{/if}
           </div>
@@ -344,10 +352,11 @@
           {#each view.buyerQuestions as q (q.question)}
             <tr>
               <td>{q.question}</td>
-              <td class="answered {q.answered}">{ANSWERED_LABEL[q.answered]}</td>
+              <td class="answered {q.answered}">
+                {answerLabel(q, view)}
+              </td>
               <td class="evidence">
-                {#if q.evidence}&ldquo;{q.evidence}&rdquo;{:else if q.answered === "unknown"}not
-                  judged on this audit{:else}no passage an assistant could quote{/if}
+                {questionReceipt(view, q)}
               </td>
             </tr>
           {/each}
