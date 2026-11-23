@@ -2137,10 +2137,10 @@ A report's 22-character token is the whole credential for reading it, and this r
 
 **Rotated first, scrubbed second.** Git history keeps a scrubbed token, so the row got a new token before anything here changed. The old and new values are recorded only in the private workspace. Through maintenance's JSON route, with the edit-session header so no read receipt was stamped, the old token answers 404 and the new one 200. Then the two journal lines were redacted to say the token was rotated, and the plan's example became the fake token the layout test already uses. Those two lines are the one deliberate exception to "history is never edited": they lose a credential and assert nothing new. Everything else they say is untouched.
 
-**The check.** `scripts/no-report-tokens.test.ts` (in `pnpm test:unit`, so in the `ci` gate) reads every tracked text file and fails on `/audit/` followed by exactly 22 token characters, printing only the first six. The fake token in `src/routes/layout.server.test.ts` is allow-listed by name. Before it was trusted, it was proved both ways:
+**The check.** `scripts/no-report-tokens.test.ts` runs in `pnpm test:unit`, so it is in the `ci` gate. It reads every tracked text file and fails on exactly 22 token characters after any route that takes a token (`/audit/`, the `/r/` redirect, `/api/audit-report/`), with slashes optionally JSON-escaped, or after a stored row's `"token": "`. It prints only the first six characters. Review round 1 widened it from `/audit/` alone. Fake tokens pass: the one the layout and fetch tests share, and one character repeated, which `generateToken()` never makes. Before it was trusted, it was proved both ways:
 
-- On a synthetic token built at runtime, it found the token and ignored placeholders, wrong lengths and the allowed fixture.
+- On a synthetic token built at runtime, it found the token on every route shape and ignored placeholders, wrong lengths and fake tokens.
 - On the unscrubbed tree it failed, naming exactly the 09-16 line.
 - After the scrub it passes.
 
-It does not catch a bare token without the `/audit/` prefix: a bare 22-character base64url string is too common a shape to fail CI on. The companion change for maintenance is reddoorla/reddoor-maintenance#2252.
+It does not catch a bare token with no route before it, because a bare 22-character base64url string is too common a shape to fail CI on. Nor does it see commit messages or PR bodies, which are not tracked files. The companion change for maintenance is reddoorla/reddoor-maintenance#2252.
