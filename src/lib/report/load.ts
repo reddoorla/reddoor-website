@@ -150,14 +150,16 @@ function composedInForce(report: AuditReport, map: OverrideMap): OverrideMap {
   const view = toReportView(report, map);
   const lines = editableTargets(view, report).map((t) => ({ key: t.key, text: t.text }));
   // GoalFit.svelte wraps the one composed line `editableTargets` does not list.
-  const reqs = view.goalFit?.requirements ?? [];
-  const judged = reqs.filter((r) => r.status !== "unmeasured");
-  const missing = judged.filter((r) => r.status === "missing");
-  const verdictKey = "composed:goalVerdict";
-  lines.push({
-    key: verdictKey,
-    text: composed(map, verdictKey, goalVerdict(missing.length, judged.length)),
-  });
+  // Only where GoalFit shows a verdict at all (review round 4).
+  if (view.goalFit && view.goalFit.goal !== "unknown") {
+    const judged = view.goalFit.requirements.filter((r) => r.status !== "unmeasured");
+    const missing = judged.filter((r) => r.status === "missing");
+    const verdictKey = "composed:goalVerdict";
+    lines.push({
+      key: verdictKey,
+      text: composed(map, verdictKey, goalVerdict(missing.length, judged.length)),
+    });
+  }
   const shown = new Set(
     lines.filter((t) => map[t.key] && map[t.key]!.text === t.text).map((t) => t.key),
   );

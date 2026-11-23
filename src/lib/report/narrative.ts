@@ -595,8 +595,18 @@ const HEALTH_FIXES: Record<string, HealthFixSpec> = {
  * fragment here would match nothing.
  */
 export function healthFixes(view: ReportView): Fix[] {
+  return healthFixEntries(view).map((e) => e.fix);
+}
+
+/**
+ * The health fixes with the row each was written for. The edit list keys its
+ * targets by that row (W1 review round 4): it used to key them by position,
+ * which this renderer never looks up, so an operator's edit to a health fix
+ * saved and then never rendered.
+ */
+export function healthFixEntries(view: ReportView): { rowKey: string; fix: Fix }[] {
   const written = view.fixes.map((f) => f.title);
-  const out: Fix[] = [];
+  const out: { rowKey: string; fix: Fix }[] = [];
   for (const row of healthRows(view)) {
     if (!row.alert) continue;
     const spec = HEALTH_FIXES[row.key];
@@ -604,20 +614,23 @@ export function healthFixes(view: ReportView): Fix[] {
     const title = spec.title(row, view);
     const why = `${spec.what} ${row.detail}`.trim();
     out.push({
-      // Keyed by the ROW's key, not by this fix's position in `out`. The two
-      // lists are COMPACTED apart: a row that does not alert, and a row whose
-      // fix the audit already wrote, are both skipped — so `healthFix[2]` is
-      // not `health[2]`, and the offset shifts with the audit's own content.
-      // An editing UI holding a row could not derive the positional key, while
-      // `row.key` is stable and is already the join key between a row and its
-      // fix spec. (Positional keys stay fine where the list is the list, as
-      // `passes` is; see the module doc in `overrides.ts`.)
-      title: composed(view.overrides, `composed:healthFix[${row.key}].title`, title),
-      why: composed(view.overrides, `composed:healthFix[${row.key}].why`, why),
-      impact: spec.impact,
-      effort: spec.effort,
-      tier: spec.tier,
-      origin: "measured",
+      rowKey: row.key,
+      fix: {
+        // Keyed by the ROW's key, not by this fix's position in `out`. The two
+        // lists are COMPACTED apart: a row that does not alert, and a row whose
+        // fix the audit already wrote, are both skipped — so `healthFix[2]` is
+        // not `health[2]`, and the offset shifts with the audit's own content.
+        // An editing UI holding a row could not derive the positional key, while
+        // `row.key` is stable and is already the join key between a row and its
+        // fix spec. (Positional keys stay fine where the list is the list, as
+        // `passes` is; see the module doc in `overrides.ts`.)
+        title: composed(view.overrides, `composed:healthFix[${row.key}].title`, title),
+        why: composed(view.overrides, `composed:healthFix[${row.key}].why`, why),
+        impact: spec.impact,
+        effort: spec.effort,
+        tier: spec.tier,
+        origin: "measured",
+      },
     });
   }
   return out;

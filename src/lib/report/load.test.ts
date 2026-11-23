@@ -11,7 +11,8 @@ vi.mock("$app/env/private", () => ({
 const { loadReport } = await import("./load");
 import { EDIT_COOKIE } from "./edit-auth";
 import { toReportView } from "./model";
-import { headlineFinding } from "./narrative";
+import { headlineFinding, healthFixes } from "./narrative";
+import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 import type { AuditReport } from "./fetch";
 
 const REPORT = { url: "https://acme.example/", businessName: "Acme Roofing", scores: {} };
@@ -362,6 +363,36 @@ describe("W1 review round 3: a rewording that no longer renders is not shipped t
     expect(JSON.stringify(ed.overrides)).toContain(STALE);
   });
 
+  it("round 4: keeps a health-fix rewording that renders (keyed by the row)", async () => {
+    const report = viewportFails() as AuditReport;
+    const fix = healthFixes(toReportView(report))[0]!;
+    const body = {
+      report,
+      overrides: {
+        "composed:healthFix[viewport].title": { original: fix.title, text: "Reworded fix" },
+      },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const data = await loadReport(event(TOKEN, respondWith(200, body)).evt);
+    expect(Object.keys(data.overrides)).toEqual(["composed:healthFix[viewport].title"]);
+    expect(healthFixes(toReportView(data.report, data.overrides))[0]!.title).toBe("Reworded fix");
+  });
+
+  it("round 4: drops a goal-verdict rewording where no verdict is shown", async () => {
+    const body = {
+      report: { url: "https://acme.example/" },
+      overrides: {
+        "composed:goalVerdict": {
+          original: "We could not judge any of what it needs to do that.",
+          text: "NOT SHOWN",
+        },
+      },
+      approvedAt: "2026-11-23T20:00:00.000Z",
+    };
+    const data = await loadReport(event(TOKEN, respondWith(200, body)).evt);
+    expect(JSON.stringify(data)).not.toContain("NOT SHOWN");
+  });
+
   it("keeps a goal-verdict rewording that renders, which the edit targets do not list", async () => {
     const report = {
       url: "https://acme.example/",
@@ -389,3 +420,10 @@ describe("W1 review round 3: a rewording that no longer renders is not shipped t
     expect(Object.keys(data.overrides)).toEqual(["composed:goalVerdict"]);
   });
 });
+
+/** The all-pass fixture with one measured problem: no viewport tag (one health fix). */
+function viewportFails() {
+  const r = structuredClone(ALL_PASS_REPORT) as Record<string, unknown>;
+  (r.checks as { data: Record<string, unknown> }).data.viewportOk = false;
+  return r;
+}

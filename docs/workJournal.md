@@ -2161,9 +2161,9 @@ Mutations, each turning one named test red: cookie path back to `/audit` (the br
 
 Deploy order matters: this half must be on `main` before maintenance's lands, or the editor cannot open a draft (no bearer sent) and a superseded link would 500 instead of redirecting.
 
-## 2026-11-23 — W1 review rounds 1 to 3: what changed after the entry above (#379, `claude/w1-approve-before-link`)
+## 2026-11-23 — W1 review rounds 1 to 4: what changed after the entry above (#379, `claude/w1-approve-before-link`)
 
-The entry above was written before review and is left as it was. Three rounds of review changed what it describes, all of them dirty.
+The entry above was written before review and is left as it was. Four rounds of review changed what it describes, all of them dirty.
 
 Round 1 found that a row the operator hid was still in the reader's page: SvelteKit serialises `load` data for hydration, so a hidden fix sat in `__data.json` and view-source. Readers now get the payload with every override already applied on the server, and only the `composed:` entries, which name sentences this repo writes and can be matched only at render time. The editor alone gets the stored payload and the whole map, to show and revert. The same round made the smoke spec's tokens per run, after it failed 2 times in 40 at six workers by racing itself.
 
@@ -2172,5 +2172,7 @@ Round 2 found that those composed entries still carried `original`, the sentence
 Round 3 found two more, both reproduced. A run whose page checks failed still said "checks out": the producer writes the analysis as "skipped — the checks stage failed", which is on the list of deliberate skips, so the guard never saw a failure. `checks` is now one of the stages all clear needs. And a rewording that no longer rendered (written against a row later hidden, or data that changed) was withheld from the page but its text still shipped. A reader now keeps only the composed entries whose line displays their text with the current map, which is the renderer's own test. `composed:goalVerdict` is wrapped inside `GoalFit.svelte` and is not an edit target, so the filter computes that line itself; without it a valid goal-verdict rewording would have been dropped, and a test pins that. A 410 that points back at its own token is now a 404, not a redirect loop.
 
 Mutations for round 3, each turning its test red: dropping `checks` from the guard; shipping every composed entry; leaving the goal verdict out of the filter; following a self-pointer.
+
+Round 4 found that round 3's filter dropped health-fix rewordings that did render. The renderer looks a health fix up by its row (`composed:healthFix[viewport].title`), and the edit list had always offered it by position (`composed:healthFix[0].title`), a key nothing reads. So the filter, built on the edit list, threw away the row-keyed ones, and every health-fix edit an operator saved from the browser had never rendered on any page, the editor's included. The edit list now keys health fixes by row, through `healthFixEntries`, which `healthFixes` also uses. A test saves each health-fix target under its own key and checks it renders; putting the positional key back turns it and the reader test red. Any positional health-fix entry already stored stays dead, as it always was. The same round stopped the goal-verdict line being kept where `GoalFit` shows no verdict (no goal fit, or an unknown goal).
 
 Belief corrected: "a stage skipped on purpose still allows all clear" was true of `--no-probes` and false of a skip that another stage's failure caused. The skip strings say why a stage did not run, and only some of the reasons are the operator's choice.

@@ -1,7 +1,13 @@
 import type { AuditReport, OverrideMap } from "./fetch";
 import { CONFLATION_KEY, HIDEABLE, hiddenRowKeys } from "./overrides";
 import { openingSummary, type ReportView } from "./model";
-import { headlineFinding, passes, collisionBlock, collisionFix, healthFixes } from "./narrative";
+import {
+  headlineFinding,
+  passes,
+  collisionBlock,
+  collisionFix,
+  healthFixEntries,
+} from "./narrative";
 import { healthRows } from "./health";
 
 /** One line an operator can rewrite. */
@@ -140,9 +146,10 @@ export function editableTargets(view: ReportView, raw?: AuditReport): EditTarget
     push(out, map, "composed:collisionFix.why", collision.why);
   }
 
-  healthFixes(view).forEach((f, i) => {
-    push(out, map, `composed:healthFix[${i}].title`, f.title);
-    push(out, map, `composed:healthFix[${i}].why`, f.why);
+  // Keyed by the row, as `healthFixes` looks them up (W1 review round 4).
+  healthFixEntries(view).forEach(({ rowKey, fix }) => {
+    push(out, map, `composed:healthFix[${rowKey}].title`, fix.title);
+    push(out, map, `composed:healthFix[${rowKey}].why`, fix.why);
   });
 
   return out;

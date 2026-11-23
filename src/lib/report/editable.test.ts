@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { editableTargets, resolveTargets, type EditTarget } from "./editable";
 import { toReportView } from "./model";
+import { healthFixes } from "./narrative";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 
 const RAW = {
@@ -97,6 +98,22 @@ describe("editableTargets", () => {
     expect(firstHealth).toBeGreaterThanOrEqual(0);
     expect(firstDerived).toBeGreaterThanOrEqual(0);
     expect(firstHealth).toBeLessThan(firstDerived);
+  });
+});
+
+describe("W1 review round 4: every composed target key is one the renderer reads", () => {
+  it("an edit saved under a health fix's target key renders in healthFixes", () => {
+    const raw = viewportFails() as typeof ALL_PASS_REPORT;
+    const targets = editableTargets(toReportView(raw), raw).filter((t) =>
+      t.key.startsWith("composed:healthFix["),
+    );
+    expect(targets.length).toBeGreaterThan(0);
+    for (const t of targets) {
+      const map = { [t.key]: { original: t.original, text: `EDITED ${t.key}` } };
+      const view = toReportView(raw, map);
+      const shown = healthFixes(view).flatMap((f) => [f.title, f.why]);
+      expect(shown).toContain(`EDITED ${t.key}`);
+    }
   });
 });
 
@@ -248,3 +265,10 @@ describe("W1 review round 2: hiding stops at the last row, and a hidden row is n
     );
   });
 });
+
+/** The all-pass fixture with one measured problem: no viewport tag (one health fix). */
+function viewportFails() {
+  const r = structuredClone(ALL_PASS_REPORT) as Record<string, unknown>;
+  (r.checks as { data: Record<string, unknown> }).data.viewportOk = false;
+  return r;
+}
