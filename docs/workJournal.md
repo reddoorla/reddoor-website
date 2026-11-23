@@ -835,7 +835,7 @@ sessions from our own Playwright runs as client traffic.
 
 ## 2026-09-16 — Tim's MarkUp round on the audit report: title, "live", heading, question link (fix/report-tim-markup)
 
-Tim marked up the Reddoor report (`/audit/xZMVU1EaZLC1ZLAJ81Rzxg`) on 09-15
+Tim marked up the Reddoor report (its token, since rotated, is kept in the private workspace) on 09-15
 at 14:13–14:35 PT and never sent the link; it surfaced in
 `#rd-clients-by-design` on 09-16. The board is "AEO / SEO Report", 8 pins.
 Pin screenshots could not be fetched this session (reading the MarkUp key for
@@ -1460,7 +1460,7 @@ There is no Firefox in the cloud container, so Firefox smoothness rests on Tucke
 
 ## 2026-09-30 — The audit's print sheet stops printing the site's nav and footer, and gets its title block back
 
-The PDF leave-behind that reddoor-maintenance attaches to every prospect-audit email is printed from `/audit/{token}/print`. Printed for token `xZMVU1EaZLC1ZLAJ81Rzxg` (the audit of reddoorla.com itself), page 1 had the site's "Reddoor Creative" wordmark and hamburger over the verdict, no title, and a mostly blank page after that. The last page carried the whole site footer, with the copyright cut off after "All Rights".
+The PDF leave-behind that reddoor-maintenance attaches to every prospect-audit email is printed from `/audit/{token}/print`. Printed for our own report (its token since rotated; the audit of reddoorla.com itself), page 1 had the site's "Reddoor Creative" wordmark and hamburger over the verdict, no title, and a mostly blank page after that. The last page carried the whole site footer, with the copyright cut off after "All Rights".
 
 The print sheet already meant to hide the chrome, and the one rule it had for that did the opposite of what it said. `:global(header), :global(nav), :global(body > footer) { display: none }` missed all three pieces of the site's chrome. The navs are `<div>`s, not `<header>` or `<nav>`, and the footer sits inside `main > div`, never directly under `body`. What it did hide was the sheet's own `<header>`, the eyebrow, h1 and meta line, so the title block was the only thing the rule removed. The rule is gone. The print route's load now returns `siteChrome: false`, and the root layout renders none of its three nav variants and no footer when a page says so. A data flag rather than a path match, so nothing else changes by being called `print`.
 
@@ -2130,3 +2130,17 @@ A prospect's report opened on "Asked about you by name, the assistant is not sur
 **Measured.** Of 74 stored reports, 4 printed the block. The 4 rows' verdicts were re-judged with the fixed prompt (operator's call; a dry run first, which wrote nothing). The instrument passed on known input: the sure answer came back `settled: true`, and the three that ask "which one do you mean" came back `false`. Only that field was written. On this branch, 1 report loses the finding and 3 keep it in the new words. No other fix moved, and no read receipt moved. Mutations: the old detected-only rule (3 tests red), "businesses" back in the lead (2), the old block sentence (2), and the print sheet gated on `detected` (1).
 
 **Belief corrected.** "Detected" had come to mean "unsure". An answer can name a namesake precisely because it is sure.
+
+## 2026-11-23 — No report token in a tracked file; our own report's token rotated (B-06, `claude/b06-no-report-tokens`)
+
+A report's 22-character token is the whole credential for reading it, and this repo is public. Our own report's token had been in this journal since 09-16, in the entry on Tim's MarkUp round, and twice more as a bare word: in the PDF leave-behind entry and in an example in the 09-08 og-cards plan. It was finding B-06 of the 11-23 audit-system review, along with a client's token in reddoor-maintenance's public journal.
+
+**Rotated first, scrubbed second.** Git history keeps a scrubbed token, so the row got a new token before anything here changed. The old and new values are recorded only in the private workspace. Through maintenance's JSON route, with the edit-session header so no read receipt was stamped, the old token answers 404 and the new one 200. Then the two journal lines were redacted to say the token was rotated, and the plan's example became the fake token the layout test already uses. Those two lines are the one deliberate exception to "history is never edited": they lose a credential and assert nothing new. Everything else they say is untouched.
+
+**The check.** `scripts/no-report-tokens.test.ts` runs in `pnpm test:unit`, so it is in the `ci` gate. It reads every tracked text file and fails on exactly 22 token characters after any route that takes a token (`/audit/`, the `/r/` redirect, `/api/audit-report/`), with slashes optionally JSON-escaped, or after a stored row's `"token": "`. On a failure it prints the route and only six token characters, since CI logs are public. Review round 1 widened it from `/audit/` alone. Fake tokens pass: the one the layout and fetch tests share, and one character repeated, which `generateToken()` never makes. Before it was trusted, it was proved both ways:
+
+- On a synthetic token built at runtime, it found the token on every route shape and ignored placeholders, wrong lengths and fake tokens.
+- On the unscrubbed tree it failed, naming exactly the 09-16 line.
+- After the scrub it passes.
+
+It does not catch a bare token with no route before it, because a bare 22-character base64url string is too common a shape to fail CI on, nor a percent-encoded route or a `token=` query parameter. Nor does it see commit messages or PR bodies, which are not tracked files. The companion change for maintenance is reddoorla/reddoor-maintenance#2252.
