@@ -2,9 +2,9 @@
   import {
     collisionBlock,
     displayQuote,
-    inPagesRead,
     numberWord,
     sourceCheckFootnote,
+    unsourcedLead,
   } from "./narrative";
   import {
     citationRuns,
@@ -209,9 +209,7 @@
         <div class="flex flex-col gap-1.5">
           <h4 class="type-question m-0 text-black">What the AI says about you</h4>
           <p class="type-meta m-0 text-muted">
-            These are claims that seem not to be sourced from your site{inPagesRead(view)
-              ? `, ${inPagesRead(view)}`
-              : ""}.
+            These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
           </p>
         </div>
 

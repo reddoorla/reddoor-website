@@ -1,6 +1,6 @@
 import type { AuditReport } from "./fetch";
 import { applyOverrides, composed, type OverrideMap } from "./overrides";
-import { inPagesRead } from "./pages-read";
+import { inPagesRead, readNothing } from "./pages-read";
 
 /**
  * The shape the report components consume.
@@ -482,7 +482,12 @@ function openingSummaryText(view: ReportView): string | null {
         ? unanswered[0]
         : `${unanswered.slice(0, -1).join(", ")}, or ${unanswered.at(-1)}`;
     const where = inPagesRead(view);
-    parts.push(`It does not answer${where ? `, ${where}` : ""}: ${list}.`);
+    // Over zero pages read there is no absence to state: we never looked.
+    parts.push(
+      readNothing(view)
+        ? `We could not read any of your pages, so we could not check whether it answers ${list}.`
+        : `It does not answer${where ? `, ${where}` : ""}: ${list}.`,
+    );
   }
   return parts.join(" ");
 }
@@ -1243,7 +1248,8 @@ function pagesReadOf(
     return {
       read,
       site,
-      siteIsFloor: site !== null && site === sitemap && crawl.sitemap?.truncated === true,
+      // A truncated sitemap makes the site total a floor whichever count was used.
+      siteIsFloor: site !== null && crawl.sitemap?.truncated === true,
     };
   }
   const largest = known.length ? Math.max(...known) : null;
@@ -1251,7 +1257,7 @@ function pagesReadOf(
   return {
     read,
     site: largest,
-    siteIsFloor: largest === sitemap && crawl.sitemap?.truncated === true,
+    siteIsFloor: crawl.sitemap?.truncated === true,
   };
 }
 

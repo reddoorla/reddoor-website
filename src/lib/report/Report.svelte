@@ -491,7 +491,7 @@
                               ? 'text-primary'
                               : 'text-muted'}"
                           >
-                            {answerLabel(q)}
+                            {answerLabel(q, view)}
                           </td>
                           <!-- The receipt. A verdict with no passage beside it
                              is a claim the reader cannot check. -->

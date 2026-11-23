@@ -1,7 +1,16 @@
 import { healthRows, type HealthRow } from "./health";
-import { inPagesRead, numberWord, pagesReadPhrase, readNothing } from "./pages-read";
+import {
+  inPagesRead,
+  inSourceCheckPages,
+  numberWord,
+  pagesReadPhrase,
+  phraseOf,
+  readNothing,
+  sourceCheckDenominator,
+} from "./pages-read";
 import {
   GOAL_LABELS,
+  goalVerdict,
   nameUnsettled,
   sourceCheckMeasured,
   stageFailed,
@@ -48,29 +57,48 @@ export type Headline = { kind: HeadlineKind; text: string };
  *  answers, and the check of what those answers say. */
 const ALL_CLEAR_NEEDS: StageKey[] = ["analyze", "probes", "accuracy"];
 
-export { inPagesRead, numberWord, pagesReadPhrase, readNothing };
+export { inPagesRead, inSourceCheckPages, numberWord, pagesReadPhrase, readNothing };
+
+/** The line a goal's verdict prints. Over zero pages read it says we could not
+ *  look, never that the things it needs are absent. */
+export function goalVerdictLine(view: ReportView, missing: number, judged: number): string {
+  if (readNothing(view))
+    return "We could not read any of your pages, so we could not check what it needs to do that.";
+  return goalVerdict(missing, judged, inPagesRead(view));
+}
+
+/** The tag on a missing goal requirement: where we looked, or that we could not look. */
+export function absenceTag(view: ReportView): string {
+  return readNothing(view) ? "Could not check" : `Not ${inPagesRead(view) ?? "on the site"}`;
+}
+
+/** The lead of the unsourced-claims line: the pages the check read, or, when it
+ *  read none, that we could not read any to check against. */
+export function unsourcedLead(view: ReportView): string {
+  const clause = inSourceCheckPages(view);
+  return clause ? `, ${clause}` : ", though we could not read any of your pages to check";
+}
 
 /**
  * The source check's closing line, on the web and in print. It used to end
  * "Nothing above is reported as missing from your site on the strength of
  * pages we did not read", printed beside "absent" verdicts that rested on 20
- * of 95 pages (the audit-system review, BR-07). It now says what is true.
+ * of 95 pages (the audit-system review, BR-07). It states the count the check
+ * read, against the site's, the same count the clause above it carries.
  */
 export function sourceCheckFootnote(view: ReportView): string | null {
   const acc = view.accuracy;
-  if (!acc) return null;
-  // A legacy crawl (no `selection`) has a deliberate null site count, which
-  // must not fall back to the sitemap: that is the claim the null exists to avoid.
-  const site = view.pagesRead ? view.pagesRead.site : view.sitemapUrlCount;
-  // Every page of the site was read: the hedge would say a page was missed
-  // that was not, so it is dropped.
-  if (site !== null && site <= acc.pagesRead)
-    return `We read all ${numberWord(acc.pagesRead)} of your pages for this check.`;
-  const count =
-    site !== null
-      ? `${numberWord(acc.pagesRead)} of your ${view.pagesRead?.siteIsFloor ? "at least " : ""}${numberWord(site)} pages`
-      : `${numberWord(acc.pagesRead)} of the ${numberWord(acc.pagesTotal)} pages we crawled`;
-  return `We read ${count} for this check. A statement listed above may be on a page we did not read.`;
+  const d = sourceCheckDenominator(view);
+  if (!acc || !d) return null;
+  if (d.read < 1)
+    return "No page of your site could be read for this check. A statement listed above may be on a page we did not read.";
+  const hedge = "A statement listed above may be on a page we did not read.";
+  // The site total is unknown: the count is against the pages the crawl took.
+  if (d.site === null)
+    return `We read ${numberWord(d.read)} of the ${numberWord(acc.pagesTotal)} pages we crawled for this check. ${hedge}`;
+  // Every page of the site was read: the hedge would say a page was missed that was not.
+  if (d.site <= d.read) return `We read ${phraseOf(d)} for this check.`;
+  return `We read ${phraseOf(d)} for this check. ${hedge}`;
 }
 
 /** The third column of the buyer-question table: the receipt for a verdict,
@@ -98,6 +126,8 @@ export function questionReceipt(view: ReportView, q: BuyerQuestion): string {
     return `no direct answer found${where ? ` ${where}` : ""}, though “${q.notFound.term}” appears on ${path}`;
   }
   if (q.answered === "unknown") return "not judged on this audit";
+  if (q.answered === "no" && readNothing(view))
+    return "we could not read any of your pages, so we could not check";
   if (q.answered === "no" && where) return `not found ${where}`;
   return "no passage an assistant could quote";
 }
@@ -111,7 +141,9 @@ export const ANSWERED_LABEL = {
   unknown: "Not measured",
 } as const;
 
-export function answerLabel(q: BuyerQuestion): string {
+export function answerLabel(q: BuyerQuestion, view?: ReportView): string {
+  // Over zero pages read a "no" is not a finding: we never looked.
+  if (q.answered === "no" && view && readNothing(view)) return ANSWERED_LABEL.unknown;
   return q.answered === "unknown" && q.notFound ? "Unclear" : ANSWERED_LABEL[q.answered];
 }
 
@@ -187,6 +219,15 @@ function headlineFindingGenerated(view: ReportView): Headline {
   if (fit) {
     const judged = fit.requirements.filter((r) => r.status !== "unmeasured");
     const missing = judged.filter((r) => r.status === "missing");
+    if (missing.length > 0 && readNothing(view)) {
+      return {
+        kind: "goal-missing",
+        text:
+          `We could not read any of your pages, so we could not check whether your site is built to get a visitor ` +
+          `to ${GOAL_LABELS[fit.goal] ?? fit.goal}. We could not check these things it needs to do that: ` +
+          `${joinList(missing.map((r) => inline(r.label)))}.`,
+      };
+    }
     if (missing.length > 0) {
       const count =
         missing.length === 1
@@ -214,6 +255,13 @@ function headlineFindingGenerated(view: ReportView): Headline {
     const missing = view.buyerQuestions
       .filter((q) => q.answered === "no")
       .map((q) => inline(q.question));
+    if (readNothing(view))
+      return {
+        kind: "unanswered",
+        text:
+          "We could not read any of your pages, so we could not check whether your site answers the questions " +
+          `buyers ask first: ${joinList(missing)}.`,
+      };
     return {
       kind: "unanswered",
       text:

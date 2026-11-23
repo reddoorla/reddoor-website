@@ -17,10 +17,11 @@
     collisionBlock,
     displayQuote,
     headlineFinding,
+    absenceTag,
     answerLabel,
-    inPagesRead,
     pagesReadPhrase,
     readNothing,
+    unsourcedLead,
     passes,
     questionReceipt,
     sourceCheckFootnote,
@@ -218,9 +219,7 @@
       {#if notSourced.length}
         <h3>What the AI says about you</h3>
         <p class="note">
-          These are claims that seem not to be sourced from your site{inPagesRead(view)
-            ? `, ${inPagesRead(view)}`
-            : ""}.
+          These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
         </p>
         <ul>
           {#each notSourced as u (u.claim + u.query)}
@@ -326,7 +325,7 @@
         {#each goalMissing as row (row.key)}
           <div class="fix">
             <p class="fix-t">
-              {row.label} <span class="answered no">Not {inPagesRead(view) ?? "on the site"}</span>
+              {row.label} <span class="answered no">{absenceTag(view)}</span>
             </p>
             <p class="fix-w">{row.why}</p>
             {#if row.evidence}<p class="fix-w">{row.evidence}</p>{/if}
@@ -349,7 +348,7 @@
             <tr>
               <td>{q.question}</td>
               <td class="answered {q.answered}">
-                {answerLabel(q)}
+                {answerLabel(q, view)}
               </td>
               <td class="evidence">
                 {questionReceipt(view, q)}

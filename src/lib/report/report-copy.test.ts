@@ -712,3 +712,87 @@ describe("the rendered absences carry their denominator", () => {
     expect(seen(printed(READ))).toContain(line);
   });
 });
+
+// W3 review round 3. The rendered surfaces, web and print, each red before its fix.
+describe("review round 3: the rendered denominators agree and a zero-page read claims no absence", () => {
+  // Finding 1: the crawl read three pages of 95, and the source check read two.
+  // The clause and the footnote must both say two, never the crawl's three.
+  const TWO_CHECKED: AuditReport = {
+    ...READ,
+    accuracy: {
+      ok: true,
+      data: {
+        ...(READ.accuracy as unknown as { data: object }).data,
+        pagesRead: 2,
+        pagesTotal: 4,
+      },
+    } as unknown as AuditReport["accuracy"],
+  };
+  const twoView = toReportView(TWO_CHECKED);
+
+  it("the web source check says the count it read, in the clause and the footnote alike", () => {
+    const text = seen(renderText(sourceCheck, { view: twoView }));
+    expect(text).toContain("in the two of your 95 pages we read");
+    expect(text).toContain("We read two of your 95 pages for this check.");
+    expect(text).not.toContain("in the three of your 95 pages we read");
+  });
+
+  it("the print source check says the count it read, in the clause and the footnote alike", () => {
+    const text = seen(printed(TWO_CHECKED));
+    expect(text).toContain("in the two of your 95 pages we read");
+    expect(text).toContain("We read two of your 95 pages for this check.");
+    expect(text).not.toContain("in the three of your 95 pages we read");
+  });
+
+  // Finding 4: a goal set over zero pages read. Maintenance marks every requirement
+  // missing, and no surface may call that absence.
+  const ZERO_CRAWL = {
+    ok: true,
+    data: {
+      ...allPass.crawl.data,
+      pages: [{ url: "https://example.test/a", raw: null, rendered: null }],
+      sitemap: { present: true, urlCount: 95, truncated: false },
+      selection: { pagesConsidered: 40 },
+    },
+  };
+  const ALL_MISSING: AuditReport = {
+    ...READ,
+    crawl: ZERO_CRAWL as AuditReport["crawl"],
+    goalFit: {
+      ok: true,
+      data: {
+        ...allPass.goalFit.data,
+        requirements: (allPass.goalFit.data.requirements as { status: string }[]).map((r) => ({
+          ...r,
+          status: "missing",
+        })),
+      },
+    } as AuditReport["goalFit"],
+  };
+  const ZERO_READ = "We could not read any of your pages";
+
+  it("the web goal verdict and rows say we could not check, not that the things are absent", () => {
+    const text = seen(renderText(goalFit, { view: toReportView(ALL_MISSING) }));
+    expect(text).toContain(ZERO_READ);
+    expect(text).not.toContain("None of what it needs");
+    expect(text).not.toContain("Not on the site");
+    expect(text).not.toMatch(/not in place/);
+    expect(text).toContain("Could not check");
+  });
+
+  it("the print sheet's rows and headline say we could not check, not that the things are absent", () => {
+    // RICH carries a name collision, which outranks the goal in the headline, so the
+    // headline is read from the all-pass report with the zero-page crawl and goal.
+    const text = seen(
+      printed({
+        ...ALL_PASS_REPORT,
+        crawl: ZERO_CRAWL,
+        goalFit: ALL_MISSING.goalFit,
+      } as AuditReport),
+    );
+    expect(text).toContain(ZERO_READ);
+    expect(text).not.toContain("Not on the site");
+    expect(text).not.toMatch(/four of the four|not in place/);
+    expect(text).toContain("Could not check");
+  });
+});

@@ -1,12 +1,12 @@
 <script lang="ts">
+  import { GOAL_LABELS, gapClause, type GoalRequirement, type ReportView } from "./model";
   import {
-    GOAL_LABELS,
-    gapClause,
-    goalVerdict,
-    type GoalRequirement,
-    type ReportView,
-  } from "./model";
-  import { numberWord, inPagesRead, pagesReadPhrase, readNothing } from "./narrative";
+    absenceTag,
+    goalVerdictLine,
+    numberWord,
+    pagesReadPhrase,
+    readNothing,
+  } from "./narrative";
   import { composed } from "./overrides";
 
   // Whether the site does the one job it exists to do.
@@ -65,7 +65,7 @@
     composed(
       view.overrides,
       "composed:goalVerdict",
-      goalVerdict(missing.length, judged.length, inPagesRead(view)),
+      goalVerdictLine(view, missing.length, judged.length),
     ),
   );
 </script>
@@ -133,7 +133,7 @@
             <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
               <p class="type-eyebrow m-0 text-primary">{row.label}</p>
               <p class="type-question m-0 text-primary">
-                Not {inPagesRead(view) ?? "on the site"}
+                {absenceTag(view)}
               </p>
             </div>
             <p class="type-meta m-0 text-muted">{row.why}</p>
