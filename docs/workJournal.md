@@ -2160,3 +2160,17 @@ The override map takes `hidden: true` on a row key (`analyze.data.fixes[2]`, `si
 Mutations, each turning one named test red: cookie path back to `/audit` (the browser save); ignoring `hidden` in `applyOverrides` (a hidden fix absent from `allFixes`); dropping `analyze` from the all-clear guard (the failed-analysis headline).
 
 Deploy order matters: this half must be on `main` before maintenance's lands, or the editor cannot open a draft (no bearer sent) and a superseded link would 500 instead of redirecting.
+
+## 2026-11-23 — W1 review rounds 1 to 3: what changed after the entry above (#379, `claude/w1-approve-before-link`)
+
+The entry above was written before review and is left as it was. Three rounds of review changed what it describes, all of them dirty.
+
+Round 1 found that a row the operator hid was still in the reader's page: SvelteKit serialises `load` data for hydration, so a hidden fix sat in `__data.json` and view-source. Readers now get the payload with every override already applied on the server, and only the `composed:` entries, which name sentences this repo writes and can be matched only at render time. The editor alone gets the stored payload and the whole map, to show and revert. The same round made the smoke spec's tokens per run, after it failed 2 times in 40 at six workers by racing itself.
+
+Round 2 found that those composed entries still carried `original`, the sentence a rewording replaced, so a rewording written to remove a wrong claim still shipped the claim. A reader's entry now carries a digest of it (`originalDigest`), which `composed` compares instead. The same round stopped the last row of a section from being hidden: hiding all of them made the page state a measurement gap that never happened. Hidden rows stopped being edit targets.
+
+Round 3 found two more, both reproduced. A run whose page checks failed still said "checks out": the producer writes the analysis as "skipped — the checks stage failed", which is on the list of deliberate skips, so the guard never saw a failure. `checks` is now one of the stages all clear needs. And a rewording that no longer rendered (written against a row later hidden, or data that changed) was withheld from the page but its text still shipped. A reader now keeps only the composed entries whose line displays their text with the current map, which is the renderer's own test. `composed:goalVerdict` is wrapped inside `GoalFit.svelte` and is not an edit target, so the filter computes that line itself; without it a valid goal-verdict rewording would have been dropped, and a test pins that. A 410 that points back at its own token is now a 404, not a redirect loop.
+
+Mutations for round 3, each turning its test red: dropping `checks` from the guard; shipping every composed entry; leaving the goal verdict out of the filter; following a self-pointer.
+
+Belief corrected: "a stage skipped on purpose still allows all clear" was true of `--no-probes` and false of a skip that another stage's failure caused. The skip strings say why a stage did not run, and only some of the reasons are the operator's choice.

@@ -44,7 +44,10 @@ export type Headline = { kind: HeadlineKind; text: string };
 
 /** W1. The stages an all-clear stands on: the reading of the site, the AI
  *  answers, and the check of what those answers say. */
-const ALL_CLEAR_NEEDS: StageKey[] = ["analyze", "probes", "accuracy"];
+// W1 review round 3: `checks` too. When the page checks fail, the producer
+// writes analyze as "skipped — the checks stage failed", one of its deliberate
+// skips, so without `checks` here a site nobody read still "checked out".
+const ALL_CLEAR_NEEDS: StageKey[] = ["checks", "analyze", "probes", "accuracy"];
 
 const WORDS = [
   "zero",

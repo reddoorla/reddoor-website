@@ -152,7 +152,8 @@ export async function fetchReport(
   if (res.status === 410) {
     const body = (await res.json().catch(() => null)) as { supersededBy?: unknown } | null;
     const next = body?.supersededBy;
-    return typeof next === "string" && REPORT_TOKEN_PATTERN.test(next)
+    // A pointer back at this token would redirect forever (review round 3).
+    return typeof next === "string" && REPORT_TOKEN_PATTERN.test(next) && next !== token
       ? { supersededBy: next }
       : null;
   }
