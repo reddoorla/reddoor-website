@@ -1,5 +1,6 @@
 import type { ReportView } from "./model";
 import { composed } from "./overrides";
+import { acrossPagesRead, crawlDenominator, readNothing } from "./pages-read";
 
 /**
  * Whether the site works, checked the way a stranger would check it.
@@ -185,9 +186,23 @@ function healthRowsGenerated(view: ReportView): HealthRow[] {
   }
 
   // ── Reaching you ───────────────────────────────────────────────────────
-  if (journey) {
+  // Over zero pages read there is no journey to measure, and "no way to make
+  // contact found" would be an absence we never looked for. No row, then.
+  if (journey && !readNothing(view)) {
     const dead = journey.deadEnds.length;
     const worst = journey.worstClicksToContact;
+    // The scope of the measurement, from the pages the crawl read against the
+    // site's count. "Not just the first" is claimed only over several pages.
+    const scope = acrossPagesRead(view);
+    const onePage = crawlDenominator(view)?.read === 1;
+    const measured =
+      scope !== null
+        ? onePage
+          ? scope
+          : `${scope}, not just the first`
+        : journey.pagesExamined === 1
+          ? "from the one page we looked at"
+          : `from all ${journey.pagesExamined} pages we looked at, not just the first`;
     out.push({
       key: "contact",
       label: "Getting hold of you",
@@ -204,7 +219,7 @@ function healthRowsGenerated(view: ReportView): HealthRow[] {
       alert: journey.affordances.length === 0 || dead > 0,
       detail:
         `Search engines send people to whichever page answers their question, not to your home ` +
-        `page — so we measured this from all ${journey.pagesExamined} pages we looked at, not just the first.`,
+        `page — so we measured this ${measured}.`,
     });
   }
 
