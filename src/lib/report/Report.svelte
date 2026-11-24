@@ -15,6 +15,7 @@
   import SearchResults from "./SearchResults.svelte";
   import WhatPasses from "./WhatPasses.svelte";
   import { failedChecksSentence, openingSummary, type ReportView } from "./model";
+  import { aiSectionHeading } from "./ai-heading";
   import {
     allFixes,
     auditedOn,
@@ -295,7 +296,7 @@
        says. Unlike a score it needs no explanation of our method. -->
     <section id={TOC_TARGETS.aiSays} class="bg-white w-full scroll-mt-24 py-16 md:py-24">
       <RailRow fill>
-        <h2 class="type-display m-0 text-black">What AI is saying about you</h2>
+        <h2 class="type-display m-0 text-black">{aiSectionHeading(view)}</h2>
         <hr class="mt-7.5 mb-7.5 border-primary" />
       </RailRow>
 
