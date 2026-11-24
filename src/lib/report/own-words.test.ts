@@ -241,8 +241,8 @@ describe("a rating sentence is absent from the rendered list", () => {
       ["It is not accredited by the trade body.", "accreditation"],
       ["It has one alert on file.", "complaints"],
       ["It is listed as a sole proprietorship.", "legal_entity"],
-      // R9 §1: "acquired by" and "run by" are no longer excerpt words, so these two
-      // are not pinned by text. The stored topic still holds them (see R9 §1 below).
+      ["It was acquired by a holding group in 2019.", "ownership"],
+      ["The studio is run by Dana Reyes.", "named_person"],
       ["It has about 40 employees.", "revenue_headcount"],
       ["It is at 118 Larkspur Lane.", "street_address"],
       ["It designs brand identities.", null],
@@ -1696,24 +1696,12 @@ describe("R4 fix 1c: phrasings that still leak are withheld on both surfaces", (
     ["Its office is at 1200 Broadway in Denver.", "street_address"],
   ];
 
-  // R9 §1: these four have no word from the excerpt list (PERSON_WORDS), so a text
-  // check no longer withholds them. Each is still held by a stored topic (the
-  // "prints neither" test below keeps every row).
-  const NO_EXCERPT_WORD = [
-    "It is led by designer Dana Reyes.",
-    "Creative director Dana Reyes oversees every project.",
-    "Northwind Group acquired it in 2019.",
-    "It is part of Northwind Group.",
-  ];
-  it.each(WITHHELD_PHRASES.filter(([claim]) => !NO_EXCERPT_WORD.includes(claim)))(
-    "withholds %s",
-    (claim, topic) => {
-      expect(patternTopic(claim, topic)).toBe(topic);
-      expect(
-        brandedExcerpt({ snippet: claim, truncated: false, query: "who is Example Studio" }),
-      ).not.toContain(claim);
-    },
-  );
+  it.each(WITHHELD_PHRASES)("withholds %s", (claim, topic) => {
+    expect(patternTopic(claim, topic)).toBe(topic);
+    expect(
+      brandedExcerpt({ snippet: claim, truncated: false, query: "who is Example Studio" }),
+    ).not.toContain(claim);
+  });
 
   it.each(WITHHELD_PHRASES)("prints neither %s on either surface", (claim, topic) => {
     const stored = row({ claim, engineQuote: claim, ...storedTopic(topic) });
@@ -3266,6 +3254,19 @@ describe("R9 §1: an excerpt is held on any person or ownership word", () => {
     expect(brandedExcerpt(probe)).toBe(
       "This answer said something we have not checked, so we have not repeated it here.",
     );
+    expect(renderText(branded, { probes: [probe] } as never)).not.toContain(snippet);
+  });
+
+  it.each([
+    ["It is headed by Dana Reyes, a former architect.", "named_person"],
+    ["Dr. Dana Reyes sees patients on Tuesdays.", "named_person"],
+    ["Its CFO joined from Northwind Bank.", "named_person"],
+    ["The studio is managed by Dana Reyes.", "named_person"],
+    ["It is a subsidiary of Northwind Group.", "legal_entity"],
+    ["Its parent company is Northwind Group.", "ownership"],
+  ])("the branded excerpt %s is held as %s", (snippet, topic) => {
+    expect(withheldIn(snippet)).toBe(topic);
+    const probe = brandedProbe("who is Example Studio", snippet);
     expect(renderText(branded, { probes: [probe] } as never)).not.toContain(snippet);
   });
 

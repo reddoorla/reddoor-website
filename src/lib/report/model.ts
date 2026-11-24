@@ -1079,10 +1079,10 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
  * its stored topic (`withheldTopic`).
  */
 const PERSON_WORDS =
-  /\b(?:named|founders?|founded|co-?founded|owners?|owns|owned|ceo|president|principal|partners?)\b/i;
+  /\b(?:named|founders?|founded|co-?founded|owners?|owns|owned|proprietor|ceo|cfo|coo|cto|chief|chair(?:man|woman|person)?|president|principal|partners?|director|manager|(?:led|run|headed|managed) by|acquired|acquisition|subsidiary|parent company|part of|dr|mr|mrs|ms)\b/i;
 /** The ownership verbs among PERSON_WORDS: a whole excerpt whose first such word is one
  *  of these is read as ownership. An owner noun names a person, so it is not one. */
-const OWNERSHIP_WORD = /^(?:owned|owns)$/i;
+const OWNERSHIP_WORD = /^(?:owned|owns|acquired|acquisition|subsidiary|parent company|part of)$/i;
 
 /** The order topics are listed in, for a statement's topic and a text's topics. */
 const TOPIC_ORDER: Exclude<AssertionTopic, "other">[] = [
