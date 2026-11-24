@@ -1,10 +1,25 @@
 import { healthRows, type HealthRow } from "./health";
 import {
+  completeOf,
+  inPagesRead,
+  inSourceCheckPages,
+  numberWord,
+  pagesReadPhrase,
+  phraseOf,
+  readNothing,
+  sourceCheckDenominator,
+} from "./pages-read";
+import {
   GOAL_LABELS,
+  goalVerdict,
   nameUnsettled,
   sourceCheckMeasured,
+  stageFailed,
+  STAGE_LABEL,
+  type BuyerQuestion,
   type Fix,
   type ReportView,
+  type StageKey,
 } from "./model";
 import { composed } from "./overrides";
 
@@ -34,27 +49,113 @@ export type HeadlineKind =
   | "partial"
   | "site-check"
   | "all-clear"
+  | "incomplete"
   | "unmeasured";
 
 export type Headline = { kind: HeadlineKind; text: string };
 
-const WORDS = [
-  "zero",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "six",
-  "seven",
-  "eight",
-  "nine",
-  "ten",
-];
+/** W1. The stages an all-clear stands on: the reading of the site, the AI
+ *  answers, and the check of what those answers say. */
+// W1 review round 3: `checks` too. When the page checks fail, the producer
+// writes analyze as "skipped — the checks stage failed", one of its deliberate
+// skips, so without `checks` here a site nobody read still "checked out".
+const ALL_CLEAR_NEEDS: StageKey[] = ["checks", "analyze", "probes", "accuracy"];
 
-/** "two", "ten", then digits — the reader's register, not the instrument's. */
-export function numberWord(n: number): string {
-  return WORDS[n] ?? String(n);
+export { inPagesRead, inSourceCheckPages, numberWord, pagesReadPhrase, readNothing };
+
+/** The line a goal's verdict prints. Over zero pages read it says we could not
+ *  look, never that the things it needs are absent. */
+export function goalVerdictLine(view: ReportView, missing: number, judged: number): string {
+  if (readNothing(view))
+    return "We could not read any of your pages, so we could not check what it needs to do that.";
+  return goalVerdict(missing, judged, inPagesRead(view));
+}
+
+/** The lead of the goal sentence: "As far as we can tell from reading it" claims a
+ *  reading, so over zero pages read it drops the claim to "As far as we can tell". */
+export function goalInferenceLead(view: ReportView): string {
+  return readNothing(view) ? "As far as we can tell" : "As far as we can tell from reading it";
+}
+
+/** The tag on a missing goal requirement: where we looked, or that we could not look. */
+export function absenceTag(view: ReportView): string {
+  return readNothing(view) ? "Could not check" : `Not ${inPagesRead(view) ?? "on the site"}`;
+}
+
+/** The lead of the unsourced-claims line: the pages the check read, or, when it
+ *  read none, that no page could be read for this check (as its footnote says). */
+export function unsourcedLead(view: ReportView): string {
+  const clause = inSourceCheckPages(view);
+  return clause ? `, ${clause}` : ", though no page could be read for this check";
+}
+
+/**
+ * The source check's closing line, on the web and in print. It used to end
+ * "Nothing above is reported as missing from your site on the strength of
+ * pages we did not read", printed beside "absent" verdicts that rested on 20
+ * of 95 pages (the audit-system review, BR-07). It states the count the check
+ * read, against the site's, the same count the clause above it carries.
+ */
+export function sourceCheckFootnote(view: ReportView): string | null {
+  const acc = view.accuracy;
+  const d = sourceCheckDenominator(view);
+  if (!acc || !d) return null;
+  if (d.read < 1)
+    return "No page of your site could be read for this check. A statement listed above may be on a page we did not read.";
+  const hedge = "A statement listed above may be on a page we did not read.";
+  // The site total is unknown: the count is against the pages the crawl took.
+  if (d.site === null)
+    return `We read ${numberWord(d.read)} of the ${numberWord(acc.pagesTotal)} pages we crawled for this check. ${hedge}`;
+  // Every page of the site was read, by a sitemap that is the whole of it: the
+  // hedge would say a page was missed that was not. Anything less keeps it.
+  if (completeOf(d)) return `We read ${phraseOf(d)} for this check.`;
+  return `We read ${phraseOf(d)} for this check. ${hedge}`;
+}
+
+/** The third column of the buyer-question table: the receipt for a verdict,
+ *  and for an absence, where we looked. Shared by the web and print reports. */
+export function questionReceipt(view: ReportView, q: BuyerQuestion): string {
+  if (q.evidence) return `“${q.evidence}”`;
+  const where = inPagesRead(view);
+  if (q.answered === "unknown" && q.notFound) {
+    let path = q.notFound.page;
+    let pathname: string | null = null;
+    try {
+      pathname = new URL(q.notFound.page).pathname;
+    } catch {
+      // Not a URL: keep the address as stored.
+    }
+    if (pathname === "/") path = "your home page";
+    else if (pathname !== null) {
+      // A malformed escape ("%-off") cannot decode: the raw path is still the page.
+      try {
+        path = decodeURIComponent(pathname);
+      } catch {
+        path = pathname;
+      }
+    }
+    return `no direct answer found${where ? ` ${where}` : ""}, though “${q.notFound.term}” appears on ${path}`;
+  }
+  if (q.answered === "unknown") return "not judged on this audit";
+  if (q.answered === "no" && readNothing(view))
+    return "we could not read any of your pages, so we could not check";
+  if (q.answered === "no" && where) return `not found ${where}`;
+  return "no passage an assistant could quote";
+}
+
+/** The "On your site" label, shared by the web and print question tables.
+ *  "Unclear" is a found-but-unread answer, not a measured one. */
+export const ANSWERED_LABEL = {
+  yes: "Yes",
+  partial: "Partial",
+  no: "No",
+  unknown: "Not measured",
+} as const;
+
+export function answerLabel(q: BuyerQuestion, view?: ReportView): string {
+  // Over zero pages read a "no" is not a finding: we never looked.
+  if (q.answered === "no" && view && readNothing(view)) return ANSWERED_LABEL.unknown;
+  return q.answered === "unknown" && q.notFound ? "Unclear" : ANSWERED_LABEL[q.answered];
 }
 
 /** "a, b and c" — a list a sentence can carry. */
@@ -120,13 +221,24 @@ function headlineFindingGenerated(view: ReportView): Headline {
   if (fit?.goal === "unknown") {
     return {
       kind: "goal-unknown",
-      text: `We read every page and could not tell what ${who} wants a visitor to do.`,
+      text: readNothing(view)
+        ? `We could not read any of your pages, so we could not tell what ${who} wants a visitor to do.`
+        : `We read ${pagesReadPhrase(view) ?? "your pages"} and could not tell what ${who} wants a visitor to do.`,
     };
   }
 
   if (fit) {
     const judged = fit.requirements.filter((r) => r.status !== "unmeasured");
     const missing = judged.filter((r) => r.status === "missing");
+    if (missing.length > 0 && readNothing(view)) {
+      return {
+        kind: "goal-missing",
+        text:
+          `We could not read any of your pages, so we could not check whether your site is built to get a visitor ` +
+          `to ${GOAL_LABELS[fit.goal] ?? fit.goal}. We could not check these things it needs to do that: ` +
+          `${joinList(missing.map((r) => inline(r.label)))}.`,
+      };
+    }
     if (missing.length > 0) {
       const count =
         missing.length === 1
@@ -136,7 +248,7 @@ function headlineFindingGenerated(view: ReportView): Headline {
         kind: "goal-missing",
         text:
           `Your site is built to get a visitor to ${GOAL_LABELS[fit.goal] ?? fit.goal}, and ${count} ` +
-          `not in place: ${joinList(missing.map((r) => inline(r.label)))}.`,
+          `not in place${inPagesRead(view) ? ` ${inPagesRead(view)}` : ""}: ${joinList(missing.map((r) => inline(r.label)))}.`,
       };
     }
   }
@@ -154,11 +266,18 @@ function headlineFindingGenerated(view: ReportView): Headline {
     const missing = view.buyerQuestions
       .filter((q) => q.answered === "no")
       .map((q) => inline(q.question));
+    if (readNothing(view))
+      return {
+        kind: "unanswered",
+        text:
+          "We could not read any of your pages, so we could not check whether your site answers the questions " +
+          `buyers ask first: ${joinList(missing)}.`,
+      };
     return {
       kind: "unanswered",
       text:
         `Your site does not answer ${numberWord(tally.no)} of the ${numberWord(judgedQuestions)} questions ` +
-        `buyers ask first: ${joinList(missing)}.`,
+        `buyers ask first${inPagesRead(view) ? `, ${inPagesRead(view)}` : ""}: ${joinList(missing)}.`,
     };
   }
 
@@ -199,6 +318,21 @@ function headlineFindingGenerated(view: ReportView): Headline {
       text:
         "Most of this audit could not run, so there is little here to report. " +
         "That is a gap in our measurement, not a finding about your site.",
+    };
+  }
+
+  // W1 (B-03): "checks out" is a claim about the whole audit, so it needs the
+  // parts that read the site and the AI answers to have run. Eight stored
+  // reports led with it while their analysis had failed (an API usage limit),
+  // five with no AI answers behind them at all. Say which parts failed
+  // instead: "ran and failed", never "did not run" (the distinction #893 drew).
+  const missingParts = ALL_CLEAR_NEEDS.filter((k) => stageFailed(view, k));
+  if (missingParts.length > 0) {
+    return {
+      kind: "incomplete",
+      text:
+        `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
+        "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
     };
   }
 
@@ -569,8 +703,18 @@ const HEALTH_FIXES: Record<string, HealthFixSpec> = {
  * fragment here would match nothing.
  */
 export function healthFixes(view: ReportView): Fix[] {
+  return healthFixEntries(view).map((e) => e.fix);
+}
+
+/**
+ * The health fixes with the row each was written for. The edit list keys its
+ * targets by that row (W1 review round 4): it used to key them by position,
+ * which this renderer never looks up, so an operator's edit to a health fix
+ * saved and then never rendered.
+ */
+export function healthFixEntries(view: ReportView): { rowKey: string; fix: Fix }[] {
   const written = view.fixes.map((f) => f.title);
-  const out: Fix[] = [];
+  const out: { rowKey: string; fix: Fix }[] = [];
   for (const row of healthRows(view)) {
     if (!row.alert) continue;
     const spec = HEALTH_FIXES[row.key];
@@ -578,20 +722,23 @@ export function healthFixes(view: ReportView): Fix[] {
     const title = spec.title(row, view);
     const why = `${spec.what} ${row.detail}`.trim();
     out.push({
-      // Keyed by the ROW's key, not by this fix's position in `out`. The two
-      // lists are COMPACTED apart: a row that does not alert, and a row whose
-      // fix the audit already wrote, are both skipped — so `healthFix[2]` is
-      // not `health[2]`, and the offset shifts with the audit's own content.
-      // An editing UI holding a row could not derive the positional key, while
-      // `row.key` is stable and is already the join key between a row and its
-      // fix spec. (Positional keys stay fine where the list is the list, as
-      // `passes` is; see the module doc in `overrides.ts`.)
-      title: composed(view.overrides, `composed:healthFix[${row.key}].title`, title),
-      why: composed(view.overrides, `composed:healthFix[${row.key}].why`, why),
-      impact: spec.impact,
-      effort: spec.effort,
-      tier: spec.tier,
-      origin: "measured",
+      rowKey: row.key,
+      fix: {
+        // Keyed by the ROW's key, not by this fix's position in `out`. The two
+        // lists are COMPACTED apart: a row that does not alert, and a row whose
+        // fix the audit already wrote, are both skipped — so `healthFix[2]` is
+        // not `health[2]`, and the offset shifts with the audit's own content.
+        // An editing UI holding a row could not derive the positional key, while
+        // `row.key` is stable and is already the join key between a row and its
+        // fix spec. (Positional keys stay fine where the list is the list, as
+        // `passes` is; see the module doc in `overrides.ts`.)
+        title: composed(view.overrides, `composed:healthFix[${row.key}].title`, title),
+        why: composed(view.overrides, `composed:healthFix[${row.key}].why`, why),
+        impact: spec.impact,
+        effort: spec.effort,
+        tier: spec.tier,
+        origin: "measured",
+      },
     });
   }
   return out;
@@ -723,13 +870,14 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
   // With nothing to report the clause goes rather than softening to "its
   // named checks": a count is the whole point of the sentence, and a report
   // whose battery never ran should not imply it did.
-  const fetched =
-    "Most of it is machinery, not an AI’s opinion. It fetched every page twice, plain and " +
-    "in a real browser" +
-    (ran
-      ? `, then ran ${ran} named checks on what came back, from dead links to structured ` +
-        "data to whether a phone can fill in your forms."
-      : ".");
+  const fetched = readNothing(view)
+    ? "Most of it is machinery, not an AI’s opinion. We could not read any of your pages this time."
+    : `Most of it is machinery, not an AI’s opinion. It read ${pagesReadPhrase(view) ?? "your pages"}, ${view.pagesRead?.read === 1 ? "twice" : "each one twice"}, plain and ` +
+      "in a real browser" +
+      (ran
+        ? `, then ran ${ran} named checks on what came back, from dead links to structured ` +
+          "data to whether a phone can fill in your forms."
+        : ".");
 
   // The assistant, last, and only the parts that ran. The accuracy stage is
   // the "check each statement" claim — SourceCheck.svelte gates its section

@@ -20,6 +20,8 @@
     auditedOn,
     headlineFinding,
     primer,
+    answerLabel,
+    questionReceipt,
     tocEntries,
     TOC_TARGETS,
   } from "./narrative";
@@ -167,13 +169,6 @@
   });
 
   const auditDate = $derived(auditedOn(view));
-
-  const ANSWERED_LABEL = {
-    yes: "Yes",
-    partial: "Partial",
-    no: "No",
-    unknown: "Not measured",
-  } as const;
 
   /**
    * The domains one answer cited, most-cited first, each named once. The raw
@@ -496,18 +491,12 @@
                               ? 'text-primary'
                               : 'text-muted'}"
                           >
-                            {ANSWERED_LABEL[q.answered]}
+                            {answerLabel(q, view)}
                           </td>
                           <!-- The receipt. A verdict with no passage beside it
                              is a claim the reader cannot check. -->
                           <td class="type-meta border-b border-light py-2.5 align-top text-muted">
-                            {#if q.evidence}
-                              &ldquo;{q.evidence}&rdquo;
-                            {:else if q.answered === "unknown"}
-                              not judged on this audit
-                            {:else}
-                              no passage an assistant could quote
-                            {/if}
+                            {questionReceipt(view, q)}
                           </td>
                         </tr>
                       {/each}

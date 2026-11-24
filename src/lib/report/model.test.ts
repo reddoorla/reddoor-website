@@ -772,6 +772,16 @@ describe("goalVerdict", () => {
   it("falls back to digits past the number words", () => {
     expect(goalVerdict(12, 20)).toBe("12 of the 20 things it needs are not in place.");
   });
+
+  // W3 review round 2: an absence states the pages it rests on.
+  it("names the pages it rests on, after 'in place'", () => {
+    expect(goalVerdict(1, 4, "in the 20 of your 95 pages we read")).toBe(
+      "One of the four things it needs is not in place in the 20 of your 95 pages we read.",
+    );
+    expect(goalVerdict(4, 4, "in any of your seven pages (we read them all)")).toBe(
+      "None of what it needs to do that is in place in any of your seven pages (we read them all).",
+    );
+  });
 });
 
 describe("fieldShape", () => {
@@ -1247,5 +1257,22 @@ describe("toReportView — overrides", () => {
   it("carries the map onto the view for the composed sentences", () => {
     const map = { "composed:headlineFinding": { original: "a", text: "b" } };
     expect(toReportView(raw, map).overrides).toEqual(map);
+  });
+});
+
+describe("W1: a hidden fix through the whole view", () => {
+  it("a hidden fix is absent from allFixes", async () => {
+    const { allFixes } = await import("./narrative");
+    const { ALL_PASS_REPORT } = await import("./fixtures/all-pass");
+    const raw = ALL_PASS_REPORT as unknown as {
+      analyze: { data: { fixes: { title: string }[] } };
+    };
+    const target = raw.analyze.data.fixes[0]!.title;
+    // Positive control: the fix is there without the hide.
+    expect(allFixes(toReportView(ALL_PASS_REPORT)).map((f) => f.title)).toContain(target);
+    const v = toReportView(ALL_PASS_REPORT, {
+      "analyze.data.fixes[0]": { original: target, text: "", hidden: true },
+    });
+    expect(allFixes(v).map((f) => f.title)).not.toContain(target);
   });
 });
