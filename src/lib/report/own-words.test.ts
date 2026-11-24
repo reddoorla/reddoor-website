@@ -3584,7 +3584,10 @@ describe("review round 10 §1: excerpt person words are restored", () => {
   });
 
   it("the other-name block: 'Northwind Bakery, whose cofounder is Dana Reyes' never prints the person", () => {
-    const report = withCollision("Northwind Bakery, whose cofounder is Dana Reyes");
+    // The text is the other NAME (bareOtherName), not the collision quote.
+    const report = withCollision("Northwind Bakery was founded in 2001", [
+      "Northwind Bakery, whose cofounder is Dana Reyes",
+    ]);
     for (const [name, text] of surfaces(report)) {
       expect(text, name).not.toContain("Dana Reyes");
       expect(text, name).toContain("Northwind Bakery");
@@ -3599,7 +3602,7 @@ describe("review round 10 §2: a failed stage keeps no all-clear clause over a c
       analyze: { ok: false, error: "The analysis call failed" },
     }) as AuditReport;
 
-  it("a withheld prospect contradiction (named_person, 2001 against 2012): no all-clear clause, page and print", () => {
+  it("a withheld prospect contradiction (named_person, 2001 against 2012): no all-clear clause in the headline or on the source-check section and print sheet", () => {
     const report = failed([
       row({
         subject: "prospect",
@@ -3617,7 +3620,7 @@ describe("review round 10 §2: a failed stage keeps no all-clear clause over a c
       expect(text, name).not.toContain("Nothing we measured");
   });
 
-  it("a printed prospect contradiction (topic other, 2001 against 2012): no all-clear clause, page and print", () => {
+  it("a printed prospect contradiction (topic other, 2001 against 2012): no all-clear clause in the headline or on the source-check section and print sheet", () => {
     const report = failed([
       row({
         subject: "prospect",
