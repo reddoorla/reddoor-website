@@ -24,12 +24,22 @@ const viewWith = (probes: ProbeAnswer[]): ReportView => {
 };
 
 describe("aiSectionHeading", () => {
-  it("names Claude and the earliest ask date when every answer is a Claude answer", () => {
+  it("names Claude and the day when every answer is a Claude answer asked that day", () => {
+    const view = viewWith([
+      probe({ askedAt: "2026-11-06T20:00:00Z" }),
+      probe({ askedAt: "2026-11-06T17:00:00Z" }),
+    ]);
+    expect(aiSectionHeading(view)).toBe("What Claude said about you on November 6");
+  });
+
+  it("names the first and last day when the asks fell on different days", () => {
     const view = viewWith([
       probe({ askedAt: "2026-11-08T17:00:00Z" }),
       probe({ askedAt: "2026-11-06T17:00:00Z" }),
     ]);
-    expect(aiSectionHeading(view)).toBe("What Claude said about you on November 6");
+    expect(aiSectionHeading(view)).toBe(
+      "What Claude said about you between November 6 and November 8",
+    );
   });
 
   it("counts the subscription harness as Claude too", () => {

@@ -2,24 +2,25 @@ import { HEALTH_FIXES } from "./narrative";
 
 /**
  * The sentence that points from the problem rows under "Does it work" to
- * "what to fix". A row has a matching item when it has a fix spec: healthFixes
- * writes one for it, or the audit already wrote one that the spec covers. So
- * the claim is decided by the same key map the fixes are written from.
+ * "what to fix" (DES-04). It used to promise "Each of these has a matching
+ * item" whenever a row alerted, and most site-check rows have no fix spec.
  *
- * Returns the text either side of the "what to fix" link, or null when no
- * problem row has an item and the sentence should not print at all.
+ * "Each" is printed only when every problem row has a spec in `HEALTH_FIXES`,
+ * the map the health fixes are written from. Otherwise the sentence makes no
+ * count: the audit's own measured fixes are keyed differently from the rows
+ * (`headings-h1` against `h1-present`), so a number here would be a guess.
+ * "The ones we would act on first" is true whenever the report has any fix,
+ * and nothing is printed when it has none.
+ *
+ * Returns the text either side of the "what to fix" link, or null.
  */
 export function fixLinkSentence(
   problemKeys: readonly string[],
+  reportHasFixes: boolean,
 ): { before: string; after: string } | null {
-  const total = problemKeys.length;
-  const covered = problemKeys.filter((key) => key in HEALTH_FIXES).length;
-  if (total === 0 || covered === 0) return null;
-  if (covered === total) {
+  if (problemKeys.length === 0 || !reportHasFixes) return null;
+  if (problemKeys.every((key) => Object.hasOwn(HEALTH_FIXES, key))) {
     return { before: "Each of these has a matching item in ", after: "." };
   }
-  return {
-    before: `${covered} of these ${covered === 1 ? "has" : "have"} a matching item in `,
-    after: "; the rest are listed here so you can check them.",
-  };
+  return { before: "The ones we would act on first are in ", after: "." };
 }

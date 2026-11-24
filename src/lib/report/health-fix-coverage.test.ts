@@ -1,32 +1,37 @@
 import { describe, it, expect } from "vitest";
 import { fixLinkSentence } from "./health-fix-coverage";
 
-// Keys are real health-row keys: "https" and "copyright" have a fix spec,
-// "phones" is a receipt with no spec, so it can never have a fix.
+// Keys are real health-row keys: "https" and "copyright" have a fix spec;
+// "phones" and the site check "h1-present" have none.
 
 describe("fixLinkSentence", () => {
-  it("every problem row has a fix: the sentence says each one matches", () => {
-    expect(fixLinkSentence(["https", "copyright"])).toEqual({
+  it("every problem row has a fix spec: the sentence says each one matches", () => {
+    expect(fixLinkSentence(["https", "copyright"], true)).toEqual({
       before: "Each of these has a matching item in ",
       after: ".",
     });
   });
 
-  it("some problem rows have a fix: the sentence counts them and lists the rest", () => {
-    expect(fixLinkSentence(["https", "phones"])).toEqual({
-      before: "1 of these has a matching item in ",
-      after: "; the rest are listed here so you can check them.",
-    });
-    expect(fixLinkSentence(["https", "copyright", "phones"])?.before).toBe(
-      "2 of these have a matching item in ",
-    );
+  it("some rows have no spec: no 'each', and no count", () => {
+    for (const keys of [["https", "phones"], ["h1-present"]]) {
+      const s = fixLinkSentence(keys, true);
+      expect(s?.before).toBe("The ones we would act on first are in ");
+      expect(`${s?.before}${s?.after}`).not.toMatch(/each|\d/i);
+    }
   });
 
-  it("no problem row has a fix: no sentence", () => {
-    expect(fixLinkSentence(["phones"])).toBeNull();
+  it("a report with no fixes at all: no sentence", () => {
+    expect(fixLinkSentence(["https"], false)).toBeNull();
+    expect(fixLinkSentence(["phones"], false)).toBeNull();
   });
 
   it("no problem rows: no sentence", () => {
-    expect(fixLinkSentence([])).toBeNull();
+    expect(fixLinkSentence([], true)).toBeNull();
+  });
+
+  it("an inherited property name is not a fix spec", () => {
+    expect(fixLinkSentence(["constructor"], true)?.before).toBe(
+      "The ones we would act on first are in ",
+    );
   });
 });

@@ -2,6 +2,7 @@
   import ReportDisclosure from "./ReportDisclosure.svelte";
   import { healthRows } from "./health";
   import { fixLinkSentence } from "./health-fix-coverage";
+  import { allFixes } from "./narrative";
   import { gapClause, type ReportView } from "./model";
 
   // Whether the site works — checked the way a stranger would check it.
@@ -27,7 +28,12 @@
 
   const rows = $derived(healthRows(view));
   const problems = $derived(rows.filter((r) => r.alert));
-  const fixLink = $derived(fixLinkSentence(problems.map((r) => r.key)));
+  const fixLink = $derived(
+    fixLinkSentence(
+      problems.map((r) => r.key),
+      allFixes(view).length > 0,
+    ),
+  );
 
   const hasReceipts = $derived(
     Boolean(
