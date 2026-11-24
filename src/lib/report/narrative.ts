@@ -663,7 +663,7 @@ type HealthFixSpec = {
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
-const HEALTH_FIXES: Record<string, HealthFixSpec> = {
+export const HEALTH_FIXES: Record<string, HealthFixSpec> = {
   https: {
     title: () => "Redirect plain http to your secure site",
     what: "One redirect rule at the host: every http:// address should land on its https:// twin.",

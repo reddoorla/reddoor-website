@@ -32,6 +32,8 @@ function crm(
     noId?: boolean;
     noEndOnRead?: boolean;
     readFails?: boolean;
+    /** The status the appointment create answers with; 422 is a slot taken since page load. */
+    appointmentStatus?: number;
   } = {},
 ) {
   const calls: Call[] = [];
@@ -69,6 +71,11 @@ function crm(
       );
     }
     if (url.includes("/calendars/events/appointments")) {
+      if (opts.appointmentStatus && opts.appointmentStatus >= 400) {
+        return new Response(JSON.stringify({ message: "slot unavailable" }), {
+          status: opts.appointmentStatus,
+        });
+      }
       return new Response(
         JSON.stringify({
           ...(opts.noId ? {} : { id: "appt_1" }),
@@ -123,6 +130,51 @@ beforeEach(() => {
   submitToIngest.mockResolvedValue({ ok: true, id: "sub_1" });
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+describe("a booking from an audit report's buttons", () => {
+  it("names the report's reference on the CRM contact", async () => {
+    const { fetchStub, calls } = crm({ storedPhone: "+13105550101" });
+    const sourceUrl =
+      "https://site.test/schedule?utm_source=audit&utm_medium=report&utm_content=0a1b2c3d";
+    const { status } = await call({ ...BOOKING(), sourceUrl }, fetchStub);
+    expect(status).toBe(200);
+    const notes = calls.filter((c) => c.url.includes("/notes"));
+    expect(notes.map((n) => String(n.body.body))).toContain(
+      "Booked from an audit report, reference 0a1b2c3d.",
+    );
+  });
+
+  it("writes the note only after the appointment exists", async () => {
+    const { fetchStub, calls } = crm({ storedPhone: "+13105550101" });
+    const sourceUrl =
+      "https://site.test/schedule?utm_source=audit&utm_medium=report&utm_content=0a1b2c3d";
+    await call({ ...BOOKING(), sourceUrl }, fetchStub);
+    const booked = calls.findIndex(
+      (c) => c.url.includes("/calendars/events/appointments") && c.method === "POST",
+    );
+    const noted = calls.findIndex((c) => String(c.body.body).startsWith("Booked from an audit"));
+    expect(booked).toBeGreaterThanOrEqual(0);
+    expect(noted).toBeGreaterThan(booked);
+  });
+
+  it("writes no audit note when the slot was taken, so a retry leaves no false note", async () => {
+    const { fetchStub, calls } = crm({ storedPhone: "+13105550101", appointmentStatus: 422 });
+    const sourceUrl =
+      "https://site.test/schedule?utm_source=audit&utm_medium=report&utm_content=0a1b2c3d";
+    const { status } = await call({ ...BOOKING(), sourceUrl }, fetchStub);
+    expect(status).toBe(409);
+    expect(calls.find((c) => c.url.includes("/notes"))).toBeUndefined();
+  });
+
+  it("writes no audit note for a booking that did not come from a report", async () => {
+    const { fetchStub, calls } = crm({ storedPhone: "+13105550101" });
+    await call(
+      { ...BOOKING(), sourceUrl: "https://site.test/schedule?utm_source=newsletter" },
+      fetchStub,
+    );
+    expect(calls.find((c) => c.url.includes("/notes"))).toBeUndefined();
+  });
 });
 
 describe("a phone the CRM silently refuses to store", () => {

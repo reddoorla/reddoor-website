@@ -1563,6 +1563,7 @@ const SKIPPED = new Set([
   "skipped (--technical)", // TECHNICAL_SKIPPED: analyze and probes on a technical-only run
   "skipped — the checks stage failed", // ANALYZE_SKIPPED, ASSETS_SKIPPED
   "skipped — no branded answers to check", // ACCURACY_SKIPPED
+  "skipped — the analyze stage failed, so the paid stages were not run", // ANALYZE_FAILED_SKIP (maintenance#2281)
   "no goal supplied and none could be inferred", // GOAL_UNRESOLVED
 ]);
 

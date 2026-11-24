@@ -2257,3 +2257,21 @@ Stacked on W1's PR (it changes `model.ts` and `narrative.ts` beside these lines)
 **Instrument note.** The report tests sometimes fail at load with `component is not a function` when many files compile at once. Two re-runs of the same tree passed 509 of 509. It is the SSR harness, not a finding.
 
 **Not done.** Re-judging the 8 stored rows (a paid call and a table write) waits on the operator.
+
+## 2026-11-24 — Audit report quick wins: true sentences, a booked call that names its report, a dated AI heading (#389, `claude/qw-report`)
+
+From §4 "Quick wins" of the 11-23 audit-system review (workspace `audits/2026-11-23-audit-system-review/`). Three items shipped here. **DES-04**: "Each of these has a matching item in what to fix" was false on 6 of the 20 stored rows that had problem rows. It now reads "The ones we would act on first are in what to fix" and prints only when a fix exists. **LG-06/B-18**: both "talk to us" buttons went to `/contact`, where the reference was lost. They now book through `/schedule?utm_source=audit&utm_medium=report&utm_content=<ref>`. `/api/book` writes "Booked from an audit report, reference <ref>." on the CRM contact, because until then the reference reached only `utm_*` attribution lines that nobody reads before a call. **AEO-09/LGL-13**: the AI section heading names Claude and the date the questions were asked, or the span when they crossed a day in Pacific time.
+
+B-05/SEO-10 was built and then reverted out (`eada3df`). Review round 1 found the headline was one of four places that print "nothing else in this report can help" for a crawler block that affects only training. The other three are `ScoreBars`, the print sheet, and maintenance's measured fix text, so it is bigger than a quick win.
+
+**Defect named.** Round 2's one major was in the booking note itself. It was written before `bookAppointment`, so a slot taken between page load and submit (the CRM's 422, which we return as 409) left a "Booked from an audit report" note for a call that never happened, and each retry added another. The note now sits in the best-effort block after the appointment, beside the tag. Two tests pin this: a 422 writes no note, and on success the note comes after the appointment create. Round 3 reproduced the old bug against the pre-fix handler and was clean. It also found the same pattern, already on `staging`, in the phone-conflict note (#392). Its minors are #390 (tighten the "act on first" condition to the problem rows' own fixes) and #391 (`SiteHealth` recomputes `allFixes`).
+
+**Opened reports change, on the operator's word.** The diff of 73 stored rows through `Report.svelte` showed five reports their recipients had already opened (two are our own) whose heading date, sentence and button change. He chose to land so that they change (workspace `decisions/2026-11-24-0729-qw-report-opened-reports-change.md`, about 11:35pm PT). The diff was the previous session's. Its re-run after round 3 was refused by this session's permission classifier (a read-only Turso dump) and was not worked around. Round 3's fix touched only `/api/book`, which renders nothing.
+
+Rounds: three. Rounds 1 and 2 were dirty, round 3 clean.
+
+## 2026-11-24 — A failed analysis's skipped visibility test reads "did not run" (`claude/qw-analyze-failed-skip`)
+
+reddoorla/reddoor-maintenance#2281 (COST-04) stops the paid stages after the analyze stage fails twice: the probes are not run and carry the producer's new skip message, "skipped — the analyze stage failed, so the paid stages were not run". The report's `SKIPPED` set is a hand-copied list of the producer's skip messages, so a message it does not know reads as a stage that ran and failed. Review round 1 of #2281 drove that path through `toReportView` and got "The visibility test ran on this audit and failed before it returned a result", which is false: it never ran. The message is now in the set, and `failed-stages.test.ts` pins that such a payload counts only `analyze` as failed and says the visibility test did not run (red before the line was added).
+
+No stored row changes: the message is new, so no row written before #2281 carries it. The copied list is the fragile part. A shared export would end this class of bug, but `AuditReport` is still untyped here (see `fetch.ts`), so it stays a copy for now.

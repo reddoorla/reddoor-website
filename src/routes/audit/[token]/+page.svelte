@@ -21,4 +21,4 @@
   <meta name="robots" content="noindex, nofollow, noarchive" />
 </svelte:head>
 
-<Report {view} />
+<Report {view} reference={data.reference} />
