@@ -2249,3 +2249,9 @@ B-05/SEO-10 was built and then reverted out (`eada3df`). Review round 1 found th
 **Opened reports change, on the operator's word.** The diff of 73 stored rows through `Report.svelte` showed five reports their recipients had already opened (two are our own) whose heading date, sentence and button change. He chose to land so that they change (workspace `decisions/2026-11-24-0729-qw-report-opened-reports-change.md`, about 11:35pm PT). The diff was the previous session's. Its re-run after round 3 was refused by this session's permission classifier (a read-only Turso dump) and was not worked around. Round 3's fix touched only `/api/book`, which renders nothing.
 
 Rounds: three. Rounds 1 and 2 were dirty, round 3 clean.
+
+## 2026-11-24 — A failed analysis's skipped visibility test reads "did not run" (`claude/qw-analyze-failed-skip`)
+
+reddoorla/reddoor-maintenance#2281 (COST-04) stops the paid stages after the analyze stage fails twice: the probes are not run and carry the producer's new skip message, "skipped — the analyze stage failed, so the paid stages were not run". The report's `SKIPPED` set is a hand-copied list of the producer's skip messages, so a message it does not know reads as a stage that ran and failed. Review round 1 of #2281 drove that path through `toReportView` and got "The visibility test ran on this audit and failed before it returned a result", which is false: it never ran. The message is now in the set, and `failed-stages.test.ts` pins that such a payload counts only `analyze` as failed and says the visibility test did not run (red before the line was added).
+
+No stored row changes: the message is new, so no row written before #2281 carries it. The copied list is the fragile part. A shared export would end this class of bug, but `AuditReport` is still untyped here (see `fetch.ts`), so it stays a copy for now.
