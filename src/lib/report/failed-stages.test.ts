@@ -77,6 +77,26 @@ describe("which stages count as ran-and-failed", () => {
     expect(view.failedStages).toEqual([]);
   });
 
+  it("does not count the visibility test or the accuracy check as failed when a failed analysis skipped them", () => {
+    // reddoor-maintenance#2281 (COST-04): after analyze fails twice the probes
+    // are not run, with the producer's ANALYZE_FAILED_SKIP. Analyze itself
+    // failed and says so; the visibility test never ran.
+    const view = toReportView(
+      withStages("11111111", {
+        analyze: FAILED,
+        probes: {
+          ok: false,
+          error: "skipped — the analyze stage failed, so the paid stages were not run",
+        },
+        accuracy: { ok: false, error: "skipped — no branded answers to check" },
+      }),
+    );
+    expect(view.failedStages).toEqual(["analyze"]);
+    expect(gapClause(view, ["probes"], "The visibility test")).toBe(
+      "The visibility test did not run on this audit",
+    );
+  });
+
   it("does not count a stage this era of the payload lacks", () => {
     expect(toReportView(producer("00000000")).failedStages).toEqual([]);
   });
