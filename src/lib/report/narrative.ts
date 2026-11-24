@@ -1,5 +1,4 @@
 import { healthRows, type HealthRow } from "./health";
-import { crawlerClass } from "./crawler-class";
 import {
   completeOf,
   inPagesRead,
@@ -197,27 +196,12 @@ function headlineFindingGenerated(view: ReportView): Headline {
   const rows = healthRows(view);
   const tally = view.questionTally;
 
-  // Only a search crawler makes the whole report beside the point: a site
-  // missing from search cannot be found by anything else. A retrieval crawler
-  // costs the answers an assistant gives. A training crawler costs nothing a
-  // reader can see, so it falls through to the next headline.
-  if (reach?.measured && reach.blockedSearch.length > 0) {
+  if (reach?.measured && reach.blocked.length > 0) {
     return {
       kind: "crawlers-blocked",
       text:
-        `Your robots.txt turns away ${joinList(reach.blockedSearch)}. ` +
+        `Your robots.txt turns away ${joinList(reach.blocked)}. ` +
         `Nothing else in this report can help until that changes.`,
-    };
-  }
-  const retrieval = reach?.measured
-    ? reach.blocked.filter((n) => crawlerClass(n) === "retrieval")
-    : [];
-  if (retrieval.length > 0) {
-    return {
-      kind: "crawlers-blocked",
-      text:
-        `Your robots.txt turns away ${joinList(retrieval)}, ` +
-        `which AI assistants use to read your pages when they answer.`,
     };
   }
 

@@ -162,7 +162,7 @@ describe("headlineFinding — priority", () => {
     const v = view({
       ...stage("checks", (d) => ({
         ...d,
-        crawlerAccess: { blockedAi: ["OAI-SearchBot"], blockedClassical: [] },
+        crawlerAccess: { blockedAi: ["GPTBot"], blockedClassical: [] },
       })),
       ...stage("accuracy", (d) => ({
         ...d,
@@ -171,7 +171,7 @@ describe("headlineFinding — priority", () => {
     });
     const h = headlineFinding(v);
     expect(h.kind).toBe("crawlers-blocked");
-    expect(h.text).toMatch(/turns away OAI-SearchBot/);
+    expect(h.text).toMatch(/turns away GPTBot/);
   });
 
   it("a name collision outranks a missing goal requirement", () => {

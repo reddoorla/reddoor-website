@@ -64,7 +64,7 @@ describe("crawlerReach.checked — how many crawlers we actually looked at", () 
   // A failed crawl must not turn into "we checked nobody and they are fine".
   it("still reports the robots.txt measurement when the crawl stage failed", () => {
     const v = toReportView(report({ crawl: { ok: false, error: "boom" } }));
-    expect(v.crawlerReach).toEqual({ measured: true, blocked: [], blockedSearch: [], checked: 0 });
+    expect(v.crawlerReach).toEqual({ measured: true, blocked: [], checked: 0 });
   });
 });
 
