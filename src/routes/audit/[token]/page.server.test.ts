@@ -76,6 +76,7 @@ describe("/audit/[token] — loading", () => {
       meta_referrer: "no-referrer",
       // Every report shares the static audit card.
       meta_image: "/og/site/audit.png",
+      reference: expect.stringMatching(/^[0-9a-f]{8}$/),
     });
   });
 
@@ -95,5 +96,16 @@ describe("/audit/[token] — loading", () => {
   it("does not turn an upstream outage into a 404", async () => {
     const { evt } = event(TOKEN, respondWith(503, { error: "unconfigured" }));
     await expect(load(evt)).rejects.not.toMatchObject({ status: 404 });
+  });
+});
+
+describe("/audit/[token] — reference", () => {
+  // The Report's two "talk to us" buttons carry this short label, derived from
+  // the token. The token itself is the credential and must not be in the data.
+  it("sends a short reference and never the token", async () => {
+    const { evt } = event(TOKEN, ok);
+    const data = (await load(evt)) as Record<string, unknown>;
+    expect(data.reference).toMatch(/^[0-9a-f]{8}$/);
+    expect(JSON.stringify(data)).not.toContain(TOKEN);
   });
 });

@@ -1,6 +1,8 @@
 <script lang="ts">
   import ReportDisclosure from "./ReportDisclosure.svelte";
   import { healthRows } from "./health";
+  import { fixLinkSentence } from "./health-fix-coverage";
+  import { allFixes } from "./narrative";
   import { gapClause, type ReportView } from "./model";
 
   // Whether the site works — checked the way a stranger would check it.
@@ -26,6 +28,12 @@
 
   const rows = $derived(healthRows(view));
   const problems = $derived(rows.filter((r) => r.alert));
+  const fixLink = $derived(
+    fixLinkSentence(
+      problems.map((r) => r.key),
+      allFixes(view).length > 0,
+    ),
+  );
 
   const hasReceipts = $derived(
     Boolean(
@@ -71,9 +79,11 @@
           </li>
         {/each}
       </ul>
-      <p class="type-meta m-0 text-muted">
-        Each of these has a matching item in <a class="underline" href="#fixes">what to fix</a>.
-      </p>
+      {#if fixLink}
+        <p class="type-meta m-0 text-muted">
+          {fixLink.before}<a class="underline" href="#fixes">what to fix</a>{fixLink.after}
+        </p>
+      {/if}
     {/if}
 
     <!-- The receipts. Every finding above names something a reader can open in

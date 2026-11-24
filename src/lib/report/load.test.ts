@@ -109,6 +109,8 @@ describe("both routes use the shared loader", () => {
         meta_referrer: "no-referrer",
         // Every report shares the static audit card.
         meta_image: "/og/site/audit.png",
+        // Only the main report carries the reference its buttons use.
+        ...(route === page ? { reference: expect.stringMatching(/^[0-9a-f]{8}$/) } : {}),
         ...own,
       });
       const headers = setHeaders.mock.calls[0]![0] as Record<string, string>;

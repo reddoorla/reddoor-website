@@ -1,0 +1,1 @@
+{ "mode": "warn", "exempt": ["src/routes/meeting-outcome/**", "src/routes/preview/**"] }
