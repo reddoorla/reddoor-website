@@ -1541,10 +1541,13 @@ const conflationOf = (otherNames: string[], engineQuote = "") => ({
   engineQuote,
 });
 
+// The run is 1,000 spaces, not 20,000: the old cubic rating pattern took about
+// 0.9 s here (so the mutation goes red in bounded time) and the fixed one takes
+// well under 1 ms. The 250 ms bound leaves room for a slow CI runner.
 describe("R4 fix 1a: the topic patterns finish fast on long runs of spaces", () => {
   const LONG: [string, string][] = [
-    ["a rating, then 20,000 spaces", `Rating${" ".repeat(20000)}x`],
-    ["a platform, then 20,000 spaces", `Glassdoor${" ".repeat(20000)}`],
+    ["a rating, then 1,000 spaces", `Rating${" ".repeat(1000)}x`],
+    ["a platform, then 1,000 spaces", `Glassdoor${" ".repeat(1000)}`],
     [
       "a 20,000-character ordinary paragraph",
       "The studio builds brand identities for restaurants in Denver. ".repeat(340),
@@ -1554,13 +1557,13 @@ describe("R4 fix 1a: the topic patterns finish fast on long runs of spaces", () 
   it.each(LONG)("withheldTopic is quick on %s", (_l, claim) => {
     const t0 = performance.now();
     withheldTopic(row({ claim, engineQuote: claim }));
-    expect(performance.now() - t0).toBeLessThan(50);
+    expect(performance.now() - t0).toBeLessThan(250);
   });
 
   it.each(LONG)("brandedExcerpt is quick on %s", (_l, snippet) => {
     const t0 = performance.now();
     brandedExcerpt({ snippet, truncated: false, query: "who is Example Studio" });
-    expect(performance.now() - t0).toBeLessThan(50);
+    expect(performance.now() - t0).toBeLessThan(250);
   });
 });
 
