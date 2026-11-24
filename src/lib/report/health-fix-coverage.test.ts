@@ -14,9 +14,12 @@ describe("fixLinkSentence", () => {
 
   it("some problem rows have a fix: the sentence counts them and lists the rest", () => {
     expect(fixLinkSentence(["https", "phones"])).toEqual({
-      before: "1 of these have a matching item in ",
+      before: "1 of these has a matching item in ",
       after: "; the rest are listed here so you can check them.",
     });
+    expect(fixLinkSentence(["https", "copyright", "phones"])?.before).toBe(
+      "2 of these have a matching item in ",
+    );
   });
 
   it("no problem row has a fix: no sentence", () => {

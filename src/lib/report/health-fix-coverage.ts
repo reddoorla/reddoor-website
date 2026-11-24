@@ -19,7 +19,7 @@ export function fixLinkSentence(
     return { before: "Each of these has a matching item in ", after: "." };
   }
   return {
-    before: `${covered} of these have a matching item in `,
+    before: `${covered} of these ${covered === 1 ? "has" : "have"} a matching item in `,
     after: "; the rest are listed here so you can check them.",
   };
 }
