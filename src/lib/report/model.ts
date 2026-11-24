@@ -750,7 +750,8 @@ export function statements(view: ReportView): Statement[] {
     if (group) group.push(a);
     else groups.set(key, [a]);
   }
-  return [...groups.values()].map((rows) => decide(rows, names));
+  const business = view.businessName ?? "";
+  return [...groups.values()].map((rows) => decide(rows, names, business));
 }
 
 /** R4 fix 2: a row is a contradiction about the prospect when the engine said
@@ -772,14 +773,14 @@ function contradictsRow(a: Assertion): boolean {
  *  as "your site says", so it is not a contradiction on the page. */
 const hasSiteWords = (a: Assertion): boolean => (a.siteQuote ?? "").trim() !== "";
 
-function decide(rows: Assertion[], names: string[]): Statement {
+function decide(rows: Assertion[], names: string[], business: string): Statement {
   const first = rows[0]!;
   const about = rows.every((a) => aboutProspect(a, names));
   // R3 fix 1: any row's contradiction about the prospect counts, not the first
   // row's subject alone.
   const prospectContradicted = rows.some((a) => isProspectContradiction(a, names));
   const withheld = rows
-    .map((a) => withheldTopic(a))
+    .map((a) => withheldTopic(a, business))
     .filter((t): t is Exclude<AssertionTopic, "other"> => t !== null);
   const topic = TOPIC_TEXT.map(([t]) => t).find((t) => withheld.includes(t)) ?? null;
   const contradicted = rows.find((a) => a.verdict === "contradicted" && hasSiteWords(a));
@@ -1039,12 +1040,12 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       ),
       // "A man named Tim leads Acme." A person noun before "named" (R6 fix 2): a
       // bare "was named Denver's Best Design Studio" is the business.
-      /\b(?:man|woman|person|someone|designer|owner|founder|guy|lady) named [A-Z]/,
-      // R6 fix 3: two capitalised words and a verb of ownership or founding read as a
-      // person ("Dana Reyes founded the studio", "Northwind Holdings owns Example
-      // Studio"). "started" and "own" are not in the verb list: "Example Studio
-      // started in 2001" is the business (R5 fix 2).
-      /\b[A-Z][a-z]+ [A-Z][a-z]+ (?:leads|led|owns|runs|founded)\b/,
+      // R7 fix 2: any "named <Capitalised>" is a person except after a passive
+      // ("was named Denver's Best Design Studio", "has been named Best Agency"),
+      // which is the award. Replaces the R6 fix 2 list of person nouns.
+      /(?<!\b(?:was|were|is|are|been|being|be|got|gets?) )\b[Nn]amed [A-Z]/,
+      // R7 fix 3: the two-word person verbs (leads, led, runs, founded) are matched
+      // by `personVerbIn`, which skips the business's own name. "owns" is ownership.
       // The noun forms below are the person (R5 fix 2).
       // "Dana Reyes, the CEO".
       new RegExp(
@@ -1076,6 +1077,8 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\bacquired (?:it|us|the (?:studio|business|company|firm|agency))\b/i,
       // "It is part of Northwind Group".
       /\bpart of (?:a |the )?[A-Z]\w*(?: [A-Z]\w*)* (?:Group|Holdings|Brands|Network)\b/,
+      // R7 fix 3: "Northwind Holdings owns Example Studio" is ownership, not a person.
+      /\b[A-Z][a-z]+ [A-Z][a-z]+ owns\b/,
     ],
   ],
   [
@@ -1115,28 +1118,58 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
   ],
 ];
 
-export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | null {
+/** R7 fix 3: two capitalised words and a verb of leading or founding read as a
+ *  person ("Dana Reyes founded the studio"). A match whose two words are both
+ *  words of the business's own name is the business ("Example Studio runs
+ *  workshops"), and is skipped. */
+const PERSON_VERB = /\b([A-Z][a-z]+) ([A-Z][a-z]+) (?:leads|led|runs|founded)\b/g;
+
+function personVerbIn(text: string, business: string): boolean {
+  const own = new Set(wordsOf(business));
+  for (const m of text.matchAll(PERSON_VERB)) {
+    if (own.has(m[1]!.toLowerCase()) && own.has(m[2]!.toLowerCase())) continue;
+    return true;
+  }
+  return false;
+}
+
+/** Does a topic's text carry it? `business` is the report's business name, used
+ *  only by the person-verb check (R7 fix 3). */
+function topicHits(
+  topic: Exclude<AssertionTopic, "other">,
+  patterns: RegExp[],
+  text: string,
+  business: string,
+): boolean {
+  if (patterns.some((re) => re.test(text))) return true;
+  return topic === "named_person" && personVerbIn(text, business);
+}
+
+export function withheldTopic(
+  a: Assertion,
+  business = "",
+): Exclude<AssertionTopic, "other"> | null {
   if (a.topic !== undefined && a.topic !== "other") return a.topic;
   const text = `${a.claim}\n${a.engineQuote}`;
   for (const [topic, patterns] of TOPIC_TEXT)
-    if (patterns.some((re) => re.test(text))) return topic;
+    if (topicHits(topic, patterns, text, business)) return topic;
   return null;
 }
 
 /** The first withheld topic a text carries, or null. R3 fix 4: any topic, not
  *  only ratings. A branded answer's excerpt is printed whole, so a BBB rating, a
  *  named founder or a complaint in it is withheld as a rating would be. */
-export function withheldIn(text: string): Exclude<AssertionTopic, "other"> | null {
-  return withheldTopicsIn(text)[0] ?? null;
+export function withheldIn(text: string, business = ""): Exclude<AssertionTopic, "other"> | null {
+  return withheldTopicsIn(text, business)[0] ?? null;
 }
 
 /** Every withheld topic a text carries, in TOPIC_TEXT order (R5 fix 4). A text
  *  that carries a legal form and an owner carries both, so the legal form alone
  *  is not the only thing it says. */
-export function withheldTopicsIn(text: string): Exclude<AssertionTopic, "other">[] {
+export function withheldTopicsIn(text: string, business = ""): Exclude<AssertionTopic, "other">[] {
   const out: Exclude<AssertionTopic, "other">[] = [];
   for (const [topic, patterns] of TOPIC_TEXT)
-    if (patterns.some((re) => re.test(text))) out.push(topic);
+    if (topicHits(topic, patterns, text, business)) out.push(topic);
   return out;
 }
 
@@ -1155,9 +1188,10 @@ export function textWithheld(text: string): boolean {
  */
 export function brandedExcerpt(
   probe: Pick<ProbeAnswer, "snippet" | "truncated"> & { query?: string },
+  business = "",
 ): string {
   const reviewsQuestion = /\sreviews$/.test((probe.query ?? "").trim());
-  const topic = withheldIn(probe.snippet);
+  const topic = withheldIn(probe.snippet, business);
   if (reviewsQuestion || topic === "ratings_reviews") {
     return "This answer gave ratings or review scores, which we have not checked, so we have not repeated it here.";
   }
@@ -1194,6 +1228,9 @@ export function heldBack(view: ReportView): HeldBack {
       withheld += 1;
       if (!topics.includes(TOPIC_LABEL[s.topic])) topics.push(TOPIC_LABEL[s.topic]);
     }
+    // R7 fix 1: an unclear-subject contradiction has no topic; it is held as the
+    // client's, and counted under the other-business line.
+    else if (s.outcome === "withheld") aboutOthers += 1;
   }
   return { withheld, topics, aboutOthers, unquoted };
 }

@@ -323,7 +323,7 @@
                   headingTag="h4"
                   title="What the assistant said when asked about you by name"
                 >
-                  <BrandedAnswers probes={view.brandedProbes} />
+                  <BrandedAnswers probes={view.brandedProbes} business={view.businessName ?? ""} />
                 </ReportDisclosure>
               {/if}
             </div>
