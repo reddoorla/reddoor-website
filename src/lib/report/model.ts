@@ -708,38 +708,15 @@ function aboutProspect(a: Assertion, otherNames: string[] = []): boolean {
   return !otherNames.some((n) => quote.includes(` ${wordsOf(n).join(" ")} `));
 }
 
-/** The other names the answer gave this business, cut to the part before " (",
- *  for matching the quote of a row stored without a subject. A short name
- *  matches almost anything. A name is not another business when it is part of
- *  this business's own name, contains it, or shares its first word: "Acme
- *  (Dallas)" is this business's own "Acme Roofing", not a second firm. */
-/** Words too generic to name a firm on their own (R4 fix 5a): "Northwind
- *  Partners" matches on its full phrase, never on "partners". */
-const GENERIC_NAME_WORDS = new Set([
-  "partners",
-  "group",
-  "studio",
-  "studios",
-  "design",
-  "designs",
-  "agency",
-  "company",
-  "co",
-  "inc",
-  "llc",
-  "services",
-  "solutions",
-]);
-
-/** The other names the answer gave this business, cut to the part before " (",
- *  for matching the quote of a row stored without a subject. A short name
- *  matches almost anything. A name is not another business when it is part of
- *  this business's own name or contains it: "Acme (Dallas)" is this business's
- *  own "Acme Roofing", not a second firm. R4 fix 5: a name that shares only its
- *  first word with this business is another firm, matched on its full phrase.
- *  And an other name whose first word is not in this business's name also
- *  matches on that distinctive word, when it is 4+ letters and not generic
- *  ("Northwind Outfitters" makes "Northwind sells ..." another firm's). */
+/**
+ * The other names the answer gave this business, cut to the part before " (",
+ * for matching the quote of a row stored without a subject. A short name (under
+ * four letters) is skipped. A name is not another business when it is part of
+ * this business's own name or contains it: "Acme (Dallas)" is this business's
+ * own "Acme Roofing", not a second firm. Any other name is kept whole, and a row
+ * with no subject is another firm's only when its quote holds that full name
+ * (R5 fix 1: the first word of a name never matches on its own).
+ */
 export function otherNamesOf(view: ReportView): string[] {
   const own = wordsOf(view.businessName ?? "");
   const ownText = own.join(" ");
@@ -756,15 +733,6 @@ export function otherNamesOf(view: ReportView): string[] {
       if (partOfOwn || containsOwn) continue;
     }
     out.push(n);
-    const distinct = w.find((x) => !own.includes(x));
-    if (
-      own.length > 0 &&
-      distinct !== undefined &&
-      distinct.length >= 4 &&
-      !GENERIC_NAME_WORDS.has(distinct) &&
-      w.length > 1
-    )
-      out.push(distinct);
   }
   return out;
 }
@@ -853,6 +821,13 @@ function printedRows(view: ReportView, outcome: StatementOutcome): Assertion[] {
     .map((s) => s.row);
 }
 
+/** R5 fix 5: the confirmed statements that print a site passage. The proof
+ *  sentence counts these only, since a confirmed statement with no passage
+ *  prints with nothing to match. */
+export function confirmedWithPassage(view: ReportView): Assertion[] {
+  return confirmedRows(view).filter(hasSiteWords);
+}
+
 /** Confirmed statements, with both quotes, for the reader to judge (BR-09). */
 export function confirmedRows(view: ReportView): Assertion[] {
   if (!sourceCheckMeasured(view)) return [];
@@ -925,9 +900,10 @@ const ci = (words: string[]): string =>
     .join("|")})`;
 
 /** R4 fix 1: the platform names a rating or review can be read off. Google
- *  counts only in its platform sense, not "Google Ads" and the like. */
+ *  counts only in its platform sense, not "Google Ads" and the like; Maps and
+ *  Business Profile are platforms, so a rating on them is withheld (R5 fix 3). */
 const PLATFORM =
-  "(?:glassdoor|yelp|trustpilot|bbb|charity navigator|clutch|houzz|angi|thumbtack|g2|google(?!\\s+(?:ads|analytics|partner|cloud|workspace|maps|business profile)\\b))";
+  "(?:glassdoor|yelp|trustpilot|bbb|charity navigator|clutch|houzz|angi|thumbtack|g2|google(?!\\s+(?:ads|analytics|partner|cloud|workspace)\\b))";
 /** A figure that looks like a score: "4.9", "4/5", "3 stars", "37 reviews". */
 const SCORE_FIGURE =
   "(?:\\d\\.\\d\\b|\\d\\s*\\/\\s*(?:5|10)\\b|\\d\\s*stars?\\b|\\d+\\s+reviews?\\b|\\d+\\s+ratings?\\b)";
@@ -1051,9 +1027,9 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       ),
       // "A man named Tim leads Acme.", "named Tim".
       /\b[Nn]amed [A-Z]/,
-      // "John Smith founded the company", "Dana Reyes leads", "Dana Reyes and Sam
-      // Ortiz own the studio", "Dana Reyes started the studio in 2001".
-      /\b[A-Z][a-z]+ [A-Z][a-z]+ (?:leads|led|owns?|runs|founded|started)\b/,
+      // No pattern reads a verb after two capitalised words as a person: "Example
+      // Studio started in 2001" is the business. The noun forms below are the person
+      // (R5 fix 2).
       // "Dana Reyes, the CEO".
       new RegExp(
         `\\b[A-Z][a-z]+ [A-Z][a-z]+,? (?:${ci(["the"])} )?${ci(["ceo", "founder", "owner", "president"])}\\b`,
@@ -1135,9 +1111,17 @@ export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | 
  *  only ratings. A branded answer's excerpt is printed whole, so a BBB rating, a
  *  named founder or a complaint in it is withheld as a rating would be. */
 export function withheldIn(text: string): Exclude<AssertionTopic, "other"> | null {
+  return withheldTopicsIn(text)[0] ?? null;
+}
+
+/** Every withheld topic a text carries, in TOPIC_TEXT order (R5 fix 4). A text
+ *  that carries a legal form and an owner carries both, so the legal form alone
+ *  is not the only thing it says. */
+export function withheldTopicsIn(text: string): Exclude<AssertionTopic, "other">[] {
+  const out: Exclude<AssertionTopic, "other">[] = [];
   for (const [topic, patterns] of TOPIC_TEXT)
-    if (patterns.some((re) => re.test(text))) return topic;
-  return null;
+    if (patterns.some((re) => re.test(text))) out.push(topic);
+  return out;
 }
 
 /** Does this text carry a withheld topic of any kind? */

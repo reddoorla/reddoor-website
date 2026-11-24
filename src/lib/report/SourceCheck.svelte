@@ -11,6 +11,7 @@
   import {
     citationRuns,
     confirmedRows,
+    confirmedWithPassage,
     contradictedRows,
     namesakeLeads,
     notSourcedFromSite,
@@ -63,6 +64,9 @@
   const notSourced = $derived(notSourcedFromSite(view));
   const confirmedList = $derived(confirmedRows(view));
   const confirmed = $derived(confirmedList.length);
+  // R5 fix 5: the proof sentence counts only the confirmed statements that print
+  // a site passage.
+  const confirmedPassage = $derived(confirmedWithPassage(view).length);
   const citedOwn = $derived(ownSiteCitations(view));
   const held = $derived(heldBackLines(view));
 
@@ -252,16 +256,16 @@
       </div>
     {/if}
 
-    {#if confirmed > 0 && citedOwn > 0}
+    {#if confirmedPassage > 0 && citedOwn > 0}
       <!-- The proof that editing the site changes the answer, in one sentence.
            The statements themselves are in the passes list. It is the summary
            of the lists above, so it takes the h4s' size and colour rather than
            the grey meta of a footnote (Tim, MarkUp 2026-09-15). -->
       <p class="type-question m-0 border-t border-light pt-6 text-black">
-        {numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())}
-        {confirmed === 1 ? "statement" : "statements"} the assistant made
-        {confirmed === 1 ? "matches" : "match"} a passage on your own site, and across the answers we
-        checked it cited your site
+        {numberWord(confirmedPassage).replace(/^./, (c) => c.toUpperCase())}
+        {confirmedPassage === 1 ? "statement" : "statements"} the assistant made
+        {confirmedPassage === 1 ? "matches" : "match"} a passage on your own site, and across the answers
+        we checked it cited your site
         {citedOwn === 1 ? "once" : `${citedOwn} times`}. That is the proof that editing your pages
         changes the answer; the statements are listed above.
       </p>

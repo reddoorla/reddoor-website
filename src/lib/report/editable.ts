@@ -255,6 +255,8 @@ export type HideTarget = {
 };
 
 const ACCURACY_ROWS = "accuracy.data.assertions";
+/** The label of a statement with no quote from the assistant (R5 fix 6). */
+const NO_QUOTE_LABEL = "A statement with no quote from the assistant";
 
 /**
  * R2. The accuracy statements the page prints, one target each, read from the
@@ -299,14 +301,16 @@ function accuracyTargets(raw: AuditReport, map: OverrideMap, noun: string): Hide
     const original = withClaim !== undefined ? storedRow?.claim : storedRow?.engineQuote;
     if (typeof original !== "string" || original.trim() === "") continue;
     const key = `${ACCURACY_ROWS}[${index}]`;
+    // R5 fix 6: a statement with no quote is named by a fixed phrase, never by
+    // the claim (our paraphrase) and never by an empty pair of quote marks.
     const quote = displayQuote(s.row.engineQuote);
     out.push({
       key,
       original,
       noun,
       // R3 fix 6: one label per statement; the question is not part of it.
-      label: `“${quote}”`,
-      quote,
+      label: quote === "" ? NO_QUOTE_LABEL : `“${quote}”`,
+      quote: quote === "" ? NO_QUOTE_LABEL : quote,
       group,
       hidden: hiddenKeys.has(key) || hiddenHere,
       canHide: true,

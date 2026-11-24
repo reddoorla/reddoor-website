@@ -22,7 +22,7 @@ import {
   notSourcedFromSite,
   withheldContradictionKind,
   textWithheld,
-  withheldIn,
+  withheldTopicsIn,
   type BuyerQuestion,
   type Fix,
   type ReportView,
@@ -538,11 +538,11 @@ function bareOtherName(n: string): string {
 }
 
 /** A withheld topic that is more than a legal form. "Ltd", "Inc" and "LLC" are
- *  part of a firm's name, not a claim about it, so a name that carries only one
- *  still prints (R3 fix 5's name-only rule, kept for them). */
+ *  part of a firm's name, not a claim about it, so a name whose only topic is a
+ *  legal form still prints (R3 fix 5's name-only rule). R5 fix 4: every topic the
+ *  text carries is checked, not the first, so "Inc., owned by Dana Reyes" counts. */
 function carriesTopic(s: string): boolean {
-  const topic = withheldIn(s);
-  return topic !== null && topic !== "legal_entity";
+  return withheldTopicsIn(s).some((topic) => topic !== "legal_entity");
 }
 
 /**
