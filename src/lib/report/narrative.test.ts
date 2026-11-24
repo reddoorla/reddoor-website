@@ -1233,7 +1233,7 @@ describe("primer", () => {
     const cases: [string, Partial<ReportView>, string][] = [
       [
         "crawlerReach",
-        { crawlerReach: { measured: false, blocked: [], checked: 0 } },
+        { crawlerReach: { measured: false, blocked: [], blockedSearch: [], checked: 0 } },
         "It ran the accessibility rules and counted the clicks from any page to reaching you.",
       ],
       [
@@ -1261,7 +1261,7 @@ describe("primer", () => {
   it("does not name a crawler count the checks stage never measured", () => {
     const v: ReportView = {
       ...view(),
-      crawlerReach: { measured: false, blocked: [], checked: 8 },
+      crawlerReach: { measured: false, blocked: [], blockedSearch: [], checked: 8 },
     };
     expect(primer(v, []).how).not.toContain("robots.txt");
   });

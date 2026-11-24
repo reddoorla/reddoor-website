@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { loadReport } from "$lib/report/load";
+import { reportReference } from "$lib/report/reference";
 import { toTechnicalView } from "$lib/report/technical/model";
 import { ogCardPath } from "$lib/og/url";
 import type { PageServerLoad } from "./$types";
@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
   return {
     // A check the operator hid on the report is hidden here too (W1).
     view: toTechnicalView(report, new Date(), new Set(hiddenChecks ?? [])),
-    reference: createHash("sha256").update(event.params.token).digest("hex").slice(0, 8),
+    reference: reportReference(event.params.token),
     meta_referrer,
     meta_image: ogCardPath("site", "audit"),
   };

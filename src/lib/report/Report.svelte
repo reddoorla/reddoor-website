@@ -16,6 +16,7 @@
   import WhatPasses from "./WhatPasses.svelte";
   import { failedChecksSentence, openingSummary, type ReportView } from "./model";
   import { aiSectionHeading } from "./ai-heading";
+  import { scheduleHref } from "./schedule-link";
   import {
     allFixes,
     auditedOn,
@@ -46,7 +47,9 @@
   // the contents list, which is sticky from the first section to the end of
   // the appendix.
 
-  let { view }: { view: ReportView } = $props();
+  let { view, reference = null }: { view: ReportView; reference?: string | null } = $props();
+
+  const schedule = $derived(scheduleHref(reference));
 
   const who = $derived(view.businessName ?? "your business");
   const headline = $derived(headlineFinding(view));
@@ -551,7 +554,7 @@
          language: nothing here is a second offer, it is the same one brought
          within reach. -->
       <a
-        href="/contact"
+        href={schedule}
         class="bump fixed right-6 bottom-6 z-30 rounded-[4px] border-1 border-primary bg-white px-[15px] py-2.5 text-center text-[14px] leading-[normal] font-normal text-nowrap text-primary shadow-md transition-all duration-300 hover:bg-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
       >
         Start a conversation
@@ -631,7 +634,7 @@
           and tell you honestly which parts you can handle in-house.
         </p>
         <a
-          href="/contact"
+          href={schedule}
           class="bump mt-2 self-start rounded-[4px] border-1 border-white px-[15px] py-2.5 text-center text-[14px] leading-[normal] font-normal text-nowrap text-white transition-all duration-300 hover:bg-white hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
         >
           Start a conversation
