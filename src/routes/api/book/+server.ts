@@ -140,21 +140,6 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     }
   }
 
-  // A call booked from an audit report's buttons names the report on the
-  // record (LG-06, B-18). Not awaited into the failure path, as above.
-  const auditNote = auditBookingNote(sourceUrl);
-  if (auditNote) {
-    const note = await addCrmNote({
-      token: env.CRM_FUNNEL_ACTIVE_TOKEN,
-      fetch,
-      contactId: contact.data.contactId,
-      body: auditNote,
-    });
-    if (!note.ok) {
-      console.error(`[book] audit-reference note failed (${note.status}): ${note.error}`);
-    }
-  }
-
   const appointment = await bookAppointment({
     token: env.CRM_FUNNEL_ACTIVE_TOKEN,
     fetch,
@@ -189,6 +174,23 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     tags: [TAG_SCHEDULED_A_CALL],
   });
   if (!tagged.ok) console.warn(`[book] tag failed: ${tagged.error}`);
+
+  // A call booked from an audit report's buttons names the report on the
+  // record (LG-06, B-18). Written only once the appointment exists: before it,
+  // a slot taken since page load (the 409 above) left a note for a call that
+  // was never booked, and each retry added another.
+  const auditNote = auditBookingNote(sourceUrl);
+  if (auditNote) {
+    const note = await addCrmNote({
+      token: env.CRM_FUNNEL_ACTIVE_TOKEN,
+      fetch,
+      contactId: contact.data.contactId,
+      body: auditNote,
+    });
+    if (!note.ok) {
+      console.error(`[book] audit-reference note failed (${note.status}): ${note.error}`);
+    }
+  }
 
   if (env.FORMS_INGEST_URL && env.FORMS_INGEST_TOKEN && body.testMode !== true) {
     const userAgent = request.headers.get("user-agent")?.trim();
