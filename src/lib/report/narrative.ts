@@ -22,6 +22,7 @@ import {
   notSourcedFromSite,
   withheldContradictionKind,
   textWithheld,
+  withheldIn,
   type BuyerQuestion,
   type Fix,
   type ReportView,
@@ -368,6 +369,16 @@ function headlineFindingGenerated(view: ReportView): Headline {
         "Ask us for it.",
     };
   }
+  // R4 fix 3: a statement that also describes another business is not a topic
+  // we have not checked; it is a sentence we will not repeat in full.
+  if (withheld === "mixed") {
+    return {
+      kind: "withheld-contradiction",
+      text:
+        "The assistant said something about you that your own site contradicts, in a sentence that also describes another business, " +
+        "so we have not repeated it here. Ask us for it.",
+    };
+  }
 
   return {
     kind: "all-clear",
@@ -509,9 +520,29 @@ export type CollisionBlock = { heading: string; detail: string | null };
  * the part before " (", which is the name.
  */
 export function collisionNames(view: ReportView): string[] {
-  return (view.accuracy?.conflation.otherNames ?? [])
-    .map((n) => (textWithheld(n) ? (n.split(" (")[0] ?? "").trim() : n))
-    .filter((n) => n !== "");
+  return (view.accuracy?.conflation.otherNames ?? []).map(bareOtherName).filter((n) => n !== "");
+}
+
+/** The name alone, for a name that carries a withheld topic. R4 fix 4: cut at
+ *  " (" first; if the rest still carries one, cut at the first ",", " —", " - "
+ *  or " which "; if that still does, the block names no firm at all. */
+function bareOtherName(n: string): string {
+  if (!textWithheld(n)) return n;
+  const head = (n.split(" (")[0] ?? "").trim();
+  if (!carriesTopic(head)) return head;
+  for (const cut of [",", " —", " - ", " which "]) {
+    const part = (head.split(cut)[0] ?? "").trim();
+    if (part !== "" && part !== head && !carriesTopic(part)) return part;
+  }
+  return "another business";
+}
+
+/** A withheld topic that is more than a legal form. "Ltd", "Inc" and "LLC" are
+ *  part of a firm's name, not a claim about it, so a name that carries only one
+ *  still prints (R3 fix 5's name-only rule, kept for them). */
+function carriesTopic(s: string): boolean {
+  const topic = withheldIn(s);
+  return topic !== null && topic !== "legal_entity";
 }
 
 /**

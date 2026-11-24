@@ -233,7 +233,9 @@
         {#each confirmedList as row, i (i)}
           <div class="fix">
             <p class="fix-t">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
-            <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+            {#if row.siteQuote?.trim()}
+              <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+            {/if}
           </div>
         {/each}
       {/if}

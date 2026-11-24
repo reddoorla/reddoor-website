@@ -281,9 +281,13 @@ function accuracyTargets(raw: AuditReport, map: OverrideMap, noun: string): Hide
   const hiddenKeys = hiddenRowKeys(raw, map);
   const out: HideTarget[] = [];
   for (const s of statements(view)) {
-    if (!printed.has(s.row)) continue;
     const indices = s.rows.map((a) => stored.indexOf(a)).filter((i) => i >= 0);
     if (indices.length === 0) continue;
+    const group = indices.map((i) => `${ACCURACY_ROWS}[${i}]`);
+    // R4 fix 8: a statement the page withholds is not offered, but a hide already
+    // on it stays listed, so the Changes list can name it by its quote.
+    const hiddenHere = group.some((k) => hiddenKeys.has(k));
+    if (!printed.has(s.row) && !hiddenHere) continue;
     // R3 fix 9: the statement is keyed by its first row that has a claim. Failing
     // that, by its quote, which the hide check accepts too.
     const withClaim = indices.find((i) => {
@@ -303,8 +307,8 @@ function accuracyTargets(raw: AuditReport, map: OverrideMap, noun: string): Hide
       // R3 fix 6: one label per statement; the question is not part of it.
       label: `“${quote}”`,
       quote,
-      group: indices.map((i) => `${ACCURACY_ROWS}[${i}]`),
-      hidden: hiddenKeys.has(key),
+      group,
+      hidden: hiddenKeys.has(key) || hiddenHere,
       canHide: true,
     });
   }
@@ -392,8 +396,10 @@ export function changeList(
     if (!ov || typeof ov.original !== "string") return [];
     if (ov.hidden === true) {
       // R3 fix 10: a statement is listed by the quote the page printed, not by
-      // our paraphrase of it.
-      const before = hides.find((h) => h.key === key)?.quote ?? ov.original;
+      // our paraphrase of it. R4 fix 8: found by group membership too, so a hide
+      // on a sibling row names the statement (Case A), and never the claim.
+      const target = hides.find((h) => h.key === key || h.group?.includes(key));
+      const before = target?.quote ?? ov.original;
       return [{ key, kind: "hidden", before, after: "" }];
     }
     if (typeof ov.text !== "string") return [];

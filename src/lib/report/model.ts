@@ -713,22 +713,60 @@ function aboutProspect(a: Assertion, otherNames: string[] = []): boolean {
  *  matches almost anything. A name is not another business when it is part of
  *  this business's own name, contains it, or shares its first word: "Acme
  *  (Dallas)" is this business's own "Acme Roofing", not a second firm. */
+/** Words too generic to name a firm on their own (R4 fix 5a): "Northwind
+ *  Partners" matches on its full phrase, never on "partners". */
+const GENERIC_NAME_WORDS = new Set([
+  "partners",
+  "group",
+  "studio",
+  "studios",
+  "design",
+  "designs",
+  "agency",
+  "company",
+  "co",
+  "inc",
+  "llc",
+  "services",
+  "solutions",
+]);
+
+/** The other names the answer gave this business, cut to the part before " (",
+ *  for matching the quote of a row stored without a subject. A short name
+ *  matches almost anything. A name is not another business when it is part of
+ *  this business's own name or contains it: "Acme (Dallas)" is this business's
+ *  own "Acme Roofing", not a second firm. R4 fix 5: a name that shares only its
+ *  first word with this business is another firm, matched on its full phrase.
+ *  And an other name whose first word is not in this business's name also
+ *  matches on that distinctive word, when it is 4+ letters and not generic
+ *  ("Northwind Outfitters" makes "Northwind sells ..." another firm's). */
 export function otherNamesOf(view: ReportView): string[] {
   const own = wordsOf(view.businessName ?? "");
   const ownText = own.join(" ");
-  return (view.accuracy?.conflation?.otherNames ?? [])
-    .map((n) => (n.split(" (")[0] ?? "").trim())
-    .filter((n) => {
-      if (n.length < 4) return false;
-      const w = wordsOf(n);
-      if (w.length === 0) return false;
-      if (own.length === 0) return true;
+  const out: string[] = [];
+  for (const raw of view.accuracy?.conflation?.otherNames ?? []) {
+    const n = (raw.split(" (")[0] ?? "").trim();
+    if (n.length < 4) continue;
+    const w = wordsOf(n);
+    if (w.length === 0) continue;
+    if (own.length > 0) {
       const phrase = w.join(" ");
       const partOfOwn = ` ${ownText} `.includes(` ${phrase} `);
       const containsOwn = ` ${phrase} `.includes(` ${ownText} `);
-      const sharesFirst = w[0] === own[0];
-      return !(partOfOwn || containsOwn || sharesFirst);
-    });
+      if (partOfOwn || containsOwn) continue;
+    }
+    out.push(n);
+    const distinct = w.find((x) => !own.includes(x));
+    if (
+      own.length > 0 &&
+      distinct !== undefined &&
+      distinct.length >= 4 &&
+      !GENERIC_NAME_WORDS.has(distinct) &&
+      w.length > 1
+    )
+      out.push(distinct);
+  }
+  return out;
 }
 
 /**
@@ -747,23 +785,33 @@ export function statements(view: ReportView): Statement[] {
   return [...groups.values()].map((rows) => decide(rows, names));
 }
 
+/** R4 fix 2: a row is a contradiction about the prospect when the engine said
+ *  `contradicted`, or when it held the claim unverified on a withheld topic with
+ *  a contradiction on record (maintenance#2256 stores that shape). */
+function isProspectContradiction(a: Assertion, names: string[]): boolean {
+  const contradicts =
+    a.verdict === "contradicted" || (a.verdict === "unverified" && a.contradiction != null);
+  return contradicts && aboutProspect(a, names);
+}
+
+/** R4 fix 6: a contradiction with no words from the site has nothing to print
+ *  as "your site says", so it is not a contradiction on the page. */
+const hasSiteWords = (a: Assertion): boolean => (a.siteQuote ?? "").trim() !== "";
+
 function decide(rows: Assertion[], names: string[]): Statement {
   const first = rows[0]!;
   const about = rows.every((a) => aboutProspect(a, names));
   // R3 fix 1: any row's contradiction about the prospect counts, not the first
   // row's subject alone.
-  const prospectContradicted = rows.some(
-    (a) => a.verdict === "contradicted" && aboutProspect(a, names),
-  );
+  const prospectContradicted = rows.some((a) => isProspectContradiction(a, names));
   const withheld = rows
     .map((a) => withheldTopic(a))
     .filter((t): t is Exclude<AssertionTopic, "other"> => t !== null);
   const topic = TOPIC_TEXT.map(([t]) => t).find((t) => withheld.includes(t)) ?? null;
-  const contradicted = rows.find((a) => a.verdict === "contradicted");
-  // R3 fix 12: a blank site quote is no site quote.
-  const confirmed = rows.find(
-    (a) => a.verdict === "confirmed" && (a.siteQuote ?? "").trim() !== "",
-  );
+  const contradicted = rows.find((a) => a.verdict === "contradicted" && hasSiteWords(a));
+  // R4 fix 7: a confirmed row with no site quote is still backed up; it prints
+  // under "What your site backs up" without the site line.
+  const confirmed = rows.find((a) => a.verdict === "confirmed");
   const absent = rows.find((a) => a.verdict === "absent");
 
   let outcome: StatementOutcome;
@@ -824,7 +872,9 @@ export function contradictedRows(view: ReportView): Assertion[] {
  * topic, or with no quote to print. While one stands, the report must not
  * say everything checks out (narrative's headline asks this).
  */
-export function withheldContradictionKind(view: ReportView): "unquoted" | "withheld" | null {
+export function withheldContradictionKind(
+  view: ReportView,
+): "unquoted" | "withheld" | "mixed" | null {
   if (!sourceCheckMeasured(view)) return null;
   // R3 fix 1: a statement that prints nothing and carries a contradiction about
   // the prospect counts, whether it is withheld, unquoted, or mixed with another
@@ -837,8 +887,12 @@ export function withheldContradictionKind(view: ReportView): "unquoted" | "withh
       s.outcome !== "notSourced",
   );
   if (held.length === 0) return null;
-  // R3 fix 7: "unquoted" when every such statement has no quote to print.
-  return held.every((s) => s.outcome === "unquoted") ? "unquoted" : "withheld";
+  // R4 fix 3: precedence. A withheld topic wins; then a statement that also
+  // describes another business ("mixed"); then "unquoted" (R3 fix 7), when every
+  // such statement has no quote to print.
+  if (held.some((s) => s.outcome === "withheld")) return "withheld";
+  if (held.some((s) => s.outcome === "aboutOthers")) return "mixed";
+  return "unquoted";
 }
 
 export function withheldContradiction(view: ReportView): boolean {
@@ -870,6 +924,17 @@ const ci = (words: string[]): string =>
     .map((w) => w.replace(/[a-z]/gi, (c) => `[${c.toLowerCase()}${c.toUpperCase()}]`))
     .join("|")})`;
 
+/** R4 fix 1: the platform names a rating or review can be read off. Google
+ *  counts only in its platform sense, not "Google Ads" and the like. */
+const PLATFORM =
+  "(?:glassdoor|yelp|trustpilot|bbb|charity navigator|clutch|houzz|angi|thumbtack|g2|google(?!\\s+(?:ads|analytics|partner|cloud|workspace|maps|business profile)\\b))";
+/** A figure that looks like a score: "4.9", "4/5", "3 stars", "37 reviews". */
+const SCORE_FIGURE =
+  "(?:\\d\\.\\d\\b|\\d\\s*\\/\\s*(?:5|10)\\b|\\d\\s*stars?\\b|\\d+\\s+reviews?\\b|\\d+\\s+ratings?\\b)";
+/** A count word or a digit run, for "twelve employees" and "40 staff". */
+const NUM =
+  "(?:\\d[\\d,]*\\+?|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\\b)";
+
 /** Read off the words, for rows stored before the producer recorded a topic
  *  and for a model that files one under `other`. Errs wide, but only on words
  *  that name the topic: a false match withholds a true sentence the page could
@@ -893,25 +958,44 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\b\d+\s+(?:[a-z]+-)?stars?[- ]reviews?\b/i,
       /\bstar ratings?\b/i,
       // "a 4.9 on Google", "reviews on Glassdoor".
-      /\b\d(?:\.\d)?\s+on\s+(?:google|yelp|glassdoor|indeed|trustpilot|bbb)\b/i,
-      /\breviews? (?:on|from) (?:google|yelp|glassdoor|indeed|trustpilot|bbb)\b/i,
+      new RegExp(`\\b\\d(?:\\.\\d)?\\s+on\\s+${PLATFORM}\\b`, "i"),
+      new RegExp(`\\breviews? (?:on|from) ${PLATFORM}\\b`, "i"),
+      // R4 fix 1c: "Google reviews", "Clutch reviewers", "37 reviews", "4.8 average".
+      new RegExp(`\\b${PLATFORM}\\s+reviews?\\b`, "i"),
+      /\b\d+\s+(?:customer\s+|client\s+|google\s+)?reviews?\b/i,
+      /\b\d(?:\.\d)?\s+average\b/i,
+      /\b\d(?:\.\d)?\s+overall\b/i,
+      /\b(?:one|two|three|four|five)[- ]star\w*\s+(?:ratings?|reviews?)\b/i,
+      /\b(?:one|two|three|four|five|\d(?:\.\d)?)\s+stars\b/i,
+      /\b(?:highly|well|top|best)[- ]rated\b/i,
+      /\brated\s+(?:highly|well)\b/i,
       // A survey share: "60% would recommend it", "60% of employees".
       /\bwould recommend\b/i,
       /\b\d+%\s+(?:would\s+)?recommend/i,
       /%\s+of (?:employees|reviewers)\b/i,
       // R3 fix 3, the phrasings a stored row uses with no topic recorded.
-      // "Rating: 4.2", "a Glassdoor score of 3.9", "Rating:** 4.2".
-      /\b(?:rating|score)s?\s*(?::|of|is|at)?\s*\**\s*\d/i,
-      // A platform within 30 characters of a figure, either way round: "Glassdoor:
-      // 3.4", "3.9 Glassdoor score", "Employees on Glassdoor give it 3.9".
-      /\b(?:glassdoor|indeed|google|yelp|trustpilot|bbb|charity navigator)\b[^.\n]{0,30}\d/i,
-      /\d[^.\n]{0,30}\b(?:glassdoor|indeed|google|yelp|trustpilot|bbb|charity navigator)\b/i,
+      // "Rating: 4.2", "a Glassdoor score of 3.9", "Rating:** 4.2". Bounded runs
+      // of separators, so a long run of spaces cannot backtrack (R4 fix 1a).
+      /\b(?:rating|score)s?[\s:*]{0,6}(?:(?:of|is|at)[\s:*]{0,4})?\d/i,
+      // A platform within 30 characters of a score-shaped figure, either way
+      // round: "Glassdoor: 3.4", "3.9 Glassdoor score". A bare figure does not
+      // count: "Google Analytics 4" and "since 2015" are not ratings (R4 fix 1b).
+      new RegExp(`\\b${PLATFORM}\\b[^.\\n]{0,30}?${SCORE_FIGURE}`, "i"),
+      new RegExp(`${SCORE_FIGURE}[^.\\n]{0,30}?\\b${PLATFORM}`, "i"),
+      // "Indeed" is a platform only when it is capitalised mid-sentence, or
+      // followed by a rating word. A plain "indeed" is an adverb (R4 fix 1b).
+      /(?<=\w\s)Indeed\b[^.\n]{0,30}?\d/,
+      /\bindeed\s+(?:reviews?|ratings?|scores?)\b/i,
       // "(37 reviews)", "rated it five stars", "a rating of four stars".
       /\d(?:\.\d)?\s*\(\d+ reviews?\)/i,
       /\brated (?:it |them )?(?:one|two|three|four|five) stars?\b/i,
       /\brating (?:of )?(?:one|two|three|four|five) stars?\b/i,
-      // "3.9 out of five", in words; "9 out of 10" is not a rating.
-      /\bout of (?:four|five|ten)\b/i,
+      // "out of five" counts only after a score: a rating or review word nearby
+      // ("rated three out of five"), or a decimal ("3.9 out of five"). "Three out
+      // of five clients" is not one (R4 fix 1b).
+      /\b(?:rated|rates|rating|reviews?|reviewers?|scores?|gives?|give it)\b[^.\n]{0,30}?\b(?:\d(?:\.\d)?|one|two|three|four|five|ten)\s+(?:stars?\s+)?out of (?:four|five|ten)\b/i,
+      /\b\d\.\d\s+(?:stars?\s+)?out of (?:four|five|ten)\b/i,
+      /\b(?:\d(?:\.\d)?|one|two|three|four|five|ten)\s+(?:stars?\s+)?out of (?:four|five|ten)\b[^.\n]{0,30}?\b(?:ratings?|reviews?|scores?|stars?)\b/i,
       // "3.9 overall rating", "3.4 rating".
       /\b\d(?:\.\d)?\s+(?:overall\s+)?(?:rating|score)s?\b/i,
       // "Employees give it 3.9", "Employee reviews average 3.2".
@@ -923,7 +1007,11 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
   [
     "complaints",
     [
-      /\bcomplaints? (?:filed|against|about (?:the |our |this )?(?:business|company|us|them|it))\b/i,
+      /\bcomplaints? (?:filed|against)\b/i,
+      // R4 fix 1c: "complaints about its customer service" (the old pattern ended
+      // `it)\b`, and "its" fails that boundary), "complained about missed deadlines".
+      /\bcomplaints?\s+about\b/i,
+      /\bcomplain(?:ed|s)?\s+(?:about|of)\b/i,
       /\balerts? on file\b/i,
       /\b(?:lawsuits?|sued|litigation)\b/i,
       /\bscams?\b/i,
@@ -935,6 +1023,7 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
     "legal_entity",
     [
       /\b(?:llc|l\.l\.c)\b/i,
+      /\blimited liability (?:company|partnership)\b/i,
       // "Example Studio, Inc." and "Example Corp.", a capitalised name before the
       // suffix. Not "an Inc. 5000 honoree": no capital name, and a number after.
       /\b[A-Z][\w&'-]*,?\s+(?:Inc|Corp|Ltd)\b(?!\.?\s*\d)/,
@@ -951,9 +1040,10 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
   [
     "named_person",
     [
-      // "founded in 2001 by John Smith", "run by Dana Reyes".
+      // "founded in 2001 by John Smith", "run by Dana Reyes", "led by designer
+      // Dana Reyes" (up to two lowercase words before the name).
       new RegExp(
-        `\\b${ci(["founded", "led", "run", "headed", "managed"])}\\b[^.]{0,30}?\\bby [A-Z][a-z]+`,
+        `\\b${ci(["founded", "led", "run", "headed", "managed"])}\\b[^.]{0,30}?\\bby (?:[a-z]+ ){0,2}[A-Z][a-z]+`,
       ),
       // "CEO is Dana", "owner Jane Doe", "its founder, Jane Doe,".
       new RegExp(
@@ -961,15 +1051,19 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       ),
       // "A man named Tim leads Acme.", "named Tim".
       /\b[Nn]amed [A-Z]/,
-      // "John Smith founded the company", "Dana Reyes leads".
-      /\b[A-Z][a-z]+ [A-Z][a-z]+ (?:leads|led|owns|runs|founded)\b/,
+      // "John Smith founded the company", "Dana Reyes leads", "Dana Reyes and Sam
+      // Ortiz own the studio", "Dana Reyes started the studio in 2001".
+      /\b[A-Z][a-z]+ [A-Z][a-z]+ (?:leads|led|owns?|runs|founded|started)\b/,
       // "Dana Reyes, the CEO".
       new RegExp(
         `\\b[A-Z][a-z]+ [A-Z][a-z]+,? (?:${ci(["the"])} )?${ci(["ceo", "founder", "owner", "president"])}\\b`,
       ),
+      // "Creative director Dana Reyes oversees every project."
+      /\b(?:director|designer|principal|manager|founder) [A-Z][a-z]+ [A-Z][a-z]+\b/,
       /\b(?:Dr|Mr|Mrs|Ms)\.\s+[A-Z]/,
-      // "Dana Reyes is the founder of the studio", "Dana Reyes is its owner".
-      /\b[A-Z][a-z]+ [A-Z][a-z]+ is (?:the|its) (?:founder|co-founder|owner|ceo|president|principal)\b/,
+      // "Dana Reyes is the founder of the studio", "Dana Reyes is its owner",
+      // "Dana Reyes is the studio's founder".
+      /\b[A-Z][a-z]+ [A-Z][a-z]+ is (?:the|its|our) (?:\w+['’]s )?(?:founder|co-founder|owner|ceo|president|principal)\b/,
       // "Founder: Dana Reyes", "Owner: Dana Reyes".
       new RegExp(
         `\\b${ci(["founder", "co-founder", "owner", "ceo", "principal", "president"])}s?\\s*:\\s*[A-Z]`,
@@ -982,23 +1076,33 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
   ],
   [
     "ownership",
-    [/\b(?:owned by|owner is|owners are|parent company|acquired by|acquisition of)\b/i],
+    [
+      /\b(?:owned by|owner is|owners are|parent company|acquired by|acquisition of)\b/i,
+      // "woman-owned", "family-owned and operated".
+      /\b(?:woman|women|minority|veteran|family|employee)[- ]owned\b/i,
+      // "Northwind Group acquired it in 2019".
+      /\bacquired (?:it|us|the (?:studio|business|company|firm|agency))\b/i,
+      // "It is part of Northwind Group".
+      /\bpart of (?:a |the )?[A-Z]\w*(?: [A-Z]\w*)* (?:Group|Holdings|Brands|Network)\b/,
+    ],
   ],
   [
     "revenue_headcount",
     [
       /\b(?:revenue|turnover|valuation|headcount)\b/i,
       // Staff counts only in employment wording: "40 employees", "employs 40",
-      // "employs around 40", "team of 25", "staff of 12", "a 12-person team".
-      // "2,000 staff at hospitals" is not one.
-      /\b\d[\d,]*\+?\s+employees\b/i,
+      // "employs around 40", "team of 25", "team of about 40", "staff of 12", "a
+      // 12-person team", "It has about 40 staff". "2,000 staff at hospitals" is not one.
+      new RegExp(`\\b${NUM}\\s+employees\\b`, "i"),
       /\bemploy(?:s|ing|ed)?\s+(?:(?:about|around|over|nearly|roughly)\s+)?\d[\d,]*\+?\b/i,
+      /\bhas (?:about |around |roughly |nearly |over |some )?\d[\d,]*\+?\s+staff\b/i,
       /\b\d+-person\b/i,
-      /\b(?:team|staff) of \d+/i,
+      /\b(?:team|staff) of (?:about |around |roughly |nearly |over )?\d+/i,
       // Money is a figure only with a scale word or a revenue word near it:
       // "$5,000" is a price, and "annual" alone is not a figure.
       /\$\s?\d[\d,.]*\s*(?:million|billion|m\b)/i,
       /\b(?:revenue|turnover)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|turnover)\b/i,
+      /\b(?:brings? in|earns|grosses)\b[^.]{0,20}\$\s?\d/i,
     ],
   ],
   [
@@ -1012,6 +1116,9 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
           "(?:(?:Street|Road|Avenue|Boulevard|Drive|Lane|Parkway|Highway|Court|Place)\\b|(?:St|Rd|Ave|Blvd)\\b\\.?)",
       ),
       /\bsuite\s+\d+/i,
+      // "at 1200 Broadway", "located at 40 Oak": a number and a capitalised name
+      // after "at", with no street suffix (R4 fix 1c).
+      /\b(?:[Aa]t|[Ll]ocated at)\s+\d{1,6}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/,
     ],
   ],
 ];

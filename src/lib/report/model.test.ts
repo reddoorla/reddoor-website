@@ -1226,7 +1226,8 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
     const out = notSourcedFromSite(
       view([
         { ...claim("confirmed", "Acme does branding."), siteQuote: "Acme does branding." },
-        claim("contradicted", "Acme is based in Ohio."),
+        // The contradiction has site words, so it has its own headed list.
+        { ...claim("contradicted", "Acme is based in Ohio."), siteQuote: "Acme is in Texas." },
         claim("absent", "a"),
       ]),
     );

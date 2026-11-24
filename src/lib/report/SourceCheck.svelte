@@ -174,7 +174,7 @@
               <p class="m-0 font-medium text-black">
                 The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
               </p>
-              {#if row.siteQuote}
+              {#if row.siteQuote?.trim()}
                 <p class="type-meta m-0 text-muted">
                   Your site says: &ldquo;{row.siteQuote}&rdquo;
                 </p>
@@ -241,7 +241,11 @@
               <p class="m-0 font-medium text-black">
                 The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
               </p>
-              <p class="type-meta m-0 text-muted">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+              {#if row.siteQuote?.trim()}
+                <p class="type-meta m-0 text-muted">
+                  Your site says: &ldquo;{row.siteQuote}&rdquo;
+                </p>
+              {/if}
             </li>
           {/each}
         </ul>
