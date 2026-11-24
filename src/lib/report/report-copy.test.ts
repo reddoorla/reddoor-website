@@ -43,6 +43,7 @@ const row = (over: Partial<Assertion>): Assertion => ({
   sourceDomains: [],
   query: "who is Example Studio",
   engine: "claude",
+  subject: "prospect",
   ...over,
 });
 
@@ -64,6 +65,8 @@ const ABSENT = row({
 const UNVERIFIED = row({
   claim: "Example Studio is led by Sam Ortiz.",
   verdict: "unverified",
+  // R8 §1: a person is withheld by its stored topic, as the producer records it.
+  topic: "named_person",
   engineQuote: "ENGINE-QUOTE-UNVERIFIED",
   unverifiedReason: "UNVERIFIED-REASON",
   sourceDomains: ["row-source.test"],

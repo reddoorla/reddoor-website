@@ -5,12 +5,14 @@
     displayQuote,
     heldBackLines,
     numberWord,
+    RERUN_SENTENCE,
     sourceCheckFootnote,
     unsourcedLead,
   } from "./narrative";
   import {
     citationRuns,
     confirmedRows,
+    hasOldRows,
     confirmedWithPassage,
     contradictedRows,
     namesakeLeads,
@@ -49,6 +51,10 @@
 
   const acc = $derived(view.accuracy);
   const who = $derived(view.businessName ?? "this business");
+  // R8 §2: a stored row with no subject. The section prints one sentence, not its
+  // statements, the counts under them or the proof line (the collision block is
+  // not an accuracy row, so it still prints above).
+  const rerun = $derived(hasOldRows(view));
 
   // W2. Every list below prints the assistant's own words in quotation marks,
   // never the accuracy model's paraphrase, and only statements about this
@@ -160,35 +166,38 @@
       </div>
     {/if}
 
-    {#if contradicted.length}
-      <div class="flex flex-col gap-5">
-        <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-primary">Your site says something different</h4>
-          <p class="type-meta m-0 text-muted">
-            Two answers to the same question exist in public, and only one of them is yours.
-          </p>
-        </div>
+    {#if rerun}
+      <p class="type-lede m-0 text-black">{RERUN_SENTENCE}</p>
+    {:else}
+      {#if contradicted.length}
+        <div class="flex flex-col gap-5">
+          <div class="flex flex-col gap-1.5">
+            <h4 class="type-question m-0 text-primary">Your site says something different</h4>
+            <p class="type-meta m-0 text-muted">
+              Two answers to the same question exist in public, and only one of them is yours.
+            </p>
+          </div>
 
-        <ul class="m-0 flex list-none flex-col p-0">
-          {#each citationRuns(contradicted) as { row, citations }, i (i)}
-            <li class="flex flex-col gap-2 border-t border-light py-6">
-              <!-- The engine's words, verified as a real substring of its answer
+          <ul class="m-0 flex list-none flex-col p-0">
+            {#each citationRuns(contradicted) as { row, citations }, i (i)}
+              <li class="flex flex-col gap-2 border-t border-light py-6">
+                <!-- The engine's words, verified as a real substring of its answer
                    rather than paraphrased. A client checking us on this is the
                    best possible outcome, so it has to survive being checked. -->
-              <p class="m-0 font-medium text-black">
-                The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
-              </p>
-              {#if row.siteQuote?.trim()}
-                <p class="type-meta m-0 text-muted">
-                  Your site says: &ldquo;{row.siteQuote}&rdquo;
+                <p class="m-0 font-medium text-black">
+                  The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
                 </p>
-              {/if}
-              {#if citations === "show"}
-                <p class="type-meta m-0 wrap-break-word text-muted">
-                  Also read for that answer: {row.sourceDomains.join(" · ")}
-                </p>
-              {:else if citations === "none"}
-                <!-- Said out loud, because saying nothing here is what the row
+                {#if row.siteQuote?.trim()}
+                  <p class="type-meta m-0 text-muted">
+                    Your site says: &ldquo;{row.siteQuote}&rdquo;
+                  </p>
+                {/if}
+                {#if citations === "show"}
+                  <p class="type-meta m-0 wrap-break-word text-muted">
+                    Also read for that answer: {row.sourceDomains.join(" · ")}
+                  </p>
+                {:else if citations === "none"}
+                  <!-- Said out loud, because saying nothing here is what the row
                      above's list looks like. Every word of it is hedged on
                      purpose: "other" because this list has their own domain
                      filtered out of it upstream, so an empty one means nothing
@@ -197,119 +206,120 @@
                      contradict "cited no sources"; "we recorded" because an
                      empty list is also what a quote we could not tie back to an
                      answer looks like, which is our gap, not the engine's. -->
-                <p class="type-meta m-0 text-muted">
-                  We recorded no other sources for that answer.
-                </p>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
+                  <p class="type-meta m-0 text-muted">
+                    We recorded no other sources for that answer.
+                  </p>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
 
-    {#if notSourced.length}
-      <!-- Headlines, nothing under them. These are what a buyer hears; the
+      {#if notSourced.length}
+        <!-- Headlines, nothing under them. These are what a buyer hears; the
            reader knows their own business and needs no help judging each.
            The heading asserts nothing on purpose — "that is not on your site"
            used to sit on the end of it, and it was not true of every row. -->
-      <div class="flex flex-col gap-5">
-        <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-black">What the AI says about you</h4>
-          <p class="type-meta m-0 text-muted">
-            These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
-          </p>
+        <div class="flex flex-col gap-5">
+          <div class="flex flex-col gap-1.5">
+            <h4 class="type-question m-0 text-black">What the AI says about you</h4>
+            <p class="type-meta m-0 text-muted">
+              These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
+            </p>
+          </div>
+
+          <ul class="m-0 flex list-none flex-col p-0">
+            {#each notSourced as u, i (i)}
+              <li class="border-t border-light py-4 font-medium text-black">
+                &ldquo;{displayQuote(u.engineQuote)}&rdquo;
+              </li>
+            {/each}
+          </ul>
         </div>
+      {/if}
 
-        <ul class="m-0 flex list-none flex-col p-0">
-          {#each notSourced as u, i (i)}
-            <li class="border-t border-light py-4 font-medium text-black">
-              &ldquo;{displayQuote(u.engineQuote)}&rdquo;
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
+      {#each held as line (line)}
+        <p class="type-meta m-0 text-muted">{line}</p>
+      {/each}
 
-    {#each held as line (line)}
-      <p class="type-meta m-0 text-muted">{line}</p>
-    {/each}
-
-    {#if confirmed > 0}
-      <!-- W2 (BR-09). Listed with both quotes, so the reader can judge the
+      {#if confirmed > 0}
+        <!-- W2 (BR-09). Listed with both quotes, so the reader can judge the
            one verdict that rests on our reading of their site. -->
-      <div class="flex flex-col gap-5">
-        <h4 class="type-question m-0 text-black">What your site backs up</h4>
-        <ul class="m-0 flex list-none flex-col p-0">
-          {#each confirmedList as row, i (i)}
-            <li class="flex flex-col gap-2 border-t border-light py-4">
-              <p class="m-0 font-medium text-black">
-                The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
-              </p>
-              {#if row.siteQuote?.trim()}
-                <p class="type-meta m-0 text-muted">
-                  Your site says: &ldquo;{row.siteQuote}&rdquo;
+        <div class="flex flex-col gap-5">
+          <h4 class="type-question m-0 text-black">What your site backs up</h4>
+          <ul class="m-0 flex list-none flex-col p-0">
+            {#each confirmedList as row, i (i)}
+              <li class="flex flex-col gap-2 border-t border-light py-4">
+                <p class="m-0 font-medium text-black">
+                  The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
                 </p>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
+                {#if row.siteQuote?.trim()}
+                  <p class="type-meta m-0 text-muted">
+                    Your site says: &ldquo;{row.siteQuote}&rdquo;
+                  </p>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
 
-    {#if confirmedPassage > 0 && citedOwn > 0}
-      <!-- The proof that editing the site changes the answer, in one sentence.
+      {#if confirmedPassage > 0 && citedOwn > 0}
+        <!-- The proof that editing the site changes the answer, in one sentence.
            The statements themselves are in the passes list. It is the summary
            of the lists above, so it takes the h4s' size and colour rather than
            the grey meta of a footnote (Tim, MarkUp 2026-09-15). -->
-      <p class="type-question m-0 border-t border-light pt-6 text-black">
-        {numberWord(confirmedPassage).replace(/^./, (c) => c.toUpperCase())}
-        {confirmedPassage === 1 ? "statement" : "statements"} the assistant made
-        {confirmedPassage === 1 ? "matches" : "match"} a passage on your own site, and across the answers
-        we checked it cited your site
-        {citedOwn === 1 ? "once" : `${citedOwn} times`}. That is the proof that editing your pages
-        changes the answer; the statements are listed above.
-      </p>
-    {/if}
+        <p class="type-question m-0 border-t border-light pt-6 text-black">
+          {numberWord(confirmedPassage).replace(/^./, (c) => c.toUpperCase())}
+          {confirmedPassage === 1 ? "statement" : "statements"} the assistant made
+          {confirmedPassage === 1 ? "matches" : "match"} a passage on your own site, and across the answers
+          we checked it cited your site
+          {citedOwn === 1 ? "once" : `${citedOwn} times`}. That is the proof that editing your pages
+          changes the answer; the statements are listed above.
+        </p>
+      {/if}
 
-    {#if elsewhere.length}
-      <!-- Visible, not collapsed. "Your site does not say this" used to be the
+      {#if elsewhere.length}
+        <!-- Visible, not collapsed. "Your site does not say this" used to be the
            finding here; the useful part of that finding was always the list of
            pages about them that they did not write. -->
-      <div class="flex flex-col gap-4 border-t border-light pt-6">
-        <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-black">
-            Who else the assistant read: {elsewhere.length}
-            {elsewhere.length === 1 ? "source" : "sources"}
-          </h4>
-          <p class="type-meta m-0 text-muted">
-            These are the pages about you that you did not write. You cannot edit most of them, but
-            you can make your own pages say the thing plainly enough that they stop being the best
-            available source.
-          </p>
+        <div class="flex flex-col gap-4 border-t border-light pt-6">
+          <div class="flex flex-col gap-1.5">
+            <h4 class="type-question m-0 text-black">
+              Who else the assistant read: {elsewhere.length}
+              {elsewhere.length === 1 ? "source" : "sources"}
+            </h4>
+            <p class="type-meta m-0 text-muted">
+              These are the pages about you that you did not write. You cannot edit most of them,
+              but you can make your own pages say the thing plainly enough that they stop being the
+              best available source.
+            </p>
+          </div>
+          <ul class="m-0 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2">
+            {#each elsewhere as source (source.domain)}
+              <li
+                class="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-light/60 py-1.5"
+              >
+                <span class="type-meta text-black">{source.domain}</span>
+                <span class="type-meta text-muted">{OWNER_LABEL[source.owner]}</span>
+              </li>
+            {/each}
+          </ul>
         </div>
-        <ul class="m-0 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2">
-          {#each elsewhere as source (source.domain)}
-            <li
-              class="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-light/60 py-1.5"
-            >
-              <span class="type-meta text-black">{source.domain}</span>
-              <span class="type-meta text-muted">{OWNER_LABEL[source.owner]}</span>
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
+      {/if}
 
-    {#if sampled}
-      <!-- Ours, not theirs. The crawl reads a capped number of pages, and the
+      {#if sampled}
+        <!-- Ours, not theirs. The crawl reads a capped number of pages, and the
            sentence that stood here ("Nothing above is reported as missing from
            your site on the strength of pages we did not read") was printed
            beside "absent" verdicts resting on 20 of 95 pages (the audit-system
            review, BR-07). It now says what is true: the count, against the
            site's, and what a statement listed as absent may mean. -->
-      <p class="type-meta m-0 border-t border-light pt-6 text-muted">
-        {sourceCheckFootnote(view)}
-      </p>
+        <p class="type-meta m-0 border-t border-light pt-6 text-muted">
+          {sourceCheckFootnote(view)}
+        </p>
+      {/if}
     {/if}
   </div>
 {/if}

@@ -1185,6 +1185,7 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
     sourceDomains: [],
     query: "who is Acme",
     engine: "claude-code",
+    subject: "prospect",
   });
   const view = (assertions: Assertion[]) => ({ accuracy: { assertions } }) as unknown as ReportView;
 
@@ -1212,7 +1213,9 @@ describe("notSourcedFromSite — one list, because the cases are grey", () => {
   });
 
   it("withholds a named person from the list (R2: the named form is a withheld topic)", () => {
-    const out = notSourcedFromSite(view([claim("unverified", "A man named Tim leads Acme.")]));
+    // R8 §1: a person is held by its stored topic, not by its words.
+    const stored = { ...claim("unverified", "A man named Tim leads Acme."), topic: "named_person" };
+    const out = notSourcedFromSite(view([stored as Assertion]));
     expect(out).toEqual([]);
   });
 

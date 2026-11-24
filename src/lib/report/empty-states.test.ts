@@ -117,6 +117,7 @@ const assertion = (verdict: Assertion["verdict"] = "confirmed"): Assertion =>
     sourceDomains: [],
     query: "who is Acme Co",
     engine: "test",
+    subject: "prospect",
   }) as Assertion;
 
 // R1 fix 12: the lede promises statements that PRINT. The default above is a

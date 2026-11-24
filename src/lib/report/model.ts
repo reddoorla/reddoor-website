@@ -673,7 +673,7 @@ export type Statement = {
   /** The row the statement prints from. */
   row: Assertion;
   outcome: StatementOutcome;
-  /** For `withheld`: the first withheld topic, in TOPIC_TEXT order. */
+  /** For `withheld`: the first withheld topic, in TOPIC_ORDER. */
   topic: Exclude<AssertionTopic, "other"> | null;
   /** Every row is about the prospect. */
   about: boolean;
@@ -750,8 +750,7 @@ export function statements(view: ReportView): Statement[] {
     if (group) group.push(a);
     else groups.set(key, [a]);
   }
-  const business = view.businessName ?? "";
-  return [...groups.values()].map((rows) => decide(rows, names, business));
+  return [...groups.values()].map((rows) => decide(rows, names));
 }
 
 /** R4 fix 2: a row is a contradiction about the prospect when the engine said
@@ -773,16 +772,16 @@ function contradictsRow(a: Assertion): boolean {
  *  as "your site says", so it is not a contradiction on the page. */
 const hasSiteWords = (a: Assertion): boolean => (a.siteQuote ?? "").trim() !== "";
 
-function decide(rows: Assertion[], names: string[], business: string): Statement {
+function decide(rows: Assertion[], names: string[]): Statement {
   const first = rows[0]!;
   const about = rows.every((a) => aboutProspect(a, names));
   // R3 fix 1: any row's contradiction about the prospect counts, not the first
   // row's subject alone.
   const prospectContradicted = rows.some((a) => isProspectContradiction(a, names));
   const withheld = rows
-    .map((a) => withheldTopic(a, business))
+    .map((a) => withheldTopic(a))
     .filter((t): t is Exclude<AssertionTopic, "other"> => t !== null);
-  const topic = TOPIC_TEXT.map(([t]) => t).find((t) => withheld.includes(t)) ?? null;
+  const topic = TOPIC_ORDER.find((t) => withheld.includes(t)) ?? null;
   const contradicted = rows.find((a) => a.verdict === "contradicted" && hasSiteWords(a));
   // R4 fix 7: a confirmed row with no site quote is still backed up; it prints
   // under "What your site backs up" without the site line.
@@ -827,8 +826,16 @@ function decide(rows: Assertion[], names: string[], business: string): Statement
   };
 }
 
+/** R8 §2. A stored row with no subject (stored before 2026-11-23). Its statements
+ *  are not read by sentence pattern: the accuracy section says the check must be
+ *  run again, and prints, counts and headlines none of them. */
+export function hasOldRows(view: ReportView): boolean {
+  return (view.accuracy?.assertions ?? []).some((a) => a.subject === undefined);
+}
+
 /** The row each statement with this outcome prints, in statement order. */
 function printedRows(view: ReportView, outcome: StatementOutcome): Assertion[] {
+  if (hasOldRows(view)) return [];
   return statements(view)
     .filter((s) => s.outcome === outcome)
     .map((s) => s.row);
@@ -864,6 +871,8 @@ export function withheldContradictionKind(
   view: ReportView,
 ): "unquoted" | "withheld" | "mixed" | null {
   if (!sourceCheckMeasured(view)) return null;
+  // R8 §2: an old-row report draws nothing from its rows, held or not.
+  if (hasOldRows(view)) return null;
   // R3 fix 1: a statement that prints nothing and carries a contradiction about
   // the prospect counts, whether it is withheld, unquoted, or mixed with another
   // business's row. Printed outcomes never count: those are on the page.
@@ -1027,6 +1036,50 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
     ],
   ],
   [
+    "revenue_headcount",
+    [
+      /\b(?:revenue|turnover|valuation|headcount)\b/i,
+      // Staff counts only in employment wording: "40 employees", "employs 40",
+      // "employs around 40", "team of 25", "team of about 40", "staff of 12", "a
+      // 12-person team", "It has about 40 staff". "2,000 staff at hospitals" is not one.
+      new RegExp(`\\b${NUM}\\s+employees\\b`, "i"),
+      /\bemploy(?:s|ing|ed)?\s+(?:(?:about|around|over|nearly|roughly)\s+)?\d[\d,]*\+?\b/i,
+      /\bhas (?:about |around |roughly |nearly |over |some )?\d[\d,]*\+?\s+staff\b/i,
+      /\b\d+-person\b/i,
+      /\b(?:team|staff) of (?:about |around |roughly |nearly |over )?\d+/i,
+      // Money is a figure only with a scale word or a revenue word near it:
+      // "$5,000" is a price, and "annual" alone is not a figure.
+      /\$\s?\d[\d,.]*\s*(?:million|billion|m\b)/i,
+      /\b(?:revenue|turnover)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|turnover)\b/i,
+      /\b(?:brings? in|earns|grosses)\b[^.]{0,20}\$\s?\d/i,
+    ],
+  ],
+  [
+    "street_address",
+    [
+      // A number, an optional direction or ordinal, a capitalised street word,
+      // then a long suffix, or a short one with its dot optional ("St," "Ave in").
+      // Case-sensitive on purpose: a lowercase word is not a street.
+      new RegExp(
+        "\\b\\d{1,6}\\s+(?:[NSEW]\\.?\\s+)?(?:(?:\\d{1,3}(?:st|nd|rd|th)|[A-Z][\\w'-]*)\\s+){1,4}" +
+          "(?:(?:Street|Road|Avenue|Boulevard|Drive|Lane|Parkway|Highway|Court|Place)\\b|(?:St|Rd|Ave|Blvd)\\b\\.?)",
+      ),
+      /\bsuite\s+\d+/i,
+      // "at 1200 Broadway", "located at 40 Oak": a number and a capitalised name
+      // after "at", with no street suffix (R4 fix 1c).
+      /\b(?:[Aa]t|[Ll]ocated at)\s+\d{1,6}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/,
+    ],
+  ],
+];
+
+/**
+ * R8 (review round 8). The person and ownership patterns. A statement is held on
+ * these topics only by its STORED topic (`withheldTopic`); the text is read here
+ * only for whole excerpts that carry no model label (`withheldIn`, the collision
+ * quote, the other-name blocks). The patterns are unchanged from round 7.
+ */
+export const PERSON_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
+  [
     "named_person",
     [
       // "founded in 2001 by John Smith", "run by Dana Reyes", "led by designer
@@ -1081,41 +1134,18 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\b[A-Z][a-z]+ [A-Z][a-z]+ owns\b/,
     ],
   ],
-  [
-    "revenue_headcount",
-    [
-      /\b(?:revenue|turnover|valuation|headcount)\b/i,
-      // Staff counts only in employment wording: "40 employees", "employs 40",
-      // "employs around 40", "team of 25", "team of about 40", "staff of 12", "a
-      // 12-person team", "It has about 40 staff". "2,000 staff at hospitals" is not one.
-      new RegExp(`\\b${NUM}\\s+employees\\b`, "i"),
-      /\bemploy(?:s|ing|ed)?\s+(?:(?:about|around|over|nearly|roughly)\s+)?\d[\d,]*\+?\b/i,
-      /\bhas (?:about |around |roughly |nearly |over |some )?\d[\d,]*\+?\s+staff\b/i,
-      /\b\d+-person\b/i,
-      /\b(?:team|staff) of (?:about |around |roughly |nearly |over )?\d+/i,
-      // Money is a figure only with a scale word or a revenue word near it:
-      // "$5,000" is a price, and "annual" alone is not a figure.
-      /\$\s?\d[\d,.]*\s*(?:million|billion|m\b)/i,
-      /\b(?:revenue|turnover)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|turnover)\b/i,
-      /\b(?:brings? in|earns|grosses)\b[^.]{0,20}\$\s?\d/i,
-    ],
-  ],
-  [
-    "street_address",
-    [
-      // A number, an optional direction or ordinal, a capitalised street word,
-      // then a long suffix, or a short one with its dot optional ("St," "Ave in").
-      // Case-sensitive on purpose: a lowercase word is not a street.
-      new RegExp(
-        "\\b\\d{1,6}\\s+(?:[NSEW]\\.?\\s+)?(?:(?:\\d{1,3}(?:st|nd|rd|th)|[A-Z][\\w'-]*)\\s+){1,4}" +
-          "(?:(?:Street|Road|Avenue|Boulevard|Drive|Lane|Parkway|Highway|Court|Place)\\b|(?:St|Rd|Ave|Blvd)\\b\\.?)",
-      ),
-      /\bsuite\s+\d+/i,
-      // "at 1200 Broadway", "located at 40 Oak": a number and a capitalised name
-      // after "at", with no street suffix (R4 fix 1c).
-      /\b(?:[Aa]t|[Ll]ocated at)\s+\d{1,6}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/,
-    ],
-  ],
+];
+
+/** The order topics are listed in, for a statement's topic and a text's topics. */
+const TOPIC_ORDER: Exclude<AssertionTopic, "other">[] = [
+  "ratings_reviews",
+  "complaints",
+  "accreditation",
+  "legal_entity",
+  "named_person",
+  "ownership",
+  "revenue_headcount",
+  "street_address",
 ];
 
 /** R7 fix 3: two capitalised words and a verb of leading or founding read as a
@@ -1145,37 +1175,39 @@ function topicHits(
   return topic === "named_person" && personVerbIn(text, business);
 }
 
-export function withheldTopic(
-  a: Assertion,
-  business = "",
-): Exclude<AssertionTopic, "other"> | null {
+/**
+ * The topic of one accuracy statement. R8 §1: a stored topic other than `other`
+ * decides it. Otherwise only the stable topics are read from the words; a person
+ * or an ownership claim is held by its stored topic alone.
+ */
+export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | null {
   if (a.topic !== undefined && a.topic !== "other") return a.topic;
   const text = `${a.claim}\n${a.engineQuote}`;
   for (const [topic, patterns] of TOPIC_TEXT)
-    if (topicHits(topic, patterns, text, business)) return topic;
+    if (topicHits(topic, patterns, text, "")) return topic;
   return null;
 }
 
-/** The first withheld topic a text carries, or null. R3 fix 4: any topic, not
- *  only ratings. A branded answer's excerpt is printed whole, so a BBB rating, a
- *  named founder or a complaint in it is withheld as a rating would be. */
+/** The first withheld topic a whole excerpt carries, or null. R3 fix 4: any topic,
+ *  not only ratings. A branded answer's excerpt is printed whole, so a BBB rating,
+ *  a named founder or a complaint in it is withheld as a rating would be. */
 export function withheldIn(text: string, business = ""): Exclude<AssertionTopic, "other"> | null {
   return withheldTopicsIn(text, business)[0] ?? null;
 }
 
-/** Every withheld topic a text carries, in TOPIC_TEXT order (R5 fix 4). A text
- *  that carries a legal form and an owner carries both, so the legal form alone
- *  is not the only thing it says. */
+/** Every withheld topic a whole excerpt carries, in TOPIC_ORDER (R5 fix 4). R8 §1:
+ *  an excerpt has no stored label, so the person and ownership patterns are read
+ *  too, with the business's own name (`business`) skipped by the person-verb check. */
 export function withheldTopicsIn(text: string, business = ""): Exclude<AssertionTopic, "other">[] {
   const out: Exclude<AssertionTopic, "other">[] = [];
-  for (const [topic, patterns] of TOPIC_TEXT)
+  for (const [topic, patterns] of [...TOPIC_TEXT, ...PERSON_TEXT])
     if (topicHits(topic, patterns, text, business)) out.push(topic);
-  return out;
+  return out.sort((a, b) => TOPIC_ORDER.indexOf(a) - TOPIC_ORDER.indexOf(b));
 }
 
-/** Does this text carry a withheld topic of any kind? */
-export function textWithheld(text: string): boolean {
-  return withheldIn(text) !== null;
+/** Does this excerpt carry a withheld topic of any kind? */
+export function textWithheld(text: string, business = ""): boolean {
+  return withheldIn(text, business) !== null;
 }
 
 /**
@@ -1221,7 +1253,8 @@ export function heldBack(view: ReportView): HeldBack {
   let withheld = 0;
   let aboutOthers = 0;
   let unquoted = 0;
-  for (const s of statements(view)) {
+  // R8 §2: an old-row report counts nothing; its section says to re-run the check.
+  for (const s of hasOldRows(view) ? [] : statements(view)) {
     if (s.outcome === "unquoted") unquoted += 1;
     else if (s.outcome === "aboutOthers") aboutOthers += 1;
     else if (s.outcome === "withheld" && s.topic !== null) {

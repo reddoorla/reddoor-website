@@ -284,6 +284,7 @@ describe("R1 fix 10: hiding offers only the accuracy rows on the page", () => {
     sourceDomains: [],
     query: "who is Example Studio",
     engine: "claude",
+    subject: "prospect",
     ...over,
   });
   const allPass = ALL_PASS_REPORT as unknown as { accuracy: { data: Record<string, unknown> } };

@@ -29,6 +29,7 @@ const claim = (over: Partial<Assertion> = {}): Assertion => ({
   sourceDomains: [],
   query: "who is acme",
   engine: "claude",
+  subject: "prospect",
   ...over,
 });
 

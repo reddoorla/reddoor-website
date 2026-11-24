@@ -20,6 +20,7 @@ import {
   contradictedRows,
   heldBack,
   notSourcedFromSite,
+  hasOldRows,
   withheldContradictionKind,
   textWithheld,
   withheldTopicsIn,
@@ -59,9 +60,14 @@ export type HeadlineKind =
   | "site-check"
   | "all-clear"
   | "incomplete"
-  | "unmeasured";
+  | "unmeasured"
+  | "accuracy-rerun";
 
 export type Headline = { kind: HeadlineKind; text: string };
+
+/** R8 §2. What the accuracy section prints, instead of its statements, for a report
+ *  with a stored row that has no subject. The headline says the same. */
+export const RERUN_SENTENCE = "We need to re-run this check for your report. Ask us for it.";
 
 /** W1. The stages an all-clear stands on: the reading of the site, the AI
  *  answers, and the check of what those answers say. */
@@ -352,6 +358,11 @@ function headlineFindingGenerated(view: ReportView): Headline {
   // R3 fix 7: a contradiction we could not quote has its own wording, not the
   // topic's: there is no topic we have not checked, only words we could not
   // quote exactly.
+  // R8 §2: a report with an old row draws nothing from its accuracy rows, not even
+  // the all-clear below; it says the check must be run again.
+  if (hasOldRows(view)) {
+    return { kind: "accuracy-rerun", text: RERUN_SENTENCE };
+  }
   const withheld = withheldContradictionKind(view);
   if (withheld === "unquoted") {
     return {
@@ -523,19 +534,22 @@ export type CollisionBlock = { heading: string; detail: string | null };
  * the part before " (", which is the name.
  */
 export function collisionNames(view: ReportView): string[] {
-  return (view.accuracy?.conflation.otherNames ?? []).map(bareOtherName).filter((n) => n !== "");
+  const business = view.businessName ?? "";
+  return (view.accuracy?.conflation.otherNames ?? [])
+    .map((n) => bareOtherName(n, business))
+    .filter((n) => n !== "");
 }
 
 /** The name alone, for a name that carries a withheld topic. R4 fix 4: cut at
  *  " (" first; if the rest still carries one, cut at the first ",", " —", " - "
  *  or " which "; if that still does, the block names no firm at all. */
-function bareOtherName(n: string): string {
-  if (!textWithheld(n)) return n;
+function bareOtherName(n: string, business: string): string {
+  if (!textWithheld(n, business)) return n;
   const head = (n.split(" (")[0] ?? "").trim();
-  if (!carriesTopic(head)) return head;
+  if (!carriesTopic(head, business)) return head;
   for (const cut of [",", " —", " - ", " which "]) {
     const part = (head.split(cut)[0] ?? "").trim();
-    if (part !== "" && part !== head && !carriesTopic(part)) return part;
+    if (part !== "" && part !== head && !carriesTopic(part, business)) return part;
   }
   return "another business";
 }
@@ -544,8 +558,8 @@ function bareOtherName(n: string): string {
  *  part of a firm's name, not a claim about it, so a name whose only topic is a
  *  legal form still prints (R3 fix 5's name-only rule). R5 fix 4: every topic the
  *  text carries is checked, not the first, so "Inc., owned by Dana Reyes" counts. */
-function carriesTopic(s: string): boolean {
-  return withheldTopicsIn(s).some((topic) => topic !== "legal_entity");
+function carriesTopic(s: string, business: string): boolean {
+  return withheldTopicsIn(s, business).some((topic) => topic !== "legal_entity");
 }
 
 /**
@@ -555,7 +569,11 @@ function carriesTopic(s: string): boolean {
 export function collisionQuote(view: ReportView): string | null {
   if (!nameUnsettled(view.accuracy)) return null;
   const quote = view.accuracy?.conflation.engineQuote;
-  if (typeof quote !== "string" || quote.trim() === "" || textWithheld(quote)) return null;
+  // R8 §3: judged with the business's own name, so "Example Studio runs a bakery"
+  // is the business's sentence and not a person's verb.
+  const business = view.businessName ?? "";
+  if (typeof quote !== "string" || quote.trim() === "" || textWithheld(quote, business))
+    return null;
   return quote;
 }
 

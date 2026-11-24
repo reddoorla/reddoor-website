@@ -5,6 +5,7 @@
     contradictedRows,
     failedChecksSentence,
     gapClause,
+    hasOldRows,
     namesakeLeads,
     notSourcedFromSite,
     openingSummary,
@@ -27,6 +28,7 @@
     unsourcedLead,
     passes,
     questionReceipt,
+    RERUN_SENTENCE,
     sourceCheckFootnote,
   } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
@@ -84,6 +86,8 @@
   const confirmedList = $derived(confirmedRows(view));
   const held = $derived(heldBackLines(view));
   const collision = $derived(collisionBlock(view));
+  // R8 §2: a stored row with no subject; one sentence where the statements are.
+  const rerun = $derived(hasOldRows(view));
 
   const healthProblems = $derived(healthRows(view).filter((r) => r.alert));
   const goalMissing = $derived(
@@ -191,67 +195,71 @@
           <p class="note">The remedy is the first item under Our recommendations.</p>
         </div>
       {/if}
-      {#each contradictedList as { row, citations }, i (i)}
-        <div class="fix">
-          <p class="fix-t">
-            The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
-            <span class="answered contradicted">your site says otherwise</span>
-          </p>
-          {#if row.siteQuote}
-            <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
-          {/if}
-          {#if citations === "show"}
-            <p class="fix-w">
-              Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
+      {#if rerun}
+        <p>{RERUN_SENTENCE}</p>
+      {:else}
+        {#each contradictedList as { row, citations }, i (i)}
+          <div class="fix">
+            <p class="fix-t">
+              The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
+              <span class="answered contradicted">your site says otherwise</span>
             </p>
-          {:else if citations === "none"}
-            <!-- Said out loud: on paper, silence here looks exactly like the
+            {#if row.siteQuote}
+              <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+            {/if}
+            {#if citations === "show"}
+              <p class="fix-w">
+                Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
+              </p>
+            {:else if citations === "none"}
+              <!-- Said out loud: on paper, silence here looks exactly like the
                  row above's list continuing. Not "cited no sources": the list
                  has their own domain filtered out upstream, so empty means
                  nothing OUTSIDE their site, and an unattributable quote arrives
                  empty too. Worded identically to the screen report. -->
-            <p class="fix-w">We recorded no other sources for that answer.</p>
-          {/if}
-        </div>
-      {/each}
-      {#if notSourced.length}
-        <h3>What the AI says about you</h3>
-        <p class="note">
-          These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
-        </p>
-        <ul>
-          {#each notSourced as u, i (i)}
-            <li>&ldquo;{displayQuote(u.engineQuote)}&rdquo;</li>
-          {/each}
-        </ul>
-      {/if}
-      {#each held as line (line)}
-        <p class="note">{line}</p>
-      {/each}
-      {#if confirmedList.length}
-        <h3>What your site backs up</h3>
-        {#each confirmedList as row, i (i)}
-          <div class="fix">
-            <p class="fix-t">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
-            {#if row.siteQuote?.trim()}
-              <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+              <p class="fix-w">We recorded no other sources for that answer.</p>
             {/if}
           </div>
         {/each}
-      {/if}
-      {#if elsewhere.length}
-        <h3>
-          Who else the assistant read: {elsewhere.length}
-          {elsewhere.length === 1 ? "source" : "sources"}
-        </h3>
-        <p class="domains">
-          {elsewhere.map((s) => s.domain).join(" · ")}
-        </p>
-      {/if}
-      {#if sampled}
-        <p class="fix-w">
-          {sourceCheckFootnote(view)}
-        </p>
+        {#if notSourced.length}
+          <h3>What the AI says about you</h3>
+          <p class="note">
+            These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
+          </p>
+          <ul>
+            {#each notSourced as u, i (i)}
+              <li>&ldquo;{displayQuote(u.engineQuote)}&rdquo;</li>
+            {/each}
+          </ul>
+        {/if}
+        {#each held as line (line)}
+          <p class="note">{line}</p>
+        {/each}
+        {#if confirmedList.length}
+          <h3>What your site backs up</h3>
+          {#each confirmedList as row, i (i)}
+            <div class="fix">
+              <p class="fix-t">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
+              {#if row.siteQuote?.trim()}
+                <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+              {/if}
+            </div>
+          {/each}
+        {/if}
+        {#if elsewhere.length}
+          <h3>
+            Who else the assistant read: {elsewhere.length}
+            {elsewhere.length === 1 ? "source" : "sources"}
+          </h3>
+          <p class="domains">
+            {elsewhere.map((s) => s.domain).join(" · ")}
+          </p>
+        {/if}
+        {#if sampled}
+          <p class="fix-w">
+            {sourceCheckFootnote(view)}
+          </p>
+        {/if}
       {/if}
     </section>
   {/if}
