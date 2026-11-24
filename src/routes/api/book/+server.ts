@@ -11,6 +11,7 @@ import {
 import { normalizeZone } from "$lib/schedule/timezone";
 import { bookAppointment, TAG_SCHEDULED_A_CALL } from "$lib/ghl/booking";
 import { fetchAppointment } from "$lib/ghl/appointment";
+import { auditBookingNote } from "$lib/report/schedule-link";
 import type { RequestHandler } from "./$types";
 
 export const prerender = false;
@@ -136,6 +137,21 @@ export const POST: RequestHandler = async ({ request, fetch, url, getClientAddre
     });
     if (!note.ok) {
       console.error(`[book] phone-conflict note failed (${note.status}): ${note.error}`);
+    }
+  }
+
+  // A call booked from an audit report's buttons names the report on the
+  // record (LG-06, B-18). Not awaited into the failure path, as above.
+  const auditNote = auditBookingNote(sourceUrl);
+  if (auditNote) {
+    const note = await addCrmNote({
+      token: env.CRM_FUNNEL_ACTIVE_TOKEN,
+      fetch,
+      contactId: contact.data.contactId,
+      body: auditNote,
+    });
+    if (!note.ok) {
+      console.error(`[book] audit-reference note failed (${note.status}): ${note.error}`);
     }
   }
 

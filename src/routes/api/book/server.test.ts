@@ -125,6 +125,29 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
+describe("a booking from an audit report's buttons", () => {
+  it("names the report's reference on the CRM contact", async () => {
+    const { fetchStub, calls } = crm({ storedPhone: "+13105550101" });
+    const sourceUrl =
+      "https://site.test/schedule?utm_source=audit&utm_medium=report&utm_content=0a1b2c3d";
+    const { status } = await call({ ...BOOKING(), sourceUrl }, fetchStub);
+    expect(status).toBe(200);
+    const notes = calls.filter((c) => c.url.includes("/notes"));
+    expect(notes.map((n) => String(n.body.body))).toContain(
+      "Booked from an audit report, reference 0a1b2c3d.",
+    );
+  });
+
+  it("writes no audit note for a booking that did not come from a report", async () => {
+    const { fetchStub, calls } = crm({ storedPhone: "+13105550101" });
+    await call(
+      { ...BOOKING(), sourceUrl: "https://site.test/schedule?utm_source=newsletter" },
+      fetchStub,
+    );
+    expect(calls.find((c) => c.url.includes("/notes"))).toBeUndefined();
+  });
+});
+
 describe("a phone the CRM silently refuses to store", () => {
   it("writes the number into a note so the record a human opens still has it", async () => {
     // Measured on a real staging booking: the visitor typed a phone, the

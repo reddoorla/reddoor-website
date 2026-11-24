@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { attributionLines } from "../ghl/client";
 import { reportReference } from "./reference";
-import { scheduleHref } from "./schedule-link";
+import { auditBookingNote, scheduleHref } from "./schedule-link";
 
 const TOKEN = "aB3-_xY9zQ1rS2tU4vW6xY";
 
@@ -29,10 +28,18 @@ describe("scheduleHref", () => {
     expect(scheduleHref(null)).toBe("/schedule?utm_source=audit&utm_medium=report");
   });
 
-  it("reaches the CRM note as the reference, and never the token", () => {
+  it("the booking note names the reference from the scheduler's own address, never the token", () => {
     const ref = reportReference(TOKEN);
-    const lines = attributionLines(`https://reddoorla.com${scheduleHref(ref)}`, "");
-    expect(lines).toContain(`utm_content: ${ref}`);
-    expect(lines.join("\n")).not.toContain(TOKEN);
+    const note = auditBookingNote(`https://reddoorla.com${scheduleHref(ref)}`);
+    expect(note).toBe(`Booked from an audit report, reference ${ref}.`);
+    expect(note).not.toContain(TOKEN);
+  });
+
+  it("echoes only an 8-hex reference, and nothing for a booking from elsewhere", () => {
+    expect(
+      auditBookingNote("https://reddoorla.com/schedule?utm_source=audit&utm_content=<b>hi</b>"),
+    ).toBe("Booked from an audit report.");
+    expect(auditBookingNote("https://reddoorla.com/schedule?utm_source=ads")).toBeNull();
+    expect(auditBookingNote("not a url")).toBeNull();
   });
 });
