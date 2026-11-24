@@ -984,7 +984,9 @@ describe("R2: a confirmed statement is counted in What passes only when it print
       ]),
     );
     const ai = passes(view).find((g) => g.title === "What AI is saying about you");
-    expect(ai?.items[0]).toBe("One statement the assistant made match a passage on your own site");
+    expect(ai?.items[0]).toBe(
+      "One statement the assistant made matches a passage on your own site",
+    );
     expect(ai?.items.join(" ")).not.toContain("Two statements");
   });
 });
@@ -1556,6 +1558,10 @@ describe("R4 fix 1a: the topic patterns finish fast on long runs of spaces", () 
     ["a platform, then 2,000 spaces", `Glassdoor${" ".repeat(2000)}`],
     ["a platform, then 20,000 spaces", `Glassdoor${" ".repeat(20000)}`],
     ["20,000 letters", "a".repeat(20000)],
+    ["20,000 digits", "1".repeat(20000)],
+    ['"1," repeated 20,000 times', "1,".repeat(20000)],
+    ['"A-" repeated 20,000 times', "A-".repeat(20000)],
+    ['"A\'" repeated 20,000 times', "A'".repeat(20000)],
     [
       "a 20,000-character ordinary paragraph",
       "The studio builds brand identities for restaurants in Denver. ".repeat(340),
@@ -2065,6 +2071,8 @@ describe("R4 fix 10: the test gaps that left fixes unpinned", () => {
 // ---------------------------------------------------------------------------
 
 const NO_QUOTE_LABEL = "A statement with no quote from the assistant";
+// R6 fix 8: the label carries the question the statement answered (the row's query, default "who is Example Studio" in `row`).
+const NO_QUOTE_LABEL_ASKED = `${NO_QUOTE_LABEL} (asked: who is Example Studio)`;
 const PROOF = "That is the proof that editing your pages changes the answer";
 
 describe("R5 fix 1: another firm's first word does not swallow the client's sentences", () => {
@@ -2144,12 +2152,13 @@ describe("R5 fix 2: a statement about the client's founding is not read as one a
 });
 
 describe("R5 fix 3: ratings on Google Maps and Google Business Profile are withheld", () => {
-  it.each(["It holds a 4.8 on Google Business Profile.", "Rated 4.7 on Google Maps."])(
-    "withholds %s as a rating",
-    (claim) => {
-      expect(withheldTopic(row({ claim, engineQuote: claim }))).toBe("ratings_reviews");
-    },
-  );
+  it.each([
+    "It holds a 4.8 on Google Business Profile.",
+    "Rated 4.7 on Google Maps.",
+    "It holds a 4.8 on Google Maps.",
+  ])("withholds %s as a rating", (claim) => {
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).toBe("ratings_reviews");
+  });
 
   it("control: Google Ads and Google Analytics 4 still print", () => {
     const claim = "We run Google Ads and Google Analytics 4 for clients.";
@@ -2272,11 +2281,16 @@ describe("R5 fix 6: a hidden statement with no quote is labelled by a fixed phra
     };
     const targets = hideTargets(raw, map);
     expect(targets.find((t) => t.key === "accuracy.data.assertions[0]")).toMatchObject({
-      label: NO_QUOTE_LABEL,
+      label: NO_QUOTE_LABEL_ASKED,
       hidden: true,
     });
     expect(changeList(map, [], targets)).toEqual([
-      { key: "accuracy.data.assertions[0]", kind: "hidden", before: NO_QUOTE_LABEL, after: "" },
+      {
+        key: "accuracy.data.assertions[0]",
+        kind: "hidden",
+        before: NO_QUOTE_LABEL_ASKED,
+        after: "",
+      },
     ]);
   });
 
@@ -2315,7 +2329,7 @@ describe("R5 fix 7: the round-4 fix parts that no test pinned", () => {
     for (const claim of [
       "Rated 3.1 on Indeed",
       "Indeed reviews average 3.4",
-      "Its Indeed profile lists 12 open roles",
+      "Its Indeed page shows 3.1",
     ])
       // The claim ends in a colon, so the quote's "Indeed" is not read through the
       // mid-sentence rule: each rule is tested on its own.
@@ -2338,5 +2352,245 @@ describe("R5 fix 7: the round-4 fix parts that no test pinned", () => {
     expect(headlineFinding(toReportView(report)).text).not.toContain(
       "on a topic we have not checked here. Ask us for it.",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Review round 6 (reddoorla/reddoor-website#380), fixes 1 to 8 of the fix brief.
+// ---------------------------------------------------------------------------
+
+describe("R6 fix 1: What passes counts only the confirmed statements that print a passage", () => {
+  const withPassage = row({
+    claim: "Example Studio is in Austin.",
+    verdict: "confirmed",
+    engineQuote: "Example Studio is in Austin",
+    siteQuote: "Our studio in Austin",
+  });
+  const noPassage = row({
+    claim: "Example Studio designs packaging.",
+    verdict: "confirmed",
+    engineQuote: "Example Studio designs packaging",
+    siteQuote: "",
+  });
+  const passLines = (report: AuditReport): string[] => {
+    const ai = passes(toReportView(report)).find((g) => g.title === "What AI is saying about you");
+    return ai?.items ?? [];
+  };
+  // WhatPasses renders `passes(view)` as it is, so the line is pinned on the data
+  // it prints and on the print sheet's own "What passes" (the SSR harness cannot
+  // compile WhatPasses, which imports ReportDisclosure).
+  const passSurfaces = surfaces;
+
+  it("two confirmed rows, one with no passage: the line counts the one with a passage, and the verb agrees", () => {
+    const report = reportWith([withPassage, noPassage]);
+    expect(passLines(report)[0]).toBe(
+      "One statement the assistant made matches a passage on your own site",
+    );
+    for (const [name, text] of passSurfaces(report)) {
+      expect(text, name).toContain("One statement the assistant made matches a passage");
+      expect(text, name).not.toContain("Two statements");
+    }
+  });
+
+  it("two confirmed rows, both with a passage: the plural verb", () => {
+    const report = reportWith([
+      withPassage,
+      row({
+        claim: "Example Studio has a studio in Denver.",
+        verdict: "confirmed",
+        engineQuote: "Example Studio has a studio in Denver",
+        siteQuote: "Denver studio",
+      }),
+    ]);
+    expect(passLines(report)[0]).toBe(
+      "Two statements the assistant made match a passage on your own site",
+    );
+    for (const [name, text] of passSurfaces(report))
+      expect(text, name).toContain("Two statements the assistant made match a passage");
+  });
+
+  it("only a confirmed row with no passage: the passage line does not print", () => {
+    const report = reportWith([noPassage]);
+    expect(passLines(report).join(" ")).not.toContain("passage on your own site");
+    for (const [name, text] of passSurfaces(report))
+      expect(text, name).not.toContain("passage on your own site");
+  });
+});
+
+describe("R6 fix 2: 'named' needs a person noun before it", () => {
+  it("a no-topic contradiction 'was named Denver's Best Design Studio' prints as the client's", () => {
+    const quote = "Example Studio was named Denver's Best Design Studio in 2019";
+    const report = reportWith([
+      row({
+        claim: "Example Studio was named Denver's Best Design Studio in 2019.",
+        verdict: "contradicted",
+        engineQuote: quote,
+        siteQuote: "Named Best Studio by Westword in 2021",
+      }),
+    ]);
+    expect(headlineFinding(toReportView(report)).text).not.toContain(
+      "on a topic we have not checked",
+    );
+    for (const [, text] of surfaces(report)) expect(text).toContain(quote);
+  });
+
+  it("control: 'A man named Tim leads Acme.' stays withheld as a named person", () => {
+    const claim = "A man named Tim leads Acme.";
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).toBe("named_person");
+  });
+});
+
+describe("R6 fix 3: the person verb pattern is back, without 'started' and 'own'", () => {
+  it.each([
+    "Dana Reyes founded the studio in 2012.",
+    "Dana Reyes runs the studio with Sam Ortiz.",
+    "Northwind Holdings owns Example Studio.",
+  ])("withholds %s as a named person, with no all-clear headline", (claim) => {
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).toBe("named_person");
+    const report = reportWith([
+      row({ claim, verdict: "contradicted", engineQuote: claim, siteQuote: "Founded in 2012" }),
+    ]);
+    expect(headlineFinding(toReportView(report)).text).not.toContain("Everything we can measure");
+    for (const [, text] of surfaces(report)) expect(text).not.toContain(claim);
+  });
+
+  it("control: 'Example Studio started in 2001' against 'Founded in 2012' still prints as a contradiction", () => {
+    const quote = "Example Studio started in 2001";
+    const report = reportWith([
+      row({
+        claim: "Example Studio started in 2001.",
+        verdict: "contradicted",
+        engineQuote: quote,
+        siteQuote: "Founded in 2012",
+      }),
+    ]);
+    for (const [, text] of surfaces(report)) expect(text).toContain(quote);
+  });
+});
+
+describe("R6 fix 4: the 'most likely match' hedge keeps a row about another business", () => {
+  const hedged = "Most likely match: Northwind Bakery, a bakery in Lakeside";
+  const report = reportWith([
+    row({
+      claim: "The business is a bakery in Lakeside.",
+      verdict: "contradicted",
+      engineQuote: hedged,
+      siteQuote: "Founded in 2012",
+    }),
+  ]);
+
+  it("the row is absent from the client's list on both surfaces", () => {
+    for (const [name, text] of surfaces(report))
+      expect(text, name).not.toContain("Most likely match");
+  });
+});
+
+describe("R6 fix 6: a contradiction with subject 'unclear' is held, not filed as another business's", () => {
+  const quote = "Example Studio was founded in 2001";
+  const unclear = (over: Partial<Assertion>) =>
+    reportWith([
+      row({
+        claim: "Example Studio was founded in 2001.",
+        engineQuote: quote,
+        siteQuote: "Founded in 2012",
+        subject: "unclear",
+        ...over,
+      }),
+    ]);
+
+  it.each([
+    ["a contradicted row", { verdict: "contradicted" as const }],
+    [
+      "an unverified row with a contradiction",
+      {
+        verdict: "unverified" as const,
+        contradiction: { attribute: "founded", engineValue: "2001", siteValue: "2012" },
+      },
+    ],
+  ])("%s gives the withheld-contradiction headline, and its quote does not print", (_l, over) => {
+    const report = unclear(over);
+    const h = headlineFinding(toReportView(report));
+    expect(h.kind).toBe("withheld-contradiction");
+    expect(h.text).toContain("on a topic we have not checked here. Ask us for it.");
+    for (const [name, text] of surfaces(report)) expect(text, name).not.toContain(quote);
+  });
+
+  it("control: the same row with subject 'other' keeps today's behaviour (not held)", () => {
+    const report = unclear({ verdict: "contradicted", subject: "other" });
+    expect(headlineFinding(toReportView(report)).kind).not.toBe("withheld-contradiction");
+    for (const [, text] of surfaces(report)) expect(text).not.toContain(quote);
+  });
+});
+
+describe("R6 fix 7: the bounded patterns keep their positive cases", () => {
+  it.each([
+    ["37 reviews on Yelp", "ratings_reviews"],
+    ["Example Studio, Inc.", "legal_entity"],
+    ["40 employees", "revenue_headcount"],
+  ])("%s is still withheld as %s", (claim, topic) => {
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).toBe(topic);
+  });
+});
+
+describe("R6 fix 8: the minor pins", () => {
+  it("containsOwn: 'Example Studio Denver' is this business's own name, not another firm", () => {
+    const report = withBusiness(
+      reportWith([], { conflation: conflationOf(["Example Studio Denver"]) }),
+      "Example Studio",
+    );
+    expect(otherNamesOf(toReportView(report))).toEqual([]);
+  });
+
+  it("the Google Analytics exclusion: a figure after Google Analytics is not a rating", () => {
+    const claim = "Google Analytics shows 4.2 sessions per visit.";
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).toBeNull();
+  });
+
+  it("two no-quote hides carry labels that say which question each answered", () => {
+    const raw = reportWith([
+      row({
+        claim: "Example Studio opened a Denver office.",
+        engineQuote: "",
+        query: "best firm in Denver",
+      }),
+      row({
+        claim: "Example Studio opened an Austin office.",
+        engineQuote: "",
+        query: "best firm in Austin",
+      }),
+    ]);
+    const map: OverrideMap = {
+      "accuracy.data.assertions[0]": {
+        original: "Example Studio opened a Denver office.",
+        text: "",
+        hidden: true,
+      },
+      "accuracy.data.assertions[1]": {
+        original: "Example Studio opened an Austin office.",
+        text: "",
+        hidden: true,
+      },
+    };
+    const labels = hideTargets(raw, map).map((t) => t.label);
+    expect(labels).toContain(`${NO_QUOTE_LABEL} (asked: best firm in Denver)`);
+    expect(labels).toContain(`${NO_QUOTE_LABEL} (asked: best firm in Austin)`);
+    for (const l of labels)
+      if (typeof l === "string") expect(l).not.toContain("Example Studio opened");
+  });
+
+  it("a legal-form name that ends in a full stop does not print a doubled full stop", () => {
+    const report = reportWith(
+      [
+        row({
+          claim: "Example Studio designs logos.",
+          engineQuote: "Example Studio designs logos",
+        }),
+      ],
+      { conflation: conflationOf(["Southgate Outfitters Inc."]) },
+    );
+    for (const [name, text] of surfaces(report)) {
+      expect(text, name).toContain("Southgate Outfitters Inc.");
+      expect(text, name).not.toContain("Inc..");
+    }
   });
 });

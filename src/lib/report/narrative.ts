@@ -16,7 +16,7 @@ import {
   sourceCheckMeasured,
   stageFailed,
   STAGE_LABEL,
-  confirmedRows,
+  confirmedWithPassage,
   contradictedRows,
   heldBack,
   notSourcedFromSite,
@@ -419,11 +419,14 @@ function passesGenerated(view: ReportView): PassGroup[] {
 
   const ai: string[] = [];
   if (acc) {
-    const confirmed = confirmedRows(view).length;
-    if (confirmed > 0) {
+    // R6 fix 1: only a confirmed statement that prints a site passage is a pass
+    // with a passage to name; the verb agrees with the count.
+    const withPassage = confirmedWithPassage(view).length;
+    if (withPassage > 0) {
       ai.push(
-        `${numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())} ` +
-          `${confirmed === 1 ? "statement" : "statements"} the assistant made match a passage on your own site`,
+        `${numberWord(withPassage).replace(/^./, (c) => c.toUpperCase())} ` +
+          `${withPassage === 1 ? "statement" : "statements"} the assistant made ` +
+          `${withPassage === 1 ? "matches" : "match"} a passage on your own site`,
       );
     }
     // Knowing who you are is not a pass when it also thought you were someone else.
@@ -564,8 +567,10 @@ function collisionBlockGenerated(view: ReportView): CollisionBlock | null {
   // and "business" is the one word this block must not supply.
   const name = view.businessName;
   const names = collisionNames(view);
+  // R6 fix 8: a name that already ends in a full stop ("Inc.") takes no second one.
+  const listed = joinList(names);
   const described = names.length
-    ? `Asked about you by name, it also described ${joinList(names)}.`
+    ? `Asked about you by name, it also described ${listed}${listed.endsWith(".") ? "" : "."}`
     : "Asked about you by name, it could not say which one you are.";
   return {
     heading: name

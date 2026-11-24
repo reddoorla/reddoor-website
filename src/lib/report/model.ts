@@ -757,9 +757,15 @@ export function statements(view: ReportView): Statement[] {
  *  `contradicted`, or when it held the claim unverified on a withheld topic with
  *  a contradiction on record (maintenance#2256 stores that shape). */
 function isProspectContradiction(a: Assertion, names: string[]): boolean {
-  const contradicts =
-    a.verdict === "contradicted" || (a.verdict === "unverified" && a.contradiction != null);
-  return contradicts && aboutProspect(a, names);
+  // R6 fix 6: a row the operator marked subject "unclear" is held as the client's
+  // contradiction, not filed as another business's.
+  return contradictsRow(a) && (a.subject === "unclear" || aboutProspect(a, names));
+}
+
+/** The engine said the site contradicts the claim: `contradicted`, or `unverified`
+ *  with a contradiction on record (maintenance#2256 stores that shape). */
+function contradictsRow(a: Assertion): boolean {
+  return a.verdict === "contradicted" || (a.verdict === "unverified" && a.contradiction != null);
 }
 
 /** R4 fix 6: a contradiction with no words from the site has nothing to print
@@ -781,11 +787,17 @@ function decide(rows: Assertion[], names: string[]): Statement {
   // under "What your site backs up" without the site line.
   const confirmed = rows.find((a) => a.verdict === "confirmed");
   const absent = rows.find((a) => a.verdict === "absent");
+  // R6 fix 6: an unclear-subject contradiction is held as withheld: it prints nowhere
+  // and the headline gives the withheld-contradiction wording, never the all-clear.
+  const unclearHeld = rows.some((a) => a.subject === "unclear" && contradictsRow(a));
 
   let outcome: StatementOutcome;
   let row: Assertion;
   if (!hasQuote(first)) {
     outcome = "unquoted";
+    row = first;
+  } else if (unclearHeld) {
+    outcome = "withheld";
     row = first;
   } else if (!about) {
     outcome = "aboutOthers";
@@ -906,10 +918,10 @@ const PLATFORM =
   "(?:glassdoor|yelp|trustpilot|bbb|charity navigator|clutch|houzz|angi|thumbtack|g2|google(?!\\s+(?:ads|analytics|partner|cloud|workspace)\\b))";
 /** A figure that looks like a score: "4.9", "4/5", "3 stars", "37 reviews". */
 const SCORE_FIGURE =
-  "(?:\\d\\.\\d\\b|\\d\\s*\\/\\s*(?:5|10)\\b|\\d\\s*stars?\\b|\\d+\\s+reviews?\\b|\\d+\\s+ratings?\\b)";
+  "(?:\\d\\.\\d\\b|\\d\\s*\\/\\s*(?:5|10)\\b|\\d\\s*stars?\\b|(?<!\\d)\\d{1,7}\\s+reviews?\\b|(?<!\\d)\\d{1,7}\\s+ratings?\\b)";
 /** A count word or a digit run, for "twelve employees" and "40 staff". */
 const NUM =
-  "(?:\\d[\\d,]*\\+?|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\\b)";
+  "(?:\\d[\\d,]{0,12}\\+?|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\\b)";
 
 /** Read off the words, for rows stored before the producer recorded a topic
  *  and for a model that files one under `other`. Errs wide, but only on words
@@ -1002,7 +1014,7 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\blimited liability (?:company|partnership)\b/i,
       // "Example Studio, Inc." and "Example Corp.", a capitalised name before the
       // suffix. Not "an Inc. 5000 honoree": no capital name, and a number after.
-      /\b[A-Z][\w&'-]*,?\s+(?:Inc|Corp|Ltd)\b(?!\.?\s*\d)/,
+      /\b[A-Z][\w&'-]{0,40},?\s+(?:Inc|Corp|Ltd)\b(?!\.?\s*\d)/,
       /\bsole proprietor\w*/i,
       /\b(?:dba|d\/b\/a|doing business as)\b/i,
       // "registered in Texas" is a legal-entity claim the page must not print
@@ -1025,11 +1037,15 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       new RegExp(
         `\\b${ci(["ceo", "cfo", "coo", "cto", "president", "founder", "co-founder", "owner"])}s?,?\\s+(?:${ci(["is", "was"])}\\s+)?[A-Z][a-z]+`,
       ),
-      // "A man named Tim leads Acme.", "named Tim".
-      /\b[Nn]amed [A-Z]/,
-      // No pattern reads a verb after two capitalised words as a person: "Example
-      // Studio started in 2001" is the business. The noun forms below are the person
-      // (R5 fix 2).
+      // "A man named Tim leads Acme." A person noun before "named" (R6 fix 2): a
+      // bare "was named Denver's Best Design Studio" is the business.
+      /\b(?:man|woman|person|someone|designer|owner|founder|guy|lady) named [A-Z]/,
+      // R6 fix 3: two capitalised words and a verb of ownership or founding read as a
+      // person ("Dana Reyes founded the studio", "Northwind Holdings owns Example
+      // Studio"). "started" and "own" are not in the verb list: "Example Studio
+      // started in 2001" is the business (R5 fix 2).
+      /\b[A-Z][a-z]+ [A-Z][a-z]+ (?:leads|led|owns|runs|founded)\b/,
+      // The noun forms below are the person (R5 fix 2).
       // "Dana Reyes, the CEO".
       new RegExp(
         `\\b[A-Z][a-z]+ [A-Z][a-z]+,? (?:${ci(["the"])} )?${ci(["ceo", "founder", "owner", "president"])}\\b`,
