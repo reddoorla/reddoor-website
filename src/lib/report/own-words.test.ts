@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ssr, ssrStubbed, renderText, stubCalls } from "./ssr-test-harness";
+import { ssr, renderText } from "./ssr-test-harness";
 import { ALL_PASS_REPORT } from "./fixtures/all-pass";
 import type { AuditReport, OverrideMap } from "./fetch";
 import {
@@ -9,13 +9,20 @@ import {
   otherNamesOf,
   statements,
   toReportView,
+  withheldContradictionKind,
   withheldTopic,
   type Assertion,
   type HeldBack,
   withheldIn,
 } from "./model";
 import { collisionQuote, displayQuote, headlineFinding, heldBackLines, passes } from "./narrative";
-import { changeList, editableTargets, hideTargets, showStatement } from "./editable";
+import {
+  changeList,
+  editableTargets,
+  hideTargets,
+  resolveTargets,
+  showStatement,
+} from "./editable";
 
 /**
  * W2: the accuracy section says what the assistant said, about the right
@@ -234,8 +241,8 @@ describe("a rating sentence is absent from the rendered list", () => {
       ["It is not accredited by the trade body.", "accreditation"],
       ["It has one alert on file.", "complaints"],
       ["It is listed as a sole proprietorship.", "legal_entity"],
-      ["It was acquired by a holding group in 2019.", "ownership"],
-      ["The studio is run by Dana Reyes.", "named_person"],
+      // R9 §1: "acquired by" and "run by" are no longer excerpt words, so these two
+      // are not pinned by text. The stored topic still holds them (see R9 §1 below).
       ["It has about 40 employees.", "revenue_headcount"],
       ["It is at 118 Larkspur Lane.", "street_address"],
       ["It designs brand identities.", null],
@@ -1143,7 +1150,6 @@ describe("R2: topic patterns", () => {
     "offers annual maintenance plans from $99",
     "provides fraud prevention for banks",
     "sends real-time alerts to homeowners",
-    "handles customer complaints for retailers",
     "is a franchise-friendly agency",
     "works with any business entity",
     "an Inc. 5000 honoree",
@@ -1690,12 +1696,24 @@ describe("R4 fix 1c: phrasings that still leak are withheld on both surfaces", (
     ["Its office is at 1200 Broadway in Denver.", "street_address"],
   ];
 
-  it.each(WITHHELD_PHRASES)("withholds %s", (claim, topic) => {
-    expect(patternTopic(claim, topic)).toBe(topic);
-    expect(
-      brandedExcerpt({ snippet: claim, truncated: false, query: "who is Example Studio" }),
-    ).not.toContain(claim);
-  });
+  // R9 §1: these four have no word from the excerpt list (PERSON_WORDS), so a text
+  // check no longer withholds them. Each is still held by a stored topic (the
+  // "prints neither" test below keeps every row).
+  const NO_EXCERPT_WORD = [
+    "It is led by designer Dana Reyes.",
+    "Creative director Dana Reyes oversees every project.",
+    "Northwind Group acquired it in 2019.",
+    "It is part of Northwind Group.",
+  ];
+  it.each(WITHHELD_PHRASES.filter(([claim]) => !NO_EXCERPT_WORD.includes(claim)))(
+    "withholds %s",
+    (claim, topic) => {
+      expect(patternTopic(claim, topic)).toBe(topic);
+      expect(
+        brandedExcerpt({ snippet: claim, truncated: false, query: "who is Example Studio" }),
+      ).not.toContain(claim);
+    },
+  );
 
   it.each(WITHHELD_PHRASES)("prints neither %s on either surface", (claim, topic) => {
     const stored = row({ claim, engineQuote: claim, ...storedTopic(topic) });
@@ -2488,7 +2506,8 @@ describe("R6 fix 3: the person verb pattern is back, without 'started' and 'own'
     ["Dana Reyes runs the studio with Sam Ortiz.", "named_person"],
     ["Northwind Holdings owns Example Studio.", "ownership"],
   ])("withholds %s as %s, with no all-clear headline", (claim, topic) => {
-    expect(withheldIn(claim)).toBe(topic);
+    // R9 §1: "runs" is not an excerpt word, so the excerpt label is pinned only for
+    // the words PERSON_WORDS reads (see the next test). The statement is held either way.
     const report = reportWith([
       row({
         claim,
@@ -2500,6 +2519,13 @@ describe("R6 fix 3: the person verb pattern is back, without 'started' and 'own'
     ]);
     expect(headlineFinding(toReportView(report)).text).not.toContain("Everything we can measure");
     for (const [, text] of surfaces(report)) expect(text).not.toContain(claim);
+  });
+
+  it.each([
+    ["Dana Reyes founded the studio in 2012.", "named_person"],
+    ["Northwind Holdings owns Example Studio.", "ownership"],
+  ])("an excerpt carrying %s is withheld as %s (R9 §1)", (claim, topic) => {
+    expect(withheldIn(claim)).toBe(topic);
   });
 
   it("control: 'Example Studio started in 2001' against 'Founded in 2012' still prints as a contradiction", () => {
@@ -2648,8 +2674,6 @@ describe("R6 fix 8: the minor pins", () => {
 
 // Review round 7 (reddoorla/reddoor-website#380), fixes 1 to 6 of the fix brief.
 // ---------------------------------------------------------------------------
-
-const BUSINESS = "Example Studio";
 
 describe("R7 fix 1: an unclear-subject held contradiction is counted under the other-business line", () => {
   const quote = "Example Studio was founded in 2001";
@@ -2806,7 +2830,7 @@ describe("R7 fix 3: the person-verb pattern does not read the business's own nam
 
   it("brandedExcerpt returns an excerpt that names the business as the runner, not the no-check line", () => {
     const snippet = "Example Studio runs brand workshops for startups in Austin.";
-    expect(brandedExcerpt({ snippet, truncated: false }, BUSINESS)).toBe(snippet);
+    expect(brandedExcerpt({ snippet, truncated: false })).toBe(snippet);
   });
 
   it.each([
@@ -2814,9 +2838,9 @@ describe("R7 fix 3: the person-verb pattern does not read the business's own nam
     "Dana Reyes runs the studio with Sam Ortiz.",
     "Dana Reyes leads the studio.",
     "Dana Reyes led the studio until 2020.",
-  ])("still held as a named person, never printed: %s", (claim) => {
-    // R8 §1: held by its stored topic; its words are still a person to excerpts.
-    expect(withheldIn(claim, BUSINESS)).toBe("named_person");
+  ])("held by its stored topic as a named person, never printed: %s", (claim) => {
+    // R8 §1 and R9 §1: held by its stored topic. Its words are no longer read for a
+    // statement, and only "founded" is an excerpt word, so the excerpt check is not asserted here.
     const report = reportWith([
       row({
         claim,
@@ -3023,7 +3047,7 @@ describe("R8 §5: held only by a stored topic, for people and ownership", () => 
 describe("R8 §5: the stable topics still hold by text, with a stored topic of other", () => {
   it.each([
     ["Example Studio has a 4.6 rating on Yelp", "ratings"],
-    ["Example Studio has two complaints with the BBB", "accreditation"],
+    ["Example Studio has two complaints with the BBB", "complaints"],
     ["Example Studio is an LLC registered in Texas", "registration"],
     ["Example Studio has 40 employees", "revenue or staff numbers"],
     ["Example Studio is at 4100 West Calder Boulevard", "addresses"],
@@ -3068,7 +3092,7 @@ describe("R8 §2: a report with a subject-less row gets the re-run sentence, not
   });
 
   it("the headline is the re-run sentence, not a contradiction or an all-clear", () => {
-    expect(headlineFinding(toReportView(report)).text).toBe(RERUN);
+    expect(headlineFinding(toReportView(report)).text).toBe(HEADLINE_RERUN);
   });
 
   it("What passes counts no statement", () => {
@@ -3077,23 +3101,21 @@ describe("R8 §2: a report with a subject-less row gets the re-run sentence, not
   });
 });
 
-describe("R8 §5: branded excerpts take the business's name into account", () => {
+describe("R8 §5: branded excerpts are held by the person and ownership words (R9 §1: no business name)", () => {
   it("a branded excerpt that names a person as founder is replaced by the neutral line", () => {
     expect(
       brandedExcerpt(
         brandedProbe("who is Example Studio", "Dana Reyes founded Example Studio in 2001"),
-        BUSINESS,
       ),
     ).toBe("This answer said something we have not checked, so we have not repeated it here.");
   });
 
   it("a branded excerpt with the business's own name as subject prints", () => {
     const snippet = "Example Studio runs brand workshops for startups in Austin.";
-    expect(brandedExcerpt(brandedProbe("who is Example Studio", snippet), BUSINESS)).toBe(snippet);
+    expect(brandedExcerpt(brandedProbe("who is Example Studio", snippet))).toBe(snippet);
     expect(
       renderText(branded, {
         probes: [brandedProbe("who is Example Studio", snippet)],
-        business: BUSINESS,
       } as never),
     ).toContain(snippet);
   });
@@ -3101,14 +3123,13 @@ describe("R8 §5: branded excerpts take the business's name into account", () =>
   it("the branded block renders the neutral line for a founder sentence, through SSR", () => {
     const html = renderText(branded, {
       probes: [brandedProbe("who is Example Studio", "Dana Reyes founded Example Studio in 2001")],
-      business: BUSINESS,
     } as never);
     expect(html).toContain("This answer said something we have not checked");
     expect(html).not.toContain("Dana Reyes founded");
   });
 });
 
-describe("R8 §3: the collision quote is judged with the business's name", () => {
+describe("R8 §3: the collision quote's own sentence prints; another business's is held", () => {
   const withQuote = (engineQuote: string) =>
     reportWith(
       [
@@ -3157,20 +3178,6 @@ describe("R8 §4: a plain rating row counts once, and no could-not-tell line is 
   });
 });
 
-describe("R8 §4: Report hands the business name to BrandedAnswers", () => {
-  it("mounts BrandedAnswers with the report's business name, so an excerpt is judged by it", async () => {
-    // Report.svelte is rendered with its child components stubbed (see
-    // ssrStubbed); the record is the props its parent passed to BrandedAnswers.
-    const report = await ssrStubbed<{ view: ReturnType<typeof toReportView> }>(
-      "src/lib/report/Report.svelte",
-    );
-    stubCalls();
-    renderText(report, { view: toReportView(ALL_PASS_REPORT as unknown as AuditReport) });
-    const branded = stubCalls().find((c) => c.name === "BrandedAnswers");
-    expect(branded?.props.business).toBe("Example Studio");
-  });
-});
-
 describe("R8 §2: the editor offers no statement on an old-row report, and keeps a hide already on one", () => {
   const raw = reportWith([
     row({
@@ -3207,5 +3214,253 @@ describe("R8 §2: the editor offers no statement on an old-row report, and keeps
     expect(
       hideTargets(raw, overrides).find((t) => t.key === "accuracy.data.assertions[0]"),
     ).toMatchObject({ hidden: true });
+  });
+});
+
+/* ------------------------------------------------------------------------ *
+ * Review round 9 (reddoor-website#380). Each block is written before its fix.
+ * ------------------------------------------------------------------------ */
+
+/** The text of each leaf element in rendered markup: an element whose only
+ *  content is text. The editor's own leaves, read off the page as SSR'd. */
+const leafTexts = (html: string): string[] =>
+  [...html.matchAll(/<(p|h[1-6]|li|td|th|span|strong)\b[^>]*>([^<]*)<\/\1>/g)]
+    .map((m) => (m[2] ?? "").trim())
+    .filter((t) => t !== "");
+
+const HEADLINE_RERUN =
+  "We need to re-run the check of what AI assistants say about you. Ask us for it.";
+
+/** A collision block for `business`, whose assistant quote is `quote`. */
+const collisionReport = (business: string, otherNames: string[], quote: string): AuditReport => ({
+  ...reportWith(
+    [
+      row({
+        claim: `${business} is a design studio.`,
+        engineQuote: "a design studio",
+        verdict: "confirmed",
+        siteQuote: "We are a design studio.",
+      }),
+    ],
+    { conflation: conflationOf(otherNames, quote) },
+  ),
+  businessName: business,
+});
+
+describe("R9 §1: an excerpt is held on any person or ownership word", () => {
+  it.each([
+    ["Dana Reyes founded the studio in 2001", "Dana Reyes Photography"],
+    ["Its founder was named Dana Reyes", "Northwind Bakery"],
+    ["Northwind Bakery is named after Dana Reyes", "Northwind Bakery"],
+  ])("the collision quote %s is not printed on either surface", (quote, other) => {
+    const report = collisionReport("Dana Reyes Design", [other], quote);
+    expect(collisionQuote(toReportView(report))).toBeNull();
+    for (const [name, text] of surfaces(report)) expect(text, name).not.toContain(quote);
+  });
+
+  it.each([
+    "The studio is named after Dana Reyes, who opened it in 2001.",
+    "Dana Reyes founded the studio in 2001 and still runs it.",
+  ])("the branded excerpt %s is replaced by the neutral line, through SSR", (snippet) => {
+    const probe = brandedProbe("who is Example Studio", snippet);
+    expect(brandedExcerpt(probe)).toBe(
+      "This answer said something we have not checked, so we have not repeated it here.",
+    );
+    expect(renderText(branded, { probes: [probe] } as never)).not.toContain(snippet);
+  });
+
+  it("another business's name never prints the person it is named after", () => {
+    const report = collisionReport(
+      "Example Studio",
+      ["Northwind Bakery, named after Dana Reyes"],
+      "Example Studio runs a bakery in Lakeside",
+    );
+    for (const [name, text] of surfaces(report)) expect(text, name).not.toContain("Dana Reyes");
+  });
+
+  it("control: a collision quote with the business as subject still prints", () => {
+    const quote = "Example Studio runs a bakery in Lakeside";
+    const report = collisionReport("Example Studio", ["Northwind Bakery"], quote);
+    expect(collisionQuote(toReportView(report))).toBe(quote);
+    for (const [name, text] of surfaces(report)) expect(text, name).toContain(quote);
+  });
+
+  it("control: a branded excerpt with the business as subject still prints", () => {
+    const snippet = "Example Studio runs brand workshops for startups in Austin.";
+    expect(brandedExcerpt(brandedProbe("who is Example Studio", snippet))).toBe(snippet);
+    expect(
+      renderText(branded, { probes: [brandedProbe("who is Example Studio", snippet)] } as never),
+    ).toContain(snippet);
+  });
+});
+
+describe("R9 §2: complaints, staff ratings and headcount are held by text, and counted", () => {
+  it.each([
+    ["It has received three complaints from clients.", "complaints"],
+    ["Customers have filed complaints over missed deadlines.", "complaints"],
+    ["Employees rate Acme Design 3.2.", "ratings"],
+    ["Staff give Acme Design a 3.2.", "ratings"],
+    ["Acme Design has 40 people.", "revenue or staff numbers"],
+  ])("%s is held as %s, counted, and not printed", (claim, label) => {
+    const report = reportWith([
+      row({ claim, engineQuote: claim, verdict: "absent", topic: "other" }),
+    ]);
+    expect(heldBack(toReportView(report))).toEqual({
+      withheld: 1,
+      topics: [label],
+      aboutOthers: 0,
+      unquoted: 0,
+    });
+    for (const [name, text] of surfaces(report)) expect(text, name).not.toContain(claim);
+  });
+
+  it("control: Acme Design serves 500 people a year prints", () => {
+    const claim = "Acme Design serves 500 people a year";
+    const report = reportWith([
+      row({ claim, engineQuote: claim, verdict: "absent", topic: "other" }),
+    ]);
+    expect(heldBack(toReportView(report)).withheld).toBe(0);
+    for (const [name, text] of surfaces(report)) expect(text, name).toContain(claim);
+  });
+});
+
+describe("R9 §3: an old-row report says so, and keeps its sources", () => {
+  const oldRows = () => [
+    row({
+      subject: undefined,
+      claim: "Dana Reyes founded the studio in 2001.",
+      engineQuote: "Dana Reyes founded the studio in 2001",
+      verdict: "contradicted",
+      siteQuote: "Founded in 2012",
+    }),
+    row({
+      subject: undefined,
+      claim: "Example Studio designs packaging.",
+      engineQuote: "Example Studio designs packaging",
+      verdict: "confirmed",
+      siteQuote: "We design packaging",
+    }),
+  ];
+
+  it("a failed stage: the headline drops the all-clear clause for an old-row report", () => {
+    const report = {
+      ...reportWith(oldRows()),
+      analyze: { ok: false, error: "The analysis call failed" },
+    };
+    const text = headlineFinding(toReportView(report as AuditReport)).text;
+    expect(text).toContain("Part of this audit failed before it finished");
+    expect(text).toContain("Without those parts this is not a clean bill of health.");
+    expect(text).not.toContain("Nothing we measured needs your attention");
+  });
+
+  it("a failed stage: a new-shape report keeps today's sentence", () => {
+    const report = {
+      ...reportWith([
+        row({
+          claim: "Example Studio designs packaging.",
+          engineQuote: "Example Studio designs packaging",
+          verdict: "confirmed",
+          siteQuote: "We design packaging",
+        }),
+      ]),
+      analyze: { ok: false, error: "The analysis call failed" },
+    };
+    expect(headlineFinding(toReportView(report as AuditReport)).text).toContain(
+      "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
+    );
+  });
+
+  it("the headline and the section carry two distinct sentences", () => {
+    const report = reportWith(oldRows());
+    expect(headlineFinding(toReportView(report)).text).toBe(HEADLINE_RERUN);
+    const print = seen(renderText(printSheet, { data: { report, overrides: {} } }));
+    expect(print).toContain(RERUN);
+    expect(print).toContain(HEADLINE_RERUN);
+  });
+
+  it("the editor resolves the headline to one leaf, with no ambiguous text", () => {
+    const report = reportWith(oldRows());
+    const view = toReportView(report);
+    const html = renderText(printSheet, { data: { report, overrides: {} } });
+    const leaves = leafTexts(html);
+    expect(leaves.filter((t) => t === HEADLINE_RERUN)).toHaveLength(1);
+    const { resolved } = resolveTargets(
+      leaves.map((text, id) => ({ id, text })),
+      editableTargets(view, report),
+    );
+    expect(resolved.filter((r) => r.target.key === "composed:headlineFinding")).toHaveLength(1);
+  });
+
+  it("every source the editor offers outside the client's own site is printed, and a hide removes it from both surfaces", () => {
+    const report = reportWith(oldRows());
+    const offered = hideTargets(report, {}).filter(
+      (t) => t.noun === "Source" && t.original !== "example-studio.test",
+    );
+    expect(offered.length).toBeGreaterThan(0);
+    for (const t of offered) {
+      for (const [name, text] of surfaces(report)) expect(text, name).toContain(t.original);
+    }
+    const target = offered[0]!;
+    const overrides: OverrideMap = {
+      [target.key]: { original: target.original, text: "", hidden: true },
+    };
+    const onScreen = seen(renderText(sourceCheck, { view: toReportView(report, overrides) }));
+    const onPrint = seen(renderText(printSheet, { data: { report, overrides } }));
+    expect(onScreen).not.toContain(target.original);
+    expect(onPrint).not.toContain(target.original);
+  });
+
+  it("nit 5: an old row with no answers read does not headline the re-run sentence", () => {
+    const report = reportWith(oldRows(), { answersRead: 0 });
+    const headline = headlineFinding(toReportView(report));
+    expect(headline.kind).not.toBe("accuracy-rerun");
+    expect(headline.text).not.toBe(HEADLINE_RERUN);
+  });
+});
+
+describe("R9 §4: pins the round 8 review missed", () => {
+  const oldRating = () =>
+    reportWith([
+      row({
+        subject: undefined,
+        claim: "Example Studio has a 4.6 rating on Yelp.",
+        engineQuote: "Example Studio has a 4.6 rating on Yelp",
+        verdict: "absent",
+      }),
+    ]);
+
+  it("heldBack on an old-row report is all zeros", () => {
+    expect(heldBack(toReportView(oldRating()))).toEqual({
+      withheld: 0,
+      topics: [],
+      aboutOthers: 0,
+      unquoted: 0,
+    });
+  });
+
+  it("withheldContradictionKind on an old-row report with a contradicted row is null", () => {
+    const report = reportWith([
+      row({
+        subject: undefined,
+        claim: "Example Studio has a 4.6 rating on Yelp.",
+        engineQuote: "Example Studio has a 4.6 rating on Yelp",
+        verdict: "contradicted",
+        siteQuote: "We have no ratings page",
+      }),
+    ]);
+    expect(withheldContradictionKind(toReportView(report))).toBeNull();
+  });
+
+  it("a statement grouping named-person and headcount rows names named people first", () => {
+    const S = "Example Studio is run by a team of designers in Lakeside";
+    const report = reportWith([
+      row({ claim: "A person.", engineQuote: S, verdict: "absent", topic: "named_person" }),
+      row({ claim: "A headcount.", engineQuote: S, verdict: "absent", topic: "revenue_headcount" }),
+    ]);
+    const view = toReportView(report);
+    expect(heldBack(view).topics).toEqual(["named people"]);
+    const lines = heldBackLines(view).join(" ");
+    expect(lines).toContain("named people");
+    expect(lines).not.toContain("revenue or staff numbers");
   });
 });

@@ -68,6 +68,10 @@ export type Headline = { kind: HeadlineKind; text: string };
 /** R8 §2. What the accuracy section prints, instead of its statements, for a report
  *  with a stored row that has no subject. The headline says the same. */
 export const RERUN_SENTENCE = "We need to re-run this check for your report. Ask us for it.";
+/** R9 §3. The headline's sentence for the same case. Not the section's: the two are
+ *  one fact said twice, and the editor offers the headline as its own line. */
+const HEADLINE_RERUN =
+  "We need to re-run the check of what AI assistants say about you. Ask us for it.";
 
 /** W1. The stages an all-clear stands on: the reading of the site, the AI
  *  answers, and the check of what those answers say. */
@@ -345,11 +349,14 @@ function headlineFindingGenerated(view: ReportView): Headline {
   // instead: "ran and failed", never "did not run" (the distinction #893 drew).
   const missingParts = ALL_CLEAR_NEEDS.filter((k) => stageFailed(view, k));
   if (missingParts.length > 0) {
+    const failed = `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}.`;
+    // R9 §3: an old-row report has no all-clear to give, so the clause that says
+    // nothing measured needs attention is dropped with it.
     return {
       kind: "incomplete",
-      text:
-        `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
-        "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
+      text: hasOldRows(view)
+        ? `${failed} Without those parts this is not a clean bill of health.`
+        : `${failed} Nothing we measured needs your attention, but without those parts this is not a clean bill of health.`,
     };
   }
 
@@ -359,9 +366,10 @@ function headlineFindingGenerated(view: ReportView): Headline {
   // topic's: there is no topic we have not checked, only words we could not
   // quote exactly.
   // R8 §2: a report with an old row draws nothing from its accuracy rows, not even
-  // the all-clear below; it says the check must be run again.
-  if (hasOldRows(view)) {
-    return { kind: "accuracy-rerun", text: RERUN_SENTENCE };
+  // the all-clear below; it says the check must be run again. R9 §3 nit 5: only
+  // when the check was measured, so an unread check falls through as it always did.
+  if (hasOldRows(view) && sourceCheckMeasured(view)) {
+    return { kind: "accuracy-rerun", text: HEADLINE_RERUN };
   }
   const withheld = withheldContradictionKind(view);
   if (withheld === "unquoted") {
@@ -534,22 +542,21 @@ export type CollisionBlock = { heading: string; detail: string | null };
  * the part before " (", which is the name.
  */
 export function collisionNames(view: ReportView): string[] {
-  const business = view.businessName ?? "";
   return (view.accuracy?.conflation.otherNames ?? [])
-    .map((n) => bareOtherName(n, business))
+    .map((n) => bareOtherName(n))
     .filter((n) => n !== "");
 }
 
 /** The name alone, for a name that carries a withheld topic. R4 fix 4: cut at
  *  " (" first; if the rest still carries one, cut at the first ",", " —", " - "
  *  or " which "; if that still does, the block names no firm at all. */
-function bareOtherName(n: string, business: string): string {
-  if (!textWithheld(n, business)) return n;
+function bareOtherName(n: string): string {
+  if (!textWithheld(n)) return n;
   const head = (n.split(" (")[0] ?? "").trim();
-  if (!carriesTopic(head, business)) return head;
+  if (!carriesTopic(head)) return head;
   for (const cut of [",", " —", " - ", " which "]) {
     const part = (head.split(cut)[0] ?? "").trim();
-    if (part !== "" && part !== head && !carriesTopic(part, business)) return part;
+    if (part !== "" && part !== head && !carriesTopic(part)) return part;
   }
   return "another business";
 }
@@ -558,8 +565,8 @@ function bareOtherName(n: string, business: string): string {
  *  part of a firm's name, not a claim about it, so a name whose only topic is a
  *  legal form still prints (R3 fix 5's name-only rule). R5 fix 4: every topic the
  *  text carries is checked, not the first, so "Inc., owned by Dana Reyes" counts. */
-function carriesTopic(s: string, business: string): boolean {
-  return withheldTopicsIn(s, business).some((topic) => topic !== "legal_entity");
+function carriesTopic(s: string): boolean {
+  return withheldTopicsIn(s).some((topic) => topic !== "legal_entity");
 }
 
 /**
@@ -569,11 +576,7 @@ function carriesTopic(s: string, business: string): boolean {
 export function collisionQuote(view: ReportView): string | null {
   if (!nameUnsettled(view.accuracy)) return null;
   const quote = view.accuracy?.conflation.engineQuote;
-  // R8 §3: judged with the business's own name, so "Example Studio runs a bakery"
-  // is the business's sentence and not a person's verb.
-  const business = view.businessName ?? "";
-  if (typeof quote !== "string" || quote.trim() === "" || textWithheld(quote, business))
-    return null;
+  if (typeof quote !== "string" || quote.trim() === "" || textWithheld(quote)) return null;
   return quote;
 }
 

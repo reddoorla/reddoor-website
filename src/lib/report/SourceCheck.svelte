@@ -280,35 +280,6 @@
         </p>
       {/if}
 
-      {#if elsewhere.length}
-        <!-- Visible, not collapsed. "Your site does not say this" used to be the
-           finding here; the useful part of that finding was always the list of
-           pages about them that they did not write. -->
-        <div class="flex flex-col gap-4 border-t border-light pt-6">
-          <div class="flex flex-col gap-1.5">
-            <h4 class="type-question m-0 text-black">
-              Who else the assistant read: {elsewhere.length}
-              {elsewhere.length === 1 ? "source" : "sources"}
-            </h4>
-            <p class="type-meta m-0 text-muted">
-              These are the pages about you that you did not write. You cannot edit most of them,
-              but you can make your own pages say the thing plainly enough that they stop being the
-              best available source.
-            </p>
-          </div>
-          <ul class="m-0 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2">
-            {#each elsewhere as source (source.domain)}
-              <li
-                class="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-light/60 py-1.5"
-              >
-                <span class="type-meta text-black">{source.domain}</span>
-                <span class="type-meta text-muted">{OWNER_LABEL[source.owner]}</span>
-              </li>
-            {/each}
-          </ul>
-        </div>
-      {/if}
-
       {#if sampled}
         <!-- Ours, not theirs. The crawl reads a capped number of pages, and the
            sentence that stood here ("Nothing above is reported as missing from
@@ -320,6 +291,34 @@
           {sourceCheckFootnote(view)}
         </p>
       {/if}
+    {/if}
+    {#if elsewhere.length}
+      <!-- Visible, not collapsed. "Your site does not say this" used to be the
+         finding here; the useful part of that finding was always the list of
+         pages about them that they did not write. -->
+      <div class="flex flex-col gap-4 border-t border-light pt-6">
+        <div class="flex flex-col gap-1.5">
+          <h4 class="type-question m-0 text-black">
+            Who else the assistant read: {elsewhere.length}
+            {elsewhere.length === 1 ? "source" : "sources"}
+          </h4>
+          <p class="type-meta m-0 text-muted">
+            These are the pages about you that you did not write. You cannot edit most of them, but
+            you can make your own pages say the thing plainly enough that they stop being the best
+            available source.
+          </p>
+        </div>
+        <ul class="m-0 grid list-none grid-cols-1 gap-x-10 p-0 sm:grid-cols-2">
+          {#each elsewhere as source (source.domain)}
+            <li
+              class="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-light/60 py-1.5"
+            >
+              <span class="type-meta text-black">{source.domain}</span>
+              <span class="type-meta text-muted">{OWNER_LABEL[source.owner]}</span>
+            </li>
+          {/each}
+        </ul>
+      </div>
     {/if}
   </div>
 {/if}

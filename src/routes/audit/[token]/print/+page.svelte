@@ -246,20 +246,20 @@
             </div>
           {/each}
         {/if}
-        {#if elsewhere.length}
-          <h3>
-            Who else the assistant read: {elsewhere.length}
-            {elsewhere.length === 1 ? "source" : "sources"}
-          </h3>
-          <p class="domains">
-            {elsewhere.map((s) => s.domain).join(" · ")}
-          </p>
-        {/if}
         {#if sampled}
           <p class="fix-w">
             {sourceCheckFootnote(view)}
           </p>
         {/if}
+      {/if}
+      {#if elsewhere.length}
+        <h3>
+          Who else the assistant read: {elsewhere.length}
+          {elsewhere.length === 1 ? "source" : "sources"}
+        </h3>
+        <p class="domains">
+          {elsewhere.map((s) => s.domain).join(" · ")}
+        </p>
       {/if}
     </section>
   {/if}

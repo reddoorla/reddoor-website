@@ -6,8 +6,7 @@
   // score or a withheld topic, so this is the one place the reader sees them
   // (R4 fix 9). Report.svelte mounts it inside its disclosure.
 
-  // `business` is the report's business name: a verb after its own name is not a person (R7 fix 3).
-  let { probes, business = "" }: { probes: ProbeAnswer[]; business?: string } = $props();
+  let { probes }: { probes: ProbeAnswer[] } = $props();
 
   /**
    * The domains one answer cited, most-cited first, each named once. The raw
@@ -29,7 +28,7 @@
     <div class="flex flex-col gap-2">
       <p class="m-0 font-medium text-black">&ldquo;{probe.query}&rdquo;</p>
       <p class="type-meta m-0 text-muted">
-        {brandedExcerpt(probe, business)}
+        {brandedExcerpt(probe)}
       </p>
       {#if probe.citedDomains.length}
         <p class="type-meta m-0 text-muted">

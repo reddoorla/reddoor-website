@@ -914,13 +914,6 @@ const TOPIC_LABEL: Record<Exclude<AssertionTopic, "other">, string> = {
   street_address: "addresses",
 };
 
-/** A case-insensitive spelling of each word, for a pattern that must also test
- *  a capital letter (a name, a street word), where the `i` flag cannot be used. */
-const ci = (words: string[]): string =>
-  `(?:${words
-    .map((w) => w.replace(/[a-z]/gi, (c) => `[${c.toLowerCase()}${c.toUpperCase()}]`))
-    .join("|")})`;
-
 /** R4 fix 1: the platform names a rating or review can be read off. Google
  *  counts only in its platform sense, not "Google Ads" and the like; Maps and
  *  Business Profile are platforms, so a rating on them is withheld (R5 fix 3). */
@@ -1000,6 +993,8 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\b(?:employee|customer)s?\s+(?:reviews?\s+)?(?:average|give)\b/i,
       // "Senior management 2.9", and the other employer-review categories.
       /\b(?:senior management|work.life balance|culture & values|compensation)\s+\d/i,
+      // R9 §2: "Employees rate Acme Design 3.2", "Staff give Acme Design a 3.2".
+      /\b(?:employees|staff|workers)\s+(?:rate|rated|give|gave|score|scored)\b/i,
     ],
   ],
   [
@@ -1014,6 +1009,8 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\b(?:lawsuits?|sued|litigation)\b/i,
       /\bscams?\b/i,
       /\bfraud (?:claims?|charges?|complaints?|allegations?)\b/i,
+      // R9 §2: "It has received three complaints from clients".
+      /\bcomplaints?\b/i,
     ],
   ],
   ["accreditation", [/\b(?:accredit\w*|bbb|better business bureau)\b/i]],
@@ -1052,6 +1049,8 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\$\s?\d[\d,.]*\s*(?:million|billion|m\b)/i,
       /\b(?:revenue|turnover)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|turnover)\b/i,
       /\b(?:brings? in|earns|grosses)\b[^.]{0,20}\$\s?\d/i,
+      // R9 §2: "Acme Design has 40 people".
+      /\b(?:has|have|are|employs?)\s+(?:about |around |roughly |nearly |over |some )?\d[\d,]*\+?\s+people\b/i,
     ],
   ],
   [
@@ -1073,68 +1072,17 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
 ];
 
 /**
- * R8 (review round 8). The person and ownership patterns. A statement is held on
- * these topics only by its STORED topic (`withheldTopic`); the text is read here
- * only for whole excerpts that carry no model label (`withheldIn`, the collision
- * quote, the other-name blocks). The patterns are unchanged from round 7.
+ * R9 §1. The person and ownership words, read for a whole excerpt that carries no
+ * model label (a branded excerpt, the collision quote, the other-name blocks). One
+ * list, with no business-name skip and no lookbehind: over-holding an excerpt is
+ * the accepted direction. A statement is never held by these words; it is held by
+ * its stored topic (`withheldTopic`).
  */
-export const PERSON_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
-  [
-    "named_person",
-    [
-      // "founded in 2001 by John Smith", "run by Dana Reyes", "led by designer
-      // Dana Reyes" (up to two lowercase words before the name).
-      new RegExp(
-        `\\b${ci(["founded", "led", "run", "headed", "managed"])}\\b[^.]{0,30}?\\bby (?:[a-z]+ ){0,2}[A-Z][a-z]+`,
-      ),
-      // "CEO is Dana", "owner Jane Doe", "its founder, Jane Doe,".
-      new RegExp(
-        `\\b${ci(["ceo", "cfo", "coo", "cto", "president", "founder", "co-founder", "owner"])}s?,?\\s+(?:${ci(["is", "was"])}\\s+)?[A-Z][a-z]+`,
-      ),
-      // "A man named Tim leads Acme." A person noun before "named" (R6 fix 2): a
-      // bare "was named Denver's Best Design Studio" is the business.
-      // R7 fix 2: any "named <Capitalised>" is a person except after a passive
-      // ("was named Denver's Best Design Studio", "has been named Best Agency"),
-      // which is the award. Replaces the R6 fix 2 list of person nouns.
-      /(?<!\b(?:was|were|is|are|been|being|be|got|gets?) )\b[Nn]amed [A-Z]/,
-      // R7 fix 3: the two-word person verbs (leads, led, runs, founded) are matched
-      // by `personVerbIn`, which skips the business's own name. "owns" is ownership.
-      // The noun forms below are the person (R5 fix 2).
-      // "Dana Reyes, the CEO".
-      new RegExp(
-        `\\b[A-Z][a-z]+ [A-Z][a-z]+,? (?:${ci(["the"])} )?${ci(["ceo", "founder", "owner", "president"])}\\b`,
-      ),
-      // "Creative director Dana Reyes oversees every project."
-      /\b(?:director|designer|principal|manager|founder) [A-Z][a-z]+ [A-Z][a-z]+\b/,
-      /\b(?:Dr|Mr|Mrs|Ms)\.\s+[A-Z]/,
-      // "Dana Reyes is the founder of the studio", "Dana Reyes is its owner",
-      // "Dana Reyes is the studio's founder".
-      /\b[A-Z][a-z]+ [A-Z][a-z]+ is (?:the|its|our) (?:\w+['’]s )?(?:founder|co-founder|owner|ceo|president|principal)\b/,
-      // "Founder: Dana Reyes", "Owner: Dana Reyes".
-      new RegExp(
-        `\\b${ci(["founder", "co-founder", "owner", "ceo", "principal", "president"])}s?\\s*:\\s*[A-Z]`,
-      ),
-      // "the studio's principal, Dana Reyes".
-      new RegExp(
-        `\\b${ci(["founder", "co-founder", "owner", "ceo", "principal", "president"])}s?,\\s*[A-Z][a-z]+ [A-Z]`,
-      ),
-    ],
-  ],
-  [
-    "ownership",
-    [
-      /\b(?:owned by|owner is|owners are|parent company|acquired by|acquisition of)\b/i,
-      // "woman-owned", "family-owned and operated".
-      /\b(?:woman|women|minority|veteran|family|employee)[- ]owned\b/i,
-      // "Northwind Group acquired it in 2019".
-      /\bacquired (?:it|us|the (?:studio|business|company|firm|agency))\b/i,
-      // "It is part of Northwind Group".
-      /\bpart of (?:a |the )?[A-Z]\w*(?: [A-Z]\w*)* (?:Group|Holdings|Brands|Network)\b/,
-      // R7 fix 3: "Northwind Holdings owns Example Studio" is ownership, not a person.
-      /\b[A-Z][a-z]+ [A-Z][a-z]+ owns\b/,
-    ],
-  ],
-];
+const PERSON_WORDS =
+  /\b(?:named|founders?|founded|co-?founded|owners?|owns|owned|ceo|president|principal|partners?)\b/i;
+/** The ownership verbs among PERSON_WORDS: a whole excerpt whose first such word is one
+ *  of these is read as ownership. An owner noun names a person, so it is not one. */
+const OWNERSHIP_WORD = /^(?:owned|owns)$/i;
 
 /** The order topics are listed in, for a statement's topic and a text's topics. */
 const TOPIC_ORDER: Exclude<AssertionTopic, "other">[] = [
@@ -1148,31 +1096,9 @@ const TOPIC_ORDER: Exclude<AssertionTopic, "other">[] = [
   "street_address",
 ];
 
-/** R7 fix 3: two capitalised words and a verb of leading or founding read as a
- *  person ("Dana Reyes founded the studio"). A match whose two words are both
- *  words of the business's own name is the business ("Example Studio runs
- *  workshops"), and is skipped. */
-const PERSON_VERB = /\b([A-Z][a-z]+) ([A-Z][a-z]+) (?:leads|led|runs|founded)\b/g;
-
-function personVerbIn(text: string, business: string): boolean {
-  const own = new Set(wordsOf(business));
-  for (const m of text.matchAll(PERSON_VERB)) {
-    if (own.has(m[1]!.toLowerCase()) && own.has(m[2]!.toLowerCase())) continue;
-    return true;
-  }
-  return false;
-}
-
-/** Does a topic's text carry it? `business` is the report's business name, used
- *  only by the person-verb check (R7 fix 3). */
-function topicHits(
-  topic: Exclude<AssertionTopic, "other">,
-  patterns: RegExp[],
-  text: string,
-  business: string,
-): boolean {
-  if (patterns.some((re) => re.test(text))) return true;
-  return topic === "named_person" && personVerbIn(text, business);
+/** Does a topic's text carry it? */
+function topicHits(patterns: RegExp[], text: string): boolean {
+  return patterns.some((re) => re.test(text));
 }
 
 /**
@@ -1183,31 +1109,31 @@ function topicHits(
 export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | null {
   if (a.topic !== undefined && a.topic !== "other") return a.topic;
   const text = `${a.claim}\n${a.engineQuote}`;
-  for (const [topic, patterns] of TOPIC_TEXT)
-    if (topicHits(topic, patterns, text, "")) return topic;
+  for (const [topic, patterns] of TOPIC_TEXT) if (topicHits(patterns, text)) return topic;
   return null;
 }
 
 /** The first withheld topic a whole excerpt carries, or null. R3 fix 4: any topic,
  *  not only ratings. A branded answer's excerpt is printed whole, so a BBB rating,
  *  a named founder or a complaint in it is withheld as a rating would be. */
-export function withheldIn(text: string, business = ""): Exclude<AssertionTopic, "other"> | null {
-  return withheldTopicsIn(text, business)[0] ?? null;
+export function withheldIn(text: string): Exclude<AssertionTopic, "other"> | null {
+  return withheldTopicsIn(text)[0] ?? null;
 }
 
-/** Every withheld topic a whole excerpt carries, in TOPIC_ORDER (R5 fix 4). R8 §1:
- *  an excerpt has no stored label, so the person and ownership patterns are read
- *  too, with the business's own name (`business`) skipped by the person-verb check. */
-export function withheldTopicsIn(text: string, business = ""): Exclude<AssertionTopic, "other">[] {
+/** Every withheld topic a whole excerpt carries, in TOPIC_ORDER (R5 fix 4). R9 §1:
+ *  an excerpt has no stored label, so the person and ownership words are read too.
+ *  Their label is the first such word's kind; callers read only whether one is there. */
+export function withheldTopicsIn(text: string): Exclude<AssertionTopic, "other">[] {
   const out: Exclude<AssertionTopic, "other">[] = [];
-  for (const [topic, patterns] of [...TOPIC_TEXT, ...PERSON_TEXT])
-    if (topicHits(topic, patterns, text, business)) out.push(topic);
+  for (const [topic, patterns] of TOPIC_TEXT) if (topicHits(patterns, text)) out.push(topic);
+  const person = PERSON_WORDS.exec(text);
+  if (person) out.push(OWNERSHIP_WORD.test(person[0]) ? "ownership" : "named_person");
   return out.sort((a, b) => TOPIC_ORDER.indexOf(a) - TOPIC_ORDER.indexOf(b));
 }
 
 /** Does this excerpt carry a withheld topic of any kind? */
-export function textWithheld(text: string, business = ""): boolean {
-  return withheldIn(text, business) !== null;
+export function textWithheld(text: string): boolean {
+  return withheldIn(text) !== null;
 }
 
 /**
@@ -1220,10 +1146,9 @@ export function textWithheld(text: string, business = ""): boolean {
  */
 export function brandedExcerpt(
   probe: Pick<ProbeAnswer, "snippet" | "truncated"> & { query?: string },
-  business = "",
 ): string {
   const reviewsQuestion = /\sreviews$/.test((probe.query ?? "").trim());
-  const topic = withheldIn(probe.snippet, business);
+  const topic = withheldIn(probe.snippet);
   if (reviewsQuestion || topic === "ratings_reviews") {
     return "This answer gave ratings or review scores, which we have not checked, so we have not repeated it here.";
   }
