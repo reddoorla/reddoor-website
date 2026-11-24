@@ -352,11 +352,16 @@ function headlineFindingGenerated(view: ReportView): Headline {
     const failed = `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}.`;
     // R9 §3: an old-row report has no all-clear to give, so the clause that says
     // nothing measured needs attention is dropped with it.
+    // R10 §2: nor does a report holding a contradiction about the prospect, withheld
+    // or printed. "Nothing we measured" would say the contradiction is fine.
+    const contradictionHeld =
+      withheldContradictionKind(view) !== null || contradictedRows(view).length > 0;
     return {
       kind: "incomplete",
-      text: hasOldRows(view)
-        ? `${failed} Without those parts this is not a clean bill of health.`
-        : `${failed} Nothing we measured needs your attention, but without those parts this is not a clean bill of health.`,
+      text:
+        hasOldRows(view) || contradictionHeld
+          ? `${failed} Without those parts this is not a clean bill of health.`
+          : `${failed} Nothing we measured needs your attention, but without those parts this is not a clean bill of health.`,
     };
   }
 

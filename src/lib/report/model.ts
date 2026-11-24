@@ -1051,6 +1051,12 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
       /\b(?:brings? in|earns|grosses)\b[^.]{0,20}\$\s?\d/i,
       // R9 §2: "Acme Design has 40 people".
       /\b(?:has|have|are|employs?)\s+(?:about |around |roughly |nearly |over |some )?\d[\d,]*\+?\s+people\b/i,
+      // R10 §3: "About 40 people work at Northwind.", "a workforce of about 40",
+      // "makes 2.5 million dollars a year".
+      // Bounded like NUM: an unbounded run of digits and commas is quadratic (R4 fix 1a).
+      /\b(?:about |around |roughly |nearly |over |some )?\d[\d,]{0,12}\+?\s+people\s+work\b/i,
+      /\bworkforce of (?:about |around |roughly |nearly |over )?\d/i,
+      /\b(?:makes?|made|earns?|brings? in)\b[^.]{0,20}\d[\d,.]*\s*(?:million|billion)\s+dollars\b/i,
     ],
   ],
   [
@@ -1079,7 +1085,7 @@ const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
  * its stored topic (`withheldTopic`).
  */
 const PERSON_WORDS =
-  /\b(?:named|founders?|founded|co-?founded|owners?|owns|owned|proprietor|ceo|cfo|coo|cto|chief|chair(?:man|woman|person)?|president|principal|partners?|director|manager|(?:led|run|headed|managed) by|acquired|acquisition|subsidiary|parent company|part of|dr|mr|mrs|ms)\b/i;
+  /\b(?:named|founders?|founded|co-?founders?|co-?founded|owners?|owns|owned|proprietors?|ceos?|cfo|coo|cto|chief|chair(?:s|man|woman|person)?|presidents?|principals?|partners?|directors?|managers?|designers?|leads|led|lead|runs|ran|heads|headed|(?:led|run|headed|managed|created|started|established) by|acquired|acquisition|subsidiary|parent company|part of|dr|mr|mrs|ms)\b/i;
 /** The ownership verbs among PERSON_WORDS: a whole excerpt whose first such word is one
  *  of these is read as ownership. An owner noun names a person, so it is not one. */
 const OWNERSHIP_WORD = /^(?:owned|owns|acquired|acquisition|subsidiary|parent company|part of)$/i;
@@ -1108,7 +1114,9 @@ function topicHits(patterns: RegExp[], text: string): boolean {
  */
 export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | null {
   if (a.topic !== undefined && a.topic !== "other") return a.topic;
-  const text = `${a.claim}\n${a.engineQuote}`;
+  // R10 §4: a sentence break joins the claim and the quote, so no pattern reads
+  // "3.2" and "Employees" as one figure.
+  const text = `${a.claim}\n.\n${a.engineQuote}`;
   for (const [topic, patterns] of TOPIC_TEXT) if (topicHits(patterns, text)) return topic;
   return null;
 }

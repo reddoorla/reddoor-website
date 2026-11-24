@@ -14,6 +14,8 @@ import {
   type Assertion,
   type HeldBack,
   withheldIn,
+  withheldTopicsIn,
+  contradictedRows,
 } from "./model";
 import { collisionQuote, displayQuote, headlineFinding, heldBackLines, passes } from "./narrative";
 import {
@@ -2816,9 +2818,11 @@ describe("R7 fix 3: the person-verb pattern does not read the business's own nam
     for (const [name, text] of surfaces(report)) expect(text, name).toContain(quote);
   });
 
-  it("brandedExcerpt returns an excerpt that names the business as the runner, not the no-check line", () => {
+  it("brandedExcerpt holds an excerpt that says the business runs something (R10 §1: 'runs' is an excerpt word)", () => {
     const snippet = "Example Studio runs brand workshops for startups in Austin.";
-    expect(brandedExcerpt({ snippet, truncated: false })).toBe(snippet);
+    expect(brandedExcerpt({ snippet, truncated: false })).toBe(
+      "This answer said something we have not checked, so we have not repeated it here.",
+    );
   });
 
   it.each([
@@ -3098,14 +3102,16 @@ describe("R8 §5: branded excerpts are held by the person and ownership words (R
     ).toBe("This answer said something we have not checked, so we have not repeated it here.");
   });
 
-  it("a branded excerpt with the business's own name as subject prints", () => {
+  it("a branded excerpt that says the business runs something is held (R10 §1: 'runs' is an excerpt word)", () => {
     const snippet = "Example Studio runs brand workshops for startups in Austin.";
-    expect(brandedExcerpt(brandedProbe("who is Example Studio", snippet))).toBe(snippet);
+    expect(brandedExcerpt(brandedProbe("who is Example Studio", snippet))).toBe(
+      "This answer said something we have not checked, so we have not repeated it here.",
+    );
     expect(
       renderText(branded, {
         probes: [brandedProbe("who is Example Studio", snippet)],
       } as never),
-    ).toContain(snippet);
+    ).not.toContain(snippet);
   });
 
   it("the branded block renders the neutral line for a founder sentence, through SSR", () => {
@@ -3131,11 +3137,11 @@ describe("R8 §3: the collision quote's own sentence prints; another business's 
       { conflation: conflationOf(["Northwind Bakery"], engineQuote) },
     );
 
-  it("prints the collision quote on both surfaces when it names the business as subject", () => {
+  it("holds the collision quote 'Example Studio runs a bakery in Lakeside' on both surfaces (R10 §1: 'runs' is an excerpt word)", () => {
     const report = withQuote("Example Studio runs a bakery in Lakeside");
-    expect(collisionQuote(toReportView(report))).toBe("Example Studio runs a bakery in Lakeside");
+    expect(collisionQuote(toReportView(report))).toBeNull();
     for (const [name, text] of surfaces(report))
-      expect(text, name).toContain('The AI said: "Example Studio runs a bakery in Lakeside"');
+      expect(text, name).not.toContain("Example Studio runs a bakery in Lakeside");
   });
 
   it("still withholds a collision quote that is another business's own sentence", () => {
@@ -3279,19 +3285,21 @@ describe("R9 §1: an excerpt is held on any person or ownership word", () => {
     for (const [name, text] of surfaces(report)) expect(text, name).not.toContain("Dana Reyes");
   });
 
-  it("control: a collision quote with the business as subject still prints", () => {
+  it("a collision quote with the business as subject and 'runs' is held (R10 §1: no business-name skip)", () => {
     const quote = "Example Studio runs a bakery in Lakeside";
     const report = collisionReport("Example Studio", ["Northwind Bakery"], quote);
-    expect(collisionQuote(toReportView(report))).toBe(quote);
-    for (const [name, text] of surfaces(report)) expect(text, name).toContain(quote);
+    expect(collisionQuote(toReportView(report))).toBeNull();
+    for (const [name, text] of surfaces(report)) expect(text, name).not.toContain(quote);
   });
 
-  it("control: a branded excerpt with the business as subject still prints", () => {
+  it("a branded excerpt with the business as subject and 'runs' is held (R10 §1: no business-name skip)", () => {
     const snippet = "Example Studio runs brand workshops for startups in Austin.";
-    expect(brandedExcerpt(brandedProbe("who is Example Studio", snippet))).toBe(snippet);
+    expect(brandedExcerpt(brandedProbe("who is Example Studio", snippet))).toBe(
+      "This answer said something we have not checked, so we have not repeated it here.",
+    );
     expect(
       renderText(branded, { probes: [brandedProbe("who is Example Studio", snippet)] } as never),
-    ).toContain(snippet);
+    ).not.toContain(snippet);
   });
 });
 
@@ -3463,5 +3471,216 @@ describe("R9 §4: pins the round 8 review missed", () => {
     const lines = heldBackLines(view).join(" ");
     expect(lines).toContain("named people");
     expect(lines).not.toContain("revenue or staff numbers");
+  });
+});
+
+/* ------------------------------------------------------------------------ *
+ * Review round 10 (reddoor-website#380). Written before the fix.
+ * ------------------------------------------------------------------------ */
+
+const NEUTRAL = "This answer said something we have not checked, so we have not repeated it here.";
+
+/** §1: the sentences the restored excerpt words must hold, as a whole excerpt. */
+const PIN_SENTENCES = [
+  "Dana Reyes leads the studio.",
+  "Dana Reyes led the studio until 2020.",
+  "Dana Reyes runs the studio with Sam Ortiz.",
+  "Lead designer Dana Reyes oversees every project.",
+  "The studio is headed up by Dana Reyes.",
+  "Example Studio was created by designer Dana Reyes.",
+  "Its cofounder is Dana Reyes.",
+  "Its directors are Dana Reyes and Sam Cho.",
+];
+
+/** §1: one sentence per word class in PERSON_WORDS, each carrying only its own
+ *  word, with the label PERSON_WORDS gives it. Dropping any one alternative
+ *  removes its label and turns its row red. */
+const WORD_CLASS: [string, string][] = [
+  ["Dana Reyes leads the studio.", "named_person"],
+  ["Dana Reyes led the studio until 2020.", "named_person"],
+  ["Dana Reyes is the lead for every project.", "named_person"],
+  ["Dana Reyes runs the studio with Sam Ortiz.", "named_person"],
+  ["Dana Reyes ran the studio until 2020.", "named_person"],
+  ["Dana Reyes heads the studio.", "named_person"],
+  ["The studio is headed up by Dana Reyes.", "named_person"],
+  ["The studio was created by Dana Reyes.", "named_person"],
+  ["The studio was started by Dana Reyes.", "named_person"],
+  ["The studio was established by Dana Reyes.", "named_person"],
+  ["Designer Dana Reyes oversees every project.", "named_person"],
+  ["Dana Reyes is the founder of the studio.", "named_person"],
+  ["Its cofounder is Dana Reyes.", "named_person"],
+  ["Its co-founder is Dana Reyes.", "named_person"],
+  ["Dana Reyes cofounded the studio.", "named_person"],
+  ["Dana Reyes founded the studio in 2012.", "named_person"],
+  ["A man named Tim keeps the books.", "named_person"],
+  ["Dana Reyes is the owner.", "named_person"],
+  ["Its owners are Dana Reyes and Sam Cho.", "named_person"],
+  ["Dana Reyes is the CEO.", "named_person"],
+  ["Its CEOs are Dana Reyes and Sam Cho.", "named_person"],
+  ["Dana Reyes is the president.", "named_person"],
+  ["Its presidents are Dana Reyes and Sam Cho.", "named_person"],
+  ["Its partners are Dana Reyes and Sam Cho.", "named_person"],
+  ["Dana Reyes is the proprietor.", "named_person"],
+  ["Its proprietors are Dana Reyes and Sam Cho.", "named_person"],
+  ["Dana Reyes is the CFO.", "named_person"],
+  ["Dana Reyes is the COO.", "named_person"],
+  ["Dana Reyes is the CTO.", "named_person"],
+  ["Dana Reyes is chief of design.", "named_person"],
+  ["Dana Reyes is the chair.", "named_person"],
+  ["Its chairs are Dana Reyes and Sam Cho.", "named_person"],
+  ["Dana Reyes is the manager.", "named_person"],
+  ["Its managers are Dana Reyes and Sam Cho.", "named_person"],
+  ["Dana Reyes is the director.", "named_person"],
+  ["Its directors are Dana Reyes and Sam Cho.", "named_person"],
+  ["Dana Reyes is the principal.", "named_person"],
+  ["Its principals are Dana Reyes and Sam Cho.", "named_person"],
+  ["Mr Reyes opened the studio in 2001.", "named_person"],
+  ["Mrs Reyes opened the studio in 2001.", "named_person"],
+  ["Ms Reyes opened the studio in 2001.", "named_person"],
+  ["Dr Reyes opened the studio in 2001.", "named_person"],
+  ["Northwind Holdings owns the studio.", "ownership"],
+  ["The studio was owned by Northwind Group.", "ownership"],
+  ["The studio was acquired in 2019.", "ownership"],
+  ["The acquisition closed in 2019.", "ownership"],
+  ["The studio is a subsidiary of Northwind Group.", "ownership"],
+  ["The studio's parent company is Northwind Group.", "ownership"],
+  ["The studio is part of Northwind Group.", "ownership"],
+];
+
+describe("review round 10 §1: excerpt person words are restored", () => {
+  it.each(WORD_CLASS)("an excerpt reading %s carries the label %s", (claim, label) => {
+    expect(withheldTopicsIn(claim)).toContain(label);
+  });
+
+  it.each(WORD_CLASS)("a branded excerpt reading %s is replaced by the neutral line", (claim) => {
+    expect(brandedExcerpt(brandedProbe("who is Example Studio", claim))).toBe(NEUTRAL);
+  });
+
+  it.each(PIN_SENTENCES)("branded excerpt, rendered through SSR: %s is never printed", (claim) => {
+    const html = renderText(branded, {
+      probes: [brandedProbe("who is Example Studio", claim)],
+    } as never);
+    expect(html).toContain(NEUTRAL);
+    expect(html).not.toContain(claim);
+  });
+
+  const withCollision = (engineQuote: string, otherNames = ["Northwind Bakery"]) =>
+    reportWith(
+      [
+        row({
+          claim: "Example Studio is a brand identity studio.",
+          engineQuote: "a brand identity studio",
+          verdict: "confirmed",
+          siteQuote: "We are a brand identity studio.",
+        }),
+      ],
+      { conflation: conflationOf(otherNames, engineQuote) },
+    );
+
+  it.each(PIN_SENTENCES)("the collision quote %s prints on neither surface", (claim) => {
+    const report = withCollision(claim);
+    expect(collisionQuote(toReportView(report))).toBeNull();
+    for (const [name, text] of surfaces(report)) expect(text, name).not.toContain(claim);
+  });
+
+  it("the other-name block: 'Northwind Bakery, whose cofounder is Dana Reyes' never prints the person", () => {
+    const report = withCollision("Northwind Bakery, whose cofounder is Dana Reyes");
+    for (const [name, text] of surfaces(report)) {
+      expect(text, name).not.toContain("Dana Reyes");
+      expect(text, name).toContain("Northwind Bakery");
+    }
+  });
+});
+
+describe("review round 10 §2: a failed stage keeps no all-clear clause over a contradiction", () => {
+  const failed = (assertions: Assertion[]): AuditReport =>
+    ({
+      ...reportWith(assertions),
+      analyze: { ok: false, error: "The analysis call failed" },
+    }) as AuditReport;
+
+  it("a withheld prospect contradiction (named_person, 2001 against 2012): no all-clear clause, page and print", () => {
+    const report = failed([
+      row({
+        subject: "prospect",
+        topic: "named_person",
+        claim: "Dana Reyes founded it in 2001.",
+        engineQuote: "Dana Reyes founded it in 2001",
+        verdict: "contradicted",
+        siteQuote: "Founded in 2012",
+      }),
+    ]);
+    const headline = headlineFinding(toReportView(report)).text;
+    expect(headline).toContain("Part of this audit failed before it finished");
+    expect(headline).not.toContain("Nothing we measured");
+    for (const [name, text] of surfaces(report))
+      expect(text, name).not.toContain("Nothing we measured");
+  });
+
+  it("a printed prospect contradiction (topic other, 2001 against 2012): no all-clear clause, page and print", () => {
+    const report = failed([
+      row({
+        subject: "prospect",
+        topic: "other",
+        claim: "Example Studio was founded in 2001.",
+        engineQuote: "Example Studio was founded in 2001",
+        verdict: "contradicted",
+        siteQuote: "Founded in 2012",
+      }),
+    ]);
+    expect(contradictedRows(toReportView(report))).toHaveLength(1);
+    expect(headlineFinding(toReportView(report)).text).not.toContain("Nothing we measured");
+    for (const [name, text] of surfaces(report))
+      expect(text, name).not.toContain("Nothing we measured");
+  });
+
+  it("control: a failed stage with no contradiction keeps the clause", () => {
+    const report = failed([
+      row({
+        claim: "Example Studio designs packaging.",
+        engineQuote: "Example Studio designs packaging",
+        verdict: "confirmed",
+        siteQuote: "We design packaging",
+      }),
+    ]);
+    expect(headlineFinding(toReportView(report)).text).toContain(
+      "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
+    );
+  });
+});
+
+describe("review round 10 §3: three headcount wordings in revenue_headcount", () => {
+  it.each([
+    ["About 40 people work at Northwind.", "people work"],
+    ["Northwind has a workforce of about 40.", "workforce of"],
+    ["Northwind makes 2.5 million dollars a year.", "makes ... million dollars"],
+  ])("withholds %s (%s)", (claim) => {
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).toBe("revenue_headcount");
+  });
+
+  it("control: 'Northwind serves 40 people a day.' is not withheld", () => {
+    expect(
+      withheldTopic(
+        row({
+          claim: "Northwind serves 40 people a day.",
+          engineQuote: "Northwind serves 40 people a day.",
+        }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("review round 10 §4: the join and the headcount pins", () => {
+  it("'Employees have rated it 3.2' is not read as a headcount across the claim and quote join", () => {
+    const claim = "Employees have rated it 3.2";
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).not.toBe("revenue_headcount");
+  });
+
+  it.each([
+    "Northwind has 40+ people.",
+    "Northwind have about 1,200 people.",
+    "Northwind are 12 people.",
+  ])("withholds the headcount wording %s", (claim) => {
+    expect(withheldTopic(row({ claim, engineQuote: claim }))).toBe("revenue_headcount");
   });
 });
