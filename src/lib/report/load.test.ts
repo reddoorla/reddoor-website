@@ -267,6 +267,18 @@ describe("W1: drafts reach only a verified editor; superseded links redirect", (
     await expect(loadReport(empty.evt)).rejects.toMatchObject({ status: 404 });
   });
 
+  it("W4: keeps /technical, so a superseded Technical link opens the newer Technical report", async () => {
+    const NEXT = "zZ9-_yX8wQ0rS2tU4vW6xY";
+    const gone = () => new Response(JSON.stringify({ supersededBy: NEXT }), { status: 410 });
+    for (const path of [`/audit/${TOKEN}/technical`, `/audit/${TOKEN}/technical/`]) {
+      const { evt } = captured(undefined, gone(), path);
+      await expect(loadReport(evt)).rejects.toMatchObject({
+        status: 307,
+        location: `/audit/${NEXT}/technical`,
+      });
+    }
+  });
+
   it("404s a 410 whose pointer is not a token", async () => {
     const gone = new Response(JSON.stringify({ supersededBy: "../../etc" }), { status: 410 });
     const { evt } = captured(undefined, gone);

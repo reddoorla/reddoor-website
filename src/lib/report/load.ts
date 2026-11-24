@@ -1,7 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import * as env from "$app/env/private";
 import { fetchReport, REPORT_TOKEN_PATTERN, type AuditReport, type OverrideMap } from "./fetch";
-import { applyOverrides, composed, digest } from "./overrides";
+import { applyOverrides, composed, digest, hiddenRowKeys } from "./overrides";
 import { goalVerdict, toReportView } from "./model";
 import { editableTargets } from "./editable";
 import { EDIT_COOKIE, configuredEditKey, keyMatches } from "./edit-auth";
@@ -30,11 +30,16 @@ type LoadLike = {
  */
 export async function loadReport(
   { params, url, fetch, setHeaders, cookies }: LoadLike,
-  opts: { forEditor?: boolean } = {},
+  opts: { forEditor?: boolean; withHiddenChecks?: boolean } = {},
 ): Promise<{
   report: AuditReport;
   overrides: OverrideMap;
   approved: boolean;
+  /** With `withHiddenChecks`: the `key` of every site check the operator hid
+   *  (W1). A view that re-derives findings from the raw fields, as the
+   *  Technical report does, needs it: the hide removes only the stored check
+   *  row. Left off otherwise, so the other routes' page data is unchanged. */
+  hiddenChecks?: string[];
   meta_referrer: string;
 }> {
   // Reject before fetching. fetchReport validates too, but these routes build a
@@ -89,10 +94,12 @@ export async function loadReport(
   if (!fetched) throw error(404, "Not found");
 
   // W1. The link was replaced by a newer report for the same site: send the
-  // reader there, keeping /print or /edit. 307 so it is not cached as forever.
+  // reader there, keeping /print, /edit or /technical (W4: the Technical view of
+  // a superseded token opens the newer token's Technical view, not its main
+  // report). 307 so it is not cached as forever.
   if ("supersededBy" in fetched) {
-    const suffix = url?.pathname.match(/\/(print|edit)\/?$/)?.[0] ?? "";
-    throw redirect(307, `/audit/${fetched.supersededBy}${suffix}`);
+    const view = url?.pathname.match(/\/(print|edit|technical)\/?$/)?.[1];
+    throw redirect(307, `/audit/${fetched.supersededBy}${view ? `/${view}` : ""}`);
   }
 
   // W1 review round 1. SvelteKit serialises `load` data into the page for
@@ -125,10 +132,21 @@ export async function loadReport(
         ),
       );
 
+  const storedChecks = (fetched.report as { siteChecks?: { data?: unknown } }).siteChecks?.data;
+  const hiddenChecks = [...hiddenRowKeys(fetched.report, fetched.overrides)].flatMap((k) => {
+    const i = /^siteChecks\.data\[(\d+)\]$/.exec(k)?.[1];
+    const key =
+      i !== undefined && Array.isArray(storedChecks)
+        ? (storedChecks[Number(i)] as { key?: unknown } | undefined)?.key
+        : undefined;
+    return typeof key === "string" ? [key] : [];
+  });
+
   return {
     report,
     overrides,
     approved: fetched.approved,
+    ...(opts.withHiddenChecks ? { hiddenChecks } : {}),
     // Rendered by the root layout as <meta name="referrer">. The URL is the
     // credential, so it must not travel in a Referer header when the reader
     // follows a link out of the report — the same reason /cancel, /calendar,
