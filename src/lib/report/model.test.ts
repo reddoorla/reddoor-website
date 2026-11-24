@@ -225,7 +225,7 @@ describe("toReportView — a complete report", () => {
     // look like the same kind of claim. What it actually establishes is one
     // yes/no: can the crawlers get in.
     const v = toReportView(asReport(FULL));
-    expect(v.crawlerReach).toEqual({ measured: true, blocked: [], checked: 2 });
+    expect(v.crawlerReach).toEqual({ measured: true, blocked: [], blockedSearch: [], checked: 2 });
   });
 
   it("names the crawlers that are blocked", () => {
@@ -242,7 +242,12 @@ describe("toReportView — a complete report", () => {
         },
       }),
     );
-    expect(v.crawlerReach).toEqual({ measured: true, blocked: ["GPTBot"], checked: 2 });
+    expect(v.crawlerReach).toEqual({
+      measured: true,
+      blocked: ["GPTBot"],
+      blockedSearch: [],
+      checked: 2,
+    });
   });
 
   it("says so when the robots fetch failed, rather than reporting open access", () => {

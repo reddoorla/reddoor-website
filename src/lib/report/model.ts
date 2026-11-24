@@ -805,7 +805,12 @@ export type ReportView = {
    *
    * Null when the checks stage did not run at all.
    */
-  crawlerReach: { measured: boolean; blocked: string[]; checked: number } | null;
+  crawlerReach: {
+    measured: boolean;
+    blocked: string[];
+    blockedSearch: string[];
+    checked: number;
+  } | null;
   /** How many URLs the site's sitemap lists, when it has one. The crawl reads
    *  at most a fixed number of pages, so "we read 14 of your 20 pages" was
    *  the crawl cap presented as the site; this is the honest denominator. */
@@ -1401,6 +1406,7 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
           // is blocked" would print an all-clear we never verified.
           measured: checks.crawlerAccessMeasured === true,
           blocked: checks.crawlerAccess?.blockedAi ?? [],
+          blockedSearch: checks.crawlerAccess?.blockedClassical ?? [],
           checked: crawl?.agentAccess?.length ?? 0,
         }
       : null,
