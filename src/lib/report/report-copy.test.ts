@@ -43,6 +43,7 @@ const row = (over: Partial<Assertion>): Assertion => ({
   sourceDomains: [],
   query: "who is Example Studio",
   engine: "claude",
+  subject: "prospect",
   ...over,
 });
 
@@ -53,8 +54,9 @@ const CONTRADICTED = row({
   siteQuote: "Founded in 2012, in a garage on East Sixth.",
   sourceDomains: ["yelp.com", "clutch.co"],
 });
-// The engine's wording, our reason and the row's sources are sentinels: none of
-// them may reach the page under a statement the site does not make.
+// Our paraphrase, our reason and the row's sources are sentinels: none of them
+// may reach the page under a statement the site does not make. The engine's
+// own words are what the row prints (W2).
 const ABSENT = row({
   claim: "Example Studio has an office in Denver.",
   engineQuote: "ENGINE-QUOTE-ABSENT",
@@ -63,8 +65,20 @@ const ABSENT = row({
 const UNVERIFIED = row({
   claim: "Example Studio is led by Sam Ortiz.",
   verdict: "unverified",
+  // R8 §1: a person is withheld by its stored topic, as the producer records it.
+  topic: "named_person",
   engineQuote: "ENGINE-QUOTE-UNVERIFIED",
   unverifiedReason: "UNVERIFIED-REASON",
+  sourceDomains: ["row-source.test"],
+});
+// R1 fix 12: UNVERIFIED names a person, so it is withheld and its reason never
+// prints. This one is not withheld, so it prints, and its reason must still
+// stay off the page: the guard below can only fail on it.
+const OPEN = row({
+  claim: "Example Studio works mostly for startups.",
+  verdict: "unverified",
+  engineQuote: "ENGINE-QUOTE-OPEN",
+  unverifiedReason: "OPEN-REASON-SENTINEL",
   sourceDomains: ["row-source.test"],
 });
 const OTHER_NAME = "Example Studios Ltd";
@@ -96,7 +110,7 @@ const RICH: AuditReport = {
     ok: true,
     data: {
       ...allPass.accuracy.data,
-      assertions: [...allPass.accuracy.data.assertions, CONTRADICTED, ABSENT, UNVERIFIED],
+      assertions: [...allPass.accuracy.data.assertions, CONTRADICTED, ABSENT, UNVERIFIED, OPEN],
       sources: [
         ...(allPass.accuracy.data.sources as unknown[]),
         { domain: ELSEWHERE, owner: "theirs", because: "a review site" },
@@ -137,10 +151,12 @@ const surfaces: Array<[string, string]> = [
 describe.each(surfaces)("%s", (_label, html) => {
   it("reaches every branch on the rich report, so the negatives below test something", () => {
     for (const shown of [
-      CONTRADICTED.claim,
+      CONTRADICTED.engineQuote,
       CONTRADICTED.siteQuote!,
-      ABSENT.claim,
-      UNVERIFIED.claim,
+      ABSENT.engineQuote,
+      OPEN.engineQuote,
+      // UNVERIFIED names a person, so it is withheld and counted (W2).
+      "named people",
       OTHER_NAME,
       ELSEWHERE,
       String(SITEMAP),
@@ -154,14 +170,18 @@ describe.each(surfaces)("%s", (_label, html) => {
     expect(seen(html)).toContain(ELSEWHERE);
   });
 
-  it("prints each unsourced claim alone, with nothing of ours under it", () => {
+  it("prints each unsourced statement in the assistant's words, with nothing of ours under it", () => {
     expect(html).not.toMatch(/not on your site/i);
     expect(html).not.toMatch(/did not find these on your site|What we could not check/i);
-    expect(html).not.toContain(`${ABSENT.claim}; ${UNVERIFIED.claim}`);
+    // W2: never our paraphrase of a statement the site does not make, and a
+    // withheld statement in neither form.
     for (const sentinel of [
-      ABSENT.engineQuote,
+      ABSENT.claim,
+      CONTRADICTED.claim,
+      UNVERIFIED.claim,
       UNVERIFIED.engineQuote,
       UNVERIFIED.unverifiedReason!,
+      OPEN.unverifiedReason!,
       "row-source.test",
     ]) {
       expect(html).not.toContain(sentinel);
@@ -204,8 +224,13 @@ describe("the source-check section's links", () => {
     expect(html).toContain(`href="#${TOC_TARGETS.fixes}"`);
   });
 
-  it("points the statements the site confirms at the section that lists them", () => {
-    expect(renderText(sourceCheck, { view: VIEW })).toContain(`href="#${TOC_TARGETS.passes}"`);
+  // W2 (BR-09): listed in the section itself with both quotes, so the reader
+  // can judge them, rather than pointed at a count in the passes.
+  it("lists the statements the site confirms, with both quotes", () => {
+    const html = seen(renderText(sourceCheck, { view: VIEW }));
+    expect(html).toContain("What your site backs up");
+    expect(html).toContain("based in Austin, Texas");
+    expect(html).toContain("Example Studio, Austin, Texas");
   });
 });
 

@@ -1,4 +1,5 @@
 import type { AuditReport, Override, OverrideMap } from "./fetch";
+import { statementIdentity } from "./quote";
 
 export type { Override, OverrideMap };
 
@@ -70,6 +71,10 @@ export const HIDEABLE: { path: string; field: string; noun: string }[] = [
  *  field is the quote it rests on (empty when it has none). */
 export const CONFLATION_KEY = "accuracy.data.conflation";
 
+/** An accuracy assertion's `claim`: the paraphrase, which no override may reword
+ *  (R1 fix 9). */
+const ASSERTION_CLAIM_KEY = /^accuracy\.data\.assertions\[\d+\]\.claim$/;
+
 function getAt(root: unknown, path: (string | number)[]): unknown {
   let node: unknown = root;
   for (const seg of path) {
@@ -108,12 +113,52 @@ function hiddenRows(
     const parts = parsePath(key);
     if (!parts) continue;
     const row = getAt(raw, parts) as Record<string, unknown> | undefined;
-    if (!row || typeof row !== "object" || row[spec.field] !== ov.original) continue;
+    if (!row || typeof row !== "object") continue;
+    // R3 fix 9: an accuracy row with no claim is named by its quote instead.
+    const named =
+      row[spec.field] === ov.original ||
+      (spec.path === ACCURACY_LIST && row.engineQuote === ov.original);
+    if (!named) continue;
     const set = lists.get(spec.path) ?? new Set<number>();
     set.add(Number(m[2]));
     lists.set(spec.path, set);
   }
+  // R2: a statement is hidden as a whole. The model splits one sentence into
+  // several rows, and the page prints the sentence once, so hiding one row
+  // hides every stored row with the same quote (R3 fix 6). Otherwise a
+  // sibling would print the statement the reader had taken off.
+  const accuracy = lists.get(ACCURACY_LIST);
+  const accuracyRows = getAt(raw, ["accuracy", "data", "assertions"]);
+  if (accuracy && Array.isArray(accuracyRows)) {
+    for (const i of [...accuracy]) {
+      const hit = accuracyRows[i];
+      if (!sameStatementBase(hit)) continue;
+      accuracyRows.forEach((other, j) => {
+        if (sameStatementBase(other) && sameStatement(other, hit)) accuracy.add(j);
+      });
+    }
+  }
   return { lists, conflation };
+}
+
+const ACCURACY_LIST = "accuracy.data.assertions";
+
+/** Has this stored accuracy row the two fields a statement is known by? */
+function sameStatementBase(row: unknown): row is { engineQuote: string; query: unknown } {
+  return (
+    row !== null &&
+    typeof row === "object" &&
+    typeof (row as { engineQuote?: unknown }).engineQuote === "string"
+  );
+}
+
+/** The same sentence, as the page prints it: the rows the page prints as one.
+ *  R3 fix 6: the question is not part of it, so hiding one copy hides them all. */
+function sameStatement(
+  a: { engineQuote: string; query: unknown },
+  b: { engineQuote: string; query: unknown },
+): boolean {
+  return statementIdentity(a) === statementIdentity(b);
 }
 
 /** Replace the value at `path` with `fn(old)`, cloning each container on the
@@ -160,6 +205,10 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
   for (const [key, ov] of entries) {
     // A hide entry names a row, not a string; it is applied after this loop.
     if (ov && (ov as { hidden?: unknown }).hidden === true) continue;
+    // R1 fix 9: an assertion's `claim` is our paraphrase, and what a row is
+    // withheld by reads it. An operator's rewording of it would change what the
+    // page withholds, so it is not applied. The page prints the quote instead.
+    if (ASSERTION_CLAIM_KEY.test(key)) continue;
     const path = parsePath(key);
     if (!path) continue;
 
@@ -211,11 +260,17 @@ export function applyOverrides(raw: AuditReport, map: OverrideMap): AuditReport 
     );
   }
   if (hidden.conflation) {
-    out = writeAt(out, ["accuracy", "data", "conflation"], () => ({
-      detected: false,
-      otherNames: [],
-      engineQuote: null,
-    }));
+    // R3 fix 2: the hide clears what the block shows (detected, settled, the
+    // quote) and keeps the other names, which still decide who a statement is
+    // about. Clearing them let the Northwind sentence print as the client's.
+    out = writeAt(out, ["accuracy", "data", "conflation"], (old) => {
+      const names = (old as { otherNames?: unknown } | undefined)?.otherNames;
+      return {
+        detected: false,
+        otherNames: Array.isArray(names) ? names : [],
+        engineQuote: null,
+      };
+    });
   }
 
   return out;

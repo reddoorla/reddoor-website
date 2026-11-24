@@ -1,20 +1,26 @@
 <script lang="ts">
   import {
     collisionBlock,
+    collisionQuote,
     displayQuote,
+    heldBackLines,
     numberWord,
+    RERUN_SENTENCE,
     sourceCheckFootnote,
     unsourcedLead,
   } from "./narrative";
   import {
     citationRuns,
-    nameUnsettled,
+    confirmedRows,
+    hasOldRows,
+    confirmedWithPassage,
+    contradictedRows,
     namesakeLeads,
     notSourcedFromSite,
     ownSiteCitations,
+    sourceCheckHasRows,
     sourceCheckMeasured,
     stageFailed,
-    type Assertion,
     type ReportView,
   } from "./model";
 
@@ -45,11 +51,15 @@
 
   const acc = $derived(view.accuracy);
   const who = $derived(view.businessName ?? "this business");
+  // R8 §2: a stored row with no subject. The section prints one sentence, not its
+  // statements, the counts under them or the proof line (the collision block is
+  // not an accuracy row, so it still prints above).
+  const rerun = $derived(hasOldRows(view));
 
-  const of = (v: Assertion["verdict"]): Assertion[] =>
-    (acc?.assertions ?? []).filter((a) => a.verdict === v);
-
-  const contradicted = $derived(of("contradicted"));
+  // W2. Every list below prints the assistant's own words in quotation marks,
+  // never the accuracy model's paraphrase, and only statements about this
+  // business on topics we print. See `statements` in model.ts.
+  const contradicted = $derived(contradictedRows(view));
   // One list, under a heading that asserts nothing — the hedge in the line
   // beneath it carries the claim, and is true across the grey middle where most
   // of these actually sit. See `notSourcedFromSite`.
@@ -58,7 +68,13 @@
   // the reason and the source lists were three lines of ours under each line of
   // theirs, and they buried the sentence that mattered.
   const notSourced = $derived(notSourcedFromSite(view));
-  const confirmed = $derived(of("confirmed").length);
+  const confirmedList = $derived(confirmedRows(view));
+  const confirmed = $derived(confirmedList.length);
+  // R5 fix 5: the proof sentence counts only the confirmed statements that print
+  // a site passage.
+  const confirmedPassage = $derived(confirmedWithPassage(view).length);
+  const citedOwn = $derived(ownSiteCitations(view));
+  const held = $derived(heldBackLines(view));
 
   // Which rows print their sources, and which say they have none. The run is
   // keyed on the ANSWER, in model.ts, so this section and the print sheet
@@ -106,7 +122,7 @@
     {/if}
     That is a gap in the measurement, not a finding about your site.
   </p>
-{:else if acc.assertions.length === 0}
+{:else if !sourceCheckHasRows(view)}
   <p class="type-lede m-0 text-black">
     We read {acc.answersRead === 1 ? "one answer" : `${acc.answersRead} answers`} about {who} and could
     not pull a checkable statement out of {acc.answersRead === 1 ? "it" : "them"}. That usually
@@ -127,12 +143,10 @@
         {#if collision.detail}
           <p class="type-meta m-0 text-muted">{collision.detail}</p>
         {/if}
-        {#if nameUnsettled(acc)}
-          {#if acc.conflation.engineQuote}
-            <p class="type-meta m-0 text-muted">
-              The AI said: &ldquo;{displayQuote(acc.conflation.engineQuote)}&rdquo;
-            </p>
-          {/if}
+        {#if collisionQuote(view)}
+          <p class="type-meta m-0 text-muted">
+            The AI said: &ldquo;{displayQuote(collisionQuote(view) ?? "")}&rdquo;
+          </p>
         {/if}
         {#if view.namesake}
           <p class="type-meta m-0 text-muted">
@@ -152,36 +166,38 @@
       </div>
     {/if}
 
-    {#if contradicted.length}
-      <div class="flex flex-col gap-5">
-        <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-primary">Your site says something different</h4>
-          <p class="type-meta m-0 text-muted">
-            Two answers to the same question exist in public, and only one of them is yours.
-          </p>
-        </div>
+    {#if rerun}
+      <p class="type-lede m-0 text-black">{RERUN_SENTENCE}</p>
+    {:else}
+      {#if contradicted.length}
+        <div class="flex flex-col gap-5">
+          <div class="flex flex-col gap-1.5">
+            <h4 class="type-question m-0 text-primary">Your site says something different</h4>
+            <p class="type-meta m-0 text-muted">
+              Two answers to the same question exist in public, and only one of them is yours.
+            </p>
+          </div>
 
-        <ul class="m-0 flex list-none flex-col p-0">
-          {#each citationRuns(contradicted) as { row, citations } (row.claim + row.query)}
-            <li class="flex flex-col gap-2 border-t border-light py-6">
-              <p class="m-0 font-medium text-black">{row.claim}</p>
-              <!-- The engine's words, verified as a real substring of its answer
+          <ul class="m-0 flex list-none flex-col p-0">
+            {#each citationRuns(contradicted) as { row, citations }, i (i)}
+              <li class="flex flex-col gap-2 border-t border-light py-6">
+                <!-- The engine's words, verified as a real substring of its answer
                    rather than paraphrased. A client checking us on this is the
                    best possible outcome, so it has to survive being checked. -->
-              <p class="type-meta m-0 text-muted">
-                The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
-              </p>
-              {#if row.siteQuote}
-                <p class="type-meta m-0 text-muted">
-                  Your site says: &ldquo;{row.siteQuote}&rdquo;
+                <p class="m-0 font-medium text-black">
+                  The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
                 </p>
-              {/if}
-              {#if citations === "show"}
-                <p class="type-meta m-0 wrap-break-word text-muted">
-                  Also read for that answer: {row.sourceDomains.join(" · ")}
-                </p>
-              {:else if citations === "none"}
-                <!-- Said out loud, because saying nothing here is what the row
+                {#if row.siteQuote?.trim()}
+                  <p class="type-meta m-0 text-muted">
+                    Your site says: &ldquo;{row.siteQuote}&rdquo;
+                  </p>
+                {/if}
+                {#if citations === "show"}
+                  <p class="type-meta m-0 wrap-break-word text-muted">
+                    Also read for that answer: {row.sourceDomains.join(" · ")}
+                  </p>
+                {:else if citations === "none"}
+                  <!-- Said out loud, because saying nothing here is what the row
                      above's list looks like. Every word of it is hedged on
                      purpose: "other" because this list has their own domain
                      filtered out of it upstream, so an empty one means nothing
@@ -190,57 +206,96 @@
                      contradict "cited no sources"; "we recorded" because an
                      empty list is also what a quote we could not tie back to an
                      answer looks like, which is our gap, not the engine's. -->
-                <p class="type-meta m-0 text-muted">
-                  We recorded no other sources for that answer.
-                </p>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
+                  <p class="type-meta m-0 text-muted">
+                    We recorded no other sources for that answer.
+                  </p>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
 
-    {#if notSourced.length}
-      <!-- Headlines, nothing under them. These are what a buyer hears; the
+      {#if notSourced.length}
+        <!-- Headlines, nothing under them. These are what a buyer hears; the
            reader knows their own business and needs no help judging each.
            The heading asserts nothing on purpose — "that is not on your site"
            used to sit on the end of it, and it was not true of every row. -->
-      <div class="flex flex-col gap-5">
-        <div class="flex flex-col gap-1.5">
-          <h4 class="type-question m-0 text-black">What the AI says about you</h4>
-          <p class="type-meta m-0 text-muted">
-            These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
-          </p>
+        <div class="flex flex-col gap-5">
+          <div class="flex flex-col gap-1.5">
+            <h4 class="type-question m-0 text-black">What the AI says about you</h4>
+            <p class="type-meta m-0 text-muted">
+              These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
+            </p>
+          </div>
+
+          <ul class="m-0 flex list-none flex-col p-0">
+            {#each notSourced as u, i (i)}
+              <li class="border-t border-light py-4 font-medium text-black">
+                &ldquo;{displayQuote(u.engineQuote)}&rdquo;
+              </li>
+            {/each}
+          </ul>
         </div>
+      {/if}
 
-        <ul class="m-0 flex list-none flex-col p-0">
-          {#each notSourced as u (u.claim + u.query)}
-            <li class="border-t border-light py-4 font-medium text-black">{u.claim}</li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
+      {#each held as line (line)}
+        <p class="type-meta m-0 text-muted">{line}</p>
+      {/each}
 
-    {#if confirmed > 0}
-      <!-- The proof that editing the site changes the answer, in one sentence.
+      {#if confirmed > 0}
+        <!-- W2 (BR-09). Listed with both quotes, so the reader can judge the
+           one verdict that rests on our reading of their site. -->
+        <div class="flex flex-col gap-5">
+          <h4 class="type-question m-0 text-black">What your site backs up</h4>
+          <ul class="m-0 flex list-none flex-col p-0">
+            {#each confirmedList as row, i (i)}
+              <li class="flex flex-col gap-2 border-t border-light py-4">
+                <p class="m-0 font-medium text-black">
+                  The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
+                </p>
+                {#if row.siteQuote?.trim()}
+                  <p class="type-meta m-0 text-muted">
+                    Your site says: &ldquo;{row.siteQuote}&rdquo;
+                  </p>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+
+      {#if confirmedPassage > 0 && citedOwn > 0}
+        <!-- The proof that editing the site changes the answer, in one sentence.
            The statements themselves are in the passes list. It is the summary
            of the lists above, so it takes the h4s' size and colour rather than
            the grey meta of a footnote (Tim, MarkUp 2026-09-15). -->
-      <p class="type-question m-0 border-t border-light pt-6 text-black">
-        {numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())}
-        {confirmed === 1 ? "statement" : "statements"} the assistant made
-        {confirmed === 1 ? "matches" : "match"} a passage on your own site, and across the answers we
-        checked it cited your site
-        {ownSiteCitations(view) === 1 ? "once" : `${ownSiteCitations(view)} times`}. That is the
-        proof that editing your pages changes the answer; the statements are listed under
-        <a class="underline" href="#passes">what passes</a>.
-      </p>
-    {/if}
+        <p class="type-question m-0 border-t border-light pt-6 text-black">
+          {numberWord(confirmedPassage).replace(/^./, (c) => c.toUpperCase())}
+          {confirmedPassage === 1 ? "statement" : "statements"} the assistant made
+          {confirmedPassage === 1 ? "matches" : "match"} a passage on your own site, and across the answers
+          we checked it cited your site
+          {citedOwn === 1 ? "once" : `${citedOwn} times`}. That is the proof that editing your pages
+          changes the answer; the statements are listed above.
+        </p>
+      {/if}
 
+      {#if sampled}
+        <!-- Ours, not theirs. The crawl reads a capped number of pages, and the
+           sentence that stood here ("Nothing above is reported as missing from
+           your site on the strength of pages we did not read") was printed
+           beside "absent" verdicts resting on 20 of 95 pages (the audit-system
+           review, BR-07). It now says what is true: the count, against the
+           site's, and what a statement listed as absent may mean. -->
+        <p class="type-meta m-0 border-t border-light pt-6 text-muted">
+          {sourceCheckFootnote(view)}
+        </p>
+      {/if}
+    {/if}
     {#if elsewhere.length}
       <!-- Visible, not collapsed. "Your site does not say this" used to be the
-           finding here; the useful part of that finding was always the list of
-           pages about them that they did not write. -->
+         finding here; the useful part of that finding was always the list of
+         pages about them that they did not write. -->
       <div class="flex flex-col gap-4 border-t border-light pt-6">
         <div class="flex flex-col gap-1.5">
           <h4 class="type-question m-0 text-black">
@@ -264,18 +319,6 @@
           {/each}
         </ul>
       </div>
-    {/if}
-
-    {#if sampled}
-      <!-- Ours, not theirs. The crawl reads a capped number of pages, and the
-           sentence that stood here ("Nothing above is reported as missing from
-           your site on the strength of pages we did not read") was printed
-           beside "absent" verdicts resting on 20 of 95 pages (the audit-system
-           review, BR-07). It now says what is true: the count, against the
-           site's, and what a statement listed as absent may mean. -->
-      <p class="type-meta m-0 border-t border-light pt-6 text-muted">
-        {sourceCheckFootnote(view)}
-      </p>
     {/if}
   </div>
 {/if}

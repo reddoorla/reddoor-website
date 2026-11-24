@@ -272,3 +272,62 @@ function viewportFails() {
   (r.checks as { data: Record<string, unknown> }).data.viewportOk = false;
   return r;
 }
+
+describe("R1 fix 10: hiding offers only the accuracy rows on the page", () => {
+  const assertion = (over: Record<string, unknown>) => ({
+    claim: "",
+    verdict: "absent",
+    engineQuote: "",
+    siteQuote: null,
+    unverifiedReason: null,
+    nearbyMention: null,
+    sourceDomains: [],
+    query: "who is Example Studio",
+    engine: "claude",
+    subject: "prospect",
+    ...over,
+  });
+  const allPass = ALL_PASS_REPORT as unknown as { accuracy: { data: Record<string, unknown> } };
+  const raw = {
+    ...ALL_PASS_REPORT,
+    accuracy: {
+      ok: true,
+      data: {
+        ...allPass.accuracy.data,
+        assertions: [
+          assertion({
+            claim: "Example Studio has an office in Denver.",
+            engineQuote: "an office in Denver",
+          }),
+          assertion({
+            claim: "Southgate has a branch in Riverton.",
+            verdict: "confirmed",
+            engineQuote: "Southgate opened a branch in Riverton",
+            siteQuote: "Example Studio, Austin, Texas",
+            subject: "other",
+          }),
+          assertion({
+            claim: "It holds a 3.4 out of 5 rating.",
+            engineQuote: "Employee ratings sit at 3.4/5",
+          }),
+        ],
+      },
+    },
+  } as never;
+
+  it("offers only the printed row, which is then the last one and cannot be hidden", async () => {
+    const { hideTargets } = await import("./editable");
+    const accuracy = hideTargets(raw, {}).filter((t) =>
+      t.key.startsWith("accuracy.data.assertions["),
+    );
+    expect(accuracy.map((t) => t.key)).toEqual(["accuracy.data.assertions[0]"]);
+    expect(accuracy[0]!.canHide).toBe(false);
+  });
+
+  it("labels an accuracy row with its quote, and keeps the claim as the identity", async () => {
+    const { hideTargets } = await import("./editable");
+    const [t] = hideTargets(raw, {}).filter((x) => x.key.startsWith("accuracy.data.assertions["));
+    expect(t!.label).toBe("“an office in Denver”");
+    expect(t!.original).toBe("Example Studio has an office in Denver.");
+  });
+});

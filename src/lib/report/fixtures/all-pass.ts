@@ -51,6 +51,8 @@ const assertion = (claim: string, engineQuote: string, siteQuote: string) => ({
   sourceDomains: ["example-studio.test", "linkedin.com"],
   query: "who is Example Studio",
   engine: "claude",
+  // R8: stored rows carry a subject; this fixture is a new-shape report.
+  subject: "prospect" as const,
 });
 
 export const ALL_PASS_REPORT: AuditReport = {

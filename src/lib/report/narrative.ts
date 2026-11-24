@@ -16,12 +16,21 @@ import {
   sourceCheckMeasured,
   stageFailed,
   STAGE_LABEL,
+  confirmedWithPassage,
+  contradictedRows,
+  heldBack,
+  notSourcedFromSite,
+  hasOldRows,
+  withheldContradictionKind,
+  textWithheld,
+  withheldTopicsIn,
   type BuyerQuestion,
   type Fix,
   type ReportView,
   type StageKey,
 } from "./model";
 import { composed } from "./overrides";
+import { displayQuote } from "./quote";
 
 /**
  * The narrative layer: one sentence the page leads with, and one list of
@@ -45,14 +54,24 @@ export type HeadlineKind =
   | "goal-unknown"
   | "goal-missing"
   | "contradicted"
+  | "withheld-contradiction"
   | "unanswered"
   | "partial"
   | "site-check"
   | "all-clear"
   | "incomplete"
-  | "unmeasured";
+  | "unmeasured"
+  | "accuracy-rerun";
 
 export type Headline = { kind: HeadlineKind; text: string };
+
+/** R8 §2. What the accuracy section prints, instead of its statements, for a report
+ *  with a stored row that has no subject. The headline says the same. */
+export const RERUN_SENTENCE = "We need to re-run this check for your report. Ask us for it.";
+/** R9 §3. The headline's sentence for the same case. Not the section's: the two are
+ *  one fact said twice, and the editor offers the headline as its own line. */
+const HEADLINE_RERUN =
+  "We need to re-run the check of what AI assistants say about you. Ask us for it.";
 
 /** W1. The stages an all-clear stands on: the reading of the site, the AI
  *  answers, and the check of what those answers say. */
@@ -253,11 +272,13 @@ function headlineFindingGenerated(view: ReportView): Headline {
     }
   }
 
-  const contradicted = acc?.assertions.find((a) => a.verdict === "contradicted");
+  // The assistant's own words, never our paraphrase of them, and only a
+  // statement about this business on a topic we print (W2).
+  const contradicted = contradictedRows(view)[0];
   if (contradicted) {
     return {
       kind: "contradicted",
-      text: `The assistant says “${contradicted.claim}”, and your own site says otherwise.`,
+      text: `The assistant says “${displayQuote(contradicted.engineQuote)}”, and your own site says otherwise.`,
     };
   }
 
@@ -328,11 +349,58 @@ function headlineFindingGenerated(view: ReportView): Headline {
   // instead: "ran and failed", never "did not run" (the distinction #893 drew).
   const missingParts = ALL_CLEAR_NEEDS.filter((k) => stageFailed(view, k));
   if (missingParts.length > 0) {
+    const failed = `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}.`;
+    // R9 §3: an old-row report has no all-clear to give, so the clause that says
+    // nothing measured needs attention is dropped with it.
+    // R10 §2: nor does a report holding a contradiction about the prospect, withheld
+    // or printed. "Nothing we measured" would say the contradiction is fine.
+    const contradictionHeld =
+      withheldContradictionKind(view) !== null || contradictedRows(view).length > 0;
     return {
       kind: "incomplete",
       text:
-        `Part of this audit failed before it finished: ${joinList(missingParts.map((k) => STAGE_LABEL[k]))}. ` +
-        "Nothing we measured needs your attention, but without those parts this is not a clean bill of health.",
+        hasOldRows(view) || contradictionHeld
+          ? `${failed} Without those parts this is not a clean bill of health.`
+          : `${failed} Nothing we measured needs your attention, but without those parts this is not a clean bill of health.`,
+    };
+  }
+
+  // R1 fix 6: a contradiction about this business that the page withholds is
+  // not a clean bill of health, and the all-clear below would say it is.
+  // R3 fix 7: a contradiction we could not quote has its own wording, not the
+  // topic's: there is no topic we have not checked, only words we could not
+  // quote exactly.
+  // R8 §2: a report with an old row draws nothing from its accuracy rows, not even
+  // the all-clear below; it says the check must be run again. R9 §3 nit 5: only
+  // when the check was measured, so an unread check falls through as it always did.
+  if (hasOldRows(view) && sourceCheckMeasured(view)) {
+    return { kind: "accuracy-rerun", text: HEADLINE_RERUN };
+  }
+  const withheld = withheldContradictionKind(view);
+  if (withheld === "unquoted") {
+    return {
+      kind: "withheld-contradiction",
+      text:
+        "The assistant said something about you that your own site contradicts, in words we could not quote exactly. " +
+        "Ask us for it.",
+    };
+  }
+  if (withheld === "withheld") {
+    return {
+      kind: "withheld-contradiction",
+      text:
+        "The assistant said something about you that your own site contradicts, on a topic we have not checked here. " +
+        "Ask us for it.",
+    };
+  }
+  // R4 fix 3: a statement that also describes another business is not a topic
+  // we have not checked; it is a sentence we will not repeat in full.
+  if (withheld === "mixed") {
+    return {
+      kind: "withheld-contradiction",
+      text:
+        "The assistant said something about you that your own site contradicts, in a sentence that also describes another business, " +
+        "so we have not repeated it here. Ask us for it.",
     };
   }
 
@@ -375,11 +443,14 @@ function passesGenerated(view: ReportView): PassGroup[] {
 
   const ai: string[] = [];
   if (acc) {
-    const confirmed = acc.assertions.filter((a) => a.verdict === "confirmed").length;
-    if (confirmed > 0) {
+    // R6 fix 1: only a confirmed statement that prints a site passage is a pass
+    // with a passage to name; the verb agrees with the count.
+    const withPassage = confirmedWithPassage(view).length;
+    if (withPassage > 0) {
       ai.push(
-        `${numberWord(confirmed).replace(/^./, (c) => c.toUpperCase())} ` +
-          `${confirmed === 1 ? "statement" : "statements"} the assistant made match a passage on your own site`,
+        `${numberWord(withPassage).replace(/^./, (c) => c.toUpperCase())} ` +
+          `${withPassage === 1 ? "statement" : "statements"} the assistant made ` +
+          `${withPassage === 1 ? "matches" : "match"} a passage on your own site`,
       );
     }
     // Knowing who you are is not a pass when it also thought you were someone else.
@@ -433,26 +504,9 @@ export function passCount(view: ReportView): number {
   return passes(view).reduce((n, g) => n + g.items.length, 0);
 }
 
-/**
- * An engine quote as the reader should see it.
- *
- * The stored quote is verified upstream as a real substring of the answer,
- * and the answer is markdown — so a quote can arrive as "**multiple,
- * unrelated companies**", which on a client document reads as a typo. The
- * emphasis markers are dropped for display only; the words are untouched, so
- * the quote still survives being checked against the answer.
- */
-export function displayQuote(text: string): string {
-  const unemphasised = text
-    .replace(/(\*\*|__)(?=\S)([\s\S]+?)(?<=\S)\1/g, "$2")
-    .replace(/(?<!\S)\*(?=\S)([^*\n]+?)(?<=\S)\*(?!\S)/g, "$1")
-    .trim();
-  // The page wraps every quote in its own marks, so a quote that arrives
-  // already wrapped printed doubled: ""with $2 million in revenue"". One
-  // outer pair goes; a quote mark inside the sentence is content and stays.
-  const wrapped = unemphasised.match(/^["“]([\s\S]*)["”]$/);
-  return wrapped && !/["“”]/.test(wrapped[1] ?? "") ? (wrapped[1] ?? "").trim() : unemphasised;
-}
+/** The engine's quote as the reader sees it. Defined in `quote.ts`, which
+ *  `model.ts` and `overrides.ts` also read; re-exported here for the views. */
+export { displayQuote };
 
 /**
  * The remedy for a name collision, as a fix in the list rather than an aside.
@@ -487,6 +541,50 @@ function collisionFixGenerated(view: ReportView): Fix | null {
  *  one sentence naming what else it described, in the answer's own words. */
 export type CollisionBlock = { heading: string; detail: string | null };
 
+/**
+ * The other names the collision block may print. R3 fix 5: a name whose text
+ * carries a withheld topic (another firm's rating, in its own words) keeps only
+ * the part before " (", which is the name.
+ */
+export function collisionNames(view: ReportView): string[] {
+  return (view.accuracy?.conflation.otherNames ?? [])
+    .map((n) => bareOtherName(n))
+    .filter((n) => n !== "");
+}
+
+/** The name alone, for a name that carries a withheld topic. R4 fix 4: cut at
+ *  " (" first; if the rest still carries one, cut at the first ",", " —", " - "
+ *  or " which "; if that still does, the block names no firm at all. */
+function bareOtherName(n: string): string {
+  if (!textWithheld(n)) return n;
+  const head = (n.split(" (")[0] ?? "").trim();
+  if (!carriesTopic(head)) return head;
+  for (const cut of [",", " —", " - ", " which "]) {
+    const part = (head.split(cut)[0] ?? "").trim();
+    if (part !== "" && part !== head && !carriesTopic(part)) return part;
+  }
+  return "another business";
+}
+
+/** A withheld topic that is more than a legal form. "Ltd", "Inc" and "LLC" are
+ *  part of a firm's name, not a claim about it, so a name whose only topic is a
+ *  legal form still prints (R3 fix 5's name-only rule). R5 fix 4: every topic the
+ *  text carries is checked, not the first, so "Inc., owned by Dana Reyes" counts. */
+function carriesTopic(s: string): boolean {
+  return withheldTopicsIn(s).some((topic) => topic !== "legal_entity");
+}
+
+/**
+ * The assistant's quote for the collision block, or null. Withheld when it
+ * carries a withheld topic (R3 fix 5): the block then prints no quote line.
+ */
+export function collisionQuote(view: ReportView): string | null {
+  if (!nameUnsettled(view.accuracy)) return null;
+  const quote = view.accuracy?.conflation.engineQuote;
+  if (typeof quote !== "string" || quote.trim() === "" || textWithheld(quote)) return null;
+  return quote;
+}
+
 function collisionBlockGenerated(view: ReportView): CollisionBlock | null {
   const unsure = nameUnsettled(view.accuracy);
   if (!unsure && view.namesake === null) return null;
@@ -494,9 +592,11 @@ function collisionBlockGenerated(view: ReportView): CollisionBlock | null {
   // With no name on record, "which your business you are" is not a sentence,
   // and "business" is the one word this block must not supply.
   const name = view.businessName;
-  const names = view.accuracy?.conflation.otherNames ?? [];
+  const names = collisionNames(view);
+  // R6 fix 8: a name that already ends in a full stop ("Inc.") takes no second one.
+  const listed = joinList(names);
   const described = names.length
-    ? `Asked about you by name, it also described ${joinList(names)}.`
+    ? `Asked about you by name, it also described ${listed}${listed.endsWith(".") ? "" : "."}`
     : "Asked about you by name, it could not say which one you are.";
   return {
     heading: name
@@ -912,4 +1012,43 @@ export function primer(view: ReportView, fixes: Fix[]): Primer {
     "and because an assistant’s answers move, this is worth taking again.";
 
   return { what, how, receipts };
+}
+
+/**
+ * W2. What the accuracy section leaves out, said aloud as counts. A statement
+ * on a withheld topic (a rating, a complaint, who owns the business, a named
+ * person…) is not repeated, and one about another business is not printed as
+ * about this one; leaving them out silently would read as "the assistant said
+ * nothing else".
+ */
+export function heldBackLines(view: ReportView): string[] {
+  const h = heldBack(view);
+  const lines: string[] = [];
+  // "also" only when a statement printed above this line (R1 fix 12).
+  const printedAbove = contradictedRows(view).length > 0 || notSourcedFromSite(view).length > 0;
+  if (h.withheld > 0) {
+    const them = h.withheld === 1 ? "it" : "them";
+    lines.push(
+      `The assistant ${printedAbove ? "also " : ""}made ${numberWord(h.withheld)} ${h.withheld === 1 ? "statement" : "statements"} ` +
+        `about ${joinList(h.topics)} that we have not checked, so we have not repeated ${them} here. ` +
+        `Ask us for ${them}.`,
+    );
+  }
+  if (h.unquoted > 0) {
+    // R2: a statement with no quote to print is counted, never repeated.
+    const them = h.unquoted === 1 ? "it" : "them";
+    lines.push(
+      `The assistant ${printedAbove ? "also " : ""}made ${numberWord(h.unquoted)} ${h.unquoted === 1 ? "statement" : "statements"} ` +
+        `we could not quote exactly, so we have not repeated ${them}.`,
+    );
+  }
+  if (h.aboutOthers > 0) {
+    const one = h.aboutOthers === 1;
+    lines.push(
+      `${numberWord(h.aboutOthers).replace(/^./, (c) => c.toUpperCase())} ${one ? "statement" : "statements"} ` +
+        `the assistant made ${one ? "was" : "were"} about another business, or one it could not tell apart from you, ` +
+        `so ${one ? "it is" : "they are"} left out.`,
+    );
+  }
+  return lines;
 }
