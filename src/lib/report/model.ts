@@ -1,6 +1,14 @@
 import type { AuditReport } from "./fetch";
 import { applyOverrides, composed, type OverrideMap } from "./overrides";
-import { inPagesRead, readNothing } from "./pages-read";
+import {
+  checkDenominatorOf,
+  completeOf,
+  inPagesRead,
+  phraseOf,
+  readNothing,
+  type PagesDenominator,
+} from "./pages-read";
+import { statementIdentity } from "./quote";
 
 /**
  * The shape the report components consume.
@@ -58,7 +66,30 @@ export type Assertion = {
   sourceDomains: string[];
   query: string;
   engine: string;
+  /** Who the statement is about (W2). Absent on rows stored before
+   *  2026-11-23, which are read as about the prospect: there is no other
+   *  reading to fall back on, and the quote and the withhold below are what
+   *  keep those rows honest. */
+  subject?: "prospect" | "other" | "unclear";
+  otherName?: string | null;
+  /** What kind of fact it is (W2). Absent on older rows; `withheldTopic`
+   *  reads the text instead. */
+  topic?: AssertionTopic;
+  /** The attribute and the two values, on a `contradicted` that survived the
+   *  producer's value check. */
+  contradiction?: { attribute: string; engineValue: string; siteValue: string } | null;
 };
+
+export type AssertionTopic =
+  | "ratings_reviews"
+  | "complaints"
+  | "accreditation"
+  | "legal_entity"
+  | "ownership"
+  | "named_person"
+  | "revenue_headcount"
+  | "street_address"
+  | "other";
 
 export type SourceVerdict = {
   domain: string;
@@ -72,6 +103,9 @@ export type Accuracy = {
   siteFullyRead: boolean;
   pagesRead: number;
   pagesTotal: number;
+  /** URLs the site's own sitemap lists, or null when we never learned it.
+   *  Absent on rows stored before the producer recorded it. */
+  siteUrlCount?: number | null;
   /** Zero means we had no engine answer to read. The section must then say it
    *  was not measured — never "nothing wrong was found". */
   answersRead: number;
@@ -606,11 +640,594 @@ const LISTING_SITES = [
  * has always used.
  */
 export function notSourcedFromSite(view: ReportView): Assertion[] {
-  const all = view.accuracy?.assertions ?? [];
+  const rows = printedRows(view, "notSourced");
   return [
-    ...all.filter((a) => a.verdict === "absent"),
-    ...all.filter((a) => a.verdict === "unverified"),
+    ...rows.filter((a) => a.verdict === "absent"),
+    ...rows.filter((a) => a.verdict !== "absent"),
   ];
+}
+
+/**
+ * R2. What a statement is, and what the page does with it. The page used to
+ * decide per stored ROW, but a reader sees a SENTENCE, and one sentence is often
+ * stored as several rows (the model splits it into claims). So every decision
+ * is taken once per statement here, and every list, count and hide reads it.
+ *
+ * Each statement gets exactly one outcome, the first that applies:
+ *  1. `unquoted`   its quote is empty: counted, never printed.
+ *  2. `aboutOthers` one of its rows is not about the prospect: counted.
+ *  3. `withheld`   one of its rows is on a withheld topic: counted, by topic.
+ *  4. `contradicted` printed in the contradicted list.
+ *  5. `confirmed`  printed in "What your site backs up", with a site quote.
+ *  6. `notSourced` printed under "What the AI says about you".
+ *
+ * Rows are grouped by `statementIdentity` (quote.ts), in stored order, so `rows[0]` is the
+ * row a hide targets. `row` is the one row the outcome prints from.
+ */
+export type StatementOutcome =
+  "unquoted" | "aboutOthers" | "withheld" | "contradicted" | "confirmed" | "notSourced";
+
+export type Statement = {
+  key: string;
+  rows: Assertion[];
+  /** The row the statement prints from. */
+  row: Assertion;
+  outcome: StatementOutcome;
+  /** For `withheld`: the first withheld topic, in TOPIC_ORDER. */
+  topic: Exclude<AssertionTopic, "other"> | null;
+  /** Every row is about the prospect. */
+  about: boolean;
+  /** R3 fix 1: one row is a contradiction about the prospect, whatever the
+   *  other rows say. A mixed statement is not printed, but its contradiction
+   *  still stands: the headline must not say all-clear over it. */
+  prospectContradicted: boolean;
+};
+
+/** The words of a text, lower-cased, for whole-word comparison. */
+const wordsOf = (s: string): string[] =>
+  s
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w !== "");
+
+/** An empty quote has nothing to print, and `“”` is never a statement. */
+function hasQuote(a: Assertion): boolean {
+  return a.engineQuote.trim() !== "";
+}
+
+/**
+ * A row stored before 2026-11-23 has no subject, and is read as about the
+ * prospect unless its own quote names another business: the assistant's
+ * "most likely match" hedge, or one of the names it gave to something else,
+ * matched as whole words.
+ */
+function aboutProspect(a: Assertion, otherNames: string[] = []): boolean {
+  if (a.subject !== undefined) return a.subject === "prospect";
+  const quote = ` ${wordsOf(a.engineQuote).join(" ")} `;
+  if (quote.includes(" most likely match ") || quote.includes(" likely match ")) return false;
+  return !otherNames.some((n) => quote.includes(` ${wordsOf(n).join(" ")} `));
+}
+
+/**
+ * The other names the answer gave this business, cut to the part before " (",
+ * for matching the quote of a row stored without a subject. A short name (under
+ * four letters) is skipped. A name is not another business when it is part of
+ * this business's own name or contains it: "Acme (Dallas)" is this business's
+ * own "Acme Roofing", not a second firm. Any other name is kept whole, and a row
+ * with no subject is another firm's only when its quote holds that full name
+ * (R5 fix 1: the first word of a name never matches on its own).
+ */
+export function otherNamesOf(view: ReportView): string[] {
+  const own = wordsOf(view.businessName ?? "");
+  const ownText = own.join(" ");
+  const out: string[] = [];
+  for (const raw of view.accuracy?.conflation?.otherNames ?? []) {
+    const n = (raw.split(" (")[0] ?? "").trim();
+    if (n.length < 4) continue;
+    const w = wordsOf(n);
+    if (w.length === 0) continue;
+    if (own.length > 0) {
+      const phrase = w.join(" ");
+      const partOfOwn = ` ${ownText} `.includes(` ${phrase} `);
+      const containsOwn = ` ${phrase} `.includes(` ${ownText} `);
+      if (partOfOwn || containsOwn) continue;
+    }
+    out.push(n);
+  }
+  return out;
+}
+
+/**
+ * Every statement on the check, decided once (see `Statement`). Not gated on
+ * `sourceCheckMeasured`: each surface gates what it prints, as it always has.
+ */
+export function statements(view: ReportView): Statement[] {
+  const names = otherNamesOf(view);
+  const groups = new Map<string, Assertion[]>();
+  for (const a of view.accuracy?.assertions ?? []) {
+    const key = statementIdentity(a);
+    const group = groups.get(key);
+    if (group) group.push(a);
+    else groups.set(key, [a]);
+  }
+  return [...groups.values()].map((rows) => decide(rows, names));
+}
+
+/** R4 fix 2: a row is a contradiction about the prospect when the engine said
+ *  `contradicted`, or when it held the claim unverified on a withheld topic with
+ *  a contradiction on record (maintenance#2256 stores that shape). */
+function isProspectContradiction(a: Assertion, names: string[]): boolean {
+  // R6 fix 6: a row the operator marked subject "unclear" is held as the client's
+  // contradiction, not filed as another business's.
+  return contradictsRow(a) && (a.subject === "unclear" || aboutProspect(a, names));
+}
+
+/** The engine said the site contradicts the claim: `contradicted`, or `unverified`
+ *  with a contradiction on record (maintenance#2256 stores that shape). */
+function contradictsRow(a: Assertion): boolean {
+  return a.verdict === "contradicted" || (a.verdict === "unverified" && a.contradiction != null);
+}
+
+/** R4 fix 6: a contradiction with no words from the site has nothing to print
+ *  as "your site says", so it is not a contradiction on the page. */
+const hasSiteWords = (a: Assertion): boolean => (a.siteQuote ?? "").trim() !== "";
+
+function decide(rows: Assertion[], names: string[]): Statement {
+  const first = rows[0]!;
+  const about = rows.every((a) => aboutProspect(a, names));
+  // R3 fix 1: any row's contradiction about the prospect counts, not the first
+  // row's subject alone.
+  const prospectContradicted = rows.some((a) => isProspectContradiction(a, names));
+  const withheld = rows
+    .map((a) => withheldTopic(a))
+    .filter((t): t is Exclude<AssertionTopic, "other"> => t !== null);
+  const topic = TOPIC_ORDER.find((t) => withheld.includes(t)) ?? null;
+  const contradicted = rows.find((a) => a.verdict === "contradicted" && hasSiteWords(a));
+  // R4 fix 7: a confirmed row with no site quote is still backed up; it prints
+  // under "What your site backs up" without the site line.
+  const confirmed = rows.find((a) => a.verdict === "confirmed");
+  const absent = rows.find((a) => a.verdict === "absent");
+  // R6 fix 6: an unclear-subject contradiction is held as withheld: it prints nowhere
+  // and the headline gives the withheld-contradiction wording, never the all-clear.
+  const unclearHeld = rows.some((a) => a.subject === "unclear" && contradictsRow(a));
+
+  let outcome: StatementOutcome;
+  let row: Assertion;
+  if (!hasQuote(first)) {
+    outcome = "unquoted";
+    row = first;
+  } else if (unclearHeld) {
+    outcome = "withheld";
+    row = first;
+  } else if (!about) {
+    outcome = "aboutOthers";
+    row = first;
+  } else if (topic !== null) {
+    outcome = "withheld";
+    row = first;
+  } else if (contradicted) {
+    outcome = "contradicted";
+    row = contradicted;
+  } else if (confirmed) {
+    outcome = "confirmed";
+    row = confirmed;
+  } else {
+    outcome = "notSourced";
+    row = absent ?? first;
+  }
+  return {
+    key: statementIdentity(first),
+    rows,
+    row,
+    outcome,
+    topic,
+    about,
+    prospectContradicted,
+  };
+}
+
+/** R8 §2. A stored row with no subject (stored before 2026-11-23). Its statements
+ *  are not read by sentence pattern: the accuracy section says the check must be
+ *  run again, and prints, counts and headlines none of them. */
+export function hasOldRows(view: ReportView): boolean {
+  return (view.accuracy?.assertions ?? []).some((a) => a.subject === undefined);
+}
+
+/** The row each statement with this outcome prints, in statement order. */
+function printedRows(view: ReportView, outcome: StatementOutcome): Assertion[] {
+  if (hasOldRows(view)) return [];
+  return statements(view)
+    .filter((s) => s.outcome === outcome)
+    .map((s) => s.row);
+}
+
+/** R5 fix 5: the confirmed statements that print a site passage. The proof
+ *  sentence counts these only, since a confirmed statement with no passage
+ *  prints with nothing to match. */
+export function confirmedWithPassage(view: ReportView): Assertion[] {
+  return confirmedRows(view).filter(hasSiteWords);
+}
+
+/** Confirmed statements, with both quotes, for the reader to judge (BR-09). */
+export function confirmedRows(view: ReportView): Assertion[] {
+  if (!sourceCheckMeasured(view)) return [];
+  return printedRows(view, "confirmed");
+}
+
+/** Contradictions printed as about the prospect. */
+export function contradictedRows(view: ReportView): Assertion[] {
+  // Gated like the section: a statement out of an answer the report says it
+  // did not read is not printed anywhere, the headline included.
+  if (!sourceCheckMeasured(view)) return [];
+  return printedRows(view, "contradicted");
+}
+
+/**
+ * A contradiction about the prospect that the page withholds: on a withheld
+ * topic, or with no quote to print. While one stands, the report must not
+ * say everything checks out (narrative's headline asks this).
+ */
+export function withheldContradictionKind(
+  view: ReportView,
+): "unquoted" | "withheld" | "mixed" | null {
+  if (!sourceCheckMeasured(view)) return null;
+  // R8 §2: an old-row report draws nothing from its rows, held or not.
+  if (hasOldRows(view)) return null;
+  // R3 fix 1: a statement that prints nothing and carries a contradiction about
+  // the prospect counts, whether it is withheld, unquoted, or mixed with another
+  // business's row. Printed outcomes never count: those are on the page.
+  const held = statements(view).filter(
+    (s) =>
+      s.prospectContradicted &&
+      s.outcome !== "contradicted" &&
+      s.outcome !== "confirmed" &&
+      s.outcome !== "notSourced",
+  );
+  if (held.length === 0) return null;
+  // R4 fix 3: precedence. A withheld topic wins; then a statement that also
+  // describes another business ("mixed"); then "unquoted" (R3 fix 7), when every
+  // such statement has no quote to print.
+  if (held.some((s) => s.outcome === "withheld")) return "withheld";
+  if (held.some((s) => s.outcome === "aboutOthers")) return "mixed";
+  return "unquoted";
+}
+
+export function withheldContradiction(view: ReportView): boolean {
+  return withheldContradictionKind(view) !== null;
+}
+
+/**
+ * The topics withheld from the page unless a person has checked the source.
+ * Each harms a business when it is wrong, and nobody has checked it: a rating,
+ * a complaint or alert, accreditation, the legal entity, who owns it, a named
+ * person, revenue or headcount, a street address. The report counts them
+ * instead (LGL-01, B-17).
+ */
+const TOPIC_LABEL: Record<Exclude<AssertionTopic, "other">, string> = {
+  ratings_reviews: "ratings",
+  complaints: "complaints",
+  accreditation: "accreditation",
+  legal_entity: "registration",
+  ownership: "ownership",
+  named_person: "named people",
+  revenue_headcount: "revenue or staff numbers",
+  street_address: "addresses",
+};
+
+/** R4 fix 1: the platform names a rating or review can be read off. Google
+ *  counts only in its platform sense, not "Google Ads" and the like; Maps and
+ *  Business Profile are platforms, so a rating on them is withheld (R5 fix 3). */
+const PLATFORM =
+  "(?:glassdoor|yelp|trustpilot|bbb|charity navigator|clutch|houzz|angi|thumbtack|g2|google(?!\\s+(?:ads|analytics|partner|cloud|workspace)\\b))";
+/** A figure that looks like a score: "4.9", "4/5", "3 stars", "37 reviews". */
+const SCORE_FIGURE =
+  "(?:\\d\\.\\d\\b|\\d\\s*\\/\\s*(?:5|10)\\b|\\d\\s*stars?\\b|(?<!\\d)\\d{1,7}\\s+reviews?\\b|(?<!\\d)\\d{1,7}\\s+ratings?\\b)";
+/** A count word or a digit run, for "twelve employees" and "40 staff". */
+const NUM =
+  "(?:\\d[\\d,]{0,12}\\+?|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\\b)";
+
+/** Read off the words, for rows stored before the producer recorded a topic
+ *  and for a model that files one under `other`. Errs wide, but only on words
+ *  that name the topic: a false match withholds a true sentence the page could
+ *  have printed, so each pattern is one a business's own description would not
+ *  use in an ordinary sense. A topic matches when any of its patterns does. */
+const TOPIC_TEXT: [Exclude<AssertionTopic, "other">, RegExp[]][] = [
+  [
+    "ratings_reviews",
+    [
+      // A score out of five: "3.4/5", "4.2 out of 5", "rated 4.2 out of 5". Only
+      // five: "9 out of 10 dentists" is not a rating.
+      /\b\d(?:\.\d)?\s*(?:\/|out of)\s*5\b/i,
+      /\brated (?:at )?\d/i,
+      // "a 4.6 rating", "average rating of 4.6", "Google rating of 4.7".
+      /\b\d(?:\.\d)?\s+(?:average\s+|google\s+|yelp\s+)?ratings?\b/i,
+      /\bratings?\s+(?:of\s+)?\d(?:\.\d)?\b/i,
+      // "4.8★", "4.9 stars", "4-star rating", "5 star reviews", "a star rating".
+      /\b\d(?:\.\d)?\s*★/,
+      /\b\d\.\d[- ]?stars?\b/i,
+      /\b\d[- ]stars?\s+(?:ratings?|reviews?)\b/i,
+      /\b\d+\s+(?:[a-z]+-)?stars?[- ]reviews?\b/i,
+      /\bstar ratings?\b/i,
+      // "a 4.9 on Google", "reviews on Glassdoor".
+      new RegExp(`\\b\\d(?:\\.\\d)?\\s+on\\s+${PLATFORM}\\b`, "i"),
+      new RegExp(`\\breviews? (?:on|from) ${PLATFORM}\\b`, "i"),
+      // R4 fix 1c: "Google reviews", "Clutch reviewers", "37 reviews", "4.8 average".
+      new RegExp(`\\b${PLATFORM}\\s+reviews?\\b`, "i"),
+      /\b\d+\s+(?:customer\s+|client\s+|google\s+)?reviews?\b/i,
+      /\b\d(?:\.\d)?\s+average\b/i,
+      /\b\d(?:\.\d)?\s+overall\b/i,
+      /\b(?:one|two|three|four|five)[- ]star\w*\s+(?:ratings?|reviews?)\b/i,
+      /\b(?:one|two|three|four|five|\d(?:\.\d)?)\s+stars\b/i,
+      /\b(?:highly|well|top|best)[- ]rated\b/i,
+      /\brated\s+(?:highly|well)\b/i,
+      // A survey share: "60% would recommend it", "60% of employees".
+      /\bwould recommend\b/i,
+      /\b\d+%\s+(?:would\s+)?recommend/i,
+      /%\s+of (?:employees|reviewers)\b/i,
+      // R3 fix 3, the phrasings a stored row uses with no topic recorded.
+      // "Rating: 4.2", "a Glassdoor score of 3.9", "Rating:** 4.2". Bounded runs
+      // of separators, so a long run of spaces cannot backtrack (R4 fix 1a).
+      /\b(?:rating|score)s?[\s:*]{0,6}(?:(?:of|is|at)[\s:*]{0,4})?\d/i,
+      // A platform within 30 characters of a score-shaped figure, either way
+      // round: "Glassdoor: 3.4", "3.9 Glassdoor score". A bare figure does not
+      // count: "Google Analytics 4" and "since 2015" are not ratings (R4 fix 1b).
+      new RegExp(`\\b${PLATFORM}\\b[^.\\n]{0,30}?${SCORE_FIGURE}`, "i"),
+      new RegExp(`${SCORE_FIGURE}[^.\\n]{0,30}?\\b${PLATFORM}`, "i"),
+      // "Indeed" is a platform only when it is capitalised mid-sentence, or
+      // followed by a rating word. A plain "indeed" is an adverb (R4 fix 1b).
+      /(?<=\w\s)Indeed\b[^.\n]{0,30}?\d/,
+      /\bindeed\s+(?:reviews?|ratings?|scores?)\b/i,
+      // "(37 reviews)", "rated it five stars", "a rating of four stars".
+      /\d(?:\.\d)?\s*\(\d+ reviews?\)/i,
+      /\brated (?:it |them )?(?:one|two|three|four|five) stars?\b/i,
+      /\brating (?:of )?(?:one|two|three|four|five) stars?\b/i,
+      // "out of five" counts only after a score: a rating or review word nearby
+      // ("rated three out of five"), or a decimal ("3.9 out of five"). "Three out
+      // of five clients" is not one (R4 fix 1b).
+      /\b(?:rated|rates|rating|reviews?|reviewers?|scores?|gives?|give it)\b[^.\n]{0,30}?\b(?:\d(?:\.\d)?|one|two|three|four|five|ten)\s+(?:stars?\s+)?out of (?:four|five|ten)\b/i,
+      /\b\d\.\d\s+(?:stars?\s+)?out of (?:four|five|ten)\b/i,
+      /\b(?:\d(?:\.\d)?|one|two|three|four|five|ten)\s+(?:stars?\s+)?out of (?:four|five|ten)\b[^.\n]{0,30}?\b(?:ratings?|reviews?|scores?|stars?)\b/i,
+      // "3.9 overall rating", "3.4 rating".
+      /\b\d(?:\.\d)?\s+(?:overall\s+)?(?:rating|score)s?\b/i,
+      // "Employees give it 3.9", "Employee reviews average 3.2".
+      /\b(?:employee|customer)s?\s+(?:reviews?\s+)?(?:average|give)\b/i,
+      // "Senior management 2.9", and the other employer-review categories.
+      /\b(?:senior management|work.life balance|culture & values|compensation)\s+\d/i,
+      // R9 §2: "Employees rate Acme Design 3.2", "Staff give Acme Design a 3.2".
+      /\b(?:employees|staff|workers)\s+(?:rate|rated|give|gave|score|scored)\b/i,
+    ],
+  ],
+  [
+    "complaints",
+    [
+      /\bcomplaints? (?:filed|against)\b/i,
+      // R4 fix 1c: "complaints about its customer service" (the old pattern ended
+      // `it)\b`, and "its" fails that boundary), "complained about missed deadlines".
+      /\bcomplaints?\s+about\b/i,
+      /\bcomplain(?:ed|s)?\s+(?:about|of)\b/i,
+      /\balerts? on file\b/i,
+      /\b(?:lawsuits?|sued|litigation)\b/i,
+      /\bscams?\b/i,
+      /\bfraud (?:claims?|charges?|complaints?|allegations?)\b/i,
+      // R9 §2: "It has received three complaints from clients".
+      /\bcomplaints?\b/i,
+    ],
+  ],
+  ["accreditation", [/\b(?:accredit\w*|bbb|better business bureau)\b/i]],
+  [
+    "legal_entity",
+    [
+      /\b(?:llc|l\.l\.c)\b/i,
+      /\blimited liability (?:company|partnership)\b/i,
+      // "Example Studio, Inc." and "Example Corp.", a capitalised name before the
+      // suffix. Not "an Inc. 5000 honoree": no capital name, and a number after.
+      /\b[A-Z][\w&'-]{0,40},?\s+(?:Inc|Corp|Ltd)\b(?!\.?\s*\d)/,
+      /\bsole proprietor\w*/i,
+      /\b(?:dba|d\/b\/a|doing business as)\b/i,
+      // "registered in Texas" is a legal-entity claim the page must not print
+      // unchecked, so the narrowing does not drop the original's "in" and "with".
+      /\b(?:registered (?:as|in|with)|incorporated in)\b/i,
+      /\b(?:legal name|alternate name|legal entity|subsidiary|franchisee|franchisor)\b/i,
+      /\bfranchise (?:agreement|owner|system|location)s?\b/i,
+      /\b[Oo]perates as [A-Z]/,
+    ],
+  ],
+  [
+    "revenue_headcount",
+    [
+      /\b(?:revenue|turnover|valuation|headcount)\b/i,
+      // Staff counts only in employment wording: "40 employees", "employs 40",
+      // "employs around 40", "team of 25", "team of about 40", "staff of 12", "a
+      // 12-person team", "It has about 40 staff". "2,000 staff at hospitals" is not one.
+      new RegExp(`\\b${NUM}\\s+employees\\b`, "i"),
+      /\bemploy(?:s|ing|ed)?\s+(?:(?:about|around|over|nearly|roughly)\s+)?\d[\d,]*\+?\b/i,
+      /\bhas (?:about |around |roughly |nearly |over |some )?\d[\d,]*\+?\s+staff\b/i,
+      /\b\d+-person\b/i,
+      /\b(?:team|staff) of (?:about |around |roughly |nearly |over )?\d+/i,
+      // Money is a figure only with a scale word or a revenue word near it:
+      // "$5,000" is a price, and "annual" alone is not a figure.
+      /\$\s?\d[\d,.]*\s*(?:million|billion|m\b)/i,
+      /\b(?:revenue|turnover)\b[^.]{0,40}\$\s?\d|\$\s?\d[^.]{0,40}\b(?:revenue|turnover)\b/i,
+      /\b(?:brings? in|earns|grosses)\b[^.]{0,20}\$\s?\d/i,
+      // R9 §2: "Acme Design has 40 people".
+      /\b(?:has|have|are|employs?)\s+(?:about |around |roughly |nearly |over |some )?\d[\d,]*\+?\s+people\b/i,
+      // R10 §3: "About 40 people work at Northwind.", "a workforce of about 40",
+      // "makes 2.5 million dollars a year".
+      // Bounded like NUM: an unbounded run of digits and commas is quadratic (R4 fix 1a).
+      /\b(?:about |around |roughly |nearly |over |some )?\d[\d,]{0,12}\+?\s+people\s+work\b/i,
+      /\bworkforce of (?:about |around |roughly |nearly |over )?\d/i,
+      /\b(?:makes?|made|earns?|brings? in)\b[^.]{0,20}\d[\d,.]*\s*(?:million|billion)\s+dollars\b/i,
+    ],
+  ],
+  [
+    "street_address",
+    [
+      // A number, an optional direction or ordinal, a capitalised street word,
+      // then a long suffix, or a short one with its dot optional ("St," "Ave in").
+      // Case-sensitive on purpose: a lowercase word is not a street.
+      new RegExp(
+        "\\b\\d{1,6}\\s+(?:[NSEW]\\.?\\s+)?(?:(?:\\d{1,3}(?:st|nd|rd|th)|[A-Z][\\w'-]*)\\s+){1,4}" +
+          "(?:(?:Street|Road|Avenue|Boulevard|Drive|Lane|Parkway|Highway|Court|Place)\\b|(?:St|Rd|Ave|Blvd)\\b\\.?)",
+      ),
+      /\bsuite\s+\d+/i,
+      // "at 1200 Broadway", "located at 40 Oak": a number and a capitalised name
+      // after "at", with no street suffix (R4 fix 1c).
+      /\b(?:[Aa]t|[Ll]ocated at)\s+\d{1,6}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/,
+    ],
+  ],
+];
+
+/**
+ * R9 §1. The person and ownership words, read for a whole excerpt that carries no
+ * model label (a branded excerpt, the collision quote, the other-name blocks). One
+ * list, with no business-name skip and no lookbehind: over-holding an excerpt is
+ * the accepted direction. A statement is never held by these words; it is held by
+ * its stored topic (`withheldTopic`).
+ */
+const PERSON_WORDS =
+  /\b(?:named|founders?|founded|co-?founders?|co-?founded|owners?|owns|owned|proprietors?|ceos?|cfo|coo|cto|chief|chair(?:s|man|woman|person)?|presidents?|principals?|partners?|directors?|managers?|designers?|leads|led|lead|runs|ran|heads|headed|(?:led|run|headed|managed|created|started|established) by|acquired|acquisition|subsidiary|parent company|part of|dr|mr|mrs|ms)\b/i;
+/** The ownership verbs among PERSON_WORDS: a whole excerpt whose first such word is one
+ *  of these is read as ownership. An owner noun names a person, so it is not one. */
+const OWNERSHIP_WORD = /^(?:owned|owns|acquired|acquisition|subsidiary|parent company|part of)$/i;
+
+/** The order topics are listed in, for a statement's topic and a text's topics. */
+const TOPIC_ORDER: Exclude<AssertionTopic, "other">[] = [
+  "ratings_reviews",
+  "complaints",
+  "accreditation",
+  "legal_entity",
+  "named_person",
+  "ownership",
+  "revenue_headcount",
+  "street_address",
+];
+
+/** Does a topic's text carry it? */
+function topicHits(patterns: RegExp[], text: string): boolean {
+  return patterns.some((re) => re.test(text));
+}
+
+/**
+ * The topic of one accuracy statement. R8 §1: a stored topic other than `other`
+ * decides it. Otherwise only the stable topics are read from the words; a person
+ * or an ownership claim is held by its stored topic alone.
+ */
+export function withheldTopic(a: Assertion): Exclude<AssertionTopic, "other"> | null {
+  if (a.topic !== undefined && a.topic !== "other") return a.topic;
+  // R10 §4: a sentence break joins the claim and the quote, so no pattern reads
+  // "3.2" and "Employees" as one figure.
+  const text = `${a.claim}\n.\n${a.engineQuote}`;
+  for (const [topic, patterns] of TOPIC_TEXT) if (topicHits(patterns, text)) return topic;
+  return null;
+}
+
+/** The first withheld topic a whole excerpt carries, or null. R3 fix 4: any topic,
+ *  not only ratings. A branded answer's excerpt is printed whole, so a BBB rating,
+ *  a named founder or a complaint in it is withheld as a rating would be. */
+export function withheldIn(text: string): Exclude<AssertionTopic, "other"> | null {
+  return withheldTopicsIn(text)[0] ?? null;
+}
+
+/** Every withheld topic a whole excerpt carries, in TOPIC_ORDER (R5 fix 4). R9 §1:
+ *  an excerpt has no stored label, so the person and ownership words are read too.
+ *  Their label is the first such word's kind; callers read only whether one is there. */
+export function withheldTopicsIn(text: string): Exclude<AssertionTopic, "other">[] {
+  const out: Exclude<AssertionTopic, "other">[] = [];
+  for (const [topic, patterns] of TOPIC_TEXT) if (topicHits(patterns, text)) out.push(topic);
+  const person = PERSON_WORDS.exec(text);
+  if (person) out.push(OWNERSHIP_WORD.test(person[0]) ? "ownership" : "named_person");
+  return out.sort((a, b) => TOPIC_ORDER.indexOf(a) - TOPIC_ORDER.indexOf(b));
+}
+
+/** Does this excerpt carry a withheld topic of any kind? */
+export function textWithheld(text: string): boolean {
+  return withheldIn(text) !== null;
+}
+
+/**
+ * A branded answer's excerpt, as the web page prints it. An answer that gave a
+ * rating or a review score, from customers or employees, is not reprinted:
+ * the "<name> reviews" query brought employee ratings onto a sales document in
+ * front of the person who runs the staff (PR-09). R3 fix 4: an excerpt answering
+ * a "… reviews" question is not reprinted either, and neither is one carrying
+ * any withheld topic.
+ */
+export function brandedExcerpt(
+  probe: Pick<ProbeAnswer, "snippet" | "truncated"> & { query?: string },
+): string {
+  const reviewsQuestion = /\sreviews$/.test((probe.query ?? "").trim());
+  const topic = withheldIn(probe.snippet);
+  if (reviewsQuestion || topic === "ratings_reviews") {
+    return "This answer gave ratings or review scores, which we have not checked, so we have not repeated it here.";
+  }
+  if (topic !== null) {
+    return "This answer said something we have not checked, so we have not repeated it here.";
+  }
+  return `${probe.snippet}${probe.truncated ? "…" : ""}`;
+}
+
+export type HeldBack = {
+  /** Statements about the prospect on a withheld topic. */
+  withheld: number;
+  /** Their topics, as words, in first-seen order. */
+  topics: string[];
+  /** Statements the answer made about another business, or could not place. */
+  aboutOthers: number;
+  /** Statements whose quote is empty: the assistant's words are not on record,
+   *  so there is nothing to print. Counted, never repeated. */
+  unquoted: number;
+};
+
+/** What the page leaves out, counted, so leaving it out is said aloud. One
+ *  count per statement, from `statements`, so a sentence split into several
+ *  rows is one statement to the reader. */
+export function heldBack(view: ReportView): HeldBack {
+  const topics: string[] = [];
+  let withheld = 0;
+  let aboutOthers = 0;
+  let unquoted = 0;
+  // R8 §2: an old-row report counts nothing; its section says to re-run the check.
+  for (const s of hasOldRows(view) ? [] : statements(view)) {
+    if (s.outcome === "unquoted") unquoted += 1;
+    else if (s.outcome === "aboutOthers") aboutOthers += 1;
+    else if (s.outcome === "withheld" && s.topic !== null) {
+      withheld += 1;
+      if (!topics.includes(TOPIC_LABEL[s.topic])) topics.push(TOPIC_LABEL[s.topic]);
+    }
+    // R7 fix 1: an unclear-subject contradiction has no topic; it is held as the
+    // client's, and counted under the other-business line.
+    else if (s.outcome === "withheld") aboutOthers += 1;
+  }
+  return { withheld, topics, aboutOthers, unquoted };
+}
+
+/**
+ * W2 (BR-07). `absent` is "your site does not say this", and it is ours to
+ * say only of a site we read whole. Stored rows called a site read whole when
+ * every CRAWLED page was read; the crawl stops at 20, so a site whose sitemap
+ * lists 95 was "read whole" at 20. A stored row is re-read here: without a
+ * sitemap count the pages read reach, each `absent` becomes `unverified`.
+ */
+function withCoverage(acc: Accuracy, d: PagesDenominator): Accuracy {
+  // One rule with the sentences around it (W3's `pages-read.ts`): an absence
+  // stands only where "we read them all" may print, a complete, untruncated
+  // sitemap the source check's pages reach. A floor, a count of links, or no
+  // count at all is not a site read whole.
+  if (acc.siteFullyRead && completeOf(d)) return acc;
+  const phrase = phraseOf(d);
+  const reason =
+    phrase === null
+      ? "We could not read any of your pages for this check, so we cannot say this is absent from your site."
+      : d.site === null
+        ? `We read ${phrase} and could not learn how many your site has, so we cannot say this is absent from it.`
+        : `We read ${phrase}, so we cannot say this is absent from your site.`;
+  return {
+    ...acc,
+    siteFullyRead: false,
+    assertions: acc.assertions.map((a) =>
+      a.verdict === "absent" ? { ...a, verdict: "unverified", unverifiedReason: reason } : a,
+    ),
+  };
 }
 
 /**
@@ -1233,9 +1850,24 @@ export function sourceCheckMeasured(view: ReportView): boolean {
  *
  * So: a surface that PROMISES statements asks this. A surface that only reports
  * whether the check happened at all asks `sourceCheckMeasured`.
+ *
+ * R1 fix 12: "statements" means the ones that PRINT. A check whose every
+ * statement is withheld or about another business has none to sort, and the
+ * lede must not say it sorted them. `sourceCheckHasRows` is the wider question,
+ * for the section, which still says what it counted.
  */
 export function sourceCheckHasStatements(view: ReportView): boolean {
-  return sourceCheckMeasured(view) && (view.accuracy?.assertions.length ?? 0) > 0;
+  return (
+    sourceCheckMeasured(view) &&
+    contradictedRows(view).length + notSourcedFromSite(view).length + confirmedRows(view).length > 0
+  );
+}
+
+/** The section has rows to report on, printed or counted. */
+export function sourceCheckHasRows(view: ReportView): boolean {
+  // R2: printed or counted, never the number of stored rows. A check whose
+  // only statement is unquoted still has a count to say.
+  return sourceCheckMeasured(view) && statements(view).length > 0;
 }
 
 /** A legacy crawl's sitemap total is a floor when it was truncated. One stored
@@ -1339,8 +1971,23 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
   const accessibility = stage<Accessibility>(r.accessibility);
   const goalFit = stage<GoalFit>(r.goalFit);
   const accuracyRaw = stage<Omit<Accuracy, "conflation"> & { conflation?: Conflation }>(r.accuracy);
+  const sitemapCount =
+    crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
+      ? crawl.sitemap.urlCount
+      : null;
+  const pagesRead = pagesReadOf(crawl);
+  const siteIsFloor = sitemapIsFloor(crawl?.sitemap, sitemapCount);
   const accuracy: Accuracy | null = accuracyRaw
-    ? { ...accuracyRaw, conflation: accuracyRaw.conflation ?? NO_CONFLATION }
+    ? withCoverage(
+        { ...accuracyRaw, conflation: accuracyRaw.conflation ?? NO_CONFLATION },
+        checkDenominatorOf(
+          accuracyRaw.pagesRead,
+          pagesRead,
+          // A row whose crawl kept no sitemap count still has the producer's.
+          sitemapCount ?? accuracyRaw.siteUrlCount ?? null,
+          sitemapCount === null ? true : siteIsFloor,
+        ),
+      )
     : null;
 
   const scoresRaw = (r.scores ?? {}) as Record<string, number | null>;
@@ -1405,17 +2052,9 @@ export function toReportView(raw: AuditReport, overrides: OverrideMap = {}): Rep
           checked: crawl?.agentAccess?.length ?? 0,
         }
       : null,
-    sitemapUrlCount:
-      crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
-        ? crawl.sitemap.urlCount
-        : null,
-    sitemapIsFloor: sitemapIsFloor(
-      crawl?.sitemap,
-      crawl?.sitemap?.present && typeof crawl.sitemap.urlCount === "number"
-        ? crawl.sitemap.urlCount
-        : null,
-    ),
-    pagesRead: pagesReadOf(crawl),
+    sitemapUrlCount: sitemapCount,
+    sitemapIsFloor: siteIsFloor,
+    pagesRead,
     failedStages: STAGE_KEYS.filter((k) => ranAndFailed(r[k])),
     brandedRecognized: probes ? (probes.brandedRecognized ?? null) : null,
     categoryProbes,

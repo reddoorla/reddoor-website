@@ -61,3 +61,44 @@ export const renderText = <P extends Record<string, unknown>>(
     .body.replace(/<!--.*?-->/g, "")
     .replace(/\s+/g, " ")
     .trim();
+
+/**
+ * R8. `ssr` for a component whose own children are components (Report.svelte).
+ * Its child `.svelte` imports cannot be compiled here (no Svelte plugin), so each
+ * is replaced by a stub that records the props it was given, and renders its
+ * `children` snippet, so a component mounted inside another is observed being
+ * mounted with the props its parent passed. Read the record with `stubCalls()`.
+ */
+export const ssrStubbed = async <P extends Record<string, unknown>>(
+  path: string,
+): Promise<Component<P>> => {
+  const dir = path.slice(0, path.lastIndexOf("/") + 1);
+  const compiled = compile(readFileSync(path, "utf-8"), {
+    generate: "server",
+    filename: path.slice(dir.length),
+  }).js.code;
+  const stubbed = compiled.replace(
+    /import (\w+) from "[^"]+\.svelte";/g,
+    (_m, name: string) =>
+      `const ${name} = (p, props) => { (globalThis.__ssrStubCalls ??= []).push({ name: "${name}", props }); props.children?.(p); };`,
+  );
+  const outDir = ".svelte-kit/report-ssr";
+  mkdirSync(outDir, { recursive: true });
+  const file = `${process.cwd()}/${outDir}/${path.replace(/[^a-zA-Z0-9]+/g, "-")}.stubbed.js`;
+  const from = `${process.cwd()}/${dir}`;
+  writeFileSync(
+    file,
+    stubbed.replace(/(from\s+")\.\//g, (_m, head) => `${head}${from}`),
+  );
+  const mod = (await import(pathToFileURL(file).href)) as { default: Component<P> };
+  return mod.default;
+};
+
+/** The child components a stubbed render mounted, with their props, since the last call. */
+export const stubCalls = (): Array<{ name: string; props: Record<string, unknown> }> => {
+  const calls =
+    (globalThis as { __ssrStubCalls?: Array<{ name: string; props: Record<string, unknown> }> })
+      .__ssrStubCalls ?? [];
+  (globalThis as { __ssrStubCalls?: unknown[] }).__ssrStubCalls = [];
+  return calls;
+};

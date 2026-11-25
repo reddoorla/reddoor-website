@@ -78,19 +78,35 @@ export function crawlDenominator(view: ReportView): PagesDenominator | null {
 export function sourceCheckDenominator(view: ReportView): PagesDenominator | null {
   const acc = view.accuracy;
   if (!acc) return null;
-  if (view.pagesRead)
+  return checkDenominatorOf(
+    acc.pagesRead,
+    view.pagesRead,
+    view.sitemapUrlCount,
+    view.sitemapIsFloor,
+  );
+}
+
+/** `sourceCheckDenominator` from its parts, for `toReportView`, which decides
+ *  whether an `absent` may stand before the view exists (W2, BR-07). One count,
+ *  so the verdict and the sentences about it cannot disagree. */
+export function checkDenominatorOf(
+  checkRead: number,
+  crawl: ReportView["pagesRead"],
+  sitemapUrlCount: number | null,
+  sitemapIsFloor: boolean | undefined,
+): PagesDenominator {
+  if (crawl)
     return {
-      read: acc.pagesRead,
-      site: view.pagesRead.site,
-      floor: view.pagesRead.siteIsFloor === true,
-      from: view.pagesRead.siteFrom ?? null,
+      read: checkRead,
+      site: crawl.site,
+      floor: crawl.siteIsFloor === true,
+      from: crawl.siteFrom ?? null,
     };
-  const sitemap = view.sitemapUrlCount;
-  const known = sitemap !== null && sitemap > acc.pagesRead;
+  const known = sitemapUrlCount !== null && sitemapUrlCount > checkRead;
   return {
-    read: acc.pagesRead,
-    site: known ? sitemap : null,
-    floor: known && view.sitemapIsFloor === true,
+    read: checkRead,
+    site: known ? sitemapUrlCount : null,
+    floor: known && sitemapIsFloor === true,
     from: known ? "sitemap" : null,
   };
 }

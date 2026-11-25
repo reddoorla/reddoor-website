@@ -1,13 +1,15 @@
 <script lang="ts">
   import {
     citationRuns,
+    confirmedRows,
+    contradictedRows,
     failedChecksSentence,
     gapClause,
-    nameUnsettled,
+    hasOldRows,
     namesakeLeads,
     notSourcedFromSite,
     openingSummary,
-    sourceCheckHasStatements,
+    sourceCheckHasRows,
     toReportView,
     wasNamed,
   } from "$lib/report/model";
@@ -15,7 +17,9 @@
     allFixes,
     auditedOn,
     collisionBlock,
+    collisionQuote,
     displayQuote,
+    heldBackLines,
     headlineFinding,
     absenceTag,
     answerLabel,
@@ -24,6 +28,7 @@
     unsourcedLead,
     passes,
     questionReceipt,
+    RERUN_SENTENCE,
     sourceCheckFootnote,
   } from "$lib/report/narrative";
   import { healthRows } from "$lib/report/health";
@@ -65,9 +70,8 @@
   // A row prints its sources only when the row above did not already print the
   // same ANSWER's list — keyed in model.ts so this sheet and the screen report
   // cannot disagree about whose sources a line belongs to.
-  const contradictedRows = $derived(
-    citationRuns((accuracy?.assertions ?? []).filter((a) => a.verdict === "contradicted")),
-  );
+  // W2: the assistant's own words, only about this business, on topics we print.
+  const contradictedList = $derived(citationRuns(contradictedRows(view)));
   // One list, matching the screen report; the heading asserts nothing and the
   // hedge beneath it carries the claim. See `notSourcedFromSite`.
   const notSourced = $derived(notSourcedFromSite(view));
@@ -79,10 +83,11 @@
         view.sitemapUrlCount > accuracy.pagesTotal) ||
       (accuracy !== null && (view.pagesRead?.site ?? 0) > accuracy.pagesRead),
   );
-  const confirmed = $derived(
-    (accuracy?.assertions ?? []).filter((a) => a.verdict === "confirmed").length,
-  );
+  const confirmedList = $derived(confirmedRows(view));
+  const held = $derived(heldBackLines(view));
   const collision = $derived(collisionBlock(view));
+  // R8 §2: a stored row with no subject; one sentence where the statements are.
+  const rerun = $derived(hasOldRows(view));
 
   const healthProblems = $derived(healthRows(view).filter((r) => r.alert));
   const goalMissing = $derived(
@@ -157,13 +162,13 @@
   <!-- Sorted by SOURCE, never by truth — the same rule as the web report. We
        cannot know whether a claim is right; saying "the AI got this wrong"
        about something a client knows is true would discredit the page. -->
-  <!-- `accuracy &&` narrows the type; `sourceCheckHasStatements` is what
-       decides whether there is a statement to print, so this sheet and the
-       screen report cannot disagree about it. The "and at least one assertion"
-       half used to be spelled out here and nowhere else, which is how the
-       screen's lede came to promise statements this sheet knew it did not
-       have. -->
-  {#if accuracy && sourceCheckHasStatements(view)}
+  <!-- `accuracy &&` narrows the type; `sourceCheckHasRows` is the section's gate:
+       measured, and at least one row to report on. It is wider than
+       `sourceCheckHasStatements`, the lede's question: a check whose statements
+       are all withheld still prints its count, and must not promise sorted
+       statements. -->
+
+  {#if accuracy && sourceCheckHasRows(view)}
     <section>
       <h2>What AI is saying about you</h2>
       {#if collision}
@@ -172,12 +177,10 @@
           {#if collision.detail}
             <p>{collision.detail}</p>
           {/if}
-          {#if nameUnsettled(accuracy)}
-            {#if accuracy.conflation.engineQuote}
-              <p class="fix-w">
-                The AI said: &ldquo;{displayQuote(accuracy.conflation.engineQuote)}&rdquo;
-              </p>
-            {/if}
+          {#if collisionQuote(view)}
+            <p class="fix-w">
+              The AI said: &ldquo;{displayQuote(collisionQuote(view) ?? "")}&rdquo;
+            </p>
           {/if}
           {#if view.namesake}
             <p>
@@ -192,47 +195,62 @@
           <p class="note">The remedy is the first item under Our recommendations.</p>
         </div>
       {/if}
-      {#each contradictedRows as { row, citations } (row.claim + row.query)}
-        <div class="fix">
-          <p class="fix-t">
-            {row.claim}
-            <span class="answered contradicted">your site says otherwise</span>
-          </p>
-          <p class="fix-w">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
-          {#if row.siteQuote}
-            <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
-          {/if}
-          {#if citations === "show"}
-            <p class="fix-w">
-              Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
+      {#if rerun}
+        <p>{RERUN_SENTENCE}</p>
+      {:else}
+        {#each contradictedList as { row, citations }, i (i)}
+          <div class="fix">
+            <p class="fix-t">
+              The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;
+              <span class="answered contradicted">your site says otherwise</span>
             </p>
-          {:else if citations === "none"}
-            <!-- Said out loud: on paper, silence here looks exactly like the
+            {#if row.siteQuote}
+              <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+            {/if}
+            {#if citations === "show"}
+              <p class="fix-w">
+                Also read for that answer: {uniqueDomains(row.sourceDomains).join(", ")}
+              </p>
+            {:else if citations === "none"}
+              <!-- Said out loud: on paper, silence here looks exactly like the
                  row above's list continuing. Not "cited no sources": the list
                  has their own domain filtered out upstream, so empty means
                  nothing OUTSIDE their site, and an unattributable quote arrives
                  empty too. Worded identically to the screen report. -->
-            <p class="fix-w">We recorded no other sources for that answer.</p>
-          {/if}
-        </div>
-      {/each}
-      {#if notSourced.length}
-        <h3>What the AI says about you</h3>
-        <p class="note">
-          These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
-        </p>
-        <ul>
-          {#each notSourced as u (u.claim + u.query)}
-            <li>{u.claim}</li>
+              <p class="fix-w">We recorded no other sources for that answer.</p>
+            {/if}
+          </div>
+        {/each}
+        {#if notSourced.length}
+          <h3>What the AI says about you</h3>
+          <p class="note">
+            These are claims that seem not to be sourced from your site{unsourcedLead(view)}.
+          </p>
+          <ul>
+            {#each notSourced as u, i (i)}
+              <li>&ldquo;{displayQuote(u.engineQuote)}&rdquo;</li>
+            {/each}
+          </ul>
+        {/if}
+        {#each held as line (line)}
+          <p class="note">{line}</p>
+        {/each}
+        {#if confirmedList.length}
+          <h3>What your site backs up</h3>
+          {#each confirmedList as row, i (i)}
+            <div class="fix">
+              <p class="fix-t">The AI said: &ldquo;{displayQuote(row.engineQuote)}&rdquo;</p>
+              {#if row.siteQuote?.trim()}
+                <p class="fix-w">Your site says: &ldquo;{row.siteQuote}&rdquo;</p>
+              {/if}
+            </div>
           {/each}
-        </ul>
-      {/if}
-      {#if confirmed > 0}
-        <p class="note">
-          {confirmed}
-          {confirmed === 1 ? "statement" : "statements"} the assistant made
-          {confirmed === 1 ? "matches" : "match"} a passage on your own site — listed under What passes.
-        </p>
+        {/if}
+        {#if sampled}
+          <p class="fix-w">
+            {sourceCheckFootnote(view)}
+          </p>
+        {/if}
       {/if}
       {#if elsewhere.length}
         <h3>
@@ -241,11 +259,6 @@
         </h3>
         <p class="domains">
           {elsewhere.map((s) => s.domain).join(" · ")}
-        </p>
-      {/if}
-      {#if sampled}
-        <p class="fix-w">
-          {sourceCheckFootnote(view)}
         </p>
       {/if}
     </section>

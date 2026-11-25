@@ -108,6 +108,24 @@ const carriesFixAddresses = (shape: string): boolean => bitsOf(shape)[6] === "1"
  * not being tested. Everything below is built inside a test.
  */
 const rawCache = new Map<string, AuditReport>();
+/** R8: the same payload with each row given the subject the producer stores
+ *  today ("prospect"). Old payloads have none, and read as old rows. */
+const withSubjects = (raw: AuditReport): AuditReport => {
+  const acc = raw.accuracy as unknown as { data: { assertions: Record<string, unknown>[] } };
+  return {
+    ...raw,
+    accuracy: {
+      ...acc,
+      data: {
+        ...acc.data,
+        assertions: acc.data.assertions.map((a) => ({ subject: "prospect", ...a })),
+      },
+    },
+  } as unknown as AuditReport;
+};
+
+const RERUN = "We need to re-run this check for your report. Ask us for it.";
+
 const rawFor = (shape: string): AuditReport => {
   const cached = rawCache.get(shape);
   if (cached) return cached;
@@ -473,11 +491,15 @@ describe("a sitemap the crawl found", () => {
   });
 
   it("is reported as the sitemap's count, beside, not instead of, the pages we crawled", () => {
-    const raw = rawFor("adverse-blocked");
+    // R8 §2: the stored payload's rows carry no subject, so its section prints the
+    // re-run sentence (below). The count sentence is checked on the same payload
+    // with each row given the subject the producer stores today.
+    const raw = withSubjects(rawFor("adverse-blocked"));
+    const view = toReportView(raw);
     const count = at(raw, "crawl.data.sitemap.urlCount") as number;
     const crawled = at(raw, "accuracy.data.pagesTotal") as number;
     const read_ = at(raw, "accuracy.data.pagesRead") as number;
-    expect(viewFor("adverse-blocked").sitemapUrlCount).toBe(count);
+    expect(view.sitemapUrlCount).toBe(count);
     // W3 (the audit-system review, BR-07): this sentence used to read "We read
     // 3 of the 3 pages we crawled for this check; your sitemap lists 12.
     // Nothing above is reported as missing on the strength of pages we did
@@ -485,8 +507,16 @@ describe("a sitemap the crawl found", () => {
     // is now the denominator itself, and the hedge says what is true.
     expect(crawled).toBeLessThanOrEqual(count);
     const sentence = `We read ${numberWord(read_)} of your ${numberWord(count)} pages for this check. A statement listed above may be on a page we did not read.`;
-    expect(read(sourceCheck, "adverse-blocked")).toContain(sentence);
-    expect(printed("adverse-blocked")).toContain(sentence);
+    expect(words(renderText(sourceCheck, { view }))).toContain(sentence);
+    expect(words(renderText(printSheet, { data: { report: raw, overrides: {} } }))).toContain(
+      sentence,
+    );
+  });
+
+  it("an old-row payload prints the re-run sentence on both surfaces, and no count sentence", () => {
+    expect(read(sourceCheck, "adverse-blocked")).toContain(RERUN);
+    expect(printed("adverse-blocked")).toContain(RERUN);
+    expect(read(sourceCheck, "adverse-blocked")).not.toContain("pages for this check");
   });
 
   it("prints no sitemap count for a payload whose sitemap was absent", () => {
